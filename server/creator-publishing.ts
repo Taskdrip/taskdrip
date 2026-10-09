@@ -406,11 +406,11 @@ function parseList(value: any): string[] {
 
 function normalizeDesignerDocument(value: any): EbookDesignDocument | null {
   if (!value || typeof value !== "object" || value.schemaVersion !== 1) return null;
-  if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 100) return null;
+  if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 250) return null;
   const color = (candidate: any, fallback: string) => /^#[0-9a-f]{6}$/i.test(String(candidate || "")) ? String(candidate) : fallback;
   const pageKinds = new Set<EbookDesignPage["kind"]>(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "parent-guide", "coloring", "backmatter"]);
   const blockKinds = new Set(["text", "list", "art", "chapter", "contents"]);
-  const bibleScenes = new Set(["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection"]);
+  const bibleScenes = new Set(["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus", "calming-storm", "welcoming-children", "lost-sheep", "bartimaeus"]);
   const pages: EbookDesignPage[] = [];
 
   for (const rawPage of value.pages) {
@@ -938,16 +938,38 @@ export function registerCreatorPublishingRoutes(app: Express) {
         id: creatorBooks.id,
         title: creatorBooks.title,
         designerDocument: creatorBooks.designerDocument,
+        status: creatorBooks.status,
       }).from(creatorBooks).where(and(
         eq(creatorBooks.creatorId, req.user.id),
         eq(creatorBooks.title, "God’s Big Story: A Read-Aloud Bible Coloring Adventure"),
         eq(creatorBooks.genre, "Bible stories and coloring books"),
       )).limit(1);
-      if (existing) return res.json({
-        book: { id: existing.id, title: existing.title },
-        pageCount: Math.max(0, (existing.designerDocument?.pages?.length || 0) - 1),
-        alreadyExists: true,
-      });
+      if (existing) {
+        if (req.body?.replaceExisting !== true) {
+          return res.status(409).json({
+            message: "A God’s Big Story draft already exists. Confirm the upgrade to replace its manuscript and page designs.",
+          });
+        }
+        if (existing.status === "published" || existing.status === "submitted") {
+          return res.status(409).json({
+            message: "This book is submitted or published and cannot be replaced from the draft generator.",
+          });
+        }
+        const draft = createChildrenBibleColoringBook();
+        const [book] = await db.update(creatorBooks).set({
+          ...draft,
+          updatedAt: new Date(),
+        }).where(and(
+          eq(creatorBooks.id, existing.id),
+          eq(creatorBooks.creatorId, req.user.id),
+        )).returning({ id: creatorBooks.id, title: creatorBooks.title });
+        if (!book) return res.status(404).json({ message: "The existing book could not be found for upgrade." });
+        return res.json({
+          book,
+          pageCount: Math.max(0, (draft.designerDocument?.pages?.length || 0) - 1),
+          upgraded: true,
+        });
+      }
 
       const draft = createChildrenBibleColoringBook();
       const [book] = await db.insert(creatorBooks).values({

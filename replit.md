@@ -41,7 +41,7 @@ The dev server runs on port 5000.
 
 - `/creator-studio` includes an editable prompt-to-book designer, full-book generation, and PDF/EPUB/DOCX/HTML/cover exports. Publishing admins select Groq, any OpenAI-compatible endpoint, or Ollama in Creator Publishing settings.
 - Store API keys only in Replit Secrets or the deployment provider's secret-variable manager. Railway: open the service's **Variables**, set `GROQ_API_KEY` or `BOOK_AI_API_KEY` and `BOOK_AI_BASE_URL`, then redeploy. Never put keys in the AI settings form or database.
-- The built-in 16-story Bible coloring-book draft has more than 120 interior pages and includes full-color examples, so its print edition needs an appropriate color interior. All books remain editable drafts; inspect each export in the target store's current previewer and replace publication placeholders before submitting.
+- The built-in God’s Big Story draft has 20 illustrated Bible stories and 167 designed interior pages, including a read-aloud, scripture reference, family questions, an assignment, a colored example, and a matching black-line coloring page with a mini color reference. Its layered storybook illustrations include gentle motion in digital previews; print exports remain static. Choose a color print interior and inspect every export in the target store's current previewer.
 - Exports: trim-sized print-interior PDF, front-cover PNG, reflowable EPUB 3, DOCX, and standalone HTML. A KDP paperback still needs a separate full-wrap cover. Review output in the target store's previewer; the studio does not guarantee store acceptance.
 
 ## Key pages

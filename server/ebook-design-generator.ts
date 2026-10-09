@@ -15,7 +15,7 @@ const DEFAULT_BOOK_AI_MODEL = process.env.BOOK_AI_MODEL || (
   BOOK_AI_BASE_URL ? "llama3.3" : process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile"
 );
 const ART_MOTIFS = new Set<EbookArtMotif>(["botanical", "geometry", "orbit", "waves", "bible-scene"]);
-const BIBLE_SCENES = ["creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus"];
+const BIBLE_SCENES = ["creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus", "calming-storm", "welcoming-children", "lost-sheep", "bartimaeus"];
 
 export function isBookDesignAIAvailable(config?: {
   provider?: "groq" | "openai-compatible" | "ollama";

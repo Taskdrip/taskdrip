@@ -4438,9 +4438,9 @@ async function groqChat(messages2, maxTokens = 2e3) {
   const data = await res.json();
   return (data.choices?.[0]?.message?.content ?? "").trim();
 }
-function parseDelimitedResponse(text2) {
-  const subjectMatch = text2.match(/---SUBJECT---\s*([\s\S]*?)\s*---HTML---/);
-  const htmlMatch = text2.match(/---HTML---\s*([\s\S]*?)\s*---END---/);
+function parseDelimitedResponse(text3) {
+  const subjectMatch = text3.match(/---SUBJECT---\s*([\s\S]*?)\s*---HTML---/);
+  const htmlMatch = text3.match(/---HTML---\s*([\s\S]*?)\s*---END---/);
   if (!subjectMatch?.[1] || !htmlMatch?.[1]) return null;
   return {
     subject: subjectMatch[1].trim().replace(/^```(?:text)?\s*/i, "").replace(/\s*```$/, ""),
@@ -4734,16 +4734,16 @@ async function crawlHackerNews() {
   return dedup(results, "sourceId");
 }
 function passesKeywordFilter(post) {
-  const text2 = `${post.title} ${post.body}`.toLowerCase();
-  return TRIGGER_KEYWORDS.some((kw) => text2.includes(kw));
+  const text3 = `${post.title} ${post.body}`.toLowerCase();
+  return TRIGGER_KEYWORDS.some((kw) => text3.includes(kw));
 }
 async function scoreWithAI(posts2) {
   if (!posts2.length) return [];
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return posts2.map((p) => {
-      const text2 = `${p.title} ${p.body}`.toLowerCase();
-      const matched = TRIGGER_KEYWORDS.filter((kw) => text2.includes(kw));
+      const text3 = `${p.title} ${p.body}`.toLowerCase();
+      const matched = TRIGGER_KEYWORDS.filter((kw) => text3.includes(kw));
       return {
         ...p,
         relevanceScore: Math.min(100, matched.length * 15),
@@ -4810,8 +4810,8 @@ ${batchInput}`
       const scored = JSON.parse(jsonMatch[0]);
       batch.forEach((post, idx) => {
         const s = scored[idx] || {};
-        const text2 = `${post.title} ${post.body}`.toLowerCase();
-        const matched = TRIGGER_KEYWORDS.filter((kw) => text2.includes(kw));
+        const text3 = `${post.title} ${post.body}`.toLowerCase();
+        const matched = TRIGGER_KEYWORDS.filter((kw) => text3.includes(kw));
         results.push({
           ...post,
           relevanceScore: Number(s.relevanceScore ?? 50),
@@ -4825,8 +4825,8 @@ ${batchInput}`
     } catch (err) {
       console.error("[social-crawler] AI scoring error:", err?.message);
       batch.forEach((post) => {
-        const text2 = `${post.title} ${post.body}`.toLowerCase();
-        const matched = TRIGGER_KEYWORDS.filter((kw) => text2.includes(kw));
+        const text3 = `${post.title} ${post.body}`.toLowerCase();
+        const matched = TRIGGER_KEYWORDS.filter((kw) => text3.includes(kw));
         results.push({
           ...post,
           relevanceScore: Math.min(100, matched.length * 15),
@@ -6181,8 +6181,8 @@ var DatabaseStorage = class {
     }
   }
   async likePost(postId, userId) {
-    const { nanoid: nanoid4 } = await import("nanoid");
-    const id = nanoid4();
+    const { nanoid: nanoid5 } = await import("nanoid");
+    const id = nanoid5();
     await db.insert(postLikes).values({ id, postId, userId });
     await db.update(posts).set({ likeCount: sql2`${posts.likeCount} + 1` }).where(eq(posts.id, postId));
   }
@@ -7192,11 +7192,11 @@ var DatabaseStorage = class {
   async getAllPageContent() {
     return await db.select().from(pageContent).orderBy(pageContent.page, pageContent.section, pageContent.order);
   }
-  async getPageContent(page) {
-    return await db.select().from(pageContent).where(eq(pageContent.page, page)).orderBy(pageContent.section, pageContent.order);
+  async getPageContent(page2) {
+    return await db.select().from(pageContent).where(eq(pageContent.page, page2)).orderBy(pageContent.section, pageContent.order);
   }
-  async getPageContentByKey(page, section, key) {
-    const [row] = await db.select().from(pageContent).where(and(eq(pageContent.page, page), eq(pageContent.section, section), eq(pageContent.key, key)));
+  async getPageContentByKey(page2, section, key) {
+    const [row] = await db.select().from(pageContent).where(and(eq(pageContent.page, page2), eq(pageContent.section, section), eq(pageContent.key, key)));
     return row || null;
   }
   async upsertPageContent(data) {
@@ -7296,12 +7296,12 @@ var DatabaseStorage = class {
     await db.delete(siteSocialLinks).where(eq(siteSocialLinks.id, id));
   }
   // ── Spotlight Items ───────────────────────────────────────────────────────
-  async getSpotlightItems(page) {
+  async getSpotlightItems(page2) {
     const all = await db.select().from(spotlightItems).where(eq(spotlightItems.isActive, true)).orderBy(spotlightItems.sortOrder);
-    if (!page) return all;
+    if (!page2) return all;
     return all.filter((item) => {
       const pages = (item.targetPages || "").split(",").map((p) => p.trim());
-      return pages.includes("all") || pages.includes(page);
+      return pages.includes("all") || pages.includes(page2);
     });
   }
   async getAllSpotlightItems() {
@@ -7319,12 +7319,12 @@ var DatabaseStorage = class {
     await db.delete(spotlightItems).where(eq(spotlightItems.id, id));
   }
   // ── Ad Network Placements ─────────────────────────────────────────────────
-  async getAdNetworkPlacements(page, placementType) {
+  async getAdNetworkPlacements(page2, placementType) {
     let all = await db.select().from(adNetworkPlacements).where(eq(adNetworkPlacements.isActive, true));
-    if (page) {
+    if (page2) {
       all = all.filter((ad) => {
         const pages = (ad.targetPages || "all").split(",").map((p) => p.trim());
-        return pages.includes("all") || pages.includes(page);
+        return pages.includes("all") || pages.includes(page2);
       });
     }
     if (placementType) {
@@ -12021,24 +12021,24 @@ var UNSAFE_URL_PATTERNS = [
   /^data:text\/html/i,
   /\.(exe|bat|cmd|sh|ps1|msi|dll|scr|pif)(\?.*)?$/i
 ];
-function scanText(text2) {
+function scanText(text3) {
   const threats = [];
   for (const pattern of MALICIOUS_PATTERNS) {
     pattern.lastIndex = 0;
-    if (pattern.test(text2)) {
+    if (pattern.test(text3)) {
       threats.push("Malicious script or HTML injection detected");
       break;
     }
   }
   for (const pattern of SQL_PATTERNS) {
     pattern.lastIndex = 0;
-    if (pattern.test(text2)) {
+    if (pattern.test(text3)) {
       threats.push("Potential SQL injection pattern detected");
       break;
     }
   }
   const urlRegex = /https?:\/\/[^\s"'<>]+/gi;
-  const urls = text2.match(urlRegex) || [];
+  const urls = text3.match(urlRegex) || [];
   for (const url of urls) {
     for (const p of UNSAFE_URL_PATTERNS) {
       if (p.test(url)) {
@@ -12120,7 +12120,7 @@ import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import multer from "multer";
 import OpenAI3 from "openai";
-import { nanoid as nanoid2 } from "nanoid";
+import { nanoid as nanoid3 } from "nanoid";
 
 // server/ebook-design-generator.ts
 import OpenAI2 from "openai";
@@ -12140,10 +12140,15 @@ var DEFAULT_EBOOK_THEME = {
 // server/ebook-design-generator.ts
 var GROQ_API_BASE_URL = "https://api.groq.com/openai/v1";
 var BOOK_AI_BASE_URL = process.env.BOOK_AI_BASE_URL?.trim().replace(/\/+$/, "");
-var BOOK_AI_MODEL = process.env.BOOK_AI_MODEL || (BOOK_AI_BASE_URL ? "llama3.3" : process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile");
-var ART_MOTIFS = /* @__PURE__ */ new Set(["botanical", "geometry", "orbit", "waves"]);
-function isBookDesignAIAvailable() {
-  return Boolean(process.env.GROQ_API_KEY || BOOK_AI_BASE_URL);
+var DEFAULT_BOOK_AI_MODEL = process.env.BOOK_AI_MODEL || (BOOK_AI_BASE_URL ? "llama3.3" : process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile");
+var ART_MOTIFS = /* @__PURE__ */ new Set(["botanical", "geometry", "orbit", "waves", "bible-scene"]);
+var BIBLE_SCENES = ["creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus", "calming-storm", "welcoming-children", "lost-sheep", "bartimaeus"];
+function isBookDesignAIAvailable(config) {
+  const provider = config?.provider || (BOOK_AI_BASE_URL ? "openai-compatible" : "groq");
+  const endpointUrl = config?.endpointUrl || BOOK_AI_BASE_URL;
+  if (provider === "groq") return Boolean(process.env.GROQ_API_KEY);
+  if (provider === "ollama") return Boolean(endpointUrl);
+  return Boolean(endpointUrl && process.env.BOOK_AI_API_KEY);
 }
 function themeColor(value, fallback) {
   const color = String(value || "");
@@ -12159,11 +12164,11 @@ function parseModelJson(content) {
 function createPage(kind, title, blocks, chapterId) {
   return { id: nanoid(), kind, title, chapterId, blocks };
 }
-function textBlock(role, text2) {
-  return { id: nanoid(), kind: "text", role, text: text2 };
+function textBlock(role, text3) {
+  return { id: nanoid(), kind: "text", role, text: text3 };
 }
-function artBlock(motif, altText, brief) {
-  return { id: nanoid(), kind: "art", motif, altText, brief };
+function artBlock(motif, altText, brief, scene, artMode = "line") {
+  return { id: nanoid(), kind: "art", motif, altText, brief, ...scene ? { scene } : {}, ...motif === "bible-scene" ? { artMode } : {} };
 }
 function makeTheme(raw) {
   const headingFont = raw?.headingFont === "sans" ? "sans" : "serif";
@@ -12182,7 +12187,13 @@ function buildDesignerDocument(input) {
   const pages = [];
   const primaryMotif = input.planChapters[0]?.motif || "geometry";
   pages.push(createPage("cover", "Front cover", [
-    artBlock(primaryMotif, `Decorative ${primaryMotif} cover illustration`, "Editable vector cover art"),
+    artBlock(
+      input.childrenBibleBook ? "bible-scene" : primaryMotif,
+      input.childrenBibleBook ? "A welcoming Bible storybook family with friendly animals" : `Decorative ${primaryMotif} cover illustration`,
+      "Editable vector cover art",
+      input.childrenBibleBook ? "storybook-cover" : void 0,
+      input.childrenBibleBook ? "color" : "line"
+    ),
     textBlock("eyebrow", "AN ORIGINAL BOOK"),
     textBlock("title", input.title),
     ...input.subtitle ? [textBlock("subtitle", input.subtitle)] : [],
@@ -12191,7 +12202,13 @@ function buildDesignerDocument(input) {
   pages.push(createPage("title", "Title page", [
     textBlock("title", input.title),
     ...input.subtitle ? [textBlock("subtitle", input.subtitle)] : [],
-    artBlock("orbit", "Small ornamental title-page illustration"),
+    artBlock(
+      input.childrenBibleBook ? "bible-scene" : "orbit",
+      input.childrenBibleBook ? "Colorful Bible story illustration" : "Small ornamental title-page illustration",
+      void 0,
+      input.childrenBibleBook ? "storybook-cover" : void 0,
+      input.childrenBibleBook ? "color" : "line"
+    ),
     textBlock("caption", input.authorName || "Author name")
   ]));
   pages.push(createPage("copyright", "Copyright", [
@@ -12207,16 +12224,68 @@ Add publisher, edition, permissions, and ISBN details here before publication.`)
   ]));
   input.chapters.forEach((chapter, index2) => {
     const plan = input.planChapters[index2];
-    const motif = plan?.motif || (index2 % 2 ? "waves" : "botanical");
+    const motif = input.childrenBibleBook ? "bible-scene" : plan?.motif || (index2 % 2 ? "waves" : "botanical");
+    const scene = BIBLE_SCENES.includes(plan?.scene || "") ? plan.scene : BIBLE_SCENES[index2 % BIBLE_SCENES.length];
     pages.push(createPage("chapter-opening", chapter.title, [
       textBlock("eyebrow", `CHAPTER ${index2 + 1}`),
-      artBlock(motif, `${motif} illustration for ${chapter.title}`, plan?.summary),
+      artBlock(
+        motif,
+        `${motif} illustration for ${chapter.title}`,
+        plan?.summary,
+        input.childrenBibleBook ? scene : void 0
+      ),
       textBlock("title", chapter.title),
       ...plan?.summary ? [textBlock("quote", plan.summary.slice(0, 600))] : []
     ], chapter.id));
     pages.push(createPage("chapter-body", `${chapter.title} \u2014 text`, [
       { id: nanoid(), kind: "chapter", chapterId: chapter.id }
     ], chapter.id));
+    if (input.childrenBibleBook) {
+      pages.push(createPage("parent-guide", `Scripture explorer: ${chapter.title}`, [
+        textBlock("eyebrow", `OPEN THE BIBLE \xB7 STORY ${index2 + 1}`),
+        textBlock("title", "Scripture explorer"),
+        textBlock("heading", plan?.summary ? "Notice the story" : chapter.title),
+        textBlock("heading", "Bible passage (verify before use)"),
+        textBlock("body", plan?.reference || "Add and verify an appropriate Bible passage reference before publication."),
+        textBlock("caption", "This original retelling is not a Bible quotation. Read the cited passage in the translation your family prefers.")
+      ], chapter.id));
+      if (input.includeParentNotes) {
+        pages.push(createPage("parent-guide", `Read and talk: ${chapter.title}`, [
+          textBlock("eyebrow", `GROWN-UP AND CHILD \xB7 ${chapter.title}`),
+          textBlock("heading", "Talk about the story"),
+          textBlock("body", "Read the cited Bible passage in the translation your family uses. Invite your child to share what they remember and how the characters may have felt. Check story details against your preferred Bible translation before publishing. Ask: What is one kind or courageous choice in this story?"),
+          textBlock("heading", "Coloring invitation"),
+          textBlock("body", "Choose colors together and describe one detail you notice in the scene.")
+        ], chapter.id));
+      }
+      pages.push(createPage("parent-guide", `Story questions: ${chapter.title}`, [
+        textBlock("eyebrow", "STORY CHECK"),
+        textBlock("title", "Can you remember?"),
+        { id: nanoid(), kind: "list", items: [
+          `What is one important thing that happened in ${chapter.title}?`,
+          `Which choice or action helped someone in this story?`,
+          "What would you like to ask one of the characters?"
+        ] }
+      ], chapter.id));
+      pages.push(createPage("coloring", `Color guide: ${chapter.title}`, [
+        textBlock("eyebrow", `COLOR GUIDE \xB7 STORY ${index2 + 1}`),
+        textBlock("title", "A bright example"),
+        textBlock("caption", "Notice the colors and details, then make the next page your own."),
+        artBlock("bible-scene", `Colored storybook example for ${chapter.title}`, "Bright color example for young artists.", scene, "color")
+      ], chapter.id));
+      pages.push(createPage("coloring", `Coloring page: ${chapter.title}`, [
+        textBlock("eyebrow", `STORY ${index2 + 1} \xB7 COLORING PAGE`),
+        textBlock("title", chapter.title),
+        artBlock("bible-scene", `Printable black-line illustration for ${chapter.title}`, "Original vector art for children to color.", scene, "line")
+      ], chapter.id));
+      pages.push(createPage("parent-guide", `Family activity: ${chapter.title}`, [
+        textBlock("eyebrow", "TRY THIS TOGETHER"),
+        textBlock("title", "Story quest"),
+        textBlock("body", `Draw your favorite moment from ${chapter.title}. Then choose one kind or courageous action from the story and try a safe, age-appropriate version together with a trusted grown-up.`),
+        textBlock("heading", "My answer"),
+        textBlock("body", "My favorite part was:\n\n________________________________________________\n\nOne kind thing I can try:\n\n________________________________________________")
+      ], chapter.id));
+    }
   });
   pages.push(createPage("backmatter", "About the author", [
     artBlock("botanical", "Decorative author-page illustration"),
@@ -12233,21 +12302,31 @@ Add publisher, edition, permissions, and ISBN details here before publication.`)
   };
 }
 async function generateCompleteBook(input) {
-  const apiKey = process.env.BOOK_AI_API_KEY || process.env.GROQ_API_KEY || (BOOK_AI_BASE_URL ? "local-model" : "");
-  if (!apiKey) throw new Error("Configure GROQ_API_KEY or an OpenAI-compatible BOOK_AI_BASE_URL to enable book generation.");
-  const client = new OpenAI2({ apiKey, baseURL: BOOK_AI_BASE_URL || GROQ_API_BASE_URL });
+  const provider = input.aiSettings?.provider || (BOOK_AI_BASE_URL ? "openai-compatible" : "groq");
+  const endpointUrl = input.aiSettings?.endpointUrl || BOOK_AI_BASE_URL;
+  const apiKey = provider === "groq" ? process.env.GROQ_API_KEY : provider === "ollama" ? process.env.BOOK_AI_API_KEY || "ollama" : process.env.BOOK_AI_API_KEY;
+  const baseURL = provider === "groq" ? GROQ_API_BASE_URL : endpointUrl;
+  if (!apiKey || !baseURL) throw new Error("Configure an AI provider endpoint and deployment API key, or use a reachable Ollama-compatible endpoint.");
+  const client = new OpenAI2({ apiKey, baseURL });
+  const model = input.aiModel || DEFAULT_BOOK_AI_MODEL;
+  const aiSettings = input.aiSettings || {};
+  const childrenBibleBook = input.bookType === "children" && /bible|christian|faith|scripture/i.test(`${input.genre} ${input.prompt}`);
+  const studioGuidance = [aiSettings.generationPrompt, aiSettings.toolPrompts?.["complete-book"]].filter(Boolean).join("\n\n");
+  const completeBookSettings = aiSettings.toolSettings?.["complete-book"];
   await input.onProgress(4, "Designing the book outline and visual theme");
   const planning = await client.chat.completions.create({
-    model: BOOK_AI_MODEL,
-    temperature: 0.55,
-    max_tokens: 3600,
+    model,
+    temperature: completeBookSettings?.temperature ?? 0.55,
+    max_tokens: completeBookSettings?.maxTokens ?? 3600,
     response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
         content: `You are an experienced book editor and interior designer. Plan an original, useful, reader-ready book from the author's brief. Respect the exact requested chapter count. Never promise bestseller status. Do not invent studies, citations, expert credentials, legal/medical/financial advice, or quotations. Use general, clearly framed explanations where sources are not supplied. Create accessible visual design directions using only a JSON theme and motif names; never output SVG, HTML, or executable code. Respond with JSON only in this shape:
-{"title":"...","subtitle":"...","description":"...","theme":{"name":"...","primary":"#RRGGBB","accent":"#RRGGBB","paper":"#RRGGBB","text":"#RRGGBB","headingFont":"serif|sans","bodyFont":"serif|sans"},"chapters":[{"title":"...","summary":"...","motif":"botanical|geometry|orbit|waves"}]}
-The description must be reader-focused, under 3500 characters. Titles should be clear and not include unsupported claims.`
+{"title":"...","subtitle":"...","description":"...","theme":{"name":"...","primary":"#RRGGBB","accent":"#RRGGBB","paper":"#RRGGBB","text":"#RRGGBB","headingFont":"serif|sans","bodyFont":"serif|sans"},"chapters":[{"title":"...","summary":"...","reference":"verified user-supplied passage or clearly marked placeholder","motif":"botanical|geometry|orbit|waves|bible-scene","scene":"${BIBLE_SCENES.join("|")}"}]}
+${childrenBibleBook ? `For this children's Bible book, use gentle language for ages ${aiSettings.childAgeBand || "6\u20138"}. Follow only Bible passages specified by the author; never invent or fabricate a Bible reference, and never present invented dialogue as a Bible quotation. If no reference is supplied, set reference to "[Add and verify Bible passage reference]". Give each chapter one matching scene identifier from the listed options. ${aiSettings.includeParentNotes === false ? "Do not include parent-guide material." : "Make the book suitable for a child and a reading adult."}` : ""}
+The description must be reader-focused, under 3500 characters. Titles should be clear and not include unsupported claims.
+${studioGuidance}`.slice(0, 8e3)
       },
       {
         role: "user",
@@ -12258,6 +12337,7 @@ Book type: ${input.bookType}
 Reader niche: ${input.genre}
 Print trim size: ${input.trimSize}
 Target chapter count: exactly ${input.chapterCount}
+Illustration direction: ${aiSettings.illustrationStyle || "clean, accessible, editable vector art"}
 ${input.title ? `Use this working title as inspiration: ${input.title}` : ""}`
       }
     ]
@@ -12278,7 +12358,9 @@ ${input.title ? `Use this working title as inspiration: ${input.title}` : ""}`
   const planChapters = rawChapters.map((item, index2) => ({
     title: String(item.title || `Chapter ${index2 + 1}`).trim().slice(0, 180),
     summary: String(item.summary || "").trim().slice(0, 600),
-    motif: ART_MOTIFS.has(item.motif) ? item.motif : index2 % 2 ? "waves" : "geometry"
+    motif: ART_MOTIFS.has(item.motif) ? item.motif : index2 % 2 ? "waves" : "geometry",
+    ...childrenBibleBook && typeof item.reference === "string" ? { reference: item.reference.trim().slice(0, 120) } : {},
+    ...BIBLE_SCENES.includes(String(item.scene || "")) ? { scene: String(item.scene) } : {}
   }));
   const title = String(plan.title || input.title || "Untitled book").trim().slice(0, 240);
   const subtitle = String(plan.subtitle || "").trim().slice(0, 300);
@@ -12291,13 +12373,15 @@ ${input.title ? `Use this working title as inspiration: ${input.title}` : ""}`
     const percentBefore = 10 + Math.round(index2 / planChapters.length * 75);
     await input.onProgress(percentBefore, `Writing chapter ${index2 + 1} of ${planChapters.length}`);
     const chapterResponse = await client.chat.completions.create({
-      model: BOOK_AI_MODEL,
-      temperature: 0.65,
-      max_tokens: 2400,
+      model,
+      temperature: completeBookSettings?.temperature ?? 0.65,
+      max_tokens: completeBookSettings?.maxTokens ?? 2400,
       messages: [
         {
           role: "system",
-          content: `Write a complete, useful first-draft book chapter in 600\u2013800 words. This is part of an original ${input.bookType} book. Use clear section headings, readable paragraphs, and concrete examples. Follow the brief and chapter summary. Avoid repetition of other chapters. Never fabricate research, citations, quotations, expert credentials, or guaranteed results. Do not add markdown code fences. The author will review and edit the draft.`
+          content: `${childrenBibleBook ? `Write an original, gentle Bible-story retelling of about 130\u2013190 words for children ages ${aiSettings.childAgeBand || "6\u20138"}. Follow the cited passage described by the author. Never invent a Bible quotation or present invented dialogue as scripture. Avoid frightening graphic detail. ${aiSettings.includeParentNotes === false ? "" : "Finish with one short paragraph clearly labeled \u201CGrown-up note\u201D that suggests checking the passage and asking the child a gentle question."}` : `Write a complete, useful first-draft book chapter in 600\u2013800 words. This is part of an original ${input.bookType} book. Use clear section headings, readable paragraphs, and concrete examples. Follow the brief and chapter summary. Avoid repetition of other chapters. Never fabricate research, citations, quotations, expert credentials, or guaranteed results.`}
+Do not add markdown code fences. The author will review and edit the draft.
+${[aiSettings.generationPrompt, aiSettings.toolPrompts?.chapter].filter(Boolean).join("\n\n")}`.slice(0, 6e3)
         },
         {
           role: "user",
@@ -12326,9 +12410,403 @@ Purpose: ${planned.summary}`
     authorName: input.authorName,
     theme,
     chapters,
-    planChapters
+    planChapters,
+    childrenBibleBook,
+    includeParentNotes: aiSettings.includeParentNotes !== false
   });
   return { title, subtitle, description, outline, chapters, designerDocument };
+}
+
+// server/children-bible-coloring-book.ts
+import { nanoid as nanoid2 } from "nanoid";
+var stories = [
+  {
+    title: "God Makes a Wonderful World",
+    reference: "Genesis 1:1\u20132:3",
+    scene: "creation",
+    story: "Before the world had a sunrise or a song, God began creating. Light filled the darkness. God made the wide sky, dry land, sparkling seas, green plants, and fruit trees. The sun warmed the day, and the moon and stars brightened the night. Birds flew overhead and fish swam below. Animals of every kind walked, hopped, and crawled across the land. God made people, too, and gave them a beautiful world to care for. When creation was finished, God looked at it all and called it good. Every flower, creature, and person mattered.",
+    parentGuide: "Tell your child that creation is the Bible\u2019s way of describing the beginning of the world and our responsibility to care for it. Ask: Which part of nature makes you curious? How can our family care for a living thing this week?",
+    coloringPrompt: "Color the sun, garden, fish, and growing plants."
+  },
+  {
+    title: "Noah Builds an Ark",
+    reference: "Genesis 6:9\u20139:17",
+    scene: "noah",
+    story: "Noah listened carefully when God asked him to build a very large boat called an ark. His family helped gather food and make room for animals. Soon pairs of animals came aboard\u2014some waddled, some trotted, and some flew. Rain fell for many days, but the ark carried everyone safely over the water. At last the rain stopped. Noah sent out a bird, and later it returned with a fresh leaf. The family stepped onto dry land and thanked God. A rainbow appeared in the sky as a sign of God\u2019s promise. Noah\u2019s story reminds families to listen, help one another, and keep hope.",
+    parentGuide: "Point to the rainbow and explain that the story remembers God\u2019s promise to Noah. Ask: Which animal would you have liked to welcome aboard? What is one promise our family works hard to keep?",
+    coloringPrompt: "Add colors to the ark, the animal friends, and the rainbow."
+  },
+  {
+    title: "Moses Leads the People to Freedom",
+    reference: "Exodus 14:5\u201331",
+    scene: "moses",
+    story: "Moses led the Israelites away from slavery in Egypt. Their journey brought them to the sea, and the people were frightened when they saw the Egyptians coming behind them. Moses told them to be brave and trust God. The sea opened, making a path through the water. The people crossed together on dry ground, with water standing on each side like tall walls. When everyone reached safety, they celebrated that they were free. Moses had helped his people move toward a new beginning. The story is about courage, hope, and staying together when a difficult journey feels long.",
+    parentGuide: "Explain that this Bible story is about the Israelites escaping slavery and finding freedom. Ask: What helps you feel brave when something is hard? Who can help our family when we need support?",
+    coloringPrompt: "Color the safe path, the tall waves, and Moses\u2019 robe."
+  },
+  {
+    title: "David Cares for His Sheep",
+    reference: "1 Samuel 16:1\u201313; 17:32\u201350",
+    scene: "david",
+    story: "David was a young shepherd who spent long days caring for his family\u2019s sheep. He led them to grass, watched over them, and played music on his harp. One day, David heard a boastful warrior frightening the people of Israel. David remembered how God had helped him while he cared for his sheep. Instead of wearing heavy armor, he went forward with a sling and great courage. David trusted God, and the frightened people found hope again. The story shows that being young does not mean you are unable to help. Care, courage, and faithfulness can make a real difference.",
+    parentGuide: "The Bible\u2019s David and Goliath story is about courage and trust, not celebrating violence. Ask: When have you helped someone who felt afraid? Which small act of care can you do today?",
+    coloringPrompt: "Color David, his sheep, and the rolling hills."
+  },
+  {
+    title: "Daniel and the Lions",
+    reference: "Daniel 6:1\u201328",
+    scene: "daniel",
+    story: "Daniel worked as a trusted helper in the king\u2019s court. Some people were jealous and tried to get him into trouble because he prayed to God. Daniel kept praying, even when the king\u2019s new rule made it difficult. He was placed in a den with lions. The king worried through the night, but in the morning Daniel was safe. Daniel explained that God had protected him. The king was amazed and praised God. This story remembers Daniel\u2019s steady faith and the comfort he found in prayer. It also reminds us to treat others fairly, even when it would be easier to follow an unkind crowd.",
+    parentGuide: "Some Bible stories describe danger in a way that may feel intense to young children. Emphasize that Daniel was safe in this story and that children should tell a trusted adult when they feel afraid. Ask: What makes you feel peaceful?",
+    coloringPrompt: "Color Daniel and the gentle lions beside the den."
+  },
+  {
+    title: "Jonah Learns to Listen",
+    reference: "Jonah 1:1\u20134:11",
+    scene: "jonah",
+    story: "God asked Jonah to take a message to the people of Nineveh. Jonah did not want to go, so he boarded a boat traveling the other way. A great storm shook the boat, and Jonah was thrown into the sea. God sent a large fish to keep him safe. Jonah prayed from inside the fish and had time to think. After three days, the fish brought him to dry land. This time Jonah went to Nineveh and shared God\u2019s message. The people listened and chose a better way. Jonah learned that God cared for all kinds of people\u2014and Jonah still had more to learn about showing mercy.",
+    parentGuide: "The book of Jonah invites readers to think about second chances and compassion. Ask: Have you ever changed your mind and tried again? How can we show kindness to someone who is different from us?",
+    coloringPrompt: "Color Jonah, the friendly-looking great fish, and the waves."
+  },
+  {
+    title: "Ruth and Naomi Stay Together",
+    reference: "Ruth 1:1\u20134:17",
+    scene: "ruth",
+    story: "Ruth and her mother-in-law Naomi faced a very difficult time after losing people they loved. Naomi planned to return to her home in Bethlehem, but Ruth chose to go with her. In Bethlehem, Ruth gathered leftover grain so the two of them would have food. Boaz, the owner of the field, noticed Ruth\u2019s hard work and made sure she was safe. Naomi helped Ruth understand what was happening, and the family began to find hope again. Ruth\u2019s story celebrates loyalty, generosity, and the way people can care for one another. It also reminds us that small acts of kindness can help someone through a hard season.",
+    parentGuide: "Families grieve in different ways; let your child guide this conversation. Ask: Who helps you when you miss someone? What is one generous thing we could do together for a neighbor?",
+    coloringPrompt: "Color Ruth and Naomi among the grain plants."
+  },
+  {
+    title: "Esther Speaks Up",
+    reference: "Esther 2:5\u20138:17",
+    scene: "esther",
+    story: "Esther became queen in a faraway kingdom. When she learned that her people were in danger, she felt afraid\u2014but she also knew she could try to help. Esther asked her friends and family to pray, then she made a careful plan to speak with the king. She told him honestly what was happening and asked him to protect her people. The king listened. Esther\u2019s courage helped save many lives. Her story reminds readers that speaking up for someone who is being treated unfairly matters. Brave actions do not always feel easy; sometimes courage means asking trusted people for help before taking the next step.",
+    parentGuide: "Talk about using a safe voice and seeking trusted adult help when someone may be in danger. Ask: Who are the adults you trust? How can you stand up kindly when someone is left out?",
+    coloringPrompt: "Color Esther\u2019s crown, the palace, and the bright stars."
+  },
+  {
+    title: "A Night in Bethlehem",
+    reference: "Luke 2:1\u201320; Matthew 1:18\u201325",
+    scene: "nativity",
+    story: "Mary and Joseph traveled to Bethlehem, where Jesus was born. They wrapped the baby warmly and laid him in a manger because there was no guest room for them. Nearby, shepherds were watching their sheep at night. Angels brought them good news, and the shepherds hurried to find the family. They saw Mary, Joseph, and the baby just as they had been told. Then the shepherds shared the news with others. The Christmas story begins in a humble place, with a newborn welcomed by ordinary people. Christians celebrate Jesus\u2019 birth as a sign of hope, peace, and God\u2019s love for the world.",
+    parentGuide: "Families tell the Christmas story in different ways. Name each person in the picture together. Ask: How can we welcome a new person into our family, school, or community?",
+    coloringPrompt: "Color the Bethlehem star, manger, shepherds, and animals."
+  },
+  {
+    title: "Lunch for a Very Big Crowd",
+    reference: "Matthew 14:13\u201321; Mark 6:30\u201344; Luke 9:10\u201317; John 6:1\u201314",
+    scene: "feeding",
+    story: "A huge crowd came to hear Jesus teach. When evening arrived, the people were hungry and far from home. A child had five small loaves of bread and two fish. Jesus thanked God for the food and asked the helpers to share it. The disciples began passing the bread and fish from person to person. Everyone ate until they were full, and there was still food left over. The disciples gathered the extra pieces in baskets. The story shows a small lunch becoming a generous meal when people share. It reminds readers that everyone, including children, can offer something helpful to a community.",
+    parentGuide: "Ask what sharing looks like when there is not enough for everyone. Talk about sharing fairly, and include a practical example such as preparing food or supplies for someone in your community.",
+    coloringPrompt: "Color the baskets, loaves, fish, and the people sharing a meal."
+  },
+  {
+    title: "The Good Samaritan Helps",
+    reference: "Luke 10:25\u201337",
+    scene: "samaritan",
+    story: "Jesus told a story about a traveler who was hurt on the road. A priest and another traveler passed by, but neither stopped. Then a Samaritan\u2014a person from a group often treated as an outsider\u2014paused to help. He cared for the injured traveler, lifted him onto his animal, and took him somewhere safe. He even paid for the traveler\u2019s care. Jesus asked which person had acted like a neighbor. The answer was the one who showed mercy. The story teaches that a neighbor is someone we choose to treat with kindness. It encourages us to notice people who need help and to find a safe way to help them.",
+    parentGuide: "Make safety part of the lesson: children should get a trusted adult instead of approaching an unsafe situation alone. Ask: Who could you tell if someone nearby needed help?",
+    coloringPrompt: "Color the travelers, donkey, and the road to safety."
+  },
+  {
+    title: "A New Morning",
+    reference: "Luke 23:44\u201324:12; John 20:1\u201318",
+    scene: "resurrection",
+    story: "The friends of Jesus were very sad after he died. Early one morning, some women went to the tomb where he had been laid. The stone at the entrance had been moved, and the tomb was empty. They heard the good news that Jesus was alive. The women hurried to tell the others. At first, some people did not understand what had happened, but hope began to grow as they shared the news. Christians remember this as the story of Jesus\u2019 resurrection and celebrate it at Easter. The empty tomb is a sign of new life and hope. When sadness feels heavy, families can remember that it is okay to seek comfort and support.",
+    parentGuide: "This story touches on death and grief. Explain it using words that fit your family\u2019s beliefs and your child\u2019s age. Reassure your child they can ask questions or talk about their feelings with a trusted adult.",
+    coloringPrompt: "Color the garden, flowers, sunrise, and open tomb."
+  },
+  {
+    title: "Abraham Counts the Stars",
+    reference: "Genesis 12:1\u20139; 15:1\u20136",
+    scene: "abraham",
+    story: "God called Abraham to leave his home and travel to a new land. Abraham and Sarah packed for a long journey, though the Bible does not tell us whether they argued about who packed the tent ropes. God promised Abraham a family as numerous as the stars. One night Abraham looked up at the dark sky and tried to count them. He soon had far too many stars to keep track of. Abraham trusted God's promise, even while he was still waiting. His story invites us to be hopeful, patient, and ready to take a brave next step.",
+    parentGuide: "Explain that Abraham and Sarah trusted God during a long journey and a long wait. Ask: What helps you when you have to be patient? What is one brave new thing you would like to try with a grown-up?",
+    coloringPrompt: "Color Abraham, the tent, and the night sky full of stars."
+  },
+  {
+    title: "Joseph Chooses Forgiveness",
+    reference: "Genesis 37; 45:1\u201315; 50:15\u201321",
+    scene: "joseph",
+    story: "Joseph's brothers treated him unfairly and sent him far from home. Years later, Joseph became a leader in Egypt and helped store food before a famine. When his brothers arrived looking for food, Joseph recognized them. They were frightened, but Joseph chose to forgive them and help the whole family. Forgiving did not mean pretending the hurt never happened; it meant choosing a path toward safety and a new beginning. Joseph's story has twists worthy of a whole stack of scrolls, and it reminds us that people can change and families can repair relationships.",
+    parentGuide: "Forgiveness can take time and does not mean a child must stay near someone unsafe. Ask: How can we repair a small hurt? Which trusted grown-up can help when a problem is too big to solve alone?",
+    coloringPrompt: "Color Joseph's coat, the grain baskets, and the family meeting again."
+  },
+  {
+    title: "Samuel Hears a Call",
+    reference: "1 Samuel 3:1\u201321",
+    scene: "samuel",
+    story: "Samuel was a boy helping Eli at the place of worship. One night Samuel heard someone call his name. He hurried to Eli, who said he had not called. It happened again\u2014and again\u2014until Eli realized that God was calling Samuel. Eli helped Samuel listen and answer. Samuel learned that listening carefully can be the first step toward helping others. It was a very busy night for a boy who probably thought bedtime had already been settled!",
+    parentGuide: "Tell the story as a lesson about listening, not as a frightening voice in the dark. Ask: When is listening important? Which kind adults help you make sense of a difficult situation?",
+    coloringPrompt: "Color Samuel's lamp, the quiet room, and Eli helping him listen."
+  },
+  {
+    title: "Zacchaeus Finds a Better Way",
+    reference: "Luke 19:1\u201310",
+    scene: "zacchaeus",
+    story: "Zacchaeus was a tax collector who had treated people unfairly. When Jesus came to town, Zacchaeus was too short to see over the crowd, so he climbed a tree. Jesus spotted him and invited himself to Zacchaeus's house. The crowd grumbled, but Zacchaeus listened. He promised to repay people he had cheated and to share what he had. His choices showed that he wanted to make things right. Zacchaeus came down from the tree with more than a good view: he had a chance to begin again.",
+    parentGuide: "Focus on taking responsibility and making harm right with help from a trusted adult. Ask: What can we do after making a mistake? How can we share fairly?",
+    coloringPrompt: "Color Zacchaeus in the tree, the welcoming crowd, and Jesus nearby."
+  },
+  {
+    title: "Jesus Calms the Storm",
+    reference: "Mark 4:35\u201341",
+    scene: "calming-storm",
+    story: "Jesus and his friends set out across the lake in a boat. Jesus was so tired that he fell asleep while a storm tossed the waves around them. The disciples woke him, worried the boat might sink. Jesus spoke, and the wind quieted. The water settled, too. His friends stared at the suddenly peaceful lake and wondered who could command even wind and waves. The story is about trust when fear feels loud. And if you have ever tried to nap during a thunderstorm, you know Jesus was either very tired\u2014or had mastered the world\u2019s most impressive pillow.",
+    parentGuide: "The story offers a way to talk about fear and comfort. Do not promise children that every frightening situation will disappear; instead, help them name a trusted adult and a safe next step. Ask: What helps you feel supported when you are worried?",
+    coloringPrompt: "Color the boat, calm water, bright sail, and relieved friends."
+  },
+  {
+    title: "Jesus Welcomes the Children",
+    reference: "Mark 10:13\u201316",
+    scene: "welcoming-children",
+    story: "Families brought children to Jesus, hoping he would bless them. The disciples tried to send the children away, but Jesus told them to let the children come. He welcomed them and treated them as important members of the crowd. No one was too young to be noticed or loved. Imagine the children leaning in to hear him, while the grown-ups made room. This story reminds us that children belong, their questions matter, and kindness should never come with a height requirement.",
+    parentGuide: "Affirm that children deserve respect, care, and a safe voice. Ask: When has someone made you feel welcome? How can our family help a new child feel included?",
+    coloringPrompt: "Color Jesus, the children, and the welcoming circle of families."
+  },
+  {
+    title: "The Lost Sheep",
+    reference: "Luke 15:1\u20137",
+    scene: "lost-sheep",
+    story: "Jesus told about a shepherd who had one hundred sheep. When one wandered away, the shepherd went looking until he found it. Then he carried the sheep home and celebrated with friends. The point was not that the other sheep stopped mattering; the story pictures the joy of finding someone who was missing. The little sheep may have been an expert at hiding behind very small bushes. The shepherd kept looking anyway. Jesus used the story to show how much every person matters.",
+    parentGuide: "Explain that this is a story Jesus told to help people understand care and joy. Keep the focus on welcome and belonging. Ask: How can we help someone feel included if they are left out?",
+    coloringPrompt: "Color the shepherd, the found sheep, and the green hillside."
+  },
+  {
+    title: "Bartimaeus Sees a New Day",
+    reference: "Mark 10:46\u201352",
+    scene: "bartimaeus",
+    story: "Bartimaeus was blind and sat beside the road asking for help. When he heard that Jesus was passing by, he called out. Some people told him to be quiet, but Bartimaeus kept calling. Jesus stopped and asked what he wanted. Bartimaeus asked to see, and Jesus healed him. He could see\u2014and he chose to follow Jesus along the road. This story highlights listening, dignity, and a person being heard. Bartimaeus did not need a louder megaphone; he needed people to stop and pay attention.",
+    parentGuide: "Talk about disability with respect: a person is never less valuable because of a disability. Ask: What does it look like to listen when someone says what they need? How can we make room for everyone?",
+    coloringPrompt: "Color Bartimaeus, the roadside, and the welcoming crowd."
+  }
+];
+var storyWinks = [
+  "The birds had front-row seats, and every one of them seemed to have an opinion.",
+  "Two-by-two boarding is easier when the penguins remember to take turns.",
+  "That was one sea crossing with absolutely no bridge toll.",
+  "David's sheep may have been his smallest\u2014and fluffiest\u2014cheering section.",
+  "The lions were impressive, but Daniel stayed calm and kept praying.",
+  "That was quite a fish story, and Jonah had the sea-splashed details.",
+  "Ruth gathered grain one careful handful at a time; no combine harvester required.",
+  "Esther planned her words carefully\u2014no royal speech written on a napkin at the last minute.",
+  "The shepherds made a night visit that was much more exciting than counting sheep.",
+  "The baskets went home fuller than the lunch bags had started.",
+  "The Samaritan was a neighbor in action, with excellent roadside manners.",
+  "The early morning garden visit brought news bigger than the sunrise.",
+  "Abraham soon discovered that counting stars is a very long bedtime activity.",
+  "Joseph's story had so many turns it could fill a whole shelf of scrolls.",
+  "Samuel made several nighttime trips before the message finally made sense.",
+  "Zacchaeus found a high seat in the tree and a fresh start on the ground.",
+  "The storm stopped making a racket, and the lake got its quiet voice back.",
+  "Jesus made room for children; no invitation needed a grown-up signature.",
+  "The shepherd searched until the sheep was found\u2014hide-and-seek champion, meet determined shepherd.",
+  "Bartimaeus kept calling until someone truly listened. That is a voice with excellent persistence."
+];
+var storyQuestions = [
+  ["What did God make first in the story?", "Which part of creation would you most like to explore?", "How can your family care for plants or animals?"],
+  ["Who helped Noah get the ark ready?", "What sign appeared after the rain?", "How can we help someone who is preparing for a big job?"],
+  ["How did the people cross the sea?", "What helped them keep going when they felt afraid?", "Who can help you when a challenge feels too big?"],
+  ["What kind of work did David do before meeting Goliath?", "What gave David courage?", "Name one small way a child can help today."],
+  ["What did Daniel keep doing even when it was difficult?", "How did the king feel when he learned Daniel was safe?", "What helps you feel calm when you are worried?"],
+  ["Where did Jonah go when he tried to travel the other way?", "What did Jonah do while he was inside the great fish?", "When have you tried again after a mistake?"],
+  ["Why did Ruth travel with Naomi?", "How did Ruth help her family?", "What is one generous thing you can do this week?"],
+  ["What did Esther do when her people needed help?", "Who helped Esther prepare?", "How can you safely speak up for someone?"],
+  ["Who heard the good news about Jesus' birth?", "Where did the shepherds go?", "How can you welcome someone new?"],
+  ["What food did the child share?", "What did the disciples do with the food?", "What can you share fairly with others?"],
+  ["Who stopped to help the injured traveler?", "What did the Samaritan do to care for him?", "Who should a child ask for help in an unsafe situation?"],
+  ["Who visited the tomb early in the morning?", "What hopeful news did they hear?", "Who can comfort you when you feel sad?"],
+  ["What promise did God make to Abraham?", "What did Abraham see when he looked up at night?", "What helps you while you wait for something important?"],
+  ["What did Joseph do when his brothers came to Egypt?", "How did Joseph help his family?", "What can help people repair a hurt?"],
+  ["Who helped Samuel understand the call?", "What did Samuel learn to do?", "How can careful listening help someone else?"],
+  ["Where did Zacchaeus climb to see Jesus?", "What did Zacchaeus promise to change?", "What is one way to make something right after a mistake?"],
+  ["What happened to the wind and waves?", "How did the disciples feel during the storm?", "Who helps you when you feel worried?"],
+  ["Who did Jesus welcome?", "How did Jesus show the children they mattered?", "How can you welcome someone new?"],
+  ["How many sheep did the shepherd have?", "What did the shepherd do when one was missing?", "What helps someone feel included?"],
+  ["What did Bartimaeus ask Jesus for?", "Why did he keep calling out?", "How can we listen respectfully to someone\u2019s needs?"]
+];
+var familyActivities = [
+  "Take a short nature walk and draw one living thing you want to care for.",
+  "Make a paper ark and draw two favorite animal friends beside it.",
+  "Create a safe-path picture using blue paper and talk about a time you felt brave.",
+  "Draw a sheep and write one kind or courageous thing you can do.",
+  "Practice a calm breathing count together, then draw what helps you feel peaceful.",
+  "Make a three-part picture: a wrong turn, a second chance, and a kind choice.",
+  "Draw two hands helping someone and choose one small helpful action for today.",
+  "Make a paper crown and write the name of a trusted adult you can ask for help.",
+  "Draw a welcome card for someone new to your family, class, or community.",
+  "Draw a basket and fill it with pictures of things people can share.",
+  "Make a neighbor-helping plan with a trusted grown-up.",
+  "Draw a sunrise and name one person who can comfort you when you feel sad.",
+  "Make a star map with five stars and tell a grown-up one thing you are patiently waiting for.",
+  "Draw a bridge between two people and write one safe way they could begin to make peace.",
+  "Play a listening game: take turns repeating one kind thing the other person said.",
+  "Draw a tree with a ladder and write one fair choice Zacchaeus could make today.",
+  "Draw two weather pictures: a stormy feeling and a calm feeling. Add one safe way to ask for help.",
+  "Make a paper welcome sign for a child joining your family, class, or group.",
+  "Draw a flock of sheep and circle one way your family can help someone feel included.",
+  "Take turns practicing a respectful question: \u201CWhat would help you feel included?\u201D"
+];
+function text2(id, role, value) {
+  return { id, kind: "text", role, text: value };
+}
+function art(id, scene, altText, artMode = "line") {
+  return {
+    id,
+    kind: "art",
+    motif: "bible-scene",
+    scene,
+    artMode,
+    altText,
+    brief: artMode === "line" ? "Original black-line illustration for young artists to color." : "Original, colorful storybook illustration."
+  };
+}
+function page(kind, title, blocks, chapterId) {
+  return { id: nanoid2(), kind, title, chapterId, blocks };
+}
+function createChildrenBibleColoringBook() {
+  const chapters = stories.map((story) => ({
+    id: nanoid2(),
+    title: story.title,
+    content: `${story.reference}
+
+${story.story}
+
+${storyWinks[stories.indexOf(story)]}`
+  }));
+  const pages = [
+    page("cover", "Front cover", [
+      art("cover-family", "storybook-cover", "A welcoming Bible storybook family with sheep", "color"),
+      text2("cover-eyebrow", "eyebrow", "A READ-ALOUD AND COLORING ADVENTURE"),
+      text2("cover-title", "title", "God\u2019s Big Story"),
+      text2("cover-subtitle", "subtitle", "20 Bible Stories to Read, Talk About, and Color"),
+      text2("cover-author", "caption", "A Family Story and Coloring Book")
+    ]),
+    page("title", "Title page", [
+      text2("title-main", "title", "God\u2019s Big Story"),
+      text2("title-subtitle", "subtitle", "20 Bible Stories to Read, Talk About, and Color"),
+      art("title-art", "storybook-cover", "Children, a lamb, and a bright star", "color"),
+      text2("title-caption", "caption", "For children and the grown-ups who read with them")
+    ]),
+    page("copyright", "Copyright and family note", [
+      text2("copyright-heading", "heading", "About this book"),
+      text2("copyright-note", "body", "This book contains original child-friendly retellings and original layered vector illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family\u2019s own faith tradition or trusted spiritual leaders.\n\nCopyright \xA9 [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing.")
+    ]),
+    page("backmatter", "How to use this book", [
+      text2("how-heading", "heading", "Read. Talk. Color."),
+      text2("how-body", "body", "Each of these 20 stories has a lively read-aloud retelling, a Bible passage reference, an illustrated story opener, a grown-up guide, questions, a hands-on assignment, a bright color example, and a black-line coloring page with a matching mini color reference. Read at your child\u2019s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe designed interior is 8.5 \xD7 11 inches with no bleed. Because it includes full-color art, select a KDP color-interior option; a black-and-white edition requires removing or converting those example pages and rechecking the exported file. Before publication, replace author and copyright placeholders, add a valid ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in KDP Print Previewer. Store specifications can change; confirm current specifications in the target store\u2019s current setup and preview tools.")
+    ]),
+    page("contents", "Story index", [
+      text2("contents-heading", "heading", "The stories"),
+      { id: "contents-list", kind: "contents" }
+    ])
+  ];
+  stories.forEach((story, index2) => {
+    const chapter = chapters[index2];
+    const storyNumber = String(index2 + 1).padStart(2, "0");
+    pages.push(page("chapter-opening", story.title, [
+      text2(`story-${index2}-label`, "eyebrow", `STORY ${storyNumber} \xB7 ${story.reference}`),
+      art(`story-${index2}-small-art`, story.scene, `A bright, layered cartoon scene for ${story.title}`, "color"),
+      text2(`story-${index2}-title`, "title", story.title),
+      text2(`story-${index2}-invitation`, "caption", "Read, explore, answer, and color this story together.")
+    ], chapter.id));
+    pages.push(page("chapter-body", `Read: ${story.title}`, [
+      text2(`story-${index2}-reference`, "eyebrow", `READ ALOUD \xB7 ${story.reference}`),
+      { id: `story-${index2}-manuscript`, kind: "chapter", chapterId: chapter.id }
+    ], chapter.id));
+    pages.push(page("parent-guide", `Parent guide: ${story.title}`, [
+      text2(`scripture-${index2}-eyebrow`, "eyebrow", `OPEN THE BIBLE \xB7 STORY ${storyNumber}`),
+      text2(`scripture-${index2}-title`, "title", "Scripture explorer"),
+      text2(`scripture-${index2}-reference`, "heading", story.reference),
+      text2(`scripture-${index2}-body`, "body", "Read this passage in the Bible translation your family uses. This book retells the story in original words; it does not reproduce a Bible translation. Look for a detail that matches the picture and a detail you had not noticed before."),
+      text2(`scripture-${index2}-note`, "caption", "Grown-ups: check the retelling against your preferred Bible translation before sharing.")
+    ], chapter.id));
+    pages.push(page("parent-guide", `Talk together: ${story.title}`, [
+      text2(`guide-${index2}-eyebrow`, "eyebrow", "GROWN-UP AND CHILD"),
+      text2(`guide-${index2}-title`, "title", "Talk about the story"),
+      text2(`guide-${index2}-body`, "body", story.parentGuide),
+      text2(`guide-${index2}-prompt`, "heading", "Wonder together"),
+      { id: `guide-${index2}-questions`, kind: "list", items: storyQuestions[index2] }
+    ], chapter.id));
+    pages.push(page("coloring", `Color: ${story.title}`, [
+      text2(`example-${index2}-eyebrow`, "eyebrow", `COLOR GUIDE \xB7 STORY ${storyNumber}`),
+      text2(`example-${index2}-title`, "title", "A bright example"),
+      text2(`example-${index2}-instruction`, "caption", `${story.coloringPrompt} Try your own colors on the next page.`),
+      art(`example-${index2}-art`, story.scene, `Colored storybook example for ${story.title}`, "color"),
+      text2(`example-${index2}-tip`, "caption", "Notice the warm highlights and cool shadows, then make the scene your own.")
+    ], chapter.id));
+    pages.push(page("coloring", `Coloring page: ${story.title}`, [
+      text2(`color-${index2}-eyebrow`, "eyebrow", `YOUR TURN \xB7 STORY ${storyNumber}`),
+      text2(`color-${index2}-title`, "title", story.title),
+      text2(`color-${index2}-instruction`, "caption", `${story.coloringPrompt} Use the mini color example as a guide, then make the scene your own.`),
+      art(`color-${index2}-reference-art`, story.scene, `Small colored reference example for ${story.title}`, "color"),
+      art(`color-${index2}-page-art`, story.scene, `Full-page black-line coloring illustration: ${story.coloringPrompt}`)
+    ], chapter.id));
+    pages.push(page("parent-guide", `Story quest: ${story.title}`, [
+      text2(`quest-${index2}-eyebrow`, "eyebrow", "STORY CHECK AND ACTIVITY"),
+      text2(`quest-${index2}-title`, "title", "Can you remember?"),
+      { id: `quest-${index2}-questions`, kind: "list", items: storyQuestions[index2] },
+      text2(`quest-${index2}-activity-heading`, "heading", "Your story assignment"),
+      text2(`quest-${index2}-activity`, "body", familyActivities[index2]),
+      text2(`quest-${index2}-note`, "caption", "A grown-up can read the questions aloud and write down the child\u2019s answers.")
+    ], chapter.id));
+    pages.push(page("backmatter", `My story response: ${story.title}`, [
+      text2(`response-${index2}-eyebrow`, "eyebrow", `MY STORYBOOK \xB7 STORY ${storyNumber}`),
+      text2(`response-${index2}-title`, "title", "My story response"),
+      text2(`response-${index2}-prompt`, "body", `Draw your favorite part of ${story.title} in the space below. Then tell a grown-up one thing you learned or wondered about.`),
+      text2(`response-${index2}-lines`, "body", "My favorite part:\n\n________________________________________________\n\nOne kind or brave thing I can try:\n\n________________________________________________")
+    ], chapter.id));
+  });
+  pages.push(page("backmatter", "Story map", [
+    text2("story-map-heading", "heading", "Keep exploring"),
+    text2("story-map-body", "body", "These stories span creation, courage, kindness, forgiveness, hope, and new beginnings. Use the scripture references to read the passages in the Bible translation your family prefers. The retellings are original summaries, not quotations."),
+    { id: "story-map-list", kind: "list", items: stories.map((story) => `${story.title} \xB7 ${story.reference}`) }
+  ]));
+  pages.push(page("backmatter", "A note to the grown-ups", [
+    text2("grownups-heading", "heading", "Keep the conversation going"),
+    text2("grownups-body", "body", "Thank you for reading, wondering, and creating together. Children may ask questions that do not have easy answers. Listening closely, making room for feelings, and exploring a Bible story together can be meaningful ways to keep talking.\n\nBefore this book is published, replace the placeholder copyright details, add accurate author or publisher information and an ISBN if required, and review every page and illustration. Print requirements change; confirm current specifications in the KDP setup and preview tools.")
+  ]));
+  pages.push(page("backmatter", "My storybook notes", [
+    text2("notes-heading", "heading", "My favorite story"),
+    text2("notes-body", "body", "The story I want to remember is:\n\n________________________________________________\n\nMy favorite character is:\n\n________________________________________________\n\nOne kind or brave thing I can try:\n\n________________________________________________")
+  ]));
+  const designerDocument = {
+    schemaVersion: 1,
+    prompt: "Original, age-appropriate, read-aloud Bible story and coloring book with 20 gently humorous retellings, scripture references, illustrated openers, parent conversation guides, story questions, child assignments, colored examples, and printable high-contrast black-line illustrations with mini color references. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
+    theme: {
+      ...DEFAULT_EBOOK_THEME,
+      name: "Bright storybook",
+      primary: "#145d72",
+      accent: "#f2ad35",
+      paper: "#fff9e8",
+      text: "#273746",
+      headingFont: "sans",
+      bodyFont: "sans"
+    },
+    pages
+  };
+  return {
+    title: "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure",
+    subtitle: "20 Bible Stories to Read, Talk About, and Color",
+    bookType: "children",
+    genre: "Bible stories and coloring books",
+    trimSize: "8.5x11",
+    idea: "An illustrated, read-aloud Bible story and coloring book with 20 warm, gently humorous retellings, scripture references, parent read-aloud notes, questions, child assignments, dimensional color examples, and printable high-contrast scenes.",
+    description: "Read together, laugh together, talk about the story, and color twenty original Bible-inspired scenes. Every story includes an illustrated opener, an original read-aloud retelling, its Bible reference, a parent conversation guide, child-friendly questions, a hands-on assignment, a layered-color example, and a matching black-line coloring page with a mini example. Trim size: 8.5 \xD7 11 inches. Review the editable draft and all publication details before printing.",
+    outline: stories.map((story) => `${story.title} \u2014 ${story.reference}`),
+    chapters,
+    kdpKeywords: [
+      "Bible stories coloring book for kids",
+      "Christian coloring book children",
+      "read aloud Bible stories family",
+      "faith activities for children",
+      "Sunday school coloring pages",
+      "parent child Bible activities",
+      "Bible story art for kids"
+    ],
+    designerDocument,
+    status: "editing"
+  };
 }
 
 // server/creator-publishing.ts
@@ -12338,14 +12816,95 @@ var PRIVATE_STUDIO_PAYMENT_DIR = path.resolve(process.cwd(), ".private-studio-pa
 mkdirSync(PRIVATE_STUDIO_PAYMENT_DIR, { recursive: true });
 var GROQ_API_BASE_URL2 = "https://api.groq.com/openai/v1";
 var GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
-function createGroqClient() {
-  const apiKey = process.env.GROQ_API_KEY;
-  return apiKey ? new OpenAI3({ apiKey, baseURL: GROQ_API_BASE_URL2 }) : null;
+var BOOK_AI_BASE_URL2 = process.env.BOOK_AI_BASE_URL?.trim().replace(/\/+$/, "");
+var DEFAULT_STUDIO_TOOL_PROMPTS = {
+  "complete-book": "",
+  outline: "",
+  chapter: "",
+  metadata: "",
+  "writing-assistant": ""
+};
+var DEFAULT_STUDIO_TOOL_SETTINGS = {
+  "complete-book": { temperature: 0.55, maxTokens: 3600 },
+  outline: { temperature: 0.6, maxTokens: 2400 },
+  chapter: { temperature: 0.7, maxTokens: 2400 },
+  metadata: { temperature: 0.65, maxTokens: 2400 },
+  "writing-assistant": { temperature: 0.7, maxTokens: 2400 }
+};
+var DEFAULT_CREATOR_STUDIO_AI_CONTROLS = {
+  defaultChapterCount: 6,
+  childAgeBand: "6\u20138",
+  includeParentNotes: true,
+  illustrationStyle: "Original, print-friendly vector illustrations; black-line artwork on coloring pages.",
+  generationPrompt: "Keep all writing original, accurate to cited source material, clear for the chosen reader, and ready for human review before publication.",
+  toolPrompts: DEFAULT_STUDIO_TOOL_PROMPTS,
+  toolSettings: DEFAULT_STUDIO_TOOL_SETTINGS
+};
+function normalizeCreatorStudioAIControls(input) {
+  const chapterCount = Number(input?.defaultChapterCount);
+  const allowedChapters = [4, 6, 8, 10, 12, 16, 20];
+  const clean = (value, fallback, limit) => String(value ?? fallback).trim().slice(0, limit);
+  const inputPrompts = input?.toolPrompts && typeof input.toolPrompts === "object" ? input.toolPrompts : {};
+  const inputToolSettings = input?.toolSettings && typeof input.toolSettings === "object" ? input.toolSettings : {};
+  const normalizeToolSettings = (key) => {
+    const raw = inputToolSettings[key] && typeof inputToolSettings[key] === "object" ? inputToolSettings[key] : {};
+    const defaults = DEFAULT_STUDIO_TOOL_SETTINGS[key];
+    const temperature = Number(raw.temperature);
+    const maxTokens = Number(raw.maxTokens);
+    return {
+      temperature: Number.isFinite(temperature) ? Math.min(2, Math.max(0, temperature)) : defaults.temperature,
+      maxTokens: Number.isFinite(maxTokens) ? Math.min(8e3, Math.max(512, Math.round(maxTokens))) : defaults.maxTokens
+    };
+  };
+  return {
+    defaultChapterCount: allowedChapters.includes(chapterCount) ? chapterCount : DEFAULT_CREATOR_STUDIO_AI_CONTROLS.defaultChapterCount,
+    childAgeBand: ["3\u20135", "6\u20138", "9\u201312"].includes(String(input?.childAgeBand)) ? String(input.childAgeBand) : DEFAULT_CREATOR_STUDIO_AI_CONTROLS.childAgeBand,
+    includeParentNotes: input?.includeParentNotes !== false,
+    illustrationStyle: clean(input?.illustrationStyle, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.illustrationStyle, 300),
+    generationPrompt: clean(input?.generationPrompt, DEFAULT_CREATOR_STUDIO_AI_CONTROLS.generationPrompt, 2e3),
+    toolPrompts: {
+      "complete-book": clean(inputPrompts["complete-book"], "", 2e3),
+      outline: clean(inputPrompts.outline, "", 2e3),
+      chapter: clean(inputPrompts.chapter, "", 2e3),
+      metadata: clean(inputPrompts.metadata, "", 2e3),
+      "writing-assistant": clean(inputPrompts["writing-assistant"], "", 2e3)
+    },
+    toolSettings: {
+      "complete-book": normalizeToolSettings("complete-book"),
+      outline: normalizeToolSettings("outline"),
+      chapter: normalizeToolSettings("chapter"),
+      metadata: normalizeToolSettings("metadata"),
+      "writing-assistant": normalizeToolSettings("writing-assistant")
+    }
+  };
+}
+async function getCreatorStudioAIConfig() {
+  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_ai_settings")).limit(1);
+  let saved = {};
+  try {
+    saved = JSON.parse(row?.value || "{}");
+  } catch {
+  }
+  const provider = ["groq", "openai-compatible", "ollama"].includes(saved.provider) ? saved.provider : BOOK_AI_BASE_URL2 ? "openai-compatible" : "groq";
+  const endpointUrl = String(saved.endpointUrl || BOOK_AI_BASE_URL2 || "").trim().replace(/\/+$/, "").slice(0, 500);
+  const model = String(saved.model || process.env.BOOK_AI_MODEL || GROQ_TEXT_MODEL).trim().slice(0, 120);
+  return {
+    provider,
+    endpointUrl,
+    model,
+    aiAvailable: provider === "groq" ? Boolean(process.env.GROQ_API_KEY) : provider === "ollama" ? Boolean(endpointUrl) : Boolean(endpointUrl && process.env.BOOK_AI_API_KEY),
+    settings: normalizeCreatorStudioAIControls(saved.settings)
+  };
+}
+function createStudioAIClient(model = GROQ_TEXT_MODEL, provider = BOOK_AI_BASE_URL2 ? "openai-compatible" : "groq", endpointUrl = "") {
+  const baseURL = provider === "groq" ? GROQ_API_BASE_URL2 : endpointUrl || BOOK_AI_BASE_URL2;
+  const apiKey = provider === "groq" ? process.env.GROQ_API_KEY : provider === "ollama" ? process.env.BOOK_AI_API_KEY || "ollama" : process.env.BOOK_AI_API_KEY;
+  return apiKey && baseURL ? { client: new OpenAI3({ apiKey, baseURL }), model } : null;
 }
 function groqUnavailableResponse(action) {
   return {
     code: "AI_PROVIDER_NOT_CONFIGURED",
-    message: `AI ${action} is unavailable until GROQ_API_KEY is configured in Replit Secrets.`
+    message: `AI ${action} is unavailable. Configure the provider's endpoint and add its API key as a deployment variable; Ollama can use a reachable compatible endpoint without a key.`
   };
 }
 var ALLOWED_FILE_EXTENSIONS = /* @__PURE__ */ new Set([
@@ -12373,7 +12932,7 @@ var privateProductUpload = multer({
     destination: (_req, _file, cb) => cb(null, PRIVATE_PRODUCT_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname || "").toLowerCase();
-      cb(null, `${nanoid2()}${ext}`);
+      cb(null, `${nanoid3()}${ext}`);
     }
   }),
   limits: { fileSize: 100 * 1024 * 1024 },
@@ -12390,7 +12949,7 @@ var studioPaymentProofUpload = multer({
     destination: (_req, _file, cb) => cb(null, PRIVATE_STUDIO_PAYMENT_DIR),
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname || "").toLowerCase();
-      cb(null, `${nanoid2()}${ext}`);
+      cb(null, `${nanoid3()}${ext}`);
     }
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -12560,17 +13119,18 @@ function parseList(value) {
 }
 function normalizeDesignerDocument(value) {
   if (!value || typeof value !== "object" || value.schemaVersion !== 1) return null;
-  if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 100) return null;
+  if (!Array.isArray(value.pages) || value.pages.length < 1 || value.pages.length > 250) return null;
   const color = (candidate, fallback) => /^#[0-9a-f]{6}$/i.test(String(candidate || "")) ? String(candidate) : fallback;
-  const pageKinds = /* @__PURE__ */ new Set(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "backmatter"]);
+  const pageKinds = /* @__PURE__ */ new Set(["cover", "title", "copyright", "contents", "chapter-opening", "chapter-body", "parent-guide", "coloring", "backmatter"]);
   const blockKinds = /* @__PURE__ */ new Set(["text", "list", "art", "chapter", "contents"]);
+  const bibleScenes = /* @__PURE__ */ new Set(["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus", "calming-storm", "welcoming-children", "lost-sheep", "bartimaeus"]);
   const pages = [];
   for (const rawPage of value.pages) {
     if (!rawPage || !pageKinds.has(rawPage.kind) || !Array.isArray(rawPage.blocks) || rawPage.blocks.length > 50) return null;
     const blocks = [];
     for (const rawBlock of rawPage.blocks) {
       if (!rawBlock || !blockKinds.has(rawBlock.kind)) return null;
-      const id = String(rawBlock.id || nanoid2()).slice(0, 80);
+      const id = String(rawBlock.id || nanoid3()).slice(0, 80);
       if (rawBlock.kind === "text") {
         const role = String(rawBlock.role || "");
         if (!["eyebrow", "title", "subtitle", "heading", "body", "quote", "caption"].includes(role)) return null;
@@ -12580,13 +13140,16 @@ function normalizeDesignerDocument(value) {
         blocks.push({ id, kind: "list", items: rawBlock.items.slice(0, 80).map((item) => String(item).slice(0, 1e3)) });
       } else if (rawBlock.kind === "art") {
         const motif = String(rawBlock.motif || "");
-        if (!["botanical", "geometry", "orbit", "waves"].includes(motif)) return null;
+        if (!["botanical", "geometry", "orbit", "waves", "bible-scene"].includes(motif)) return null;
+        const scene = String(rawBlock.scene || "");
+        if (motif === "bible-scene" && !bibleScenes.has(scene)) return null;
         blocks.push({
           id,
           kind: "art",
           motif,
           altText: String(rawBlock.altText || "Decorative illustration").slice(0, 180),
-          brief: String(rawBlock.brief || "").slice(0, 600)
+          brief: String(rawBlock.brief || "").slice(0, 600),
+          ...motif === "bible-scene" ? { scene, artMode: rawBlock.artMode === "color" ? "color" : "line" } : {}
         });
       } else if (rawBlock.kind === "chapter") {
         blocks.push({ id, kind: "chapter", chapterId: String(rawBlock.chapterId || "").slice(0, 80) });
@@ -12595,7 +13158,7 @@ function normalizeDesignerDocument(value) {
       }
     }
     pages.push({
-      id: String(rawPage.id || nanoid2()).slice(0, 80),
+      id: String(rawPage.id || nanoid3()).slice(0, 80),
       kind: rawPage.kind,
       title: String(rawPage.title || "Untitled page").slice(0, 240),
       ...rawPage.chapterId ? { chapterId: String(rawPage.chapterId).slice(0, 80) } : {},
@@ -12801,6 +13364,16 @@ function registerCreatorPublishingRoutes(app2) {
       res.status(500).json({ message: "Could not load Creator Studio access." });
     }
   });
+  app2.get("/api/creator-studio/ai-config", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
+    if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
+    try {
+      const config = await getCreatorStudioAIConfig();
+      res.json({ aiAvailable: config.aiAvailable, model: config.model, defaultChapterCount: config.settings.defaultChapterCount });
+    } catch (error) {
+      console.error("Could not load Creator Studio model settings:", error);
+      res.status(500).json({ message: "Could not load Creator Studio model settings." });
+    }
+  });
   app2.post("/api/creator-studio/subscribe", isAuthenticated, studioPaymentProofUpload.single("paymentProof"), async (req, res) => {
     if (!canPublish(req.user)) {
       removeUpload(req.file);
@@ -12983,6 +13556,115 @@ function registerCreatorPublishingRoutes(app2) {
     } catch (error) {
       console.error("Could not save Creator Studio payment options:", error);
       res.status(500).json({ message: "Could not save Creator Studio payment options." });
+    }
+  });
+  app2.get("/api/admin/creator-studio/ai-settings", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const config = await getCreatorStudioAIConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Could not load Creator Studio AI settings:", error);
+      res.status(500).json({ message: "Could not load AI publishing settings." });
+    }
+  });
+  app2.put("/api/admin/creator-studio/ai-settings", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    const model = String(req.body.model || "").trim().slice(0, 120);
+    if (!model || !/^[\w./:-]+$/.test(model)) {
+      return res.status(400).json({ message: "Enter a valid model name. Do not enter an API key here." });
+    }
+    const provider = String(req.body.provider || "");
+    if (!["groq", "openai-compatible", "ollama"].includes(provider)) {
+      return res.status(400).json({ message: "Choose Groq, an OpenAI-compatible provider, or Ollama." });
+    }
+    const endpointUrl = String(req.body.endpointUrl || "").trim().replace(/\/+$/, "").slice(0, 500);
+    if (provider !== "groq") {
+      let endpoint;
+      try {
+        endpoint = new URL(endpointUrl);
+      } catch {
+        return res.status(400).json({ message: "Enter a valid provider endpoint URL." });
+      }
+      if (!["http:", "https:"].includes(endpoint.protocol)) {
+        return res.status(400).json({ message: "Provider endpoints must use HTTP or HTTPS." });
+      }
+      if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+        return res.status(400).json({ message: "Keep credentials and query parameters out of endpoint URLs; configure credentials as deployment variables." });
+      }
+      const isLoopbackOllama = provider === "ollama" && ["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname);
+      if (endpoint.protocol === "http:" && !isLoopbackOllama) {
+        return res.status(400).json({ message: "Use HTTPS for remote AI endpoints. Plain HTTP is allowed only for local Ollama." });
+      }
+    }
+    try {
+      const settings = normalizeCreatorStudioAIControls(req.body.settings);
+      await db.insert(appSettings).values({
+        key: "creator_studio_ai_settings",
+        value: JSON.stringify({ provider, endpointUrl, model, settings }),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: JSON.stringify({ provider, endpointUrl, model, settings }), updatedAt: /* @__PURE__ */ new Date() }
+      });
+      const config = await getCreatorStudioAIConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Could not save Creator Studio AI settings:", error);
+      res.status(500).json({ message: "Could not save AI publishing settings." });
+    }
+  });
+  app2.post("/api/admin/creator-studio/books/children-bible-coloring", isAuthenticated, async (req, res) => {
+    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    try {
+      const [existing] = await db.select({
+        id: creatorBooks.id,
+        title: creatorBooks.title,
+        designerDocument: creatorBooks.designerDocument,
+        status: creatorBooks.status
+      }).from(creatorBooks).where(and6(
+        eq9(creatorBooks.creatorId, req.user.id),
+        eq9(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
+        eq9(creatorBooks.genre, "Bible stories and coloring books")
+      )).limit(1);
+      if (existing) {
+        if (req.body?.replaceExisting !== true) {
+          return res.status(409).json({
+            message: "A God\u2019s Big Story draft already exists. Confirm the upgrade to replace its manuscript and page designs."
+          });
+        }
+        if (existing.status === "published" || existing.status === "submitted") {
+          return res.status(409).json({
+            message: "This book is submitted or published and cannot be replaced from the draft generator."
+          });
+        }
+        const draft2 = createChildrenBibleColoringBook();
+        const [book2] = await db.update(creatorBooks).set({
+          ...draft2,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(and6(
+          eq9(creatorBooks.id, existing.id),
+          eq9(creatorBooks.creatorId, req.user.id)
+        )).returning({ id: creatorBooks.id, title: creatorBooks.title });
+        if (!book2) return res.status(404).json({ message: "The existing book could not be found for upgrade." });
+        return res.json({
+          book: book2,
+          pageCount: Math.max(0, (draft2.designerDocument?.pages?.length || 0) - 1),
+          upgraded: true
+        });
+      }
+      const draft = createChildrenBibleColoringBook();
+      const [book] = await db.insert(creatorBooks).values({
+        creatorId: req.user.id,
+        ...draft
+      }).returning({ id: creatorBooks.id, title: creatorBooks.title });
+      res.status(201).json({
+        book,
+        pageCount: Math.max(0, (draft.designerDocument?.pages?.length || 0) - 1)
+      });
+    } catch (error) {
+      console.error("Could not create the sample children\u2019s Bible coloring book:", error);
+      res.status(500).json({ message: "Could not create the coloring-book draft." });
     }
   });
   app2.post("/api/admin/creator-studio/subscriptions/grant", isAuthenticated, async (req, res) => {
@@ -13181,14 +13863,12 @@ function registerCreatorPublishingRoutes(app2) {
   });
   app2.post("/api/creator-studio/books/:id/ai/full-book", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    if (!isBookDesignAIAvailable()) return res.status(503).json({
-      code: "AI_PROVIDER_NOT_CONFIGURED",
-      message: "Configure GROQ_API_KEY, or an OpenAI-compatible BOOK_AI_BASE_URL (and BOOK_AI_MODEL) to enable book generation."
-    });
     const prompt = String(req.body.prompt || "").trim().slice(0, 8e3);
-    const chapterCount = Number(req.body.chapterCount);
+    const config = await getCreatorStudioAIConfig();
+    if (!isBookDesignAIAvailable(config)) return res.status(503).json(groqUnavailableResponse("complete-book generation"));
+    const chapterCount = Number(req.body.chapterCount || config.settings.defaultChapterCount);
     if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
-    if (![4, 6, 8].includes(chapterCount)) return res.status(400).json({ message: "Choose a 4, 6, or 8 chapter book." });
+    if (![4, 6, 8, 10, 12, 16, 20].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 20 chapters." });
     try {
       const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
@@ -13205,7 +13885,7 @@ function registerCreatorPublishingRoutes(app2) {
           requiresConfirmation: true
         });
       }
-      const jobId = nanoid2();
+      const jobId = nanoid3();
       const startedAt = /* @__PURE__ */ new Date();
       await db.update(creatorBooks).set({
         generationJobId: jobId,
@@ -13235,6 +13915,12 @@ function registerCreatorPublishingRoutes(app2) {
             trimSize: book.trimSize,
             authorName,
             chapterCount,
+            aiModel: config.model,
+            aiSettings: {
+              ...config.settings,
+              provider: config.provider,
+              endpointUrl: config.endpointUrl
+            },
             onProgress
           });
           await db.update(creatorBooks).set({
@@ -13478,19 +14164,23 @@ function registerCreatorPublishingRoutes(app2) {
   });
   app2.post("/api/creator-studio/ai/outline", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("outline generation"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("outline generation"));
+    const { client, model } = ai;
     const idea = String(req.body.idea || "").trim().slice(0, 6e3);
     const bookType = String(req.body.bookType || "nonfiction").trim().slice(0, 40);
     const genre = String(req.body.genre || "General nonfiction").trim().slice(0, 100);
     if (idea.length < 8) return res.status(400).json({ message: "Describe the book idea in at least 8 characters." });
     try {
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: 0.6,
+        model,
+        temperature: config.settings.toolSettings.outline.temperature,
+        max_tokens: config.settings.toolSettings.outline.maxTokens,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: 'Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters and respect the requested book type and niche.' },
+          { role: "system", content: `Create an original, reader-focused book outline using clear progression, useful chapter outcomes, and a strong opening and conclusion. Never promise bestseller status or invent credentials, citations, research, or claims. Return JSON only: {"chapters":[{"title":"...","summary":"..."}]}. Use 6 to 12 chapters and respect the requested book type and niche.
+${config.settings.toolPrompts.outline}` },
           { role: "user", content: `Book type: ${bookType}
 Niche: ${genre}
 Book concept: ${idea}` }
@@ -13508,8 +14198,10 @@ Book concept: ${idea}` }
   });
   app2.post("/api/creator-studio/ai/chapter", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("chapter generation"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("chapter generation"));
+    const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
     const chapterTitle = String(req.body.chapterTitle || "").trim().slice(0, 240);
     const idea = String(req.body.idea || "").trim().slice(0, 4e3);
@@ -13523,10 +14215,12 @@ Book concept: ${idea}` }
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
     try {
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: 0.7,
+        model,
+        temperature: config.settings.toolSettings.chapter.temperature,
+        max_tokens: config.settings.toolSettings.chapter.maxTokens,
         messages: [
-          { role: "system", content: "Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs." },
+          { role: "system", content: `Draft an original, reader-focused book chapter for the creator to review and edit. Never promise bestseller status or invent credentials, citations, research, or quotations. Do not present legal, medical, financial, or safety advice as professional advice. Respect the stated book type and niche. Use clear headings and readable paragraphs.
+${config.settings.toolPrompts.chapter}` },
           { role: "user", content: `Book type: ${book.bookType || "nonfiction"}
 Niche: ${book.genre || "General nonfiction"}
 Book idea: ${idea || book.idea || "Not provided"}
@@ -13543,8 +14237,10 @@ Chapter: ${chapterTitle}` }
   });
   app2.post("/api/creator-studio/ai/metadata", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
+    const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
     const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
@@ -13553,13 +14249,15 @@ Chapter: ${chapterTitle}` }
     }
     try {
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: 0.65,
+        model,
+        temperature: config.settings.toolSettings.metadata.temperature,
+        max_tokens: config.settings.toolSettings.metadata.maxTokens,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: 'Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.'
+            content: `Create clear, compelling Amazon KDP book metadata. Never promise bestseller status, fabricate credentials, reviews, citations, or research, or use misleading claims. Return JSON only: {"title":"...","subtitle":"...","description":"...","keywords":["..."],"categories":["..."]}. Use 7 distinct buyer-search keyword phrases. Keep the description reader-focused and under 3500 characters. Categories should be suggestions only.
+${config.settings.toolPrompts.metadata}`
           },
           {
             role: "user",
@@ -13588,8 +14286,10 @@ Current description: ${book.description || ""}`
   });
   app2.post("/api/creator-studio/ai/tool", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-    const client = createGroqClient();
-    if (!client) return res.status(503).json(groqUnavailableResponse("writing tools"));
+    const config = await getCreatorStudioAIConfig();
+    const ai = createStudioAIClient(config.model, config.provider, config.endpointUrl);
+    if (!ai) return res.status(503).json(groqUnavailableResponse("writing tools"));
+    const { client, model } = ai;
     const tool = String(req.body.tool || "");
     const bookId = String(req.body.bookId || "");
     const chapterId = String(req.body.chapterId || "");
@@ -13628,10 +14328,12 @@ Current chapter text:
 ${chapter?.content}` : `${context}
 ${input ? `Creator's focus: ${input}` : ""}`;
       const result = await client.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        temperature: tool === "proofread" ? 0.35 : 0.7,
+        model,
+        temperature: tool === "proofread" ? Math.min(0.6, config.settings.toolSettings["writing-assistant"].temperature) : config.settings.toolSettings["writing-assistant"].temperature,
+        max_tokens: config.settings.toolSettings["writing-assistant"].maxTokens,
         messages: [
-          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.` },
+          { role: "system", content: `${instructions[tool]} This is writing assistance; the creator reviews and edits all output before publication. Never promise bestseller rankings.
+${config.settings.toolPrompts["writing-assistant"]}` },
           { role: "user", content: prompt }
         ]
       });
@@ -14026,7 +14728,7 @@ ${input ? `Creator's focus: ${input}` : ""}`;
 import { z as z2 } from "zod";
 import multer2 from "multer";
 import bcrypt3 from "bcryptjs";
-import { nanoid as nanoid3 } from "nanoid";
+import { nanoid as nanoid4 } from "nanoid";
 import path2 from "path";
 import express from "express";
 import { ReplitConnectors as ReplitConnectors2 } from "@replit/connectors-sdk";
@@ -14357,7 +15059,7 @@ var upload = multer2({
       const raw = path2.extname(file.originalname || "").toLowerCase();
       const ext = /^\.[a-z0-9]{1,6}$/.test(raw) ? raw : "";
       if (DANGEROUS_EXTS.has(ext)) return cb(new Error("File type not allowed"), "");
-      cb(null, `${nanoid3()}${ext}`);
+      cb(null, `${nanoid4()}${ext}`);
     }
   }),
   limits: { fileSize: 25 * 1024 * 1024 },
@@ -14693,7 +15395,7 @@ async function registerRoutes(app2, existingServer) {
           <p style="color:#68715d;font-size:13px">Reply directly to this message to contact the enquirer.</p>
         </div>
       `;
-      const text2 = [
+      const text3 = [
         "New portfolio enquiry",
         `Name: ${parsed.data.name}`,
         `Email: ${parsed.data.email}`,
@@ -14712,7 +15414,7 @@ async function registerRoutes(app2, existingServer) {
           reply_to: parsed.data.email,
           subject,
           html,
-          text: text2
+          text: text3
         });
         if (result.error) {
           throw new Error(`Resend delivery failed: ${result.error.message}`);
@@ -14727,7 +15429,7 @@ async function registerRoutes(app2, existingServer) {
             reply_to: parsed.data.email,
             subject,
             html,
-            text: text2
+            text: text3
           }
         });
         if (!response.ok) {
@@ -15216,8 +15918,8 @@ async function registerRoutes(app2, existingServer) {
           });
         }
       }
-      const { nanoid: nanoid4 } = await import("nanoid");
-      const id = `post_${nanoid4()}`;
+      const { nanoid: nanoid5 } = await import("nanoid");
+      const id = `post_${nanoid5()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       try {
@@ -15265,8 +15967,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid4 } = await import("nanoid");
-      const id = `post_${nanoid4()}`;
+      const { nanoid: nanoid5 } = await import("nanoid");
+      const id = `post_${nanoid5()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       res.status(201).json(post);
@@ -15345,8 +16047,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid4 } = await import("nanoid");
-      const id = `cmt_${nanoid4()}`;
+      const { nanoid: nanoid5 } = await import("nanoid");
+      const id = `cmt_${nanoid5()}`;
       const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim(), parentId);
       res.status(201).json(comment);
     } catch (error) {
@@ -17252,7 +17954,7 @@ async function registerRoutes(app2, existingServer) {
       const { email, password, firstName, lastName, userType, isVerified } = req.body;
       const hashedPassword = await bcrypt3.hash(password, 10);
       const newUser = await storage.createUser({
-        id: nanoid3(),
+        id: nanoid4(),
         email,
         password: hashedPassword,
         firstName,
@@ -17619,7 +18321,7 @@ async function registerRoutes(app2, existingServer) {
       if (!escrow) return res.status(404).json({ message: "Escrow payment not found" });
       await storage.updateEscrowPayment(escrow.id, { status: "verified", verifiedAt: /* @__PURE__ */ new Date(), verifiedBy: req.user.id });
       const activatedCampaign = await storage.updateCampaign(escrow.campaignId, { isActive: true, status: "active", paymentStatus: "completed" });
-      const { nanoid: nanoid4 } = await import("nanoid");
+      const { nanoid: nanoid5 } = await import("nanoid");
       await storage.createNotification({
         userId: escrow.brandId,
         type: "payment_received",
@@ -23447,13 +24149,13 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/content/scan", isAuthenticated, async (req, res) => {
     try {
-      const { text: text2, url } = req.body;
+      const { text: text3, url } = req.body;
       if (url) {
         const result = scanUrl(String(url));
         return res.json(result);
       }
-      if (text2) {
-        const result = scanText(String(text2));
+      if (text3) {
+        const result = scanText(String(text3));
         return res.json(result);
       }
       res.json({ isSafe: true, threats: [] });
@@ -24015,7 +24717,7 @@ Notes: ${adminNotes}` : ""}`
         return res.status(400).json({ message: `Please complete: ${missing.join(", ")}.`, missingFields: missing });
       }
       const featureImagePath = req.file ? `/uploads/${req.file.filename}` : req.body.featureImage || null;
-      const campaignId = `campaign_${Date.now()}_${nanoid3(9)}`;
+      const campaignId = `campaign_${Date.now()}_${nanoid4(9)}`;
       const campaign = await storage.createCampaign({
         id: campaignId,
         title,
@@ -25530,12 +26232,12 @@ ${body}`,
   });
   app2.get("/api/hero-sliders", async (req, res) => {
     try {
-      const page = req.query.page;
+      const page2 = req.query.page;
       let sliders = await storage.getActiveHeroSliders();
-      if (page) {
+      if (page2) {
         sliders = sliders.filter((s) => {
           const pages = (s.targetPages || "landing").split(",").map((p) => p.trim());
-          return pages.includes("all") || pages.includes(page);
+          return pages.includes("all") || pages.includes(page2);
         });
       }
       res.json(sliders);
@@ -25608,11 +26310,11 @@ ${body}`,
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
       const { eq: eq19 } = await import("drizzle-orm");
-      const page = req.params.page;
-      const data = { ...req.body, page, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq19(pageHeroBackgrounds2.page, page));
+      const page2 = req.params.page;
+      const data = { ...req.body, page: page2, updatedAt: /* @__PURE__ */ new Date() };
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq19(pageHeroBackgrounds2.page, page2));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq19(pageHeroBackgrounds2.page, page)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq19(pageHeroBackgrounds2.page, page2)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -25635,8 +26337,8 @@ ${body}`,
   });
   app2.get("/api/spotlight", async (req, res) => {
     try {
-      const page = req.query.page;
-      const items = await storage.getSpotlightItems(page);
+      const page2 = req.query.page;
+      const items = await storage.getSpotlightItems(page2);
       res.json(items);
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch spotlight items" });
@@ -25681,9 +26383,9 @@ ${body}`,
   });
   app2.get("/api/ad-networks", async (req, res) => {
     try {
-      const page = req.query.page;
+      const page2 = req.query.page;
       const type = req.query.type;
-      const ads = await storage.getAdNetworkPlacements(page, type);
+      const ads = await storage.getAdNetworkPlacements(page2, type);
       res.json(ads);
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch ad placements" });
@@ -26173,8 +26875,8 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page] = await db.select().from(pageSeoSettings).where(eq13(pageSeoSettings.pageSlug, req.params.slug));
-      res.json(page || null);
+      const [page2] = await db.select().from(pageSeoSettings).where(eq13(pageSeoSettings.pageSlug, req.params.slug));
+      res.json(page2 || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
@@ -26219,10 +26921,10 @@ ${body}`,
         { pageSlug: "feed", pageTitle: "Creator Feed", metaTitle: "Creator Feed \u2014 Latest Posts from Taskdrip Influencers", metaDescription: "Browse the latest posts, updates, and content from Taskdrip's creator community. Follow top influencers, discover trending content, and engage with the Web3 creator economy.", keywords: "creator feed, influencer posts, web3 creators, taskdrip community", ogImage: OG2, canonicalUrl: "https://taskdrip.online/feed", noIndex: false }
       ];
       let upserted = 0;
-      for (const page of defaultPages) {
-        await db.insert(pageSeoSettings).values({ ...page, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({
+      for (const page2 of defaultPages) {
+        await db.insert(pageSeoSettings).values({ ...page2, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({
           target: pageSeoSettings.pageSlug,
-          set: { ...page, updatedAt: /* @__PURE__ */ new Date() }
+          set: { ...page2, updatedAt: /* @__PURE__ */ new Date() }
         });
         upserted++;
       }
@@ -27401,16 +28103,16 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page] = await db.select().from(pageSeoSettings).where(eq14(pageSeoSettings.pageSlug, slug));
-      if (page) {
+      const [page2] = await db.select().from(pageSeoSettings).where(eq14(pageSeoSettings.pageSlug, slug));
+      if (page2) {
         return {
-          title: page.metaTitle || page.pageTitle,
-          description: page.metaDescription,
-          image: absolutize(origin, page.ogImage || page.twitterImage),
-          keywords: page.keywords || void 0,
-          canonicalUrl: page.canonicalUrl || void 0,
-          noIndex: !!page.noIndex,
-          structuredData: page.structuredData || null
+          title: page2.metaTitle || page2.pageTitle,
+          description: page2.metaDescription,
+          image: absolutize(origin, page2.ogImage || page2.twitterImage),
+          keywords: page2.keywords || void 0,
+          canonicalUrl: page2.canonicalUrl || void 0,
+          noIndex: !!page2.noIndex,
+          structuredData: page2.structuredData || null
         };
       }
     } catch {
@@ -27495,7 +28197,7 @@ function log(message, source = "express") {
 async function setupVite(app2, server2) {
   const { createServer: createViteServer, createLogger } = await import("vite");
   const { default: viteConfig } = await Promise.resolve().then(() => (init_vite_config(), vite_config_exports));
-  const { nanoid: nanoid4 } = await import("nanoid");
+  const { nanoid: nanoid5 } = await import("nanoid");
   const viteLogger = createLogger();
   const vite = await createViteServer({
     ...viteConfig,
@@ -27522,12 +28224,12 @@ async function setupVite(app2, server2) {
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid4()}"`
+        `src="/src/main.tsx?v=${nanoid5()}"`
       );
-      let page = await vite.transformIndexHtml(url, template);
-      page = await buildSeoHtml(page, req);
-      page = await injectAnalytics(page);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      let page2 = await vite.transformIndexHtml(url, template);
+      page2 = await buildSeoHtml(page2, req);
+      page2 = await injectAnalytics(page2);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page2);
     } catch (e) {
       vite.ssrFixStacktrace(e);
       next(e);
@@ -27547,9 +28249,9 @@ function serveStatic(app2) {
   app2.use("*", async (req, res) => {
     try {
       const html = await fs.promises.readFile(path4.resolve(distPath, "index.html"), "utf-8");
-      let page = await buildSeoHtml(html, req);
-      page = await injectAnalytics(page);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      let page2 = await buildSeoHtml(html, req);
+      page2 = await injectAnalytics(page2);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page2);
     } catch {
       res.sendFile(path4.resolve(distPath, "index.html"));
     }
@@ -29102,15 +29804,15 @@ Website: <a href="https://taskdrip.online">taskdrip.online</a></p>`
 ];
 async function seedLegalPages() {
   try {
-    for (const page of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq16(legalPages.slug, page.slug)).limit(1);
+    for (const page2 of LEGAL_CONTENT) {
+      const existing = await db.select().from(legalPages).where(eq16(legalPages.slug, page2.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
-          slug: page.slug,
-          title: page.title,
-          content: page.content
+          slug: page2.slug,
+          title: page2.title,
+          content: page2.content
         });
-        console.log(`[seed-legal] Seeded legal page: ${page.slug}`);
+        console.log(`[seed-legal] Seeded legal page: ${page2.slug}`);
       }
     }
     const demoSub = await db.select().from(newsletterSubscribers).where(eq16(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
@@ -29858,10 +30560,10 @@ var PAGES = [
 ];
 async function seedPageSeo() {
   let upserted = 0;
-  for (const page of PAGES) {
-    await db.insert(pageSeoSettings).values({ ...page, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({
+  for (const page2 of PAGES) {
+    await db.insert(pageSeoSettings).values({ ...page2, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({
       target: pageSeoSettings.pageSlug,
-      set: { ...page, updatedAt: /* @__PURE__ */ new Date() }
+      set: { ...page2, updatedAt: /* @__PURE__ */ new Date() }
     });
     upserted++;
   }

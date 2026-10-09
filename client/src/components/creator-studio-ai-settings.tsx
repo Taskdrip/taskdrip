@@ -161,11 +161,16 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
   });
 
   const createBookMutation = useMutation({
-    mutationFn: () => requestJson<{ book: CreatedBook; pageCount?: number }>(CREATE_COLORING_BOOK_URL, {
+    mutationFn: () => requestJson<{ book: CreatedBook; pageCount?: number; upgraded?: boolean }>(CREATE_COLORING_BOOK_URL, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ replaceExisting: true }),
     }),
-    onSuccess: ({ book, pageCount }) => {
-      toast({ title: "Children’s Bible coloring book created", description: `${book.title} · ${pageCount || "More than 120"} designed pages` });
+    onSuccess: ({ book, pageCount, upgraded }) => {
+      toast({
+        title: upgraded ? "God’s Big Story upgraded" : "Children’s Bible coloring book created",
+        description: `${book.title} · ${pageCount || "More than 120"} designed pages`,
+      });
       onBookCreatedRef.current(book);
     },
     onError: (error: Error) => toast({
@@ -483,19 +488,24 @@ export default function CreatorStudioAiSettingsPanel({ onBookCreated }: CreatorS
             </div>
             <div>
               <h2 id="coloring-book-heading" className="font-semibold text-slate-900">Children’s Bible coloring book</h2>
-              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-600">Create an editable 8.5 × 11-inch, 16-story project with more than 120 designed pages, scripture references, parent guides, questions, activities, color examples, and black-line pages.</p>
+              <p className="mt-1 max-w-xl text-sm leading-5 text-slate-600">Create or upgrade the editable 8.5 × 11-inch, 20-story edition: 167 designed interior pages with scripture references, illustrated read-alouds, family questions, assignments, dimensional color examples, and matching coloring pages.</p>
             </div>
           </div>
           <Button
             type="button"
             className="shrink-0 bg-[#36584a] text-white hover:bg-[#2d4a3e]"
-            onClick={() => createBookMutation.mutate()}
+            onClick={() => {
+              const confirmed = window.confirm(
+                "Create or upgrade God’s Big Story? If a draft already exists, this replaces its manuscript and page designs with the new 20-story edition.",
+              );
+              if (confirmed) createBookMutation.mutate();
+            }}
             disabled={createBookMutation.isPending}
           >
             {createBookMutation.isPending
               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               : <BookOpen className="mr-2 h-4 w-4" aria-hidden="true" />}
-            {createBookMutation.isPending ? "Creating project…" : "Create book project"}
+            {createBookMutation.isPending ? "Preparing your book…" : "Create or upgrade book"}
           </Button>
         </section>
 

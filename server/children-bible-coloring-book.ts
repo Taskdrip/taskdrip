@@ -140,6 +140,38 @@ const stories: Story[] = [
     parentGuide: "Focus on taking responsibility and making harm right with help from a trusted adult. Ask: What can we do after making a mistake? How can we share fairly?",
     coloringPrompt: "Color Zacchaeus in the tree, the welcoming crowd, and Jesus nearby.",
   },
+  {
+    title: "Jesus Calms the Storm",
+    reference: "Mark 4:35–41",
+    scene: "calming-storm",
+    story: "Jesus and his friends set out across the lake in a boat. Jesus was so tired that he fell asleep while a storm tossed the waves around them. The disciples woke him, worried the boat might sink. Jesus spoke, and the wind quieted. The water settled, too. His friends stared at the suddenly peaceful lake and wondered who could command even wind and waves. The story is about trust when fear feels loud. And if you have ever tried to nap during a thunderstorm, you know Jesus was either very tired—or had mastered the world’s most impressive pillow.",
+    parentGuide: "The story offers a way to talk about fear and comfort. Do not promise children that every frightening situation will disappear; instead, help them name a trusted adult and a safe next step. Ask: What helps you feel supported when you are worried?",
+    coloringPrompt: "Color the boat, calm water, bright sail, and relieved friends.",
+  },
+  {
+    title: "Jesus Welcomes the Children",
+    reference: "Mark 10:13–16",
+    scene: "welcoming-children",
+    story: "Families brought children to Jesus, hoping he would bless them. The disciples tried to send the children away, but Jesus told them to let the children come. He welcomed them and treated them as important members of the crowd. No one was too young to be noticed or loved. Imagine the children leaning in to hear him, while the grown-ups made room. This story reminds us that children belong, their questions matter, and kindness should never come with a height requirement.",
+    parentGuide: "Affirm that children deserve respect, care, and a safe voice. Ask: When has someone made you feel welcome? How can our family help a new child feel included?",
+    coloringPrompt: "Color Jesus, the children, and the welcoming circle of families.",
+  },
+  {
+    title: "The Lost Sheep",
+    reference: "Luke 15:1–7",
+    scene: "lost-sheep",
+    story: "Jesus told about a shepherd who had one hundred sheep. When one wandered away, the shepherd went looking until he found it. Then he carried the sheep home and celebrated with friends. The point was not that the other sheep stopped mattering; the story pictures the joy of finding someone who was missing. The little sheep may have been an expert at hiding behind very small bushes. The shepherd kept looking anyway. Jesus used the story to show how much every person matters.",
+    parentGuide: "Explain that this is a story Jesus told to help people understand care and joy. Keep the focus on welcome and belonging. Ask: How can we help someone feel included if they are left out?",
+    coloringPrompt: "Color the shepherd, the found sheep, and the green hillside.",
+  },
+  {
+    title: "Bartimaeus Sees a New Day",
+    reference: "Mark 10:46–52",
+    scene: "bartimaeus",
+    story: "Bartimaeus was blind and sat beside the road asking for help. When he heard that Jesus was passing by, he called out. Some people told him to be quiet, but Bartimaeus kept calling. Jesus stopped and asked what he wanted. Bartimaeus asked to see, and Jesus healed him. He could see—and he chose to follow Jesus along the road. This story highlights listening, dignity, and a person being heard. Bartimaeus did not need a louder megaphone; he needed people to stop and pay attention.",
+    parentGuide: "Talk about disability with respect: a person is never less valuable because of a disability. Ask: What does it look like to listen when someone says what they need? How can we make room for everyone?",
+    coloringPrompt: "Color Bartimaeus, the roadside, and the welcoming crowd.",
+  },
 ];
 
 const storyWinks = [
@@ -159,6 +191,10 @@ const storyWinks = [
   "Joseph's story had so many turns it could fill a whole shelf of scrolls.",
   "Samuel made several nighttime trips before the message finally made sense.",
   "Zacchaeus found a high seat in the tree and a fresh start on the ground.",
+  "The storm stopped making a racket, and the lake got its quiet voice back.",
+  "Jesus made room for children; no invitation needed a grown-up signature.",
+  "The shepherd searched until the sheep was found—hide-and-seek champion, meet determined shepherd.",
+  "Bartimaeus kept calling until someone truly listened. That is a voice with excellent persistence.",
 ];
 
 const storyQuestions = [
@@ -178,6 +214,10 @@ const storyQuestions = [
   ["What did Joseph do when his brothers came to Egypt?", "How did Joseph help his family?", "What can help people repair a hurt?"],
   ["Who helped Samuel understand the call?", "What did Samuel learn to do?", "How can careful listening help someone else?"],
   ["Where did Zacchaeus climb to see Jesus?", "What did Zacchaeus promise to change?", "What is one way to make something right after a mistake?"],
+  ["What happened to the wind and waves?", "How did the disciples feel during the storm?", "Who helps you when you feel worried?"],
+  ["Who did Jesus welcome?", "How did Jesus show the children they mattered?", "How can you welcome someone new?"],
+  ["How many sheep did the shepherd have?", "What did the shepherd do when one was missing?", "What helps someone feel included?"],
+  ["What did Bartimaeus ask Jesus for?", "Why did he keep calling out?", "How can we listen respectfully to someone’s needs?"],
 ];
 
 const familyActivities = [
@@ -197,6 +237,10 @@ const familyActivities = [
   "Draw a bridge between two people and write one safe way they could begin to make peace.",
   "Play a listening game: take turns repeating one kind thing the other person said.",
   "Draw a tree with a ladder and write one fair choice Zacchaeus could make today.",
+  "Draw two weather pictures: a stormy feeling and a calm feeling. Add one safe way to ask for help.",
+  "Make a paper welcome sign for a child joining your family, class, or group.",
+  "Draw a flock of sheep and circle one way your family can help someone feel included.",
+  "Take turns practicing a respectful question: “What would help you feel included?”",
 ];
 
 function text(id: string, role: Extract<EbookDesignPage["blocks"][number], { kind: "text" }>["role"], value: string) {
@@ -230,22 +274,22 @@ export function createChildrenBibleColoringBook() {
       art("cover-family", "storybook-cover", "A welcoming Bible storybook family with sheep", "color"),
       text("cover-eyebrow", "eyebrow", "A READ-ALOUD AND COLORING ADVENTURE"),
       text("cover-title", "title", "God’s Big Story"),
-      text("cover-subtitle", "subtitle", "16 Bible Stories to Read, Talk About, and Color"),
+      text("cover-subtitle", "subtitle", "20 Bible Stories to Read, Talk About, and Color"),
       text("cover-author", "caption", "A Family Story and Coloring Book"),
     ]),
     page("title", "Title page", [
       text("title-main", "title", "God’s Big Story"),
-      text("title-subtitle", "subtitle", "16 Bible Stories to Read, Talk About, and Color"),
+      text("title-subtitle", "subtitle", "20 Bible Stories to Read, Talk About, and Color"),
       art("title-art", "storybook-cover", "Children, a lamb, and a bright star", "color"),
       text("title-caption", "caption", "For children and the grown-ups who read with them"),
     ]),
     page("copyright", "Copyright and family note", [
       text("copyright-heading", "heading", "About this book"),
-      text("copyright-note", "body", "This book contains original child-friendly retellings and original vector illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family’s own faith tradition or trusted spiritual leaders.\n\nCopyright © [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing."),
+      text("copyright-note", "body", "This book contains original child-friendly retellings and original layered vector illustrations inspired by Bible stories. Scripture references are included for families who want to read a Bible together; this book does not reproduce a Bible translation. The parent guides are conversation starters, not a replacement for a family’s own faith tradition or trusted spiritual leaders.\n\nCopyright © [year] [author or publisher]. Replace this notice, verify all publication details, and add your ISBN before publishing."),
     ]),
     page("backmatter", "How to use this book", [
       text("how-heading", "heading", "Read. Talk. Color."),
-      text("how-body", "body", "Every story has a lively read-aloud retelling, a Bible passage reference, a grown-up guide, questions, a hands-on activity, a bright color example, and an original black-line coloring page. Read at your child’s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe designed interior is 8.5 × 11 inches with no bleed. Because it includes full-color examples, select a KDP color-interior option; a black-and-white edition requires removing or converting those example pages and rechecking the exported file. Before publication, replace author and copyright placeholders, add a valid ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in KDP Print Previewer. Store specifications can change; no automated export guarantees acceptance."),
+      text("how-body", "body", "Each of these 20 stories has a lively read-aloud retelling, a Bible passage reference, an illustrated story opener, a grown-up guide, questions, a hands-on assignment, a bright color example, and a black-line coloring page with a matching mini color reference. Read at your child’s pace. Invite questions without rushing to answer them. Children can use crayons, pencils, or washable markers; place a spare sheet behind the coloring page when using markers.\n\nThe designed interior is 8.5 × 11 inches with no bleed. Because it includes full-color art, select a KDP color-interior option; a black-and-white edition requires removing or converting those example pages and rechecking the exported file. Before publication, replace author and copyright placeholders, add a valid ISBN if needed, create a separate full-wrap cover using the final page count and paper choice, and inspect the PDF in KDP Print Previewer. Store specifications can change; confirm current specifications in the target store’s current setup and preview tools."),
     ]),
     page("contents", "Story index", [
       text("contents-heading", "heading", "The stories"),
@@ -258,7 +302,7 @@ export function createChildrenBibleColoringBook() {
     const storyNumber = String(index + 1).padStart(2, "0");
     pages.push(page("chapter-opening", story.title, [
       text(`story-${index}-label`, "eyebrow", `STORY ${storyNumber} · ${story.reference}`),
-      art(`story-${index}-small-art`, story.scene, `A black-line illustration for ${story.title}`),
+      art(`story-${index}-small-art`, story.scene, `A bright, layered cartoon scene for ${story.title}`, "color"),
       text(`story-${index}-title`, "title", story.title),
       text(`story-${index}-invitation`, "caption", "Read, explore, answer, and color this story together."),
     ], chapter.id));
@@ -290,14 +334,15 @@ export function createChildrenBibleColoringBook() {
     pages.push(page("coloring", `Coloring page: ${story.title}`, [
       text(`color-${index}-eyebrow`, "eyebrow", `YOUR TURN · STORY ${storyNumber}`),
       text(`color-${index}-title`, "title", story.title),
-      text(`color-${index}-instruction`, "caption", story.coloringPrompt),
+      text(`color-${index}-instruction`, "caption", `${story.coloringPrompt} Use the mini color example as a guide, then make the scene your own.`),
+      art(`color-${index}-reference-art`, story.scene, `Small colored reference example for ${story.title}`, "color"),
       art(`color-${index}-page-art`, story.scene, `Full-page black-line coloring illustration: ${story.coloringPrompt}`),
     ], chapter.id));
     pages.push(page("parent-guide", `Story quest: ${story.title}`, [
       text(`quest-${index}-eyebrow`, "eyebrow", "STORY CHECK AND ACTIVITY"),
       text(`quest-${index}-title`, "title", "Can you remember?"),
       { id: `quest-${index}-questions`, kind: "list", items: storyQuestions[index] },
-      text(`quest-${index}-activity-heading`, "heading", "Try this together"),
+      text(`quest-${index}-activity-heading`, "heading", "Your story assignment"),
       text(`quest-${index}-activity`, "body", familyActivities[index]),
       text(`quest-${index}-note`, "caption", "A grown-up can read the questions aloud and write down the child’s answers."),
     ], chapter.id));
@@ -325,14 +370,14 @@ export function createChildrenBibleColoringBook() {
 
   const designerDocument: EbookDesignDocument = {
     schemaVersion: 1,
-    prompt: "Original, age-appropriate Bible story coloring book with 16 short retellings, scripture references, parent conversation guides, story questions, family activities, colored examples, and printable black-line vector scenes. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
+    prompt: "Original, age-appropriate, read-aloud Bible story and coloring book with 20 gently humorous retellings, scripture references, illustrated openers, parent conversation guides, story questions, child assignments, colored examples, and printable high-contrast black-line illustrations with mini color references. Preserve faithfulness to cited Bible passages; use references rather than lengthy quotations.",
     theme: {
       ...DEFAULT_EBOOK_THEME,
       name: "Bright storybook",
-      primary: "#167f83",
-      accent: "#f0a23b",
-      paper: "#f0fcf9",
-      text: "#173a40",
+      primary: "#145d72",
+      accent: "#f2ad35",
+      paper: "#fff9e8",
+      text: "#273746",
       headingFont: "sans",
       bodyFont: "sans",
     },
@@ -341,12 +386,12 @@ export function createChildrenBibleColoringBook() {
 
   return {
     title: "God’s Big Story: A Read-Aloud Bible Coloring Adventure",
-    subtitle: "16 Bible Stories to Read, Talk About, and Color",
+    subtitle: "20 Bible Stories to Read, Talk About, and Color",
     bookType: "children",
     genre: "Bible stories and coloring books",
     trimSize: "8.5x11",
-    idea: "Original, child-friendly retellings of 16 Bible stories with scripture references, parent read-aloud notes, questions, activities, color guides, and printable illustrations.",
-    description: "Read together, talk about the story, and color sixteen original Bible-inspired scenes. Each short retelling is paired with a scripture reference, a parent conversation guide, story questions, a family activity, a colored example, and an original black-line illustration. Trim size: 8.5 × 11 inches. Review the editable draft and all publication details before printing.",
+    idea: "An illustrated, read-aloud Bible story and coloring book with 20 warm, gently humorous retellings, scripture references, parent read-aloud notes, questions, child assignments, dimensional color examples, and printable high-contrast scenes.",
+    description: "Read together, laugh together, talk about the story, and color twenty original Bible-inspired scenes. Every story includes an illustrated opener, an original read-aloud retelling, its Bible reference, a parent conversation guide, child-friendly questions, a hands-on assignment, a layered-color example, and a matching black-line coloring page with a mini example. Trim size: 8.5 × 11 inches. Review the editable draft and all publication details before printing.",
     outline: stories.map((story) => `${story.title} — ${story.reference}`),
     chapters,
     kdpKeywords: [

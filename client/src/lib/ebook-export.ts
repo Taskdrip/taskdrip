@@ -90,7 +90,10 @@ function renderHtmlBlock(
   }
   if (block.kind === "list") return `<ul>${block.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
   if (block.kind === "art") {
-    return `<figure><img src="${artPath(block)}" alt="${escapeHtml(block.altText)}">${block.brief ? `<figcaption>${escapeHtml(block.brief)}</figcaption>` : ""}</figure>`;
+    const isBibleArt = block.motif === "bible-scene";
+    const isReference = isBibleArt && block.altText.startsWith("Small colored reference example");
+    const artClass = isBibleArt ? ` art-mode-${block.artMode || "line"}` : "";
+    return `<figure class="ebook-art${artClass}${isReference ? " art-reference" : ""}"><img src="${artPath(block)}" alt="${escapeHtml(block.altText)}">${isReference ? "<figcaption>COLOR EXAMPLE</figcaption>" : block.brief ? `<figcaption>${escapeHtml(block.brief)}</figcaption>` : ""}</figure>`;
   }
   if (block.kind === "contents") {
     return `<ol class="contents">${book.chapters.map((chapter) => `<li><a href="#chapter-${escapeHtml(chapter.id)}">${escapeHtml(chapter.title)}</a></li>`).join("")}</ol>`;
@@ -128,22 +131,41 @@ function htmlStyles(document: EbookDesignDocument, trimSize: string) {
   const theme = document.theme;
   const headingFont = theme.headingFont === "sans" ? "Arial, sans-serif" : 'Georgia, "Times New Roman", serif';
   const bodyFont = theme.bodyFont === "sans" ? "Arial, sans-serif" : 'Georgia, "Times New Roman", serif';
-  return `@page{size:${size};margin:.7in .65in .7in .8in}
-    *{box-sizing:border-box}body{margin:0;color:${theme.text};background:${theme.paper};font:11pt/1.65 ${bodyFont}}
+  return `@page{size:${size};margin:.6in .6in .65in}
+    *{box-sizing:border-box}body{margin:0;color:${theme.text};background:${theme.paper};font:11pt/1.62 ${bodyFont};-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .book-page,.chapter{break-before:page;page-break-before:always}.book-page:first-child{break-before:auto;page-break-before:auto}
-    h1,h2{font-family:${headingFont};color:${theme.primary};line-height:1.2;break-after:avoid}
-    h1{font-size:24pt;margin:0 0 1.2em}.role-title{font-size:30pt;text-align:center;margin-top:30%}
-    .role-subtitle{text-align:center;font-size:15pt}.role-eyebrow{text-transform:uppercase;letter-spacing:.15em;color:${theme.accent}}
-    figure{text-align:center;margin:1.5em 0}figure img{max-width:100%;max-height:3in}figcaption{font-size:9pt;color:#666}
-    p{orphans:2;widows:2}li{margin:.35em 0}.contents{line-height:2}.chapter p{text-indent:1em;margin:.7em 0}
-    .kind-cover{text-align:center}.kind-cover .role-title{margin-top:20%}
-    .kind-parent-guide figure img{max-height:1.35in}
-    .kind-coloring{display:flex;min-height:9.5in;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center}
-    .kind-coloring h1{font-size:19pt;margin:.2em 0 .35em}.kind-coloring .role-eyebrow{font-size:8pt;margin:.15em 0}
-    .kind-coloring figure{display:flex;flex:1;width:100%;align-items:center;justify-content:center;margin:.35em 0}
-    .kind-coloring figure img{width:auto;height:7.2in;max-width:100%;max-height:7.2in;object-fit:contain}
-    .kind-coloring figcaption{font-size:8pt;margin-top:.2em}
-    @media screen{body{max-width:7in;margin:2rem auto;padding:1rem 1.3rem;box-shadow:0 8px 35px #0002}.book-page{margin-bottom:3rem}}`;
+    .book-page{position:relative;margin:0;padding:.16in .2in .2in;border:1.2pt solid ${theme.accent};border-top:7pt solid ${theme.primary};border-radius:16pt;background:linear-gradient(165deg,#fff 0%,${theme.paper} 100%);break-inside:avoid}
+    .book-page:before{content:"";position:absolute;right:.14in;top:.14in;width:.18in;height:.18in;border-radius:50%;background:${theme.accent};opacity:.72}
+    h1,h2{font-family:${headingFont};color:${theme.primary};line-height:1.16;break-after:avoid}
+    h1{font-size:24pt;margin:0 0 .55em}.role-title{font-family:"Arial Rounded MT Bold","Trebuchet MS",Arial,sans-serif;font-weight:900;font-size:32pt;letter-spacing:-.035em;line-height:1.04;text-align:center;color:${theme.primary};text-shadow:1.4pt 1.6pt 0 ${theme.accent}}
+    .role-subtitle{text-align:center;font-size:15pt;font-weight:700;color:${theme.text}}
+    .role-eyebrow{display:inline-block;margin:.1em 0 .7em;padding:.32em .72em;border-radius:99px;background:${theme.primary};color:#fff;font:bold 8.5pt/1.2 ${headingFont};letter-spacing:.12em;text-transform:uppercase}
+    .role-heading{display:inline-block;margin:.7em 0 .35em;color:${theme.primary};font-size:15pt;font-weight:800}
+    .role-caption{text-align:center;color:#53616c;font-size:9.5pt;font-weight:600}
+    figure{text-align:center;margin:1em 0}figure img{max-width:100%;max-height:3.2in;object-fit:contain}
+    .ebook-art img{display:block;margin:auto}.art-mode-color img{filter:drop-shadow(0 3px 3px #28374624)}
+    figcaption{font-size:8pt;color:#5c6670;line-height:1.25}
+    p{orphans:2;widows:2}.role-body{font-size:11pt;line-height:1.72}.role-body+ .role-heading{margin-top:1em}
+    li{margin:.42em 0;padding-left:.2em}li::marker{color:${theme.accent};font-size:1.1em}
+    ul{padding-left:1.25em}.contents{line-height:1.8;padding-left:1.45em}.contents a{color:${theme.primary};text-decoration:none}
+    .chapter h1{padding-bottom:.3em;border-bottom:2pt solid ${theme.accent}}
+    .chapter p{text-indent:0;margin:.78em 0}.chapter p:first-of-type:first-letter{float:left;margin:.06em .12em 0 0;color:${theme.primary};font:bold 2.7em/0.86 ${headingFont}}
+    .kind-cover{text-align:center;background:linear-gradient(160deg,#fff6c7 0%,#d8f5f0 50%,#fff 100%);border:4pt solid ${theme.accent};border-top:12pt solid ${theme.primary};padding:.28in}
+    .kind-cover figure{margin:.2em auto .65em}.kind-cover figure img{width:100%;max-height:5in;object-fit:contain}
+    .kind-cover .role-title{font-size:39pt;margin:.12em auto}.kind-cover .role-eyebrow{background:${theme.accent};color:#2c3b49}
+    .kind-title{text-align:center}.kind-title figure img{max-height:4.6in}
+    .kind-chapter-opening{text-align:center}.kind-chapter-opening figure img{max-height:4.25in}
+    .kind-parent-guide .ebook-art img{max-height:1.35in}
+    .kind-coloring{position:relative;display:flex;min-height:9.2in;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;overflow:visible}
+    .kind-coloring h1{font-size:19pt;margin:.12em 0 .22em}.kind-coloring .role-eyebrow{font-size:8pt;margin:.05em 0}
+    .kind-coloring .role-caption{max-width:82%;align-self:flex-start;text-align:left;font-size:8.5pt;margin:.08em 0 .25em}
+    .kind-coloring figure.art-mode-line{display:flex;flex:1;width:100%;align-items:center;justify-content:center;margin:.16em 0 0}
+    .kind-coloring figure.art-mode-line img{width:auto;height:7.1in;max-width:100%;max-height:7.1in;object-fit:contain}
+    .kind-coloring figure.art-mode-color:not(.art-reference){display:flex;flex:1;width:100%;align-items:center;justify-content:center;margin:.3em 0}
+    .kind-coloring figure.art-mode-color:not(.art-reference) img{width:auto;height:7in;max-width:100%;max-height:7in;object-fit:contain}
+    .kind-coloring figure.art-reference{position:absolute;z-index:2;top:1.05in;right:.1in;width:1.45in;margin:0;padding:.06in;border:1.7pt solid ${theme.primary};border-radius:7pt;background:#fff;box-shadow:0 2pt 5pt #26374635}
+    .kind-coloring figure.art-reference img{width:100%;height:1.45in;max-height:none;object-fit:contain}.kind-coloring figure.art-reference figcaption{margin-top:.03in;color:${theme.primary};font-weight:900;letter-spacing:.08em}
+    @media screen{body{max-width:7in;margin:2rem auto;padding:1rem 1.3rem;box-shadow:0 8px 35px #0002}.book-page{margin-bottom:3rem}.kind-coloring figure.art-reference{top:5.6rem;right:.25rem;width:1.2in}.kind-coloring figure.art-reference img{height:1.1in}}`;
 }
 
 function colorRgb(hex: string): [number, number, number] {

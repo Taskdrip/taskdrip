@@ -68,7 +68,7 @@ export type EbookBookDesignerProps = {
 };
 
 const motifs: EbookArtMotif[] = ["botanical", "geometry", "orbit", "waves", "bible-scene"];
-const bibleScenes = ["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection"];
+const bibleScenes = ["storybook-cover", "creation", "noah", "moses", "david", "daniel", "jonah", "ruth", "esther", "nativity", "feeding", "samaritan", "resurrection", "abraham", "joseph", "samuel", "zacchaeus", "calming-storm", "welcoming-children", "lost-sheep", "bartimaeus"];
 const formats = [
   { value: "pdf", label: "Print interior PDF" },
   { value: "epub", label: "EPUB 3 · Kindle / Google Play Books" },

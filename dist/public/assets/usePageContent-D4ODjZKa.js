@@ -1,1 +1,0 @@
-import{u as c}from"./index-DeA4xpvk.js";function f(n){const{data:r}=c({queryKey:["/api/page-content",n],queryFn:()=>fetch(`/api/page-content/${n}`).then(e=>e.json()).then(e=>Array.isArray(e)?e:[]),staleTime:6e4}),o=Array.isArray(r)?r:[];function s(e,i,u=""){const t=o.find(a=>a.section===e&&a.key===i);return t&&(t.value||t.defaultValue)||u}return{get:s,blocks:o}}export{f as u};

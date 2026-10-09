@@ -129,6 +129,10 @@ const BIBLE_SCENE_IDS = new Set([
   "joseph",
   "samuel",
   "zacchaeus",
+  "calming-storm",
+  "welcoming-children",
+  "lost-sheep",
+  "bartimaeus",
 ]);
 
 function renderBibleSceneSvg(
@@ -139,27 +143,40 @@ function renderBibleSceneSvg(
 ) {
   const safeScene = BIBLE_SCENE_IDS.has(scene) ? scene : "storybook-cover";
   const isColor = artMode === "color";
-  const ink = isColor ? safeColor(theme.primary, "#372d70") : "#1d2026";
-  const accent = isColor ? safeColor(theme.accent, "#e1a63e") : "#1d2026";
+  const ink = isColor ? "#29394b" : "#171a20";
+  const accent = isColor ? safeColor(theme.accent, "#e1a63e") : "#171a20";
   const skin = isColor ? "#f6c89f" : "#fff";
   const robe = isColor ? "#f1d882" : "#fff";
-  const sky = isColor ? "#fff4cb" : "#fff";
   const stroke = `stroke="${ink}" stroke-width="${isColor ? 5 : 5.5}" stroke-linecap="round" stroke-linejoin="round"`;
-  const fill = (color: string) => isColor ? color : "#fff";
+  const colors = new Set<string>();
+  const fill = (color: string) => {
+    if (!isColor) return "#fff";
+    const validColor = safeColor(color, "#fff9e8");
+    colors.add(validColor);
+    return `url(#volume-${validColor.slice(1)})`;
+  };
   const human = (x: number, y: number, scale = 1, robeColor = robe) => `
     <g transform="translate(${x} ${y}) scale(${scale})" ${stroke}>
-      <path d="M-26 49 Q0 39 26 49 L37 111 Q0 124-37 111Z" fill="${fill(robeColor)}"/>
-      <path d="M-22 60 L-48 85 M22 60 L48 85" fill="none"/>
+      <path d="M-24 48Q0 38 24 48L41 107Q1 126-41 107Z" fill="${fill(robeColor)}"/>
+      <path d="M-23 55Q-39 58-55 81L-45 91Q-33 78-17 71ZM23 55Q39 58 55 81L45 91Q33 78 17 71Z" fill="${fill(robeColor)}"/>
+      <path d="M-48 84l-3 9m99-9 3 9" fill="none"/>
+      <circle cx="-50" cy="96" r="7" fill="${fill(skin)}"/><circle cx="50" cy="96" r="7" fill="${fill(skin)}"/>
+      <path d="M-19 51L0 68 19 51M-25 105Q0 114 25 105M0 68v38" fill="none"/>
+      <path d="M-16 108L-19 132M16 108L19 132" fill="none"/>
+      <ellipse cx="-27" cy="135" rx="15" ry="7" fill="${fill(isColor ? "#5b473d" : "#fff")}"/>
+      <ellipse cx="27" cy="135" rx="15" ry="7" fill="${fill(isColor ? "#5b473d" : "#fff")}"/>
+      <circle cx="-28" cy="20" r="6" fill="${fill(skin)}"/><circle cx="28" cy="20" r="6" fill="${fill(skin)}"/>
       <circle cx="0" cy="20" r="29" fill="${fill(skin)}"/>
-      <path d="M-27 12 Q-23-19 4-13 Q25-10 28 10 Q12-4-5 2 Q-16 10-27 12Z" fill="${fill(isColor ? "#493a31" : "#fff")}"/>
-      <circle cx="-10" cy="22" r="2.5" fill="${ink}" stroke="none"/>
-      <circle cx="10" cy="22" r="2.5" fill="${ink}" stroke="none"/>
-      <path d="M-8 34 Q0 42 9 34" fill="none"/>
-      <path d="M-22 113 L-25 132 M22 113 L25 132 M-36 133 Q-24 139-14 133 M14 133 Q25 139 37 133" fill="none"/>
+      <path d="M-27 12Q-23-19 4-13 25-10 28 10 12-4-5 2-16 10-27 12Z" fill="${fill(isColor ? "#493a31" : "#fff")}"/>
+      <ellipse cx="-10" cy="22" rx="3.5" ry="4.6" fill="${ink}" stroke="none"/>
+      <ellipse cx="10" cy="22" rx="3.5" ry="4.6" fill="${ink}" stroke="none"/>
+      <circle cx="-11" cy="21" r="1.2" fill="#fff" stroke="none"/><circle cx="9" cy="21" r="1.2" fill="#fff" stroke="none"/>
+      <path d="M-8 34Q0 42 9 34M-18 15q6-5 12-2m9 0q6-3 12 2M-7 28h14" fill="none"/>
+      <circle cx="-19" cy="31" r="4" fill="${fill(isColor ? "#eea69a" : "#fff")}"/><circle cx="19" cy="31" r="4" fill="${fill(isColor ? "#eea69a" : "#fff")}"/>
     </g>`;
-  const star = (x: number, y: number, size = 18) => `<path d="M${x} ${y-size} L${x+5} ${y-5} ${x+size} ${y} ${x+5} ${y+5} ${x} ${y+size} ${x-5} ${y+5} ${x-size} ${y} ${x-5} ${y-5}Z" fill="${fill(accent)}" ${stroke}/>`;
-  const sheep = (x: number, y: number, scale = 1) => `<g transform="translate(${x} ${y}) scale(${scale})" ${stroke}><circle cx="-12" cy="0" r="24" fill="${fill("#fff")}"/><circle cx="13" cy="-3" r="25" fill="${fill("#fff")}"/><circle cx="35" cy="4" r="17" fill="${fill("#fff")}"/><ellipse cx="49" cy="5" rx="13" ry="15" fill="${fill(skin)}"/><circle cx="54" cy="1" r="2.5" fill="${ink}"/><path d="M-18 18v16m25-17v17" fill="none"/></g>`;
-  const lion = (x: number, y: number, scale = 1) => `<g transform="translate(${x} ${y}) scale(${scale})" ${stroke}><circle cx="0" cy="0" r="43" fill="${fill(accent)}"/><circle cx="0" cy="1" r="27" fill="${fill(skin)}"/><circle cx="-9" cy="-2" r="3" fill="${ink}"/><circle cx="9" cy="-2" r="3" fill="${ink}"/><path d="M-8 10 Q0 18 8 10 M-27 33l-8 25m64-25 8 25" fill="none"/></g>`;
+  const star = (x: number, y: number, size = 18) => `<path class="storybook-twinkle" d="M${x} ${y-size} L${x+5} ${y-5} ${x+size} ${y} ${x+5} ${y+5} ${x} ${y+size} ${x-5} ${y+5} ${x-size} ${y} ${x-5} ${y-5}Z" fill="${fill(accent)}" ${stroke}/>`;
+  const sheep = (x: number, y: number, scale = 1) => `<g transform="translate(${x} ${y}) scale(${scale})" ${stroke}><path d="M-22 11v25m38-26v27m24-26v25" fill="none"/><circle cx="-12" cy="0" r="24" fill="${fill("#fff")}"/><circle cx="13" cy="-3" r="25" fill="${fill("#fff")}"/><circle cx="35" cy="4" r="17" fill="${fill("#fff")}"/><ellipse cx="49" cy="5" rx="13" ry="15" fill="${fill(skin)}"/><path d="M38-7q2-21 18-5m-8 15q8-5 14 2" fill="none"/><circle cx="51" cy="1" r="2.8" fill="${ink}"/><circle cx="52" cy="0" r="1" fill="#fff" stroke="none"/><path d="M-24-15q4 8 11 2m4-11q3 8 10 3m10-1q4 7 11 2M-4 24q4 7 9 2" fill="none"/></g>`;
+  const lion = (x: number, y: number, scale = 1) => `<g transform="translate(${x} ${y}) scale(${scale})" ${stroke}><ellipse cx="0" cy="39" rx="42" ry="25" fill="${fill(accent)}"/><path d="M-29 52l-5 23m24-22-2 22m26-22 3 22m20-28 8 24" fill="none"/><path d="M-42 41q-18-23-4-48Q-36-35-4-41 27-43 42-20 57 4 39 30 23 52-9 46Z" fill="${fill(accent)}"/><ellipse cx="0" cy="3" rx="25" ry="22" fill="${fill(skin)}"/><circle cx="-9" cy="-2" r="3.3" fill="${ink}"/><circle cx="9" cy="-2" r="3.3" fill="${ink}"/><ellipse cx="0" cy="7" rx="5" ry="4" fill="${fill("#5b473d")}"/><path d="M-8 14q8 9 16 0m-29-22 8-8m18 0 8 8m23 46q23-3 15-20" fill="none"/></g>`;
   const hill = `<path d="M45 575 Q175 423 310 575 Q455 410 595 575 L595 645 L45 645Z" fill="${fill(isColor ? "#d7efc7" : "#fff")}"/>`;
   let scenery = "";
   let people = "";
@@ -228,12 +245,45 @@ function renderBibleSceneSvg(
       scenery = `${hill}<path d="M126 534q48-76 96 0v66h-96Zm186-38q52-87 104 0v104H312Zm159 27q39-61 78 0v77h-78Z" fill="${fill("#d4edc3")}" ${stroke}/><path d="M339 492V198m-45 68q49-93 93 0m-108 61q63-80 128 0m-127 38q66-71 131 0" fill="none" ${stroke}/><path d="M95 604h450" fill="none" ${stroke}/>`;
       people = human(335, 332, 0.58, isColor ? "#f2ce72" : "#fff") + human(223, 431, 0.67) + human(455, 432, 0.67, isColor ? "#c8e5a5" : "#fff");
       break;
+    case "calming-storm":
+      scenery = `<path d="M42 474q62-73 124 0t124 0 124 0 124 0 106 0v160H42Z" fill="${fill("#8ac8e0")}" ${stroke}/><path d="M48 523q62-65 124 0t124 0 124 0 124 0 100 0M48 574q62-52 124 0t124 0 124 0 124 0 100 0" fill="none" ${stroke}/><path d="M170 430q150 100 300 0l-28 108H202Z" fill="${fill("#e9a86c")}" ${stroke}/><path d="M204 469q112 45 230 0m-218 38q102 38 203 0" fill="none" ${stroke}/><path d="M317 405V231l-117 173Z" fill="${fill("#fff4d6")}" ${stroke}/><path d="M315 210v-62m-26 42h52" fill="none" ${stroke}/>${star(510,151,23)}<path d="M110 230q27-34 54 0m-17-34q29-34 57 1M423 238q26-31 52 0" fill="none" ${stroke}/><path d="M74 254q-13-16 4-30 9-24 36-12 17-26 38-8 27-2 30 22 25-8 34 16-19 20-43 12-20 18-42 7-30 18-57-7Zm318-13q-9-15 7-28 8-22 32-12 17-21 35-5 23-1 27 20 22-7 30 15-16 18-37 11-19 15-38 6-25 14-48-7Z" fill="${fill("#c3d2e6")}" ${stroke}/><path d="M106 297l-12 34m55-29-11 38m43-38-10 30m223-31-12 34m49-37-11 38m48-31-10 32m-342 91 15 16m-8-29 13 13m311 5 12 12m-7-26 14 15" fill="none" ${stroke}/>`;
+      people = human(258, 353, 0.68, isColor ? "#e4c7f1" : "#fff") + human(362, 365, 0.66, isColor ? "#d4eaa9" : "#fff");
+      break;
+    case "welcoming-children":
+      scenery = `${hill}<path d="M92 568q55-37 110 0m-84 29q75-40 150 0m194-30q63-39 126 0M90 610h460" fill="none" ${stroke}/>${star(130,175,18)}${star(505,180,18)}<path d="M160 348q160-95 320 0" fill="none" ${stroke}/>`;
+      people = human(316, 325, 0.94, isColor ? "#e5b45b" : "#fff") + human(176, 452, 0.58, isColor ? "#c6e4f1" : "#fff") + human(270, 456, 0.56, isColor ? "#e8a8a2" : "#fff") + human(378, 453, 0.57, isColor ? "#c7dda1" : "#fff") + human(465, 458, 0.54, isColor ? "#d7c3ed" : "#fff");
+      break;
+    case "lost-sheep":
+      scenery = `<path d="M50 605Q170 463 300 574Q430 410 590 580V656H50Z" fill="${fill("#b8dc9d")}" ${stroke}/><path d="M58 620q115-85 210-12m126-26q90-90 178-9M88 633h465" fill="none" ${stroke}/>${star(124,164,20)}${star(521,138,25)}<path d="M191 550q-31-45-6-83 22-34 57 3" fill="none" ${stroke}/>`;
+      people = human(264, 379, 0.84, isColor ? "#72a9ca" : "#fff") + sheep(404, 518, 0.73);
+      break;
+    case "bartimaeus":
+      scenery = `${hill}<path d="M60 596h520M120 553q165-94 400 0" fill="none" ${stroke}/><path d="M112 520h78m-62-24 48 48m-48 0 48-48" fill="none" ${stroke}/>${star(511,165,23)}<path d="M96 610q18-31 36 0m382 0q18-31 36 0" fill="none" ${stroke}/>`;
+      people = human(422, 371, 0.85, isColor ? "#e7c36a" : "#fff") + human(226, 443, 0.72, isColor ? "#b8c8dc" : "#fff") + human(536, 436, 0.58, isColor ? "#c5e2ad" : "#fff");
+      break;
+    case "storybook-cover":
+      scenery = `<path d="M0 425Q120 332 240 427T480 425T640 415V720H0Z" fill="${fill("#8fcf9b")}"/><path d="M0 510Q145 407 290 515T580 500T640 490V720H0Z" fill="${fill("#56ad84")}"/><circle cx="507" cy="149" r="61" fill="${fill("#ffe083")}" ${stroke}/><path d="M78 210q-14-31 25-39 15-43 55-13 44-2 40 37-21 19-120 15m305-24q-9-25 21-29 15-35 48-10 37-1 35 31-20 18-104 8" fill="${fill("#fff")}"/><path d="M84 600q236-59 474 0" fill="none" ${stroke}/>${star(303,128,22)}${star(399,186,15)}`;
+      people = human(242, 359, 0.78, isColor ? "#f09d7b" : "#fff") + human(395, 366, 0.78, isColor ? "#82b8d2" : "#fff") + sheep(300, 548, 0.82);
+      break;
     default:
       scenery = `<circle cx="320" cy="470" r="170" fill="${fill("#fff0c4")}" ${stroke}/>${star(176,236,22)}${star(466,245,18)}`;
       people = human(244, 382, 0.77) + human(398, 382, 0.77) + sheep(300, 548, 0.86);
   }
 
+  const gradientDefinition = isColor
+    ? `<defs><linearGradient id="canvas-wash" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="${safeColor(theme.paper, "#fff9e9")}"/></linearGradient>${Array.from(colors, (color) => {
+      const shade = (amount: number) => {
+        const channels = color.slice(1).match(/.{2}/g)!.map((part) => parseInt(part, 16));
+        return `#${channels.map((channel) => Math.round(Math.max(0, Math.min(255, channel * (1 - amount)))).toString(16).padStart(2, "0")).join("")}`;
+      };
+      return `<linearGradient id="volume-${color.slice(1)}" x1="0" y1="0" x2=".2" y2="1"><stop stop-color="#ffffff" stop-opacity=".62"/><stop offset=".38" stop-color="${color}"/><stop offset="1" stop-color="${shade(.16)}"/></linearGradient>`;
+    }).join("")}</defs>`
+    : "";
+  const cartoonMotion = isColor
+    ? `<style>@keyframes storybook-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}@keyframes storybook-twinkle{0%,100%{opacity:.78}50%{opacity:1}}.storybook-character{animation:storybook-bob 3.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}.storybook-twinkle{animation:storybook-twinkle 2.2s ease-in-out infinite alternate}@media(prefers-reduced-motion:reduce){.storybook-character,.storybook-twinkle{animation:none}}</style>`
+    : "";
   const landscape = safeScene === "creation" || safeScene === "david" || safeScene === "samaritan";
+  const gardenCorners = `<g ${stroke}><path d="M47 674q20-45 42-72m-37 36q-16-21-29-12 9 20 29 21m13-25q-3-25 15-27 7 20-15 27m533 52q-20-45-42-72m37 36q16-21 29-12-9 20-29 21m-13-25q3-25-15-27-7 20 15 27" fill="none"/><path d="M50 649q-13-11-22 1 8 13 22-1m539 0q13-11 22 1-8 13-22-1" fill="${fill("#82c18a")}"/><circle cx="67" cy="643" r="8" fill="${fill("#f4bf62")}"/><circle cx="573" cy="643" r="8" fill="${fill("#f4bf62")}"/><circle cx="67" cy="643" r="3" fill="${fill("#fff")}"/><circle cx="573" cy="643" r="3" fill="${fill("#fff")}"/></g>`;
   const title = escapeXml(altText.slice(0, 180));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="${title}" preserveAspectRatio="xMidYMid meet"><title>${title}</title><rect width="640" height="720" fill="${isColor ? safeColor(theme.paper, "#fff9e9") : "#fff"}"/><rect x="28" y="28" width="584" height="664" rx="24" fill="none" ${stroke}/>${landscape ? "" : `<path d="M78 615h484" fill="none" ${stroke}/>`}${scenery}${people}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="${title}" preserveAspectRatio="xMidYMid meet">${gradientDefinition}${cartoonMotion}<title>${title}</title><rect width="640" height="720" fill="${isColor ? "url(#canvas-wash)" : "#fff"}"/><rect x="28" y="28" width="584" height="664" rx="24" fill="none" ${stroke}/>${landscape ? "" : `<path d="M78 615h484" fill="none" ${stroke}/>`}${scenery}<g class="${isColor ? "storybook-character" : ""}">${people}</g>${gardenCorners}</svg>`;
 }
