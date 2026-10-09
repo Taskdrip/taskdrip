@@ -80,7 +80,7 @@ The dev server runs on port 5000.
 
 ## WordPress Plugin Studio
 
-- Admins can open **Admin → Products → Plugin Studio** or `/admin/plugin-studio`. The first package is CourseBridge Pro for LearnPress and WooCommerce; new packages currently use this same course-bridge generator template.
+- Admins can open **Admin Dashboard → Premium Plugin Studio**, **Admin → Products → Plugin Studio**, or `/admin/plugin-studio`. The first package is CourseBridge Pro for LearnPress and WooCommerce; new packages currently use this same course-bridge generator template.
 - Published plugin packages become normal Taskdrip Shop digital products and use the existing shop checkout/payment review flow. A buyer can download the ZIP after the existing purchase record reaches a verified paid/approved state.
 - The generated WordPress ZIP includes the plugin code, install readme, SEO/shop metadata, and a WordPress.org release checklist. It does not upload to the WordPress.org SVN repository or bypass WordPress.org review. The current premium package has no separate free directory edition.
 - Each WordPress installation configures its own Resend sender and API key in the plugin settings (or `wp-config.php`). Taskdrip/Replit does not receive or embed the buyer's Resend key.

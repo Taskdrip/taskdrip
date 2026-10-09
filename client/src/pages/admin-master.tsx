@@ -3256,7 +3256,14 @@ export default function AdminMaster() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
+                {isFullAdmin && (
+                  <RouterLink href="/admin/plugin-studio">
+                    <Button size="sm" className="rounded-xl bg-violet-600 text-white shadow-lg hover:bg-violet-700">
+                      <Sparkles className="mr-1.5 h-4 w-4" /> Premium WordPress Plugin Studio
+                    </Button>
+                  </RouterLink>
+                )}
                 <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 rounded-xl shadow-lg hover:opacity-90">
