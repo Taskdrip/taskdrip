@@ -7,6 +7,7 @@ import { pluginStudioProjects, purchases, shopProducts } from "@shared/schema";
 import { createStudioAIClient, getCreatorStudioAIConfig } from "./creator-publishing";
 import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
+import { buildCourseBridgePluginEditions } from "./coursebridge-plugin";
 
 const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
@@ -16,7 +17,7 @@ const STARTER = {
   author: "Taskdrip",
   shortDescription: "Automatically enroll WooCommerce customers in linked LearnPress courses, track buyers, and run consent-based Resend campaigns.",
   description:
-    "Connect WooCommerce products to LearnPress courses with CourseBridge Pro. When a WooCommerce order is confirmed as paid, the customer is enrolled in each course mapped to the products in their order. Give course teams a clear view of product and course purchases, customer roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group email campaigns through Resend, with recorded consent and unsubscribe links. Includes an installable WordPress plugin ZIP, upgrade-conscious order history, SEO-ready product copy, and a WordPress repository preparation guide.",
+    "CourseBridge Core links WooCommerce products to LearnPress courses and enrolls customers after confirmed payment. The separate paid Premium add-on gives administrators a dashboard for successful product and course purchases, WordPress roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group Resend campaigns only to opted-in users, with unsubscribe links and send logs.",
   seoTitle: "LearnPress WooCommerce Integration & Email Marketing Plugin",
   seoDescription:
     "Connect LearnPress courses to WooCommerce products. Auto-enroll paid buyers, track customers and course purchases, and send consent-based Resend email campaigns.",
@@ -41,38 +42,81 @@ function adminOnly(req: any, res: any): boolean {
 }
 
 async function ensureStarterProject(adminId: string) {
-  const [existing] = await db.select({ id: pluginStudioProjects.id })
-    .from(pluginStudioProjects).where(eq(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
-  if (existing) return;
+  const [existing] = await db.select().from(pluginStudioProjects)
+    .where(eq(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+  const editions = buildCourseBridgePluginEditions(STARTER);
+  if (existing) {
+    let shopProductId = existing.shopProductId;
+    if (!shopProductId) {
+      await db.transaction(async (tx) => {
+        const [product] = await tx.insert(shopProducts).values({
+          title: `${STARTER.name} Premium`,
+          description: STARTER.description,
+          shortDescription: STARTER.shortDescription,
+          price: "49.00",
+          category: "WordPress Plugins",
+          type: "plugin",
+          features: editions.premium.features,
+          requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...editions.premium.requirements])).slice(0, 10),
+          tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
+          isActive: false,
+          isFeatured: false,
+          isFree: false,
+          createdBy: adminId,
+        }).returning();
+        shopProductId = product.id;
+        await tx.update(shopProducts)
+          .set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` })
+          .where(eq(shopProducts.id, product.id));
+      });
+    } else {
+      await db.update(shopProducts)
+        .set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` })
+        .where(eq(shopProducts.id, shopProductId));
+    }
+    const packagesMissing =
+      !Object.keys(existing.coreFiles || {}).length ||
+      !Object.keys(existing.premiumFiles || {}).length;
+    if (packagesMissing || existing.shopProductId !== shopProductId) {
+      await db.update(pluginStudioProjects).set({
+        shopProductId,
+        sourcePrompt: existing.sourcePrompt || STARTER.description,
+        coreShortDescription: editions.core.shortDescription,
+        coreDescription: editions.core.description,
+        coreFiles: editions.core.files,
+        premiumFiles: editions.premium.files,
+        updatedAt: new Date(),
+      }).where(eq(pluginStudioProjects.id, existing.id));
+    }
+    return;
+  }
 
   try {
     await db.transaction(async (tx) => {
       const [product] = await tx.insert(shopProducts).values({
-        title: STARTER.name,
+        title: `${STARTER.name} Premium`,
         description: STARTER.description,
         shortDescription: STARTER.shortDescription,
         price: "49.00",
         category: "WordPress Plugins",
         type: "plugin",
-        features: [
-          "Link WooCommerce products to one or more LearnPress courses",
-          "Enroll customers automatically after successful WooCommerce payment",
-          "Review product and course buyers, WordPress roles, and order totals",
-          "Send consent-based Resend campaigns to selected customer segments",
-          "Secure unsubscribe links and per-recipient send logs",
-          "Downloadable plugin ZIP with WordPress installation and repository notes",
-        ],
-        requirements: ["WordPress 6.2+", "PHP 7.4+", "WooCommerce", "LearnPress"],
+        features: editions.premium.features,
+        requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...editions.premium.requirements])).slice(0, 10),
         tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
-        isActive: true,
-        isFeatured: true,
+        isActive: false,
+        isFeatured: false,
         isFree: false,
         createdBy: adminId,
       }).returning();
       const [project] = await tx.insert(pluginStudioProjects).values({
         ...STARTER,
+        sourcePrompt: STARTER.description,
+        coreShortDescription: editions.core.shortDescription,
+        coreDescription: editions.core.description,
+        coreFiles: editions.core.files,
+        premiumFiles: editions.premium.files,
         shopProductId: product.id,
-        status: "published",
+        status: "draft",
         createdBy: adminId,
       }).returning();
       await tx.update(shopProducts)
@@ -149,6 +193,7 @@ export function registerPluginStudioRoutes(app: Express) {
   app.get("/api/admin/plugin-studio/projects", isAuthenticated, async (req: any, res) => {
     if (!adminOnly(req, res)) return;
     try {
+      await ensureStarterProject(String(req.user.id));
       const rows = await db.select({ project: pluginStudioProjects, product: shopProducts })
         .from(pluginStudioProjects)
         .leftJoin(shopProducts, eq(pluginStudioProjects.shopProductId, shopProducts.id))

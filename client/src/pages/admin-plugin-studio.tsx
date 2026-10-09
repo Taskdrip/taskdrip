@@ -43,7 +43,8 @@ const initialDraft = {
 };
 
 const featurePillars = [
-  ["Describe the plugin", "Turn a feature brief into separate core and premium source packages using the configured Creator Studio AI model."],
+  ["CourseBridge starter", "A built-in LearnPress + WooCommerce package is generated from reviewed source templates; no AI provider is needed to download it."],
+  ["Describe another plugin", "Turn a feature brief into separate core and premium source packages using the configured Creator Studio AI model."],
   ["Test the free core", "Download the useful, GPL-compatible core ZIP for review and WordPress.org submission preparation."],
   ["Sell the add-on", "Download and test the separate premium add-on, then publish its product through the existing Taskdrip Shop."],
   ["Review before release", "New products stay in draft until an admin reviews both packages and tests them on a staging WordPress site."],
@@ -137,8 +138,8 @@ export default function AdminPluginStudio() {
         <Card className="border-amber-300 bg-amber-50">
           <CardContent className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
             <div>
-              <p className="font-semibold text-amber-950">Plugin generation needs an AI provider</p>
-              <p className="text-sm text-amber-900">Set up the existing Creator Studio AI provider before generating plugin source code.</p>
+              <p className="font-semibold text-amber-950">Custom plugin generation needs an AI provider</p>
+              <p className="text-sm text-amber-900">The built-in CourseBridge Core and Premium packages remain available to download without AI. Set up the Creator Studio provider only to generate additional plugins.</p>
             </div>
             <Button asChild variant="outline"><a href={aiStatus.settingsUrl}>Open AI settings</a></Button>
           </CardContent>

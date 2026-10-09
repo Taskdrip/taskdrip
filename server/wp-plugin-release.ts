@@ -103,6 +103,10 @@ function addCoreDependencyContract(
     ? `\n\nif ( ! defined( '${constant}' ) ) {\n\tdefine( '${constant}', '${project.version}' );\n}\n`
     : `
 
+if ( ! defined( 'ABSPATH' ) ) {
+\treturn;
+}
+
 if ( ! defined( '${constant}' ) ) {
 \tadd_action( 'admin_notices', static function () {
 \t\tif ( ! current_user_can( 'activate_plugins' ) ) {
