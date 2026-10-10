@@ -682,9 +682,20 @@ final class TDLPW_Admin {
     }
 
     public function menu() {
+        if (defined('TDLPW_SINGLE_PAID_PLUGIN') && TDLPW_SINGLE_PAID_PLUGIN) {
+            add_submenu_page(
+                'tdlpw-dashboard',
+                esc_html__('CourseBridge Pro Settings', '{{SLUG}}'),
+                esc_html__('Settings', '{{SLUG}}'),
+                'manage_options',
+                'tdlpw-settings',
+                array($this, 'render')
+            );
+            return;
+        }
         add_menu_page(
-            esc_html__('Course Bridge', '{{SLUG}}'),
-            esc_html__('Course Bridge', '{{SLUG}}'),
+            esc_html__('CourseBridge Pro', '{{SLUG}}'),
+            esc_html__('CourseBridge Pro', '{{SLUG}}'),
             'manage_woocommerce',
             'tdlpw-dashboard',
             array($this, 'render'),
@@ -738,16 +749,17 @@ final class TDLPW_Admin {
 
     public function render() {
         if (!current_user_can('manage_woocommerce')) { return; }
-        $tab = sanitize_key($_GET['tab'] ?? 'overview');
+        $default_tab = sanitize_key($_GET['page'] ?? '') === 'tdlpw-settings' ? 'settings' : 'overview';
+        $tab = sanitize_key($_GET['tab'] ?? $default_tab);
         $settings = get_option('tdlpw_settings', array());
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
-        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('LearnPress + WooCommerce Course Bridge', '{{SLUG}}') . '</h1>';
-        echo '<p>' . esc_html__('Link course products, verify paid orders, review buyers, and send consent-based course updates through Resend.', '{{SLUG}}') . '</p>';
+        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
+        echo '<p>' . esc_html__('Link course products, assign users to courses, verify paid orders, review buyers, and send consent-based course updates through Resend.', '{{SLUG}}') . '</p>';
         if (!empty($_GET['notice'])) {
             echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
         }
         echo '<nav class="nav-tab-wrapper">';
-        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Customers & Campaigns', '{{SLUG}}'), 'settings' => __('Email Settings', '{{SLUG}}')) as $key => $label) {
+        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Customers & Campaigns', '{{SLUG}}'), 'settings' => __('Settings', '{{SLUG}}')) as $key => $label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' .
                 esc_url(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => $key), admin_url('admin.php'))) . '">' . esc_html($label) . '</a>';
         }

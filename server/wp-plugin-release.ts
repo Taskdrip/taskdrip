@@ -1,4 +1,4 @@
-export type PluginEdition = "core" | "premium";
+export type PluginEdition = "core" | "premium" | "paid";
 
 export type GeneratedPluginEdition = {
   mainFile: string;
@@ -98,6 +98,7 @@ function addCoreDependencyContract(
   project: { slug: string; name: string; version: string },
   edition: PluginEdition,
 ): string {
+  if (edition === "paid") return source;
   const headerStart = source.indexOf("/*", source.indexOf("<?php"));
   const headerEnd = source.indexOf("*/", headerStart) + 2;
   const constant = coreVersionConstant(project.slug);
@@ -183,14 +184,20 @@ export function normalizeGeneratedEdition(
 
   const coreSlug = edition === "premium" ? project.slug : undefined;
   const pluginSlug = edition === "premium" ? `${project.slug}-premium` : project.slug;
-  const pluginName = edition === "premium" ? `${project.name} Premium` : `${project.name} Core`;
+  const pluginName = edition === "premium"
+    ? `${project.name} Premium`
+    : edition === "core"
+      ? `${project.name} Core`
+      : project.name;
   const normalizedFiles = { ...files };
   delete normalizedFiles[rawMainFile];
   const normalizedMain = normalizePluginHeader(mainSource, {
     name: pluginName,
     description: edition === "premium"
       ? "Premium add-on for the free core plugin."
-      : `Free core edition of ${project.name}.`,
+      : edition === "paid"
+        ? `Licensed standalone plugin: ${project.name}.`
+        : `Free core edition of ${project.name}.`,
     version: project.version,
     author: project.author,
     slug: pluginSlug,
@@ -225,13 +232,13 @@ export function buildPluginReleaseFiles(
   sourceFiles: Record<string, string>,
 ): { folderSlug: string; files: Record<string, string> } {
   const folderSlug = edition === "premium" ? `${project.slug}-premium` : project.slug;
-  const pluginName = edition === "premium" ? `${project.name} Premium` : `${project.name} Core`;
-  const shortDescription = edition === "premium"
-    ? project.shortDescription || `${project.name} premium add-on`
-    : project.coreShortDescription || `${project.name} free core plugin`;
-  const description = edition === "premium"
-    ? project.description
-    : project.coreDescription || project.description;
+  const pluginName = edition === "premium"
+    ? `${project.name} Premium`
+    : edition === "core" ? `${project.name} Core` : project.name;
+  const shortDescription = edition === "core"
+    ? project.coreShortDescription || `${project.name} free core plugin`
+    : project.shortDescription || `${project.name} paid plugin`;
+  const description = edition === "core" ? project.coreDescription || project.description : project.description;
   const tags = (project.seoKeywords || "")
     .split(",")
     .map((tag) => tag.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/\s+/g, "-"))
@@ -256,11 +263,16 @@ ${edition === "premium" ? `== Requirements ==
 
 Install and activate the free ${cleanReadmeText(project.name)} Core plugin first (slug: ${project.slug}).
 
+` : edition === "paid" ? `== Requirements ==
+
+This paid plugin requires WooCommerce and LearnPress, plus an active Taskdrip license.
+
 ` : ""}== Installation ==
 
 1. In WordPress, open Plugins > Add New Plugin > Upload Plugin and choose this ZIP.
-2. Install and activate the ${edition === "premium" ? "core plugin first, then this premium add-on" : "core plugin"}.
+2. Activate WooCommerce and LearnPress, then activate ${edition === "premium" ? "the free core first and this premium add-on" : edition === "paid" ? "this paid plugin" : "the core plugin"}.
 3. Review the plugin settings and permissions before enabling it on a live site.
+${edition === "paid" ? "4. Open CourseBridge Pro → License to activate the purchased key, then configure CourseBridge Pro → Settings.\n" : ""}
 4. Test the requested features on a staging WordPress site with representative data.
 
 == Changelog ==
@@ -281,7 +293,19 @@ Install and activate the free ${cleanReadmeText(project.name)} Core plugin first
 
 The generated package is not a substitute for a human security or compatibility review.
 `
-    : `# Install and test ${pluginName}
+    : edition === "paid"
+      ? `# Install and test ${pluginName}
+
+1. Back up the site and use a staging WordPress site.
+2. Deactivate and remove any old CourseBridge Premium add-on copies before installing this release.
+3. Upload this single ZIP from WordPress Admin → Plugins → Add New Plugin → Upload Plugin and activate it.
+4. Open CourseBridge Pro → License to activate the purchased license. Then use Dashboard, Course Assignments, and Settings from the CourseBridge Pro menu.
+5. Map a WooCommerce product to LearnPress courses, assign a test user, and place a test paid order to verify both enrollment paths.
+6. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
+
+This licensed Taskdrip package is not a separate free Core plus Premium pair and is not a WordPress.org directory package.
+`
+      : `# Install and test ${pluginName}
 
 1. Back up the site and use a staging WordPress site.
 2. In WordPress, open Plugins > Add New Plugin > Upload Plugin and upload this ZIP.
@@ -314,6 +338,15 @@ This is the free core edition. Before submitting it:
 
 The directory team makes all acceptance decisions. The paid add-on is distributed separately through Taskdrip and must not be included in this core ZIP.
 `;
+  } else if (edition === "paid") {
+    files["TASKDRIP-RELEASE.md"] = `# ${pluginName} — licensed standalone plugin
+
+This paid plugin combines WooCommerce-to-LearnPress course mapping, automatic and manual enrollment, buyer reporting, and consent-based Resend campaigns in one installable package. It is distributed through Taskdrip Shop and requires an active Taskdrip license.
+
+For existing CourseBridge sites, replace the old Core package in place with this package, and deactivate/remove all separate CourseBridge Premium add-on copies first. The plugin slug remains ${project.slug} so the existing Core installation path can be upgraded without leaving a second CourseBridge plugin entry.
+
+Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
+`;
   } else {
     files["TASKDRIP-RELEASE.md"] = `# Taskdrip premium release
 
@@ -322,11 +355,12 @@ This premium add-on is distributed through Taskdrip Shop. Customers must install
 Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
 `;
   }
-  if (edition === "premium") {
+  if (edition !== "core") {
     const mainEntry = Object.entries(sourceFiles).find(([path, source]) =>
       !path.includes("/") && path.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
     if (!mainEntry) throw new Error("The premium package is missing its root plugin entry file.");
 
+    const standalonePaid = edition === "paid";
     const [sourceMainPath, rawSourceMain] = mainEntry;
     // WordPress scans every PHP file in a plugin's root folder. Keep the
     // generated implementation header-free so only the licensed wrapper is
@@ -338,15 +372,23 @@ Review licensing, generated source, WordPress compatibility, security, and the i
     const apiBasePhp = phpSingleQuoted(apiBase);
     const slugPhp = phpSingleQuoted(project.slug);
     const versionPhp = phpSingleQuoted(project.version);
-    const licensePageNamePhp = phpSingleQuoted(`${project.name} Premium License`);
-    const lockedNoticePhp = phpSingleQuoted(`${project.name} Premium is locked. Open Settings → Plugin License to activate or renew a valid key.`);
-    const pluginDescriptionPhp = phpSingleQuoted(`Licensed premium add-on for ${project.name}.`);
+    const licensePageNamePhp = phpSingleQuoted(`${project.name}${standalonePaid ? "" : " Premium"} License`);
+    const lockedNoticePhp = phpSingleQuoted(
+      standalonePaid
+        ? `${project.name} is locked. Open CourseBridge Pro → License to activate or renew a valid key.`
+        : `${project.name} Premium is locked. Open Settings → Plugin License to activate or renew a valid key.`,
+    );
+    const pluginDescriptionPhp = phpSingleQuoted(
+      standalonePaid ? `Licensed standalone plugin: ${project.name}.` : `Licensed premium add-on for ${project.name}.`,
+    );
+    const updateSlugPhp = phpSingleQuoted(folderSlug);
     const classPhp = `<?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! class_exists( '${clientClass}', false ) ) {
   class ${clientClass} {
     private static $slug = ${slugPhp};
+      private static $plugin_slug = ${updateSlugPhp};
     private static $version = ${versionPhp};
     private static $api_base = ${apiBasePhp};
     private static $plugin_file = '';
@@ -354,7 +396,7 @@ if ( ! class_exists( '${clientClass}', false ) ) {
 
     public static function boot( $plugin_file ) {
       self::$plugin_file = $plugin_file;
-      add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
+      add_action( 'admin_menu', array( __CLASS__, 'add_menu' ), 10 );
       add_action( 'admin_post_taskdrip_activate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'activate' ) );
       add_action( 'admin_post_taskdrip_deactivate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'deactivate' ) );
       add_action( 'admin_notices', array( __CLASS__, 'notice' ) );
@@ -452,17 +494,43 @@ if ( ! class_exists( '${clientClass}', false ) ) {
     }
 
     private static function settings_url() {
-      return admin_url( 'options-general.php?page=' . rawurlencode( self::$option_prefix . '-license' ) );
+      return admin_url( ${phpSingleQuoted(standalonePaid ? "admin.php?page=" : "options-general.php?page=")} . rawurlencode( self::$option_prefix . '-license' ) );
     }
 
     public static function add_menu() {
+      ${standalonePaid ? `
+      add_menu_page(
+        esc_html__( 'CourseBridge Pro', 'taskdrip' ),
+        esc_html__( 'CourseBridge Pro', 'taskdrip' ),
+        'manage_options',
+        'tdlpw-dashboard',
+        array( __CLASS__, 'render_root' ),
+        'dashicons-welcome-learn-more',
+        58
+      );
+      add_submenu_page(
+        'tdlpw-dashboard',
+        esc_html__( 'License', 'taskdrip' ),
+        esc_html__( 'License', 'taskdrip' ),
+        'manage_options',
+        self::$option_prefix . '-license',
+        array( __CLASS__, 'render_page' )
+      );` : `
       add_options_page(
         esc_html__( 'Plugin License', 'taskdrip' ),
         esc_html__( 'Plugin License', 'taskdrip' ),
         'manage_options',
         self::$option_prefix . '-license',
         array( __CLASS__, 'render_page' )
-      );
+      );`}
+    }
+
+    public static function render_root() {
+      if ( class_exists( 'TDLPW_Admin', false ) ) {
+        ( new TDLPW_Admin() )->render();
+        return;
+      }
+      self::render_page();
     }
 
     public static function render_page() {
@@ -477,7 +545,9 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       if ( $notice === 'deactivated' ) { echo '<div class="notice notice-info"><p>' . esc_html__( 'This site has been deactivated.', 'taskdrip' ) . '</p></div>'; }
       echo '<p>' . ( $active
         ? esc_html__( 'Premium access is active until ', 'taskdrip' ) . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $state['expiresAt'] ) ) ) . '.'
-        : esc_html__( 'Enter a valid Taskdrip key to unlock premium features and updates. Expired or missing keys keep the premium add-on locked.', 'taskdrip' ) ) . '</p>';
+        : esc_html__( ${phpSingleQuoted(standalonePaid
+          ? "Enter a valid Taskdrip key to activate this plugin and enable its features and updates."
+          : "Enter a valid Taskdrip key to unlock premium features and updates. Expired or missing keys keep the premium add-on locked.")}, 'taskdrip' ) ) . '</p>';
       echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
       wp_nonce_field( 'taskdrip_activate_license' );
       echo '<input type="hidden" name="action" value="taskdrip_activate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}" />';
@@ -522,7 +592,7 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       if ( empty( $update['version'] ) || empty( $update['package'] ) ) { return $transient; }
       if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) { $transient->response = array(); }
       $transient->response[self::$plugin_file] = (object) array(
-        'slug' => self::$slug . '-premium',
+        'slug' => self::$plugin_slug,
         'plugin' => self::$plugin_file,
         'new_version' => sanitize_text_field( $update['version'] ),
         'url' => self::$api_base . '/my-plugins',
@@ -532,13 +602,13 @@ if ( ! class_exists( '${clientClass}', false ) ) {
     }
 
     public static function plugin_info( $result, $action, $args ) {
-      if ( $action !== 'plugin_information' || empty( $args->slug ) || $args->slug !== self::$slug . '-premium' || ! self::is_licensed() ) {
+      if ( $action !== 'plugin_information' || empty( $args->slug ) || $args->slug !== self::$plugin_slug || ! self::is_licensed() ) {
         return $result;
       }
       $update = self::get_update();
       return (object) array(
-        'name' => esc_html( ${phpSingleQuoted(`${project.name} Premium`)} ),
-        'slug' => self::$slug . '-premium',
+        'name' => esc_html( ${phpSingleQuoted(standalonePaid ? project.name : `${project.name} Premium`)} ),
+        'slug' => self::$plugin_slug,
         'version' => ! empty( $update['version'] ) ? sanitize_text_field( $update['version'] ) : self::$version,
         'author' => 'Taskdrip',
         'homepage' => self::$api_base . '/my-plugins',
@@ -560,23 +630,35 @@ if ( ! class_exists( '${clientClass}', false ) ) {
   }
 }
 `;
-    const coreConstant = coreVersionConstant(project.slug);
+  const coreConstant = coreVersionConstant(project.slug);
+  const legacyPremiumFile = `${project.slug}-premium/${project.slug}-premium.php`;
     const wrapper = `<?php
 /*
  * Plugin Name: ${cleanHeaderValue(pluginName, 120)}
- * Description: Premium add-on for the free core plugin.
+ * Description: ${cleanHeaderValue(standalonePaid ? `Licensed plugin: ${project.name}.` : "Premium add-on for the free core plugin.", 200)}
  * Version: ${cleanHeaderValue(project.version, 30)}
  * Author: ${cleanHeaderValue("Taskdrip", 80)}
  * Text Domain: ${folderSlug}
  * Update URI: ${cleanHeaderValue(project.licenseApiBaseUrl ? `${project.licenseApiBaseUrl.replace(/\/+$/, "")}/plugins/${folderSlug}` : `taskdrip-plugin:${folderSlug}`, 200)}
  * Requires at least: 6.2
  * Requires PHP: 7.4
- * Requires Plugins: ${project.slug}
+ * Requires Plugins: ${standalonePaid ? "woocommerce, learnpress" : project.slug}
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-if ( ! defined( '${coreConstant}' ) ) {
+${standalonePaid ? `\$active_plugins = (array) get_option( 'active_plugins', array() );
+\$network_active_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
+\$legacy_premium_file = ${phpSingleQuoted(legacyPremiumFile)};
+if ( in_array( \$legacy_premium_file, \$active_plugins, true ) || isset( \$network_active_plugins[\$legacy_premium_file] ) ) {
+  add_action( 'admin_notices', static function () {
+    if ( current_user_can( 'activate_plugins' ) ) {
+      echo '<div class="notice notice-error"><p>' . esc_html__( 'Deactivate and remove the old CourseBridge Premium add-on before using the combined CourseBridge Pro plugin.', 'taskdrip' ) . '</p></div>';
+    }
+  } );
+  return;
+}
+` : `if ( ! defined( '${coreConstant}' ) ) {
   add_action( 'admin_notices', static function () {
     if ( current_user_can( 'activate_plugins' ) ) {
       echo '<div class="notice notice-error"><p>' . esc_html( ${phpSingleQuoted(`The ${project.name} Premium add-on requires the free core plugin (${project.slug}).`)} ) . '</p></div>';
@@ -584,6 +666,7 @@ if ( ! defined( '${coreConstant}' ) ) {
   } );
   return;
 }
+`}
 require_once __DIR__ . '/includes/class-taskdrip-license.php';
 ${clientClass}::boot( plugin_basename( __FILE__ ) );
 if ( ! ${clientClass}::is_licensed() ) { return; }

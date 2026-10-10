@@ -8,7 +8,7 @@ import { pluginLicenseEvents, pluginLicenses, pluginLicenseSites, pluginStudioPr
 import { createStudioAIClient, getCreatorStudioAIConfig } from "./creator-publishing";
 import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
-import { buildCourseBridgePluginEditions } from "./coursebridge-plugin";
+import { buildCourseBridgePaidEdition } from "./coursebridge-plugin";
 import { registerPluginLicenseRoutes } from "./plugin-licensing";
 
 const releaseUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 } });
@@ -100,11 +100,11 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "1.0.1",
+  version: "2.0.0",
   author: "Taskdrip",
-  shortDescription: "Map WooCommerce products to LearnPress courses, assign courses manually, track buyers, and send consent-based Resend campaigns.",
+  shortDescription: "One licensed plugin to map WooCommerce products to LearnPress courses, enroll users, manage buyers, and send consent-based campaigns.",
   description:
-    "CourseBridge Core links WooCommerce products to LearnPress courses, enrolls customers after confirmed payment, and lets administrators find users and assign courses directly from the WordPress dashboard. The separate paid Premium add-on gives administrators a dashboard for successful product and course purchases, WordPress roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group Resend campaigns only to opted-in users, with unsubscribe links and send logs.",
+    "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls buyers after confirmed payment, and lets site administrators assign courses directly to users. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
   seoTitle: "LearnPress WooCommerce Integration & Email Marketing Plugin",
   seoDescription:
     "Connect LearnPress courses to WooCommerce products. Auto-enroll paid buyers, track customers and course purchases, and send consent-based Resend email campaigns.",
@@ -131,21 +131,21 @@ function adminOnly(req: any, res: any): boolean {
 async function ensureStarterProject(adminId: string) {
   const [existing] = await db.select().from(pluginStudioProjects)
     .where(eq(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
-  const editions = buildCourseBridgePluginEditions(STARTER);
+  const paidEdition = buildCourseBridgePaidEdition(STARTER);
   if (existing) {
     let shopProductId: string = existing.shopProductId || "";
     if (!shopProductId) {
       shopProductId = await db.transaction(async (tx) => {
         const [product] = await tx.insert(shopProducts).values({
-          title: `${STARTER.name} Premium`,
+          title: STARTER.name,
           description: STARTER.description,
           shortDescription: STARTER.shortDescription,
           price: STARTER_MONTHLY_PRICE.toFixed(2),
           serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
           category: "WordPress Plugins",
           type: "plugin",
-          features: editions.premium.features,
-          requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...editions.premium.requirements])).slice(0, 10),
+          features: paidEdition.features,
+          requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
           tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
           isActive: false,
           isFeatured: false,
@@ -163,10 +163,10 @@ async function ensureStarterProject(adminId: string) {
         .where(eq(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
-    const refreshLegacyStarter = existing.version === "1.0.0";
-    const packagesMissing =
-      !Object.keys(existing.coreFiles || {}).length ||
-      !Object.keys(existing.premiumFiles || {}).length;
+    const refreshLegacyStarter = compareVersions(existing.version, STARTER.version) < 0 ||
+      Object.keys(existing.coreFiles || {}).length > 0 ||
+      !existing.premiumFiles?.[`${STARTER.slug}.php`];
+    const packagesMissing = !Object.keys(existing.premiumFiles || {}).length;
     const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
     if (packagesMissing || refreshLegacyStarter || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
       await db.update(pluginStudioProjects).set({
@@ -176,17 +176,20 @@ async function ensureStarterProject(adminId: string) {
         shortDescription: refreshLegacyStarter ? STARTER.shortDescription : existing.shortDescription,
         description: refreshLegacyStarter ? STARTER.description : existing.description,
         sourcePrompt: refreshLegacyStarter ? STARTER.description : (existing.sourcePrompt || STARTER.description),
-        coreShortDescription: editions.core.shortDescription,
-        coreDescription: editions.core.description,
-        coreFiles: editions.core.files,
-        premiumFiles: editions.premium.files,
+        coreShortDescription: "",
+        coreDescription: "",
+        coreFiles: {},
+        premiumFiles: paidEdition.files,
         updatedAt: new Date(),
       }).where(eq(pluginStudioProjects.id, existing.id));
     }
     if (refreshLegacyStarter) {
       await db.update(shopProducts).set({
+        title: STARTER.name,
         shortDescription: STARTER.shortDescription,
         description: STARTER.description,
+        features: paidEdition.features,
+        requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
         updatedAt: new Date(),
       }).where(eq(shopProducts.id, shopProductId));
     }
@@ -196,15 +199,15 @@ async function ensureStarterProject(adminId: string) {
   try {
     await db.transaction(async (tx) => {
       const [product] = await tx.insert(shopProducts).values({
-        title: `${STARTER.name} Premium`,
+        title: STARTER.name,
         description: STARTER.description,
         shortDescription: STARTER.shortDescription,
           price: STARTER_MONTHLY_PRICE.toFixed(2),
           serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
         category: "WordPress Plugins",
         type: "plugin",
-        features: editions.premium.features,
-        requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...editions.premium.requirements])).slice(0, 10),
+        features: paidEdition.features,
+        requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
         tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         isActive: false,
         isFeatured: false,
@@ -215,10 +218,10 @@ async function ensureStarterProject(adminId: string) {
         ...STARTER,
         licenseApiBaseUrl: defaultLicenseApiBaseUrl(),
         sourcePrompt: STARTER.description,
-        coreShortDescription: editions.core.shortDescription,
-        coreDescription: editions.core.description,
-        coreFiles: editions.core.files,
-        premiumFiles: editions.premium.files,
+        coreShortDescription: "",
+        coreDescription: "",
+        coreFiles: {},
+        premiumFiles: paidEdition.files,
         shopProductId: product.id,
         status: "draft",
         createdBy: adminId,
@@ -250,11 +253,15 @@ function parseGeneratedPair(content: string): any {
 async function getProjectFiles(id: string, edition: PluginEdition) {
   const [project] = await db.select().from(pluginStudioProjects).where(eq(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
-  const sourceFiles = edition === "core" ? project.coreFiles : project.premiumFiles;
+  const singlePaid = project.templateKey === STARTER.templateKey;
+  if ((singlePaid && edition === "core") || (!singlePaid && edition === "paid")) return null;
+  const packageEdition: PluginEdition = singlePaid ? "paid" : edition;
+  const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const release = buildPluginReleaseFiles(project, edition, sourceFiles);
+    const release = buildPluginReleaseFiles(project, packageEdition, sourceFiles);
     return { project, ...release };
   }
+  if (packageEdition === "paid") return null;
   return {
     project,
     folderSlug: project.slug,
@@ -591,7 +598,9 @@ ${description}`,
   app.get("/api/admin/plugin-studio/projects/:id/download", isAuthenticated, async (req: any, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const edition: PluginEdition = req.query.edition === "core" ? "core" : "premium";
+      const edition: PluginEdition = req.query.edition === "core"
+        ? "core"
+        : req.query.edition === "paid" ? "paid" : "premium";
       const result = await getProjectFiles(req.params.id, edition);
       if (!result) return res.status(404).json({ message: "Plugin project not found." });
       const archive = archiveFor(result.folderSlug, result.files);

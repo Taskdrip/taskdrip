@@ -10,10 +10,10 @@ type Project = {
   description: string;
 };
 
-const coreMain = (project: Project) => `<?php
+const paidMain = (project: Project) => `<?php
 /**
  * Plugin Name: ${project.name} Core
- * Description: Free core for connecting WooCommerce products to LearnPress courses.
+ * Description: Licensed CourseBridge plugin for WooCommerce and LearnPress course management.
  * Version: ${project.version}
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -23,6 +23,7 @@ const coreMain = (project: Project) => `<?php
  * Text Domain: ${project.slug}
  */
 if (!defined('ABSPATH')) { exit; }
+define('TDLPW_SINGLE_PAID_PLUGIN', true);
 define('TDLPW_VERSION', '${project.version}');
 define('TDLPW_FILE', __FILE__);
 define('TDLPW_PATH', plugin_dir_path(__FILE__));
@@ -31,11 +32,17 @@ require_once TDLPW_PATH . 'includes/class-activator.php';
 require_once TDLPW_PATH . 'includes/class-bridge.php';
 require_once TDLPW_PATH . 'includes/class-course-admin.php';
 require_once TDLPW_PATH . 'includes/class-core.php';
+require_once TDLPW_PATH . 'includes/class-audience.php';
+require_once TDLPW_PATH . 'includes/class-resend.php';
+require_once TDLPW_PATH . 'includes/class-admin.php';
 register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
 register_deactivation_hook(__FILE__, array('TDLPW_Activator', 'deactivate'));
 add_action('plugins_loaded', function () {
     load_plugin_textdomain('${project.slug}', false, dirname(plugin_basename(__FILE__)) . '/languages');
     (new TDLPW_Core())->run();
+    (new TDLPW_Admin())->run();
+    add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
+    add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
 });
 `;
 
@@ -136,12 +143,13 @@ if (!defined('ABSPATH')) { exit; }
 
 final class TDLPW_Course_Admin {
     public function run() {
-        add_action('admin_menu', array($this, 'menu'));
+        add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
     }
 
     public function menu() {
-        add_menu_page(
+        add_submenu_page(
+            'tdlpw-dashboard',
             esc_html__('Course Assignments', '${project.slug}'),
             esc_html__('Course Assignments', '${project.slug}'),
             'manage_options',
@@ -262,46 +270,10 @@ final class TDLPW_Course_Admin {
 }
 `;
 
-const premiumMain = (project: Project) => `<?php
 /**
- * Plugin Name: ${project.name} Premium
- * Description: Buyer analytics and consent-based Resend campaigns for CourseBridge.
- * Version: ${project.version}
- * Requires at least: 6.2
- * Requires PHP: 7.4
- * Requires Plugins: ${project.slug}
- * Author: ${project.author}
- * License: GPL-2.0-or-later
- * Text Domain: ${project.slug}-premium
+ * Build the complete, licensed CourseBridge plugin as one installable package.
  */
-if (!defined('ABSPATH')) { exit; }
-if (!defined('TASKDRIP_${project.slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_CORE_VERSION')) {
-    add_action('admin_notices', static function () {
-        if (current_user_can('activate_plugins')) {
-            echo '<div class="notice notice-error"><p>' . esc_html__('CourseBridge Premium requires the free CourseBridge Core plugin. Activate the core first.', '${project.slug}-premium') . '</p></div>';
-        }
-    });
-    return;
-}
-if (!defined('TDLPW_PATH') || !defined('TDLPW_URL')) { return; }
-define('TDLPW_PREMIUM_URL', plugin_dir_url(__FILE__));
-require_once __DIR__ . '/includes/class-audience.php';
-require_once __DIR__ . '/includes/class-resend.php';
-require_once __DIR__ . '/includes/class-admin.php';
-register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
-add_action('plugins_loaded', function () {
-    (new TDLPW_Admin())->run();
-    add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
-    add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
-});
-`;
-
-/**
- * Build the fixed CourseBridge editions without depending on the configured
- * text-generation service. The free edition keeps mapping/enrollment useful;
- * the paid add-on contains buyer reporting and the Resend campaign dashboard.
- */
-export function buildCourseBridgePluginEdition(project: Project, edition: PluginEdition) {
+export function buildCourseBridgePaidEdition(project: Project) {
   const legacy = buildWordPressPluginFiles({
     ...project,
     slug: project.slug,
@@ -315,64 +287,39 @@ export function buildCourseBridgePluginEdition(project: Project, edition: Plugin
     version: project.version,
     author: project.author,
   };
-
-  if (edition === "core") {
-    const bridge = legacy["includes/class-bridge.php"]
-      .replace(
-        "        TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));",
-        "        if (class_exists('TDLPW_Audience')) { TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids))); }",
-      )
-      .replace(
-        "        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),",
-        "        if (!class_exists('TDLPW_Audience')) { return; }\n        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),",
-      );
-    const coreFiles = {
-      [`${project.slug}.php`]: coreMain(project),
-      "includes/class-activator.php": legacy["includes/class-activator.php"],
-      "includes/class-core.php": coreClass,
-      "includes/class-course-admin.php": courseAdmin(project),
-      "includes/class-bridge.php": bridge,
-      "uninstall.php": legacy["uninstall.php"],
-    };
-    return normalizeGeneratedEdition({
-      mainFile: `${project.slug}.php`,
-      shortDescription: "Link WooCommerce products to LearnPress courses and enroll paid customers automatically.",
-      description: "A useful free core for mapping WooCommerce products to LearnPress courses, enrolling customers after confirmed payment, and assigning courses to users from the WordPress admin dashboard.",
-      features: [
-        "Map one product to multiple LearnPress courses",
-        "Enroll customers after successful payment",
-        "Search for WordPress users and manually enroll them in LearnPress courses from the admin dashboard",
-        "Prevent duplicate enrollments when WooCommerce order hooks repeat",
-      ],
-      requirements: ["WooCommerce", "LearnPress"],
-      files: coreFiles,
-    }, common, edition);
-  }
-
-  const premiumFiles = {
-    [`${project.slug}-premium.php`]: premiumMain(project),
+  const bridge = legacy["includes/class-bridge.php"]
+    .replace(
+      "        TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));",
+      "        if (class_exists('TDLPW_Audience')) { TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids))); }",
+    )
+    .replace(
+      "        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),",
+      "        if (!class_exists('TDLPW_Audience')) { return; }\n        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),",
+    );
+  const paidFiles = {
+    [`${project.slug}.php`]: paidMain(project),
+    "includes/class-activator.php": legacy["includes/class-activator.php"],
+    "includes/class-core.php": coreClass,
+    "includes/class-course-admin.php": courseAdmin(project),
+    "includes/class-bridge.php": bridge,
     "includes/class-audience.php": legacy["includes/class-audience.php"],
     "includes/class-resend.php": legacy["includes/class-resend.php"],
-    "includes/class-admin.php": legacy["includes/class-admin.php"].replaceAll("TDLPW_URL . 'assets/css/admin.css'", "TDLPW_PREMIUM_URL . 'assets/css/admin.css'"),
+    "includes/class-admin.php": legacy["includes/class-admin.php"],
     "assets/css/admin.css": legacy["assets/css/admin.css"],
+    "uninstall.php": legacy["uninstall.php"],
   };
   return normalizeGeneratedEdition({
-    mainFile: `${project.slug}-premium.php`,
+    mainFile: `${project.slug}.php`,
     shortDescription: project.shortDescription,
     description: project.description,
     features: [
+      "Map WooCommerce products to multiple LearnPress courses and auto-enroll buyers after successful payment",
+      "Assign users to LearnPress courses directly from the WordPress dashboard",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
       "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
-      "Store sender settings, unsubscribe preferences, and campaign delivery logs",
+      "Manage plugin settings, sender details, and license from one CourseBridge Pro menu",
     ],
-    requirements: ["WooCommerce", "LearnPress", `CourseBridge Core (${project.slug})`, "Resend API key and verified sender domain"],
-    files: premiumFiles,
-  }, common, edition);
-}
-
-export function buildCourseBridgePluginEditions(project: Project) {
-  return {
-    core: buildCourseBridgePluginEdition(project, "core"),
-    premium: buildCourseBridgePluginEdition(project, "premium"),
-  };
+    requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license", "Resend API key for email campaigns"],
+    files: paidFiles,
+  }, common, "paid");
 }
