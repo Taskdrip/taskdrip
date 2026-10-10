@@ -143,9 +143,245 @@ if (!defined('ABSPATH')) { exit; }
 
 final class TDLPW_Course_Admin {
     public function run() {
+        self::ensure_access_table();
         add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
+        add_action('admin_post_tdlpw_cancel_course_access', array($this, 'cancel_course_access'));
         add_action('admin_post_tdlpw_save_product_courses', array($this, 'save_product_courses'));
+        add_action('wp_ajax_tdlpw_search_users', array($this, 'search_users'));
+        add_action('tdlpw_reconcile_paid_course_orders', array($this, 'reconcile_paid_orders'), 10, 1);
+        add_action('init', array($this, 'expire_course_access'));
+        self::schedule_paid_order_reconciliation();
+    }
+
+    public static function access_table() {
+        global $wpdb;
+        return $wpdb->prefix . 'tdlpw_course_access';
+    }
+
+    public static function ensure_access_table() {
+        global $wpdb;
+        $version = defined('TDLPW_VERSION') ? TDLPW_VERSION : '1.0.0';
+        if (get_option('tdlpw_course_access_schema') === $version) { return; }
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $table = self::access_table();
+        $charset = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE " . $table . " (
+            access_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            course_id bigint(20) unsigned NOT NULL,
+            source varchar(20) NOT NULL DEFAULT 'admin',
+            source_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            starts_at datetime NOT NULL,
+            expires_at datetime NULL,
+            status varchar(20) NOT NULL DEFAULT 'active',
+            assigned_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (access_id),
+            UNIQUE KEY grant_identity (user_id,course_id,source,source_id),
+            KEY user_id (user_id),
+            KEY course_id (course_id),
+            KEY status_expiry (status,expires_at)
+        ) " . $charset . ";";
+        dbDelta($sql);
+        update_option('tdlpw_course_access_schema', $version, false);
+    }
+
+    private static function schedule_paid_order_reconciliation() {
+        if (!function_exists('wc_get_orders')) { return; }
+        $version = defined('TDLPW_VERSION') ? TDLPW_VERSION : '1.0.0';
+        if (get_option('tdlpw_course_reconcile_version') === $version) { return; }
+        $pending = get_option('tdlpw_course_reconcile_pending');
+        $page = max(1, absint(get_option('tdlpw_course_reconcile_page', 1)));
+        if ($pending !== $version) {
+            update_option('tdlpw_course_reconcile_pending', $version, false);
+            update_option('tdlpw_course_reconcile_page', 1, false);
+            $page = 1;
+        }
+        if (!wp_next_scheduled('tdlpw_reconcile_paid_course_orders', array($page))) {
+            wp_schedule_single_event(time() + 15, 'tdlpw_reconcile_paid_course_orders', array($page));
+        }
+    }
+
+    public function reconcile_paid_orders($page = 1) {
+        if (!function_exists('wc_get_orders')) { return; }
+        $page = max(1, absint($page));
+        $result = wc_get_orders(array(
+            'status' => array('wc-processing', 'wc-completed'),
+            'limit' => 100,
+            'page' => $page,
+            'paginate' => true,
+            'orderby' => 'date',
+            'order' => 'ASC',
+            'return' => 'objects',
+        ));
+        foreach ((array) ($result->orders ?? array()) as $order) {
+            (new TDLPW_Bridge())->sync_paid_order($order->get_id());
+        }
+        $max_pages = absint($result->max_num_pages ?? 0);
+        if ($page < $max_pages) {
+            $next_page = $page + 1;
+            update_option('tdlpw_course_reconcile_page', $next_page, false);
+            if (!wp_next_scheduled('tdlpw_reconcile_paid_course_orders', array($next_page))) {
+                wp_schedule_single_event(time() + 20, 'tdlpw_reconcile_paid_course_orders', array($next_page));
+            }
+            return;
+        }
+        $version = defined('TDLPW_VERSION') ? TDLPW_VERSION : '1.0.0';
+        update_option('tdlpw_course_reconcile_version', $version, false);
+        delete_option('tdlpw_course_reconcile_pending');
+        delete_option('tdlpw_course_reconcile_page');
+    }
+
+    public static function record_access($user_id, $course_id, $source = 'purchase', $source_id = 0, $expires_at = null, $starts_at = null) {
+        global $wpdb;
+        self::ensure_access_table();
+        $now = current_time('mysql', true);
+        $source = in_array($source, array('admin', 'purchase'), true) ? $source : 'purchase';
+        $wpdb->replace(self::access_table(), array(
+            'user_id' => absint($user_id),
+            'course_id' => absint($course_id),
+            'source' => $source,
+            'source_id' => absint($source_id),
+            'starts_at' => $starts_at ?: $now,
+            'expires_at' => $expires_at ?: null,
+            'status' => 'active',
+            'assigned_by' => $source === 'admin' ? get_current_user_id() : 0,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ), array('%d', '%d', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s'));
+        if ($wpdb->last_error) {
+            return new WP_Error('tdlpw_access_record_failed', __('The course was enrolled, but its access period could not be saved.', '${project.slug}'));
+        }
+        return true;
+    }
+
+    private static function active_access_exists($user_id, $course_id) {
+        global $wpdb;
+        $table = self::access_table();
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT access_id FROM " . $table . " WHERE user_id = %d AND course_id = %d AND status = 'active' AND (expires_at IS NULL OR expires_at > %s) LIMIT 1",
+            absint($user_id),
+            absint($course_id),
+            current_time('mysql', true)
+        ));
+    }
+
+    public static function revoke_course_access($user_id, $course_id) {
+        global $wpdb;
+        self::ensure_access_table();
+        $now = current_time('mysql', true);
+        $wpdb->update(self::access_table(), array(
+            'status' => 'cancelled',
+            'updated_at' => $now,
+        ), array(
+            'user_id' => absint($user_id),
+            'course_id' => absint($course_id),
+            'status' => 'active',
+        ), array('%s', '%s'), array('%d', '%d', '%s'));
+        return TDLPW_Bridge::set_course_enrollment_status($user_id, $course_id, 'cancel');
+    }
+
+    public function expire_course_access() {
+        global $wpdb;
+        $table = self::access_table();
+        $now = current_time('mysql', true);
+        $expired = $wpdb->get_results($wpdb->prepare(
+            "SELECT DISTINCT user_id, course_id FROM " . $table . " WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $now
+        ));
+        if (!$expired) { return; }
+        $wpdb->query($wpdb->prepare(
+            "UPDATE " . $table . " SET status = 'expired', updated_at = %s WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $now,
+            $now
+        ));
+        foreach ($expired as $row) {
+            if (!self::active_access_exists($row->user_id, $row->course_id)) {
+                TDLPW_Bridge::set_course_enrollment_status($row->user_id, $row->course_id, 'cancel');
+            }
+        }
+    }
+
+    public function cancel_course_access() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
+        $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
+        check_admin_referer('tdlpw_cancel_course_access_' . $user_id . '_' . $course_id);
+        $result = ($user_id && get_user_by('id', $user_id) && get_post_type($course_id) === 'lp_course')
+            ? self::revoke_course_access($user_id, $course_id)
+            : new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
+        $args = array(
+            'page' => 'tdlpw-course-assignments',
+            'notice' => is_wp_error($result) ? 'failed' : 'cancelled',
+        );
+        if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    public function search_users() {
+        check_ajax_referer('tdlpw_search_users', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Access denied.', '${project.slug}')), 403);
+        }
+        $search = sanitize_text_field(wp_unslash($_GET['term'] ?? ''));
+        $args = array(
+            'number' => 20,
+            'orderby' => 'display_name',
+            'order' => 'ASC',
+            'fields' => array('ID', 'display_name', 'user_login', 'user_email'),
+        );
+        if ($search !== '') {
+            $args['search'] = '*' . $search . '*';
+            $args['search_columns'] = array('user_login', 'user_email', 'display_name');
+        }
+        $results = array();
+        foreach (get_users($args) as $user) {
+            $results[] = array(
+                'id' => absint($user->ID),
+                'label' => sanitize_text_field($user->display_name . ' (' . $user->user_login . ' · ' . $user->user_email . ')'),
+            );
+        }
+        wp_send_json_success($results);
+    }
+
+    private function enrolled_users() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists !== $table) { return array(); }
+        $access = self::access_table();
+        return $wpdb->get_results(
+            "SELECT item.user_id, item.item_id AS course_id, item.status AS lp_status, item.start_time AS lp_start_time,
+                user.display_name, user.user_login, user.user_email, course.post_title,
+                admin_access.starts_at AS access_start, admin_access.expires_at AS access_expiry,
+                admin_access.status AS admin_access_status,
+                purchase_access.access_status AS purchase_access_status
+             FROM " . $table . " item
+             INNER JOIN (
+                SELECT MAX(user_item_id) AS user_item_id
+                FROM " . $table . "
+                WHERE item_type = 'lp_course'
+                GROUP BY user_id, item_id
+             ) latest ON latest.user_item_id = item.user_item_id
+             INNER JOIN " . $wpdb->users . " user ON user.ID = item.user_id
+             INNER JOIN " . $wpdb->posts . " course ON course.ID = item.item_id AND course.post_type = 'lp_course'
+             LEFT JOIN " . $access . " admin_access ON admin_access.user_id = item.user_id AND admin_access.course_id = item.item_id AND admin_access.source = 'admin' AND admin_access.source_id = 0
+             LEFT JOIN (
+                SELECT user_id, course_id, MAX(status) AS access_status
+                FROM " . $access . "
+                WHERE source = 'purchase' AND status = 'active'
+                GROUP BY user_id, course_id
+             ) purchase_access ON purchase_access.user_id = item.user_id AND purchase_access.course_id = item.item_id
+             WHERE item.item_type = 'lp_course'
+             ORDER BY item.start_time DESC
+             LIMIT 500",
+            ARRAY_A
+        );
     }
 
     public function menu() {
@@ -170,11 +406,15 @@ final class TDLPW_Course_Admin {
         $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
         $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
         $search = sanitize_text_field(wp_unslash($_POST['user_search'] ?? ''));
+        $expires_on = sanitize_text_field(wp_unslash($_POST['expires_on'] ?? ''));
         $user = $user_id ? get_user_by('id', $user_id) : false;
-        if (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
+        $expires_at = $this->expiry_from_input($expires_on);
+        if (is_wp_error($expires_at)) {
+            $result = $expires_at;
+        } elseif (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
             $result = new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
         } else {
-            $result = TDLPW_Bridge::enroll_user_in_course($user_id, $course_id);
+            $result = TDLPW_Bridge::enroll_user_in_course($user_id, $course_id, 'admin', 0, $expires_at);
         }
 
         $args = array(
@@ -187,18 +427,21 @@ final class TDLPW_Course_Admin {
         exit;
     }
 
-    private function users($search) {
-        $args = array(
-            'number' => 200,
-            'orderby' => 'display_name',
-            'order' => 'ASC',
-            'fields' => array('ID', 'display_name', 'user_email'),
-        );
-        if ($search !== '') {
-            $args['search'] = '*' . $search . '*';
-            $args['search_columns'] = array('user_login', 'user_email', 'display_name');
+    private function expiry_from_input($value) {
+        if ($value === '') { return null; }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
         }
-        return get_users($args);
+        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, $timezone);
+        if (!$date || $date->format('Y-m-d') !== $value) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
+        }
+        $expiry = $date->setTime(23, 59, 59);
+        if ($expiry->getTimestamp() <= time()) {
+            return new WP_Error('tdlpw_invalid_expiry', __('The expiry date must be today or later.', '${project.slug}'));
+        }
+        return gmdate('Y-m-d H:i:s', $expiry->getTimestamp());
     }
 
     private function courses() {
@@ -312,25 +555,15 @@ final class TDLPW_Course_Admin {
         $products = $this->products();
         $this->render_product_mapping($courses, $products, $edit_product);
 
-        echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="margin:16px 0">';
-        echo '<input type="hidden" name="page" value="tdlpw-course-assignments">';
-        echo '<label for="tdlpw-user-search"><strong>' . esc_html__('Find a user by name or email', '${project.slug}') . '</strong></label> ';
-        echo '<input type="search" id="tdlpw-user-search" name="user_search" value="' . esc_attr($search) . '" class="regular-text">';
-        echo '<button class="button">' . esc_html__('Search users', '${project.slug}') . '</button></form>';
-
-        $users = $this->users($search);
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="max-width:760px;background:#fff;border:1px solid #dcdcde;padding:20px">';
         echo '<input type="hidden" name="action" value="tdlpw_assign_course">';
-        echo '<input type="hidden" name="user_search" value="' . esc_attr($search) . '">';
+        echo '<input type="hidden" id="tdlpw-user-search-value" name="user_search" value="' . esc_attr($search) . '">';
         wp_nonce_field('tdlpw_assign_course');
+        echo '<p><label for="tdlpw-user-search"><strong>' . esc_html__('Find a user by name, username, or email', '${project.slug}') . '</strong></label><br>';
+        echo '<input type="search" id="tdlpw-user-search" value="' . esc_attr($search) . '" class="regular-text" autocomplete="off" placeholder="' . esc_attr__('Start typing a name, username, or email', '${project.slug}') . '"></p>';
         echo '<p><label for="tdlpw-user"><strong>' . esc_html__('WordPress user', '${project.slug}') . '</strong></label><br>';
-        echo '<select id="tdlpw-user" name="user_id" required style="min-width:360px;max-width:100%">';
-        echo '<option value="">' . esc_html__('Select a user', '${project.slug}') . '</option>';
-        foreach ($users as $user) {
-            $label = $user->display_name . ' (' . $user->user_email . ')';
-            echo '<option value="' . esc_attr((string) $user->ID) . '">' . esc_html($label) . '</option>';
-        }
-        echo '</select></p>';
+        echo '<select id="tdlpw-user" name="user_id" required size="5" style="min-width:360px;max-width:100%"><option value="">' . esc_html__('Search for and select a user', '${project.slug}') . '</option></select>';
+        echo '<span id="tdlpw-user-search-status" class="description" aria-live="polite"></span></p>';
         echo '<p><label for="tdlpw-course"><strong>' . esc_html__('LearnPress course', '${project.slug}') . '</strong></label><br>';
         echo '<select id="tdlpw-course" name="course_id" required style="min-width:360px;max-width:100%">';
         echo '<option value="">' . esc_html__('Select a course', '${project.slug}') . '</option>';
@@ -338,16 +571,67 @@ final class TDLPW_Course_Admin {
             echo '<option value="' . esc_attr((string) $course->ID) . '">' . esc_html($course->post_title) . '</option>';
         }
         echo '</select></p>';
-        if (!$users) {
-            echo '<p>' . esc_html__('No users matched. Search with another name or email address.', '${project.slug}') . '</p>';
-        } elseif (!$search) {
-            echo '<p class="description">' . esc_html__('Showing up to 200 users. Search by name or email if the user is not listed.', '${project.slug}') . '</p>';
-        }
+        echo '<p><label for="tdlpw-expires-on"><strong>' . esc_html__('Access expires on (optional)', '${project.slug}') . '</strong></label><br>';
+        echo '<input type="date" id="tdlpw-expires-on" name="expires_on" min="' . esc_attr(wp_date('Y-m-d')) . '"> ';
+        echo '<span class="description">' . esc_html__('Leave blank for access with no CourseBridge expiry.', '${project.slug}') . '</span></p>';
         if (!$courses) {
             echo '<p class="notice notice-warning inline">' . esc_html__('No published or private LearnPress courses were found.', '${project.slug}') . '</p>';
         }
-        echo '<p><button type="submit" class="button button-primary" ' . ((!$users || !$courses) ? 'disabled' : '') . '>' .
-            esc_html__('Enroll user in course', '${project.slug}') . '</button></p></form></div>';
+        echo '<p><button type="submit" class="button button-primary" ' . (!$courses ? 'disabled' : '') . '>' .
+            esc_html__('Assign course', '${project.slug}') . '</button></p></form>';
+        echo '<script>(function(){'
+            . 'var input=document.getElementById("tdlpw-user-search");var select=document.getElementById("tdlpw-user");var hidden=document.getElementById("tdlpw-user-search-value");var status=document.getElementById("tdlpw-user-search-status");'
+            . 'var ajaxUrl=' . wp_json_encode(admin_url('admin-ajax.php')) . ';var nonce=' . wp_json_encode(wp_create_nonce('tdlpw_search_users')) . ';var timer=null;'
+            . 'function searchUsers(){hidden.value=input.value;var params=new URLSearchParams({action:"tdlpw_search_users",term:input.value.trim(),nonce:nonce});'
+            . 'fetch(ajaxUrl+"?"+params.toString(),{credentials:"same-origin"}).then(function(response){return response.json();}).then(function(result){'
+            . 'select.options.length=0;if(!result.success){select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));status.textContent="";return;}'
+            . 'select.add(new Option(result.data.length?"' . esc_js(__('Select a user', '${project.slug}')) . '":"' . esc_js(__('No matching users found.', '${project.slug}')) . '",""));'
+            . 'result.data.forEach(function(user){select.add(new Option(user.label,user.id));});status.textContent=result.data.length?"' . esc_js(__('Select one of the matching users.', '${project.slug}')) . '":"";'
+            . '}).catch(function(){select.options.length=0;select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));status.textContent="";});}'
+            . 'input.addEventListener("input",function(){clearTimeout(timer);timer=setTimeout(searchUsers,250);});searchUsers();})();</script>';
+
+        $rows = $this->enrolled_users();
+        echo '<h2>' . esc_html__('Student course access', '${project.slug}') . '</h2>';
+        echo '<p>' . esc_html__('Review current LearnPress enrollments and CourseBridge access dates. Cancel revokes the user’s LearnPress course access.', '${project.slug}') . '</p>';
+        if (!$rows) {
+            echo '<p>' . esc_html__('No LearnPress course enrollments were found yet.', '${project.slug}') . '</p>';
+        } else {
+            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__('User', '${project.slug}') . '</th><th>' .
+                esc_html__('Course', '${project.slug}') . '</th><th>' . esc_html__('Access source', '${project.slug}') . '</th><th>' .
+                esc_html__('Access started', '${project.slug}') . '</th><th>' . esc_html__('Expires', '${project.slug}') . '</th><th>' .
+                esc_html__('Status', '${project.slug}') . '</th><th>' . esc_html__('Action', '${project.slug}') . '</th></tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $user_id = absint($row['user_id']);
+                $course_id = absint($row['course_id']);
+                $source = !empty($row['admin_access_status'])
+                    ? __('Administrator assignment', '${project.slug}')
+                    : ($row['purchase_access_status'] === 'active' ? __('WooCommerce purchase', '${project.slug}') : __('LearnPress enrollment', '${project.slug}'));
+                $started = $row['access_start'] ?: $row['lp_start_time'];
+                $expires = $row['access_expiry']
+                    ? $row['access_expiry']
+                    : __('No expiry recorded', '${project.slug}');
+                $status = $row['admin_access_status'] === 'expired'
+                    ? __('Expired', '${project.slug}')
+                    : ($row['admin_access_status'] === 'cancelled' ? __('Cancelled', '${project.slug}') : ucfirst(sanitize_key($row['lp_status'])));
+                echo '<tr><td>' . esc_html($row['display_name']) . '<br><small>@' . esc_html($row['user_login']) . ' · ' . esc_html($row['user_email']) . '</small></td>';
+                echo '<td>' . esc_html($row['post_title']) . '</td><td>' . esc_html($source) . '</td><td>' .
+                    esc_html($started ?: '—') . '</td><td>' . esc_html($expires) . '</td><td>' . esc_html($status) . '</td><td>';
+                if (in_array($row['lp_status'], array('enrolled', 'finished'), true)) {
+                    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                    echo '<input type="hidden" name="action" value="tdlpw_cancel_course_access">';
+                    echo '<input type="hidden" name="user_id" value="' . esc_attr((string) $user_id) . '">';
+                    echo '<input type="hidden" name="course_id" value="' . esc_attr((string) $course_id) . '">';
+                    wp_nonce_field('tdlpw_cancel_course_access_' . $user_id . '_' . $course_id);
+                    echo '<button type="submit" class="button button-small" onclick="return confirm(' . esc_attr(wp_json_encode(__('Cancel this user’s access to the course?', '${project.slug}'))) . ')">' .
+                        esc_html__('Cancel access', '${project.slug}') . '</button></form>';
+                } else {
+                    echo '—';
+                }
+                echo '</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</div>';
     }
 }
 `;
