@@ -457,6 +457,7 @@ final class TDLPW_Bridge {
         $table = $wpdb->prefix . 'learnpress_user_items';
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
         $model_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
+        $model_error = '';
         if (class_exists($model_class) && method_exists($model_class, 'find')) {
             try {
                 $course_item = $model_class::find($user_id, $course_id, false);
@@ -477,26 +478,74 @@ final class TDLPW_Bridge {
                 do_action('learn-press/user/course-enrolled', absint($course_item->ref_id), $course_id, $user_id);
                 return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
             } catch (Throwable $error) {
-                return new WP_Error('tdlpw_enrollment_failed', sprintf(
-                    __('LearnPress could not enroll this user: %s', '{{SLUG}}'),
-                    sanitize_text_field($error->getMessage())
-                ));
+                $model_error = sanitize_text_field($error->getMessage());
             }
         }
         if ($exists === $table) {
-            $status = $wpdb->get_var($wpdb->prepare(
-                "SELECT status FROM " . $table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' AND status IN ('enrolled','finished') LIMIT 1",
+            $course_item = $wpdb->get_row($wpdb->prepare(
+                "SELECT user_item_id, status FROM " . $table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
                 $user_id,
                 $course_id
             ));
-            if ($status) { return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at); }
+            if ($course_item && in_array($course_item->status, array('enrolled', 'finished'), true)) {
+                return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+            }
+
+            // Some LearnPress versions expose neither UserCourseModel nor an enroll method on LP_User.
+            // Write through LearnPress's user-items table as the compatibility fallback.
+            $now = $starts_at ?: gmdate('Y-m-d H:i:s');
+            $values = array(
+                'user_id' => $user_id,
+                'item_id' => $course_id,
+                'item_type' => 'lp_course',
+                'status' => 'enrolled',
+                'graduation' => 'in-progress',
+                'start_time' => $now,
+                'end_time' => null,
+                'ref_id' => 0,
+                'ref_type' => 'lp_order',
+                'parent_id' => 0,
+            );
+            $columns = $wpdb->get_col('SHOW COLUMNS FROM ' . $table, 0);
+            if (!is_array($columns) || !$columns) {
+                return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment data is not available on this site.', '{{SLUG}}'));
+            }
+            $values = array_intersect_key($values, array_fill_keys($columns, true));
+            if ($course_item) {
+                unset($values['user_id'], $values['item_id'], $values['item_type']);
+                $saved = $wpdb->update($table, $values, array('user_item_id' => absint($course_item->user_item_id)));
+                if ($saved === false) {
+                    return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not update this user’s course enrollment.', '{{SLUG}}'));
+                }
+                $user_item_id = absint($course_item->user_item_id);
+            } else {
+                $saved = $wpdb->insert($table, $values);
+                if ($saved === false || !$wpdb->insert_id) {
+                    return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not create this user’s course enrollment.', '{{SLUG}}'));
+                }
+                $user_item_id = absint($wpdb->insert_id);
+            }
+            $saved_status = $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM " . $table . " WHERE user_item_id = %d LIMIT 1",
+                $user_item_id
+            ));
+            if (!in_array($saved_status, array('enrolled', 'finished'), true)) {
+                return new WP_Error('tdlpw_enrollment_failed', __('LearnPress did not confirm the course enrollment. Please try again.', '{{SLUG}}'));
+            }
+            do_action('learn-press/user/course-enrolled', $user_item_id, $course_id, $user_id);
+            return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
         }
         if (!function_exists('learn_press_get_user')) {
             return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment is not available. Confirm LearnPress is installed and active.', '{{SLUG}}'));
         }
         $lp_user = learn_press_get_user($user_id);
         if (!is_object($lp_user)) {
-            return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}'));
+            return new WP_Error(
+                'tdlpw_enrollment_api_unavailable',
+                $model_error
+                    ? sprintf(__('LearnPress could not enroll this user: %s', '{{SLUG}}'), $model_error)
+                    : __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}')
+            );
         }
         foreach (array('enroll', 'enroll_course') as $method) {
             if (!method_exists($lp_user, $method)) { continue; }

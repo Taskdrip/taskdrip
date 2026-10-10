@@ -25,6 +25,9 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(admin, /admin_post_tdlpw_cancel_course_access/);
   assert.match(admin, /wp_ajax_tdlpw_search_users/);
   assert.match(admin, /search_columns.*user_login.*user_email.*display_name/s);
+  assert.match(admin, /Find a user by name, username, or email/);
+  assert.match(admin, /var requestId=0/);
+  assert.match(admin, /Select one of the matching users/);
   assert.match(admin, /admin_post_tdlpw_save_product_courses/);
   assert.match(admin, /check_admin_referer\('tdlpw_save_product_courses'\)/);
   assert.match(admin, /update_post_meta\(\$product_id, '_tdlpw_course_ids', \$valid\)/);
@@ -39,6 +42,11 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(bridge, /learn_press_get_user/);
   assert.match(bridge, /\\LearnPress\\Models\\UserItems\\UserCourseModel/);
   assert.match(bridge, /\$course_item->save\(\)/);
+  assert.match(bridge, /Some LearnPress versions expose neither UserCourseModel nor an enroll method/);
+  assert.match(bridge, /SHOW COLUMNS FROM/);
+  assert.match(bridge, /\$wpdb->insert\(\$table, \$values\)/);
+  assert.match(bridge, /SELECT status FROM .*user_item_id/s);
+  assert.match(bridge, /learn-press\/user\/course-enrolled/);
   assert.match(bridge, /'purchase', \$order->get_id\(\)/);
   assert.match(bridge, /set_course_enrollment_status/);
   assert.match(bridge, /woocommerce_account_dashboard/);

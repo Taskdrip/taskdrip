@@ -100,7 +100,7 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.1",
+  version: "2.1.2",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:

@@ -15085,8 +15085,9 @@ The generated package is not a substitute for a human security or compatibility 
 2. Deactivate and remove any old CourseBridge Premium add-on copies before installing this release.
 3. Upload this single ZIP from WordPress Admin \u2192 Plugins \u2192 Add New Plugin \u2192 Upload Plugin and activate it.
 4. Open CourseBridge Pro \u2192 License to activate the purchased license. Then use Dashboard, Course Assignments, and Settings from the CourseBridge Pro menu.
-5. Map a WooCommerce product to LearnPress courses, assign a test user, and place a test paid order to verify both enrollment paths.
-6. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
+5. In Course Assignments, map a WooCommerce product to one or more LearnPress courses and assign a test user directly.
+6. Place a paid test order using a WordPress account; confirm both the assigned user and buyer can start the course from WooCommerce My Account and their LearnPress profile.
+7. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
 
 This licensed Taskdrip package is not a separate free Core plus Premium pair and is not a WordPress.org directory package.
 ` : `# Install and test ${pluginName}
@@ -15094,7 +15095,7 @@ This licensed Taskdrip package is not a separate free Core plus Premium pair and
 1. Back up the site and use a staging WordPress site.
 2. In WordPress, open Plugins > Add New Plugin > Upload Plugin and upload this ZIP.
 3. Activate the plugin and check for PHP errors or unexpected database changes.
-4. In Course Assignments, search for a WordPress user, select a LearnPress course, and verify that the user is enrolled in their LearnPress dashboard.
+4. In Course Assignments, map a WooCommerce product to LearnPress courses and assign a test user; verify enrolled users can start courses from their account dashboard.
 5. Test every advertised core feature with representative data and both admin and non-admin accounts.
 6. Test activation, deactivation, upgrades, and uninstall cleanup with disposable site data.
 7. Run the current WordPress Plugin Check and test every currently supported WordPress/PHP version.
@@ -15697,6 +15698,9 @@ final class TDLPW_Bridge {
         add_action('woocommerce_product_options_general_product_data', array($this, 'product_course_field'));
         add_action('woocommerce_admin_process_product_object', array($this, 'save_product_courses'));
         add_action('tdlpw_sync_mapped_product', array($this, 'sync_historical_product_orders'), 10, 2);
+        add_filter('woocommerce_checkout_registration_enabled', array($this, 'enable_course_buyer_registration'));
+        add_filter('woocommerce_checkout_registration_required', array($this, 'require_course_buyer_account'));
+        add_action('woocommerce_account_dashboard', array($this, 'render_student_courses'));
         add_action('woocommerce_checkout_after_customer_details', array($this, 'checkout_optin'));
         add_action('woocommerce_checkout_create_order', array($this, 'save_checkout_optin'), 10, 2);
         add_action('woocommerce_order_status_processing', array($this, 'sync_paid_order'));
@@ -15713,6 +15717,53 @@ final class TDLPW_Bridge {
             'orderby' => 'title',
             'order' => 'ASC',
         ));
+    }
+
+    private function cart_contains_mapped_course_product() {
+        if (!function_exists('WC') || !WC() || !WC()->cart) { return false; }
+        foreach (WC()->cart->get_cart() as $item) {
+            $product_id = absint($item['product_id'] ?? 0);
+            if ($product_id && array_filter((array) get_post_meta($product_id, '_tdlpw_course_ids', true))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function enable_course_buyer_registration($enabled) {
+        return $this->cart_contains_mapped_course_product() ? true : $enabled;
+    }
+
+    public function require_course_buyer_account($required) {
+        return $this->cart_contains_mapped_course_product() ? true : $required;
+    }
+
+    public function render_student_courses() {
+        if (!is_user_logged_in()) { return; }
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists !== $table) { return; }
+        $course_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT item_id FROM " . $table . " WHERE user_id = %d AND item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC",
+            get_current_user_id()
+        ));
+        $course_ids = array_values(array_unique(array_filter(array_map('absint', (array) $course_ids))));
+        echo '<section class="woocommerce-MyAccount-content tdlpw-my-courses"><h2>' .
+            esc_html__('My LearnPress courses', '{{SLUG}}') . '</h2>';
+        if (!$course_ids) {
+            echo '<p>' . esc_html__('Courses assigned to your account or unlocked by a paid order will appear here.', '{{SLUG}}') . '</p></section>';
+            return;
+        }
+        echo '<ul class="tdlpw-my-course-list">';
+        foreach ($course_ids as $course_id) {
+            if (!in_array(get_post_status($course_id), array('publish', 'private'), true)) { continue; }
+            $url = get_permalink($course_id);
+            if (!$url) { continue; }
+            echo '<li><strong>' . esc_html(get_the_title($course_id)) . '</strong> <a href="' .
+                esc_url($url) . '">' . esc_html__('Start / continue course', '{{SLUG}}') . '</a></li>';
+        }
+        echo '</ul></section>';
     }
 
     public function product_course_field() {
@@ -15793,8 +15844,13 @@ final class TDLPW_Bridge {
         $order = wc_get_order($order_id);
         if (!$order || !$order->is_paid()) { return; }
         $user_id = absint($order->get_customer_id());
+        if (!$user_id) {
+            $buyer = get_user_by('email', sanitize_email($order->get_billing_email()));
+            $user_id = $buyer ? absint($buyer->ID) : 0;
+        }
         $product_ids = array();
         $course_ids = array();
+        $done = array_map('absint', (array) $order->get_meta('_tdlpw_enrolled_courses', true));
         foreach ($order->get_items() as $item) {
             $product_id = absint($item->get_product_id());
             if (!$product_id) { continue; }
@@ -15803,45 +15859,179 @@ final class TDLPW_Bridge {
             foreach ($mapped as $course_id) {
                 if (!$course_id || get_post_type($course_id) !== 'lp_course') { continue; }
                 $course_ids[] = $course_id;
-                $done = array_map('absint', (array) $order->get_meta('_tdlpw_enrolled_courses', true));
-                if ($user_id && !in_array($course_id, $done, true)) {
-                    $result = self::enroll_user_in_course($user_id, $course_id);
+                if ($user_id) {
+                    $paid_at = $order->get_date_paid();
+                    $starts_at = $paid_at ? gmdate('Y-m-d H:i:s', $paid_at->getTimestamp()) : null;
+                    $result = self::enroll_user_in_course($user_id, $course_id, 'purchase', $order->get_id(), null, $starts_at);
                     if (!is_wp_error($result)) {
+                        if (!in_array($course_id, $done, true)) {
+                            $order->add_order_note(sprintf(
+                                /* translators: %s: LearnPress course title. */
+                                __('Taskdrip Course Bridge enrolled the customer in "%s".', '{{SLUG}}'),
+                                get_the_title($course_id)
+                            ));
+                        }
                         $done[] = $course_id;
-                        $order->update_meta_data('_tdlpw_enrolled_courses', array_values(array_unique($done)));
-                        $order->add_order_note(sprintf(
-                            /* translators: %s: LearnPress course title. */
-                            __('Taskdrip Course Bridge enrolled the customer in "%s".', '{{SLUG}}'),
-                            get_the_title($course_id)
-                        ));
                     }
                 }
             }
         }
+        $order->update_meta_data('_tdlpw_enrolled_courses', array_values(array_unique($done)));
         $order->save();
         TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));
     }
 
-    public static function enroll_user_in_course($user_id, $course_id) {
+    public static function enroll_user_in_course($user_id, $course_id, $source = 'purchase', $source_id = 0, $expires_at = null, $starts_at = null) {
         $user_id = absint($user_id);
         $course_id = absint($course_id);
         if (!$user_id || !get_user_by('id', $user_id) || get_post_type($course_id) !== 'lp_course') {
             return new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '{{SLUG}}'));
         }
-        if (function_exists('learn_press_user_enroll_course')) {
-            $result = learn_press_user_enroll_course($user_id, $course_id);
-        } elseif (function_exists('learn_press_get_user')) {
-            $lp_user = learn_press_get_user($user_id);
-            if (!is_object($lp_user) || !method_exists($lp_user, 'enroll')) {
-                return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}'));
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        $model_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
+        $model_error = '';
+        if (class_exists($model_class) && method_exists($model_class, 'find')) {
+            try {
+                $course_item = $model_class::find($user_id, $course_id, false);
+                if (is_object($course_item) && in_array($course_item->status, array('enrolled', 'finished'), true)) {
+                    return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+                }
+                if (!is_object($course_item)) {
+                    $course_item = new $model_class();
+                    $course_item->user_id = $user_id;
+                    $course_item->item_id = $course_id;
+                }
+                $course_item->item_type = 'lp_course';
+                $course_item->status = 'enrolled';
+                $course_item->graduation = 'in-progress';
+                $course_item->start_time = $starts_at ?: gmdate('Y-m-d H:i:s');
+                $course_item->end_time = null;
+                $course_item->save();
+                do_action('learn-press/user/course-enrolled', absint($course_item->ref_id), $course_id, $user_id);
+                return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+            } catch (Throwable $error) {
+                $model_error = sanitize_text_field($error->getMessage());
             }
-            $result = $lp_user->enroll($course_id);
-        } else {
+        }
+        if ($exists === $table) {
+            $course_item = $wpdb->get_row($wpdb->prepare(
+                "SELECT user_item_id, status FROM " . $table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                $user_id,
+                $course_id
+            ));
+            if ($course_item && in_array($course_item->status, array('enrolled', 'finished'), true)) {
+                return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+            }
+
+            // Some LearnPress versions expose neither UserCourseModel nor an enroll method on LP_User.
+            // Write through LearnPress's user-items table as the compatibility fallback.
+            $now = $starts_at ?: gmdate('Y-m-d H:i:s');
+            $values = array(
+                'user_id' => $user_id,
+                'item_id' => $course_id,
+                'item_type' => 'lp_course',
+                'status' => 'enrolled',
+                'graduation' => 'in-progress',
+                'start_time' => $now,
+                'end_time' => null,
+                'ref_id' => 0,
+                'ref_type' => 'lp_order',
+                'parent_id' => 0,
+            );
+            $columns = $wpdb->get_col('SHOW COLUMNS FROM ' . $table, 0);
+            if (!is_array($columns) || !$columns) {
+                return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment data is not available on this site.', '{{SLUG}}'));
+            }
+            $values = array_intersect_key($values, array_fill_keys($columns, true));
+            if ($course_item) {
+                unset($values['user_id'], $values['item_id'], $values['item_type']);
+                $saved = $wpdb->update($table, $values, array('user_item_id' => absint($course_item->user_item_id)));
+                if ($saved === false) {
+                    return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not update this user\u2019s course enrollment.', '{{SLUG}}'));
+                }
+                $user_item_id = absint($course_item->user_item_id);
+            } else {
+                $saved = $wpdb->insert($table, $values);
+                if ($saved === false || !$wpdb->insert_id) {
+                    return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not create this user\u2019s course enrollment.', '{{SLUG}}'));
+                }
+                $user_item_id = absint($wpdb->insert_id);
+            }
+            $saved_status = $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM " . $table . " WHERE user_item_id = %d LIMIT 1",
+                $user_item_id
+            ));
+            if (!in_array($saved_status, array('enrolled', 'finished'), true)) {
+                return new WP_Error('tdlpw_enrollment_failed', __('LearnPress did not confirm the course enrollment. Please try again.', '{{SLUG}}'));
+            }
+            do_action('learn-press/user/course-enrolled', $user_item_id, $course_id, $user_id);
+            return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+        }
+        if (!function_exists('learn_press_get_user')) {
             return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment is not available. Confirm LearnPress is installed and active.', '{{SLUG}}'));
         }
-        if (is_wp_error($result)) { return $result; }
-        if ($result === false) {
-            return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not enroll this user. Check the course and user status.', '{{SLUG}}'));
+        $lp_user = learn_press_get_user($user_id);
+        if (!is_object($lp_user)) {
+            return new WP_Error(
+                'tdlpw_enrollment_api_unavailable',
+                $model_error
+                    ? sprintf(__('LearnPress could not enroll this user: %s', '{{SLUG}}'), $model_error)
+                    : __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}')
+            );
+        }
+        foreach (array('enroll', 'enroll_course') as $method) {
+            if (!method_exists($lp_user, $method)) { continue; }
+            $result = $lp_user->{$method}($course_id);
+            if (is_wp_error($result)) { return $result; }
+            if ($result === false) {
+                return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not enroll this user. Check the course and user status.', '{{SLUG}}'));
+            }
+            return self::record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+        }
+        return new WP_Error('tdlpw_enrollment_api_unavailable', __('This LearnPress version does not expose a supported enrollment API.', '{{SLUG}}'));
+    }
+
+    private static function record_course_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at) {
+        if (class_exists('TDLPW_Course_Admin')) {
+            return TDLPW_Course_Admin::record_access($user_id, $course_id, $source, $source_id, $expires_at, $starts_at);
+        }
+        return true;
+    }
+
+    public static function set_course_enrollment_status($user_id, $course_id, $status) {
+        $user_id = absint($user_id);
+        $course_id = absint($course_id);
+        if (!$user_id || !$course_id || get_post_type($course_id) !== 'lp_course') {
+            return new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '{{SLUG}}'));
+        }
+        $model_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
+        if (class_exists($model_class) && method_exists($model_class, 'find')) {
+            try {
+                $course_item = $model_class::find($user_id, $course_id, false);
+                if (is_object($course_item)) {
+                    $course_item->status = sanitize_key($status);
+                    $course_item->save();
+                    return true;
+                }
+            } catch (Throwable $error) {
+                return new WP_Error('tdlpw_enrollment_update_failed', sanitize_text_field($error->getMessage()));
+            }
+        }
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists !== $table) {
+            return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment data is not available.', '{{SLUG}}'));
+        }
+        $wpdb->update($table, array('status' => sanitize_key($status)), array(
+            'user_id' => $user_id,
+            'item_id' => $course_id,
+            'item_type' => 'lp_course',
+        ), array('%s'), array('%d', '%d', '%s'));
+        if ($wpdb->last_error) {
+            return new WP_Error('tdlpw_enrollment_update_failed', __('LearnPress could not update this user\u2019s course access.', '{{SLUG}}'));
         }
         return true;
     }
@@ -16204,8 +16394,9 @@ final class TDLPW_Admin {
         $products = $this->product_choices();
         $courses = $this->course_choices();
         echo '<div class="tdlpw-grid"><section class="tdlpw-card"><h2>' . esc_html__('How course mapping works', '{{SLUG}}') . '</h2>';
-        echo '<ol><li>' . esc_html__('Edit a WooCommerce product and choose one or more LearnPress courses in Product data \u2192 General.', '{{SLUG}}') . '</li>';
-        echo '<li>' . esc_html__('When WooCommerce confirms payment, each mapped course is enrolled automatically once.', '{{SLUG}}') . '</li>';
+        echo '<ol><li>' . esc_html__('Open Course Assignments to select a WooCommerce product and link one or more LearnPress courses. You can also edit the mapping in Product data \u2192 General.', '{{SLUG}}') . '</li>';
+        echo '<li>' . esc_html__('When WooCommerce confirms payment, the buyer account is enrolled in each mapped course.', '{{SLUG}}') . '</li>';
+        echo '<li>' . esc_html__('Buyers and users assigned by an administrator can start their courses from WooCommerce My Account or their LearnPress profile.', '{{SLUG}}') . '</li>';
         echo '<li>' . esc_html__('Review paid product and course purchases under Customers & Campaigns.', '{{SLUG}}') . '</li></ol>';
         echo '<p><strong>' . esc_html(sprintf(__('%1$d published products \xB7 %2$d LearnPress courses', '{{SLUG}}'), count($products), count($courses))) . '</strong></p>';
         if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
@@ -16218,7 +16409,11 @@ final class TDLPW_Admin {
             foreach (array_slice($products, 0, 100) as $product) {
                 $ids = array_map('absint', (array) get_post_meta($product->get_id(), '_tdlpw_course_ids', true));
                 $names = array_filter(array_map('get_the_title', $ids));
-                echo '<tr><td>' . esc_html($product->get_name()) . '</td><td>' . esc_html($names ? implode(', ', $names) : __('No course linked', '{{SLUG}}')) . '</td><td><a href="' . esc_url(get_edit_post_link($product->get_id())) . '">' . esc_html__('Edit product', '{{SLUG}}') . '</a></td></tr>';
+                $edit_mapping = add_query_arg(array(
+                    'page' => 'tdlpw-course-assignments',
+                    'edit_product' => $product->get_id(),
+                ), admin_url('admin.php')) . '#tdlpw-map-product';
+                echo '<tr><td>' . esc_html($product->get_name()) . '</td><td>' . esc_html($names ? implode(', ', $names) : __('No course linked', '{{SLUG}}')) . '</td><td><a href="' . esc_url($edit_mapping) . '">' . esc_html__('Edit mapping', '{{SLUG}}') . '</a></td></tr>';
             }
             echo '</tbody></table>';
         }
@@ -16351,7 +16546,10 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 == Features ==
 
 * Map one WooCommerce product to one or multiple LearnPress courses.
-* Enroll customers when WooCommerce confirms payment; order metadata prevents duplicate enrollment.
+* Enroll account holders when WooCommerce confirms payment; mapped-course checkout requires or creates an account.
+* Show purchased and administrator-assigned courses in WooCommerce My Account with direct start links.
+* Reconcile existing paid orders after an administrator saves a product-to-course mapping.
+* Assign WordPress users directly to courses from CourseBridge Course Assignments.
 * View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
 * Filter the audience by product, course, role, and marketing consent.
 * Send individual or selected-group email campaigns through Resend.
@@ -16362,9 +16560,10 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 
 1. Upload the plugin ZIP in Plugins > Add New Plugin > Upload Plugin, or copy the unzipped folder to \`/wp-content/plugins/\`.
 2. Activate WooCommerce and LearnPress, then activate this plugin.
-3. Edit a WooCommerce product. Under Product data > General, map it to one or more LearnPress courses.
-4. Go to Course Bridge > Email Settings and enter a Resend API key and verified sender email.
-5. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
+3. Open CourseBridge Pro > Course Assignments and link a WooCommerce product to one or more LearnPress courses, or use Product data > General.
+4. Course buyers must use or create a WordPress account; their enrolled courses appear in WooCommerce My Account and the LearnPress profile.
+5. Go to CourseBridge Pro > Settings and enter a Resend API key and verified sender email if you plan to send campaigns.
+6. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
 
 == Privacy and email consent ==
 
@@ -16380,6 +16579,10 @@ No. Enrollment happens only after WooCommerce reports that the order is paid and
 
 Yes. Select multiple LearnPress courses in that product's settings.
 
+= Where do purchased or assigned courses appear? =
+
+Enrolled users can open their courses from the WooCommerce My Account dashboard and the LearnPress profile. CourseBridge requires an account for checkout when a mapped course product is in the cart.
+
 = Does email require a Resend API key? =
 
 Yes. Add a Resend API key and use a verified sender domain. You can use the plugin settings or define TDLPW_RESEND_API_KEY in wp-config.php.
@@ -16387,7 +16590,9 @@ Yes. Add a Resend API key and use a verified sender domain. You can use the plug
 == Changelog ==
 
 = {{VERSION}} =
-* Initial release: LearnPress course mapping, paid-order enrollment, buyer reporting, consent-based Resend campaigns, and SEO-ready repository metadata.
+* Add direct product-to-course mapping in Course Assignments, required course-buyer accounts, purchase backfill, and course start links in WooCommerce My Account.
+* Make user enrollment idempotent and use the LearnPress user enrollment API.
+* Fix direct admin license issuance on databases where purchase_id was still NOT NULL.
 `;
 var deployment = `# {{NAME}} \u2014 release and repository notes
 
@@ -16579,8 +16784,245 @@ if (!defined('ABSPATH')) { exit; }
 
 final class TDLPW_Course_Admin {
     public function run() {
+        self::ensure_access_table();
         add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
+        add_action('admin_post_tdlpw_cancel_course_access', array($this, 'cancel_course_access'));
+        add_action('admin_post_tdlpw_save_product_courses', array($this, 'save_product_courses'));
+        add_action('wp_ajax_tdlpw_search_users', array($this, 'search_users'));
+        add_action('tdlpw_reconcile_paid_course_orders', array($this, 'reconcile_paid_orders'), 10, 1);
+        add_action('init', array($this, 'expire_course_access'));
+        self::schedule_paid_order_reconciliation();
+    }
+
+    public static function access_table() {
+        global $wpdb;
+        return $wpdb->prefix . 'tdlpw_course_access';
+    }
+
+    public static function ensure_access_table() {
+        global $wpdb;
+        $version = defined('TDLPW_VERSION') ? TDLPW_VERSION : '1.0.0';
+        if (get_option('tdlpw_course_access_schema') === $version) { return; }
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $table = self::access_table();
+        $charset = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE " . $table . " (
+            access_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            course_id bigint(20) unsigned NOT NULL,
+            source varchar(20) NOT NULL DEFAULT 'admin',
+            source_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            starts_at datetime NOT NULL,
+            expires_at datetime NULL,
+            status varchar(20) NOT NULL DEFAULT 'active',
+            assigned_by bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY  (access_id),
+            UNIQUE KEY grant_identity (user_id,course_id,source,source_id),
+            KEY user_id (user_id),
+            KEY course_id (course_id),
+            KEY status_expiry (status,expires_at)
+        ) " . $charset . ";";
+        dbDelta($sql);
+        update_option('tdlpw_course_access_schema', $version, false);
+    }
+
+    private static function schedule_paid_order_reconciliation() {
+        if (!function_exists('wc_get_orders')) { return; }
+        $version = defined('TDLPW_VERSION') ? TDLPW_VERSION : '1.0.0';
+        if (get_option('tdlpw_course_reconcile_version') === $version) { return; }
+        $pending = get_option('tdlpw_course_reconcile_pending');
+        $page = max(1, absint(get_option('tdlpw_course_reconcile_page', 1)));
+        if ($pending !== $version) {
+            update_option('tdlpw_course_reconcile_pending', $version, false);
+            update_option('tdlpw_course_reconcile_page', 1, false);
+            $page = 1;
+        }
+        if (!wp_next_scheduled('tdlpw_reconcile_paid_course_orders', array($page))) {
+            wp_schedule_single_event(time() + 15, 'tdlpw_reconcile_paid_course_orders', array($page));
+        }
+    }
+
+    public function reconcile_paid_orders($page = 1) {
+        if (!function_exists('wc_get_orders')) { return; }
+        $page = max(1, absint($page));
+        $result = wc_get_orders(array(
+            'status' => array('wc-processing', 'wc-completed'),
+            'limit' => 100,
+            'page' => $page,
+            'paginate' => true,
+            'orderby' => 'date',
+            'order' => 'ASC',
+            'return' => 'objects',
+        ));
+        foreach ((array) ($result->orders ?? array()) as $order) {
+            (new TDLPW_Bridge())->sync_paid_order($order->get_id());
+        }
+        $max_pages = absint($result->max_num_pages ?? 0);
+        if ($page < $max_pages) {
+            $next_page = $page + 1;
+            update_option('tdlpw_course_reconcile_page', $next_page, false);
+            if (!wp_next_scheduled('tdlpw_reconcile_paid_course_orders', array($next_page))) {
+                wp_schedule_single_event(time() + 20, 'tdlpw_reconcile_paid_course_orders', array($next_page));
+            }
+            return;
+        }
+        $version = defined('TDLPW_VERSION') ? TDLPW_VERSION : '1.0.0';
+        update_option('tdlpw_course_reconcile_version', $version, false);
+        delete_option('tdlpw_course_reconcile_pending');
+        delete_option('tdlpw_course_reconcile_page');
+    }
+
+    public static function record_access($user_id, $course_id, $source = 'purchase', $source_id = 0, $expires_at = null, $starts_at = null) {
+        global $wpdb;
+        self::ensure_access_table();
+        $now = current_time('mysql', true);
+        $source = in_array($source, array('admin', 'purchase'), true) ? $source : 'purchase';
+        $wpdb->replace(self::access_table(), array(
+            'user_id' => absint($user_id),
+            'course_id' => absint($course_id),
+            'source' => $source,
+            'source_id' => absint($source_id),
+            'starts_at' => $starts_at ?: $now,
+            'expires_at' => $expires_at ?: null,
+            'status' => 'active',
+            'assigned_by' => $source === 'admin' ? get_current_user_id() : 0,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ), array('%d', '%d', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s'));
+        if ($wpdb->last_error) {
+            return new WP_Error('tdlpw_access_record_failed', __('The course was enrolled, but its access period could not be saved.', '${project.slug}'));
+        }
+        return true;
+    }
+
+    private static function active_access_exists($user_id, $course_id) {
+        global $wpdb;
+        $table = self::access_table();
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT access_id FROM " . $table . " WHERE user_id = %d AND course_id = %d AND status = 'active' AND (expires_at IS NULL OR expires_at > %s) LIMIT 1",
+            absint($user_id),
+            absint($course_id),
+            current_time('mysql', true)
+        ));
+    }
+
+    public static function revoke_course_access($user_id, $course_id) {
+        global $wpdb;
+        self::ensure_access_table();
+        $now = current_time('mysql', true);
+        $wpdb->update(self::access_table(), array(
+            'status' => 'cancelled',
+            'updated_at' => $now,
+        ), array(
+            'user_id' => absint($user_id),
+            'course_id' => absint($course_id),
+            'status' => 'active',
+        ), array('%s', '%s'), array('%d', '%d', '%s'));
+        return TDLPW_Bridge::set_course_enrollment_status($user_id, $course_id, 'cancel');
+    }
+
+    public function expire_course_access() {
+        global $wpdb;
+        $table = self::access_table();
+        $now = current_time('mysql', true);
+        $expired = $wpdb->get_results($wpdb->prepare(
+            "SELECT DISTINCT user_id, course_id FROM " . $table . " WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $now
+        ));
+        if (!$expired) { return; }
+        $wpdb->query($wpdb->prepare(
+            "UPDATE " . $table . " SET status = 'expired', updated_at = %s WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $now,
+            $now
+        ));
+        foreach ($expired as $row) {
+            if (!self::active_access_exists($row->user_id, $row->course_id)) {
+                TDLPW_Bridge::set_course_enrollment_status($row->user_id, $row->course_id, 'cancel');
+            }
+        }
+    }
+
+    public function cancel_course_access() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
+        $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
+        check_admin_referer('tdlpw_cancel_course_access_' . $user_id . '_' . $course_id);
+        $result = ($user_id && get_user_by('id', $user_id) && get_post_type($course_id) === 'lp_course')
+            ? self::revoke_course_access($user_id, $course_id)
+            : new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
+        $args = array(
+            'page' => 'tdlpw-course-assignments',
+            'notice' => is_wp_error($result) ? 'failed' : 'cancelled',
+        );
+        if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    public function search_users() {
+        check_ajax_referer('tdlpw_search_users', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Access denied.', '${project.slug}')), 403);
+        }
+        $search = sanitize_text_field(wp_unslash($_GET['term'] ?? ''));
+        $args = array(
+            'number' => 20,
+            'orderby' => 'display_name',
+            'order' => 'ASC',
+            'fields' => array('ID', 'display_name', 'user_login', 'user_email'),
+        );
+        if ($search !== '') {
+            $args['search'] = '*' . $search . '*';
+            $args['search_columns'] = array('user_login', 'user_email', 'display_name');
+        }
+        $results = array();
+        foreach (get_users($args) as $user) {
+            $results[] = array(
+                'id' => absint($user->ID),
+                'label' => sanitize_text_field($user->display_name . ' (' . $user->user_login . ' \xB7 ' . $user->user_email . ')'),
+            );
+        }
+        wp_send_json_success($results);
+    }
+
+    private function enrolled_users() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists !== $table) { return array(); }
+        $access = self::access_table();
+        return $wpdb->get_results(
+            "SELECT item.user_id, item.item_id AS course_id, item.status AS lp_status, item.start_time AS lp_start_time,
+                user.display_name, user.user_login, user.user_email, course.post_title,
+                admin_access.starts_at AS access_start, admin_access.expires_at AS access_expiry,
+                admin_access.status AS admin_access_status,
+                purchase_access.access_status AS purchase_access_status
+             FROM " . $table . " item
+             INNER JOIN (
+                SELECT MAX(user_item_id) AS user_item_id
+                FROM " . $table . "
+                WHERE item_type = 'lp_course'
+                GROUP BY user_id, item_id
+             ) latest ON latest.user_item_id = item.user_item_id
+             INNER JOIN " . $wpdb->users . " user ON user.ID = item.user_id
+             INNER JOIN " . $wpdb->posts . " course ON course.ID = item.item_id AND course.post_type = 'lp_course'
+             LEFT JOIN " . $access . " admin_access ON admin_access.user_id = item.user_id AND admin_access.course_id = item.item_id AND admin_access.source = 'admin' AND admin_access.source_id = 0
+             LEFT JOIN (
+                SELECT user_id, course_id, MAX(status) AS access_status
+                FROM " . $access . "
+                WHERE source = 'purchase' AND status = 'active'
+                GROUP BY user_id, course_id
+             ) purchase_access ON purchase_access.user_id = item.user_id AND purchase_access.course_id = item.item_id
+             WHERE item.item_type = 'lp_course'
+             ORDER BY item.start_time DESC
+             LIMIT 500",
+            ARRAY_A
+        );
     }
 
     public function menu() {
@@ -16605,11 +17047,15 @@ final class TDLPW_Course_Admin {
         $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
         $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
         $search = sanitize_text_field(wp_unslash($_POST['user_search'] ?? ''));
+        $expires_on = sanitize_text_field(wp_unslash($_POST['expires_on'] ?? ''));
         $user = $user_id ? get_user_by('id', $user_id) : false;
-        if (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
+        $expires_at = $this->expiry_from_input($expires_on);
+        if (is_wp_error($expires_at)) {
+            $result = $expires_at;
+        } elseif (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
             $result = new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
         } else {
-            $result = TDLPW_Bridge::enroll_user_in_course($user_id, $course_id);
+            $result = TDLPW_Bridge::enroll_user_in_course($user_id, $course_id, 'admin', 0, $expires_at);
         }
 
         $args = array(
@@ -16622,18 +17068,21 @@ final class TDLPW_Course_Admin {
         exit;
     }
 
-    private function users($search) {
-        $args = array(
-            'number' => 200,
-            'orderby' => 'display_name',
-            'order' => 'ASC',
-            'fields' => array('ID', 'display_name', 'user_email'),
-        );
-        if ($search !== '') {
-            $args['search'] = '*' . $search . '*';
-            $args['search_columns'] = array('user_login', 'user_email', 'display_name');
+    private function expiry_from_input($value) {
+        if ($value === '') { return null; }
+        if (!preg_match('/^d{4}-d{2}-d{2}$/', $value)) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
         }
-        return get_users($args);
+        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, $timezone);
+        if (!$date || $date->format('Y-m-d') !== $value) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
+        }
+        $expiry = $date->setTime(23, 59, 59);
+        if ($expiry->getTimestamp() <= time()) {
+            return new WP_Error('tdlpw_invalid_expiry', __('The expiry date must be today or later.', '${project.slug}'));
+        }
+        return gmdate('Y-m-d H:i:s', $expiry->getTimestamp());
     }
 
     private function courses() {
@@ -16646,13 +17095,91 @@ final class TDLPW_Course_Admin {
         ));
     }
 
+    private function products() {
+        return function_exists('wc_get_products') ? wc_get_products(array(
+            'limit' => 500,
+            'status' => 'publish',
+            'orderby' => 'name',
+            'order' => 'ASC',
+        )) : array();
+    }
+
+    public function save_product_courses() {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        check_admin_referer('tdlpw_save_product_courses');
+        $product_id = absint(wp_unslash($_POST['product_id'] ?? 0));
+        $product = function_exists('wc_get_product') ? wc_get_product($product_id) : false;
+        if (!$product || !current_user_can('edit_product', $product_id)) {
+            wp_die(esc_html__('Choose a WooCommerce product you are allowed to edit.', '${project.slug}'), '', array('response' => 400));
+        }
+        $ids = array_map('absint', (array) wp_unslash($_POST['course_ids'] ?? array()));
+        $valid = array();
+        foreach (array_unique($ids) as $course_id) {
+            if (get_post_type($course_id) === 'lp_course' && in_array(get_post_status($course_id), array('publish', 'private'), true)) {
+                $valid[] = $course_id;
+            }
+        }
+        update_post_meta($product_id, '_tdlpw_course_ids', $valid);
+        if (!wp_next_scheduled('tdlpw_sync_mapped_product', array($product_id, 1))) {
+            wp_schedule_single_event(time() + 10, 'tdlpw_sync_mapped_product', array($product_id, 1));
+        }
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'tdlpw-course-assignments',
+            'edit_product' => $product_id,
+            'mapping_notice' => 'saved',
+        ), admin_url('admin.php')) . '#tdlpw-map-product');
+        exit;
+    }
+
+    private function render_product_mapping($courses, $products, $selected_product_id) {
+        $selected_courses = $selected_product_id
+            ? array_map('absint', (array) get_post_meta($selected_product_id, '_tdlpw_course_ids', true))
+            : array();
+        echo '<section id="tdlpw-map-product" style="max-width:900px;margin:20px 0;padding:20px;background:#fff;border:1px solid #dcdcde">';
+        echo '<h2>' . esc_html__('Link WooCommerce products to LearnPress courses', '${project.slug}') . '</h2>';
+        echo '<p>' . esc_html__('Choose a product and one or more courses. After a confirmed payment, the buyer is enrolled; existing paid orders for this product are also reconciled.', '${project.slug}') . '</p>';
+        if (!class_exists('WooCommerce')) {
+            echo '<p class="notice notice-warning inline">' . esc_html__('Activate WooCommerce to map products to courses.', '${project.slug}') . '</p></section>';
+            return;
+        }
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="tdlpw_save_product_courses">';
+        wp_nonce_field('tdlpw_save_product_courses');
+        echo '<p><label for="tdlpw-map-product"><strong>' . esc_html__('WooCommerce product', '${project.slug}') . '</strong></label><br>';
+        echo '<select id="tdlpw-map-product" name="product_id" required style="min-width:360px;max-width:100%">';
+        echo '<option value="">' . esc_html__('Select a product', '${project.slug}') . '</option>';
+        foreach ($products as $product) {
+            echo '<option value="' . esc_attr((string) $product->get_id()) . '" ' .
+                selected((int) $selected_product_id, (int) $product->get_id(), false) . '>' .
+                esc_html($product->get_name()) . '</option>';
+        }
+        echo '</select></p><p><label for="tdlpw-map-courses"><strong>' .
+            esc_html__('LearnPress courses', '${project.slug}') . '</strong></label><br>';
+        echo '<select id="tdlpw-map-courses" name="course_ids[]" multiple required size="8" style="min-width:360px;max-width:100%">';
+        foreach ($courses as $course) {
+            echo '<option value="' . esc_attr((string) $course->ID) . '" ' .
+                selected(in_array((int) $course->ID, $selected_courses, true), true, false) . '>' .
+                esc_html($course->post_title) . '</option>';
+        }
+        echo '</select><br><span class="description">' . esc_html__('Use Ctrl (Windows) or Command (Mac) to select multiple courses.', '${project.slug}') . '</span></p>';
+        echo '<p><button type="submit" class="button button-primary" ' . ((!$products || !$courses) ? 'disabled' : '') . '>' .
+            esc_html__('Save course mapping', '${project.slug}') . '</button></p></form></section>';
+    }
+
     public function render() {
         if (!current_user_can('manage_options')) { return; }
 
         $search = sanitize_text_field(wp_unslash($_GET['user_search'] ?? ''));
         $notice = sanitize_key(wp_unslash($_GET['notice'] ?? ''));
+        $mapping_notice = sanitize_key(wp_unslash($_GET['mapping_notice'] ?? ''));
+        $edit_product = absint(wp_unslash($_GET['edit_product'] ?? 0));
         echo '<div class="wrap"><h1>' . esc_html__('Assign LearnPress Courses', '${project.slug}') . '</h1>';
         echo '<p>' . esc_html__('Choose a WordPress user and course to enroll them directly. This does not create or change a WooCommerce order.', '${project.slug}') . '</p>';
+        if ($mapping_notice === 'saved') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The product-to-course mapping was saved. Confirmed orders will be enrolled, and existing paid orders are being checked.', '${project.slug}') . '</p></div>';
+        }
         if ($notice === 'enrolled') {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The user was enrolled in the selected course.', '${project.slug}') . '</p></div>';
         } elseif ($notice === 'failed') {
@@ -16661,30 +17188,23 @@ final class TDLPW_Course_Admin {
                 esc_html($detail ?: __('The course assignment could not be completed.', '${project.slug}')) . '</p></div>';
         }
 
-        if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
-            echo '<div class="notice notice-warning"><p>' . esc_html__('Activate WooCommerce and LearnPress to use CourseBridge.', '${project.slug}') . '</p></div>';
+        if (!defined('LEARNPRESS_VERSION')) {
+            echo '<div class="notice notice-warning"><p>' . esc_html__('Activate LearnPress to assign users to courses.', '${project.slug}') . '</p></div>';
         }
 
-        echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="margin:16px 0">';
-        echo '<input type="hidden" name="page" value="tdlpw-course-assignments">';
-        echo '<label for="tdlpw-user-search"><strong>' . esc_html__('Find a user by name or email', '${project.slug}') . '</strong></label> ';
-        echo '<input type="search" id="tdlpw-user-search" name="user_search" value="' . esc_attr($search) . '" class="regular-text">';
-        echo '<button class="button">' . esc_html__('Search users', '${project.slug}') . '</button></form>';
-
-        $users = $this->users($search);
         $courses = $this->courses();
+        $products = $this->products();
+        $this->render_product_mapping($courses, $products, $edit_product);
+
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="max-width:760px;background:#fff;border:1px solid #dcdcde;padding:20px">';
         echo '<input type="hidden" name="action" value="tdlpw_assign_course">';
-        echo '<input type="hidden" name="user_search" value="' . esc_attr($search) . '">';
+        echo '<input type="hidden" id="tdlpw-user-search-value" name="user_search" value="' . esc_attr($search) . '">';
         wp_nonce_field('tdlpw_assign_course');
+        echo '<p><label for="tdlpw-user-search"><strong>' . esc_html__('Find a user by name, username, or email', '${project.slug}') . '</strong></label><br>';
+        echo '<input type="search" id="tdlpw-user-search" value="' . esc_attr($search) . '" class="regular-text" autocomplete="off" placeholder="' . esc_attr__('Start typing a name, username, or email', '${project.slug}') . '"></p>';
         echo '<p><label for="tdlpw-user"><strong>' . esc_html__('WordPress user', '${project.slug}') . '</strong></label><br>';
-        echo '<select id="tdlpw-user" name="user_id" required style="min-width:360px;max-width:100%">';
-        echo '<option value="">' . esc_html__('Select a user', '${project.slug}') . '</option>';
-        foreach ($users as $user) {
-            $label = $user->display_name . ' (' . $user->user_email . ')';
-            echo '<option value="' . esc_attr((string) $user->ID) . '">' . esc_html($label) . '</option>';
-        }
-        echo '</select></p>';
+        echo '<select id="tdlpw-user" name="user_id" required size="5" style="min-width:360px;max-width:100%"><option value="">' . esc_html__('Search for and select a user', '${project.slug}') . '</option></select>';
+        echo '<span id="tdlpw-user-search-status" class="description" aria-live="polite"></span></p>';
         echo '<p><label for="tdlpw-course"><strong>' . esc_html__('LearnPress course', '${project.slug}') . '</strong></label><br>';
         echo '<select id="tdlpw-course" name="course_id" required style="min-width:360px;max-width:100%">';
         echo '<option value="">' . esc_html__('Select a course', '${project.slug}') . '</option>';
@@ -16692,16 +17212,68 @@ final class TDLPW_Course_Admin {
             echo '<option value="' . esc_attr((string) $course->ID) . '">' . esc_html($course->post_title) . '</option>';
         }
         echo '</select></p>';
-        if (!$users) {
-            echo '<p>' . esc_html__('No users matched. Search with another name or email address.', '${project.slug}') . '</p>';
-        } elseif (!$search) {
-            echo '<p class="description">' . esc_html__('Showing up to 200 users. Search by name or email if the user is not listed.', '${project.slug}') . '</p>';
-        }
+        echo '<p><label for="tdlpw-expires-on"><strong>' . esc_html__('Access expires on (optional)', '${project.slug}') . '</strong></label><br>';
+        echo '<input type="date" id="tdlpw-expires-on" name="expires_on" min="' . esc_attr(wp_date('Y-m-d')) . '"> ';
+        echo '<span class="description">' . esc_html__('Leave blank for access with no CourseBridge expiry.', '${project.slug}') . '</span></p>';
         if (!$courses) {
             echo '<p class="notice notice-warning inline">' . esc_html__('No published or private LearnPress courses were found.', '${project.slug}') . '</p>';
         }
-        echo '<p><button type="submit" class="button button-primary" ' . ((!$users || !$courses) ? 'disabled' : '') . '>' .
-            esc_html__('Enroll user in course', '${project.slug}') . '</button></p></form></div>';
+        echo '<p><button type="submit" class="button button-primary" ' . (!$courses ? 'disabled' : '') . '>' .
+            esc_html__('Assign course', '${project.slug}') . '</button></p></form>';
+        echo '<script>(function(){'
+            . 'var input=document.getElementById("tdlpw-user-search");var select=document.getElementById("tdlpw-user");var hidden=document.getElementById("tdlpw-user-search-value");var status=document.getElementById("tdlpw-user-search-status");'
+            . 'var submitButton=input.form.querySelector("button[type=submit]");var ajaxUrl=' . wp_json_encode(admin_url('admin-ajax.php')) . ';var nonce=' . wp_json_encode(wp_create_nonce('tdlpw_search_users')) . ';var timer=null;var requestId=0;'
+            . 'function searchUsers(){var currentRequest=++requestId;hidden.value=input.value;status.textContent="' . esc_js(__('Searching users\u2026', '${project.slug}')) . '";select.disabled=true;submitButton.disabled=true;var params=new URLSearchParams({action:"tdlpw_search_users",term:input.value.trim(),nonce:nonce});'
+            . 'fetch(ajaxUrl+"?"+params.toString(),{credentials:"same-origin"}).then(function(response){return response.json();}).then(function(result){'
+            . 'if(currentRequest!==requestId){return;}'
+            . 'select.options.length=0;if(!result.success){select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));status.textContent="";return;}'
+            . 'select.add(new Option(result.data.length?"' . esc_js(__('Select a user', '${project.slug}')) . '":"' . esc_js(__('No matching users found.', '${project.slug}')) . '",""));'
+            . 'result.data.forEach(function(user){select.add(new Option(user.label,user.id));});select.disabled=false;submitButton.disabled=false;status.textContent=result.data.length?"' . esc_js(__('Select one of the matching users.', '${project.slug}')) . '":"";'
+            . '}).catch(function(){if(currentRequest!==requestId){return;}select.options.length=0;select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));select.disabled=true;submitButton.disabled=true;status.textContent="";});}'
+            . 'input.addEventListener("input",function(){hidden.value=input.value;++requestId;select.disabled=true;submitButton.disabled=true;clearTimeout(timer);timer=setTimeout(searchUsers,250);});searchUsers();})();</script>';
+
+        $rows = $this->enrolled_users();
+        echo '<h2>' . esc_html__('Student course access', '${project.slug}') . '</h2>';
+        echo '<p>' . esc_html__('Review current LearnPress enrollments and CourseBridge access dates. Cancel revokes the user\u2019s LearnPress course access.', '${project.slug}') . '</p>';
+        if (!$rows) {
+            echo '<p>' . esc_html__('No LearnPress course enrollments were found yet.', '${project.slug}') . '</p>';
+        } else {
+            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__('User', '${project.slug}') . '</th><th>' .
+                esc_html__('Course', '${project.slug}') . '</th><th>' . esc_html__('Access source', '${project.slug}') . '</th><th>' .
+                esc_html__('Access started', '${project.slug}') . '</th><th>' . esc_html__('Expires', '${project.slug}') . '</th><th>' .
+                esc_html__('Status', '${project.slug}') . '</th><th>' . esc_html__('Action', '${project.slug}') . '</th></tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $user_id = absint($row['user_id']);
+                $course_id = absint($row['course_id']);
+                $source = !empty($row['admin_access_status'])
+                    ? __('Administrator assignment', '${project.slug}')
+                    : ($row['purchase_access_status'] === 'active' ? __('WooCommerce purchase', '${project.slug}') : __('LearnPress enrollment', '${project.slug}'));
+                $started = $row['access_start'] ?: $row['lp_start_time'];
+                $expires = $row['access_expiry']
+                    ? $row['access_expiry']
+                    : __('No expiry recorded', '${project.slug}');
+                $status = $row['admin_access_status'] === 'expired'
+                    ? __('Expired', '${project.slug}')
+                    : ($row['admin_access_status'] === 'cancelled' ? __('Cancelled', '${project.slug}') : ucfirst(sanitize_key($row['lp_status'])));
+                echo '<tr><td>' . esc_html($row['display_name']) . '<br><small>@' . esc_html($row['user_login']) . ' \xB7 ' . esc_html($row['user_email']) . '</small></td>';
+                echo '<td>' . esc_html($row['post_title']) . '</td><td>' . esc_html($source) . '</td><td>' .
+                    esc_html($started ?: '\u2014') . '</td><td>' . esc_html($expires) . '</td><td>' . esc_html($status) . '</td><td>';
+                if (in_array($row['lp_status'], array('enrolled', 'finished'), true)) {
+                    echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+                    echo '<input type="hidden" name="action" value="tdlpw_cancel_course_access">';
+                    echo '<input type="hidden" name="user_id" value="' . esc_attr((string) $user_id) . '">';
+                    echo '<input type="hidden" name="course_id" value="' . esc_attr((string) $course_id) . '">';
+                    wp_nonce_field('tdlpw_cancel_course_access_' . $user_id . '_' . $course_id);
+                    echo '<button type="submit" class="button button-small" onclick="return confirm(' . esc_attr(wp_json_encode(__('Cancel this user\u2019s access to the course?', '${project.slug}'))) . ')">' .
+                        esc_html__('Cancel access', '${project.slug}') . '</button></form>';
+                } else {
+                    echo '\u2014';
+                }
+                echo '</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</div>';
     }
 }
 `;
@@ -16743,8 +17315,12 @@ function buildCourseBridgePaidEdition(project) {
     shortDescription: project.shortDescription,
     description: project.description,
     features: [
-      "Map WooCommerce products to multiple LearnPress courses and auto-enroll buyers after successful payment",
-      "Assign users to LearnPress courses directly from the WordPress dashboard",
+      "Link WooCommerce products to multiple LearnPress courses from Course Assignments or product settings",
+      "Require or create a buyer account for mapped course purchases, then enroll on confirmed payment",
+      "Reconcile existing paid WooCommerce orders after plugin updates and mapping changes",
+      "Search users by display name, username, or email before assigning LearnPress courses",
+      "Set optional course access expiry dates, review student access, and cancel assignments",
+      "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
       "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
       "Manage plugin settings, sender details, and license from one CourseBridge Pro menu"
@@ -17639,12 +18215,12 @@ var STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.0.0",
+  version: "2.1.2",
   author: "Taskdrip",
-  shortDescription: "One licensed plugin to map WooCommerce products to LearnPress courses, enroll users, manage buyers, and send consent-based campaigns.",
-  description: "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls buyers after confirmed payment, and lets site administrators assign courses directly to users. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
+  shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
+  description: "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The plugin also includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
   seoTitle: "CourseBridge Pro \u2013 LearnPress & WooCommerce Plugin",
-  seoDescription: "Connect WooCommerce products to LearnPress courses, automatically enroll paying customers, manage course buyers, and send consent-based email campaigns with CourseBridge Pro.",
+  seoDescription: "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",
   seoKeywords: "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
   featuredImage: "/coursebridge-pro-featured.svg"
 };
@@ -34568,6 +35144,7 @@ var REQUIRED_TABLES = [
     "created_at" timestamp DEFAULT now(),
     "updated_at" timestamp DEFAULT now()
   )`,
+  `ALTER TABLE IF EXISTS "plugin_licenses" ALTER COLUMN "purchase_id" DROP NOT NULL`,
   `CREATE INDEX IF NOT EXISTS "plugin_licenses_user_status_idx" ON "plugin_licenses" ("user_id", "status")`,
   `CREATE INDEX IF NOT EXISTS "plugin_licenses_project_status_idx" ON "plugin_licenses" ("project_id", "status")`,
   `CREATE INDEX IF NOT EXISTS "plugin_licenses_expiry_idx" ON "plugin_licenses" ("status", "expires_at")`,

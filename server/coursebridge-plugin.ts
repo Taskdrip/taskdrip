@@ -581,14 +581,15 @@ final class TDLPW_Course_Admin {
             esc_html__('Assign course', '${project.slug}') . '</button></p></form>';
         echo '<script>(function(){'
             . 'var input=document.getElementById("tdlpw-user-search");var select=document.getElementById("tdlpw-user");var hidden=document.getElementById("tdlpw-user-search-value");var status=document.getElementById("tdlpw-user-search-status");'
-            . 'var ajaxUrl=' . wp_json_encode(admin_url('admin-ajax.php')) . ';var nonce=' . wp_json_encode(wp_create_nonce('tdlpw_search_users')) . ';var timer=null;'
-            . 'function searchUsers(){hidden.value=input.value;var params=new URLSearchParams({action:"tdlpw_search_users",term:input.value.trim(),nonce:nonce});'
+            . 'var submitButton=input.form.querySelector("button[type=submit]");var ajaxUrl=' . wp_json_encode(admin_url('admin-ajax.php')) . ';var nonce=' . wp_json_encode(wp_create_nonce('tdlpw_search_users')) . ';var timer=null;var requestId=0;'
+            . 'function searchUsers(){var currentRequest=++requestId;hidden.value=input.value;status.textContent="' . esc_js(__('Searching users…', '${project.slug}')) . '";select.disabled=true;submitButton.disabled=true;var params=new URLSearchParams({action:"tdlpw_search_users",term:input.value.trim(),nonce:nonce});'
             . 'fetch(ajaxUrl+"?"+params.toString(),{credentials:"same-origin"}).then(function(response){return response.json();}).then(function(result){'
+            . 'if(currentRequest!==requestId){return;}'
             . 'select.options.length=0;if(!result.success){select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));status.textContent="";return;}'
             . 'select.add(new Option(result.data.length?"' . esc_js(__('Select a user', '${project.slug}')) . '":"' . esc_js(__('No matching users found.', '${project.slug}')) . '",""));'
-            . 'result.data.forEach(function(user){select.add(new Option(user.label,user.id));});status.textContent=result.data.length?"' . esc_js(__('Select one of the matching users.', '${project.slug}')) . '":"";'
-            . '}).catch(function(){select.options.length=0;select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));status.textContent="";});}'
-            . 'input.addEventListener("input",function(){clearTimeout(timer);timer=setTimeout(searchUsers,250);});searchUsers();})();</script>';
+            . 'result.data.forEach(function(user){select.add(new Option(user.label,user.id));});select.disabled=false;submitButton.disabled=false;status.textContent=result.data.length?"' . esc_js(__('Select one of the matching users.', '${project.slug}')) . '":"";'
+            . '}).catch(function(){if(currentRequest!==requestId){return;}select.options.length=0;select.add(new Option("' . esc_js(__('Could not search users. Please try again.', '${project.slug}')) . '",""));select.disabled=true;submitButton.disabled=true;status.textContent="";});}'
+            . 'input.addEventListener("input",function(){hidden.value=input.value;++requestId;select.disabled=true;submitButton.disabled=true;clearTimeout(timer);timer=setTimeout(searchUsers,250);});searchUsers();})();</script>';
 
         $rows = $this->enrolled_users();
         echo '<h2>' . esc_html__('Student course access', '${project.slug}') . '</h2>';
