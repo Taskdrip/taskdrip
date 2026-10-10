@@ -10,6 +10,7 @@ import {
   integer,
   boolean,
   uuid,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -348,6 +349,9 @@ export const pluginStudioProjects = pgTable("plugin_studio_projects", {
   seoTitle: varchar("seo_title"),
   seoDescription: varchar("seo_description"),
   seoKeywords: text("seo_keywords"),
+  licenseApiBaseUrl: varchar("license_api_base_url"),
+  maxActivations: integer("max_activations").notNull().default(3),
+  releaseNotes: text("release_notes"),
   shopProductId: varchar("shop_product_id").references(() => shopProducts.id, { onDelete: "set null" }),
   status: varchar("status").notNull().default("draft"),
   createdBy: varchar("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -376,6 +380,81 @@ export const purchases = pgTable("purchases", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const pluginLicenses = pgTable("plugin_licenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  projectId: varchar("project_id").notNull().references(() => pluginStudioProjects.id, { onDelete: "cascade" }),
+  productId: varchar("product_id").notNull().references(() => shopProducts.id, { onDelete: "cascade" }),
+  purchaseId: varchar("purchase_id").notNull().unique().references(() => purchases.id, { onDelete: "cascade" }),
+  keyHash: varchar("key_hash").notNull().unique(),
+  keyEncrypted: text("key_encrypted").notNull(),
+  keyPrefix: varchar("key_prefix").notNull(),
+  cadence: varchar("cadence").notNull(), // monthly, yearly
+  status: varchar("status").notNull().default("active"), // active, expired, revoked, superseded
+  startsAt: timestamp("starts_at").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  reminderStage: varchar("reminder_stage").notNull().default(""),
+  maxActivations: integer("max_activations").notNull().default(3),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("plugin_licenses_user_status_idx").on(table.userId, table.status),
+  index("plugin_licenses_project_status_idx").on(table.projectId, table.status),
+  index("plugin_licenses_expiry_idx").on(table.status, table.expiresAt),
+]);
+
+export const pluginLicenseSites = pgTable("plugin_license_sites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  licenseId: varchar("license_id").notNull().references(() => pluginLicenses.id, { onDelete: "cascade" }),
+  installationId: varchar("installation_id").notNull(),
+  siteUrl: text("site_url").notNull(),
+  pluginVersion: varchar("plugin_version"),
+  wordpressVersion: varchar("wordpress_version"),
+  status: varchar("status").notNull().default("active"),
+  activatedAt: timestamp("activated_at").defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("plugin_license_sites_license_installation_unique").on(table.licenseId, table.installationId),
+  index("plugin_license_sites_license_status_idx").on(table.licenseId, table.status),
+  index("plugin_license_sites_installation_idx").on(table.installationId),
+]);
+
+export const pluginLicenseEvents = pgTable("plugin_license_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  licenseId: varchar("license_id").references(() => pluginLicenses.id, { onDelete: "set null" }),
+  projectId: varchar("project_id").notNull().references(() => pluginStudioProjects.id, { onDelete: "cascade" }),
+  installationId: varchar("installation_id"),
+  eventType: varchar("event_type").notNull(), // activated, heartbeat, update_check, update_download, shop_download
+  details: jsonb("details").$type<Record<string, unknown>>().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("plugin_license_events_project_date_idx").on(table.projectId, table.createdAt),
+  index("plugin_license_events_license_date_idx").on(table.licenseId, table.createdAt),
+]);
+
+export const pluginSupportThreads = pgTable("plugin_support_threads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  licenseId: varchar("license_id").notNull().references(() => pluginLicenses.id, { onDelete: "cascade" }),
+  projectId: varchar("project_id").notNull().references(() => pluginStudioProjects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  developerId: varchar("developer_id").references(() => users.id, { onDelete: "set null" }),
+  requestType: varchar("request_type").notNull().default("support"), // support, update_request
+  subject: varchar("subject").notNull(),
+  status: varchar("status").notNull().default("open"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const pluginSupportMessages = pgTable("plugin_support_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadId: varchar("thread_id").notNull().references(() => pluginSupportThreads.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+}, (table) => [index("plugin_support_messages_thread_date_idx").on(table.threadId, table.createdAt)]);
 
 // Product reviews for better customer feedback
 export const productReviews = pgTable("product_reviews", {

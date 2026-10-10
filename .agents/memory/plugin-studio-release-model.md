@@ -8,3 +8,9 @@ Taskdrip Plugin Studio releases two separate editions: a useful free core intend
 **Why:** the user selected the free-core-plus-paid-add-on model; Taskdrip must not imply that a generated ZIP is automatically reviewed or approved by WordPress.org.
 
 **How to apply:** preserve separate installable core and add-on ZIPs, require the core before the premium extension, and keep generated releases in draft until an admin has reviewed and tested them.
+
+Every paid Plugin Studio product also needs monthly and yearly plans, Taskdrip-issued per-customer license keys, install limits and usage tracking, expiry-enforced premium feature locking, renewal reminders, update delivery, and a buyer/developer support channel. The current shop verifies payment proof and admin approval; do not claim automatic recurring charges unless a billing provider is configured.
+
+**Why:** the user made licensing and subscription management a standing requirement for all paid plugins, while the current checkout does not charge cards automatically.
+
+**How to apply:** require a public HTTPS license-server URL before listing a premium package, issue keys only after payment approval, and keep renewals on the verified-payment flow until an actual billing provider is connected.

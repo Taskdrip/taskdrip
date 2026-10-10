@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowDownToLine, ExternalLink, Eye, EyeOff, PackageCheck, Plus, Rocket, Search, WandSparkles } from "lucide-react";
+import { ArrowDownToLine, ExternalLink, Eye, EyeOff, PackageCheck, Plus, Rocket, Search, WandSparkles, Save, Upload, MessageSquare, KeyRound } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,33 @@ type Project = {
   coreFileCount: number;
   premiumFileCount: number;
   status: "draft" | "published";
+  licenseApiBaseUrl?: string | null;
+  maxActivations?: number;
+  releaseNotes?: string | null;
   createdAt: string;
-  product: null | { id: string; price: string; salesCount: number | null; isActive: boolean | null };
+  product: null | {
+    id: string;
+    price: string;
+    salesCount: number | null;
+    isActive: boolean | null;
+    serviceAddons?: { id: string; title: string; price: number }[];
+  };
+};
+
+type StudioMetrics = {
+  totals: { licenses: number; activeLicenses: number; activeInstalls: number; trackedEvents: number };
+  projects: { id: string; name: string; salesCount: number; activeLicenses: number; installs: number; usage: Record<string, number> }[];
+  licenses: { id: string; projectName: string; buyerEmail: string; status: string; cadence: string; keyPrefix: string; expiresAt: string; activeInstalls: number; maxActivations: number }[];
+};
+
+type SupportThread = {
+  id: string;
+  projectName: string;
+  buyerEmail: string;
+  requestType: string;
+  subject: string;
+  status: string;
+  messages: { id: string; senderId: string; content: string; createdAt: string }[];
 };
 
 const initialDraft = {
@@ -39,7 +64,8 @@ const initialDraft = {
   seoTitle: "",
   seoDescription: "",
   seoKeywords: "",
-  price: "49.00",
+  monthlyPrice: "",
+  yearlyPrice: "",
 };
 
 const featurePillars = [
@@ -50,13 +76,25 @@ const featurePillars = [
   ["Review before release", "New products stay in draft until an admin reviews both packages and tests them on a staging WordPress site."],
 ];
 
+function nextPatchVersion(version: string): string {
+  const [base = "1.0.0"] = version.split("-");
+  const parts = base.split(".");
+  const patch = Number.parseInt(parts[2] || "0", 10);
+  return `${parts[0] || "1"}.${parts[1] || "0"}.${(Number.isFinite(patch) ? patch : 0) + 1}`;
+}
+
 export default function AdminPluginStudio() {
   const { toast } = useToast();
   const [draft, setDraft] = useState(initialDraft);
   const [downloadingKey, setDownloadingKey] = useState("");
+  const [projectSettings, setProjectSettings] = useState<Record<string, { monthlyPrice: string; yearlyPrice: string; licenseApiBaseUrl: string; maxActivations: string }>>({});
+  const [releaseForms, setReleaseForms] = useState<Record<string, { version: string; releaseNotes: string; file: File | null }>>({});
+  const [supportReplies, setSupportReplies] = useState<Record<string, string>>({});
   const { data: projects = [], isLoading, error } = useQuery<Project[]>({
     queryKey: ["/api/admin/plugin-studio/projects"],
   });
+  const { data: metrics } = useQuery<StudioMetrics>({ queryKey: ["/api/admin/plugin-studio/licensing"] });
+  const { data: supportThreads = [] } = useQuery<SupportThread[]>({ queryKey: ["/api/admin/plugin-studio/support"] });
   const { data: aiStatus } = useQuery<{ aiAvailable: boolean; provider: string; model: string; settingsUrl: string }>({
     queryKey: ["/api/admin/plugin-studio/ai-status"],
   });
@@ -65,7 +103,8 @@ export default function AdminPluginStudio() {
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/admin/plugin-studio/projects", {
         ...draft,
-        price: Number(draft.price),
+        monthlyPrice: Number(draft.monthlyPrice),
+        yearlyPrice: Number(draft.yearlyPrice),
       });
       return response.json();
     },
@@ -89,6 +128,65 @@ export default function AdminPluginStudio() {
       toast({ title: "Shop listing updated" });
     },
     onError: (mutationError: Error) => toast({ title: "Could not update listing", description: mutationError.message, variant: "destructive" }),
+  });
+
+  const settingsMutation = useMutation({
+    mutationFn: async ({ id, values }: { id: string; values: { monthlyPrice: number; yearlyPrice: number; licenseApiBaseUrl: string; maxActivations: number } }) => {
+      const response = await apiRequest("PATCH", `/api/admin/plugin-studio/projects/${id}`, values);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/products"] });
+      toast({ title: "Plugin license settings saved" });
+    },
+    onError: (mutationError: Error) => toast({ title: "Could not save settings", description: mutationError.message, variant: "destructive" }),
+  });
+
+  const releaseMutation = useMutation({
+    mutationFn: async ({ project, form }: { project: Project; form: { version: string; releaseNotes: string; file: File | null } }) => {
+      if (!form.file) throw new Error("Choose the updated premium plugin ZIP.");
+      const body = new FormData();
+      body.set("version", form.version);
+      body.set("releaseNotes", form.releaseNotes);
+      body.set("zip", form.file);
+      const response = await fetch(`/api/admin/plugin-studio/projects/${project.id}/release`, { method: "POST", credentials: "include", body });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Could not publish this update.");
+      return result;
+    },
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/licensing"] });
+      setReleaseForms((current) => ({ ...current, [variables.project.id]: { version: result.version, releaseNotes: "", file: null } }));
+      toast({ title: `Version ${result.version} released`, description: "Licensed WordPress installs can now receive the update automatically." });
+    },
+    onError: (mutationError: Error) => toast({ title: "Could not publish update", description: mutationError.message, variant: "destructive" }),
+  });
+
+  const supportReplyMutation = useMutation({
+    mutationFn: async ({ threadId, content }: { threadId: string; content: string }) => {
+      const response = await apiRequest("POST", `/api/plugin-support/${threadId}/messages`, { content });
+      return response.json();
+    },
+    onSuccess: (_message, variables) => {
+      setSupportReplies((current) => ({ ...current, [variables.threadId]: "" }));
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/support"] });
+      toast({ title: "Reply sent" });
+    },
+    onError: (mutationError: Error) => toast({ title: "Could not send reply", description: mutationError.message, variant: "destructive" }),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("PATCH", `/api/admin/plugin-studio/licenses/${id}/revoke`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/licensing"] });
+      toast({ title: "License revoked" });
+    },
+    onError: (mutationError: Error) => toast({ title: "Could not revoke license", description: mutationError.message, variant: "destructive" }),
   });
 
   const download = async (project: Project, edition: "core" | "premium") => {
@@ -119,6 +217,25 @@ export default function AdminPluginStudio() {
 
   const set = (key: keyof typeof initialDraft, value: string) => setDraft((current) => ({ ...current, [key]: value }));
   const publishedCount = projects.filter((project) => project.status === "published").length;
+  const settingsFor = (project: Project) => projectSettings[project.id] || {
+    monthlyPrice: String(project.product?.serviceAddons?.find((plan) => plan.id === "plugin-monthly")?.price ?? ""),
+    yearlyPrice: String(project.product?.serviceAddons?.find((plan) => plan.id === "plugin-yearly")?.price ?? ""),
+    licenseApiBaseUrl: project.licenseApiBaseUrl || "",
+    maxActivations: String(project.maxActivations || 3),
+  };
+  const releaseFor = (project: Project) => releaseForms[project.id] || {
+    version: nextPatchVersion(project.version),
+    releaseNotes: "",
+    file: null,
+  };
+  const setSettings = (id: string, key: "monthlyPrice" | "yearlyPrice" | "licenseApiBaseUrl" | "maxActivations", value: string) => {
+    const project = projects.find((item) => item.id === id);
+    if (project) setProjectSettings((current) => ({ ...current, [id]: { ...settingsFor(project), [key]: value } }));
+  };
+  const setReleaseField = (id: string, key: "version" | "releaseNotes" | "file", value: string | File | null) => {
+    const project = projects.find((item) => item.id === id);
+    if (project) setReleaseForms((current) => ({ ...current, [id]: { ...releaseFor(project), [key]: value } as { version: string; releaseNotes: string; file: File | null } }));
+  };
 
   return (
     <main className="mx-auto max-w-7xl space-y-7 p-4 md:p-8">
@@ -126,11 +243,13 @@ export default function AdminPluginStudio() {
         <div>
           <div className="mb-3 flex items-center gap-2 text-violet-200"><WandSparkles className="h-5 w-5" /> TASKDRIP PLUGIN STUDIO</div>
           <h1 className="text-3xl font-bold md:text-4xl">Build and sell WordPress plugins</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-200 md:text-base">Generate a useful GPL-compatible free core for WordPress.org and a separate premium add-on to sell through Taskdrip Shop.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-200 md:text-base">Create free WordPress cores and premium add-ons with monthly/yearly licenses, tracked installs, renewals, support, and automatic updates.</p>
         </div>
-        <div className="grid min-w-[190px] grid-cols-2 gap-2">
+        <div className="grid min-w-[250px] grid-cols-2 gap-2">
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{projects.length}</div><div className="text-xs text-slate-300">Plugin packages</div></div>
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{publishedCount}</div><div className="text-xs text-slate-300">Listed in shop</div></div>
+          <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{metrics?.totals.activeLicenses ?? 0}</div><div className="text-xs text-slate-300">Active licenses</div></div>
+          <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{metrics?.totals.activeInstalls ?? 0}</div><div className="text-xs text-slate-300">Tracked installs</div></div>
         </div>
       </header>
 
@@ -179,7 +298,8 @@ export default function AdminPluginStudio() {
                 <div className="space-y-2"><Label htmlFor="plugin-version">Version</Label><Input id="plugin-version" value={draft.version} onChange={(event) => set("version", event.target.value)} required placeholder="1.0.0" /></div>
                 <div className="space-y-2"><Label htmlFor="plugin-slug">Suggested slug</Label><Input id="plugin-slug" value={draft.slug} onChange={(event) => set("slug", event.target.value)} required maxLength={80} /></div>
                 <div className="space-y-2"><Label htmlFor="plugin-author">Author</Label><Input id="plugin-author" value={draft.author} onChange={(event) => set("author", event.target.value)} required maxLength={80} /></div>
-                <div className="space-y-2"><Label htmlFor="plugin-price">Shop price (USD)</Label><Input id="plugin-price" type="number" min="0.01" step="0.01" value={draft.price} onChange={(event) => set("price", event.target.value)} required /></div>
+                  <div className="space-y-2"><Label htmlFor="plugin-monthly-price">Monthly license (USD)</Label><Input id="plugin-monthly-price" type="number" min="0.01" step="0.01" value={draft.monthlyPrice} onChange={(event) => set("monthlyPrice", event.target.value)} required placeholder="Set monthly price" /></div>
+                  <div className="space-y-2"><Label htmlFor="plugin-yearly-price">Yearly license (USD)</Label><Input id="plugin-yearly-price" type="number" min="0.01" step="0.01" value={draft.yearlyPrice} onChange={(event) => set("yearlyPrice", event.target.value)} required placeholder="Set yearly price" /></div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plugin-prompt">What should the plugin do?</Label>
@@ -199,7 +319,7 @@ export default function AdminPluginStudio() {
               <Button type="submit" className="w-full bg-indigo-700 hover:bg-indigo-800" disabled={createMutation.isPending || aiStatus?.aiAvailable === false}>
                 <Rocket className="mr-2 h-4 w-4" />{createMutation.isPending ? "Generating both plugin editions…" : "Generate core + premium add-on"}
               </Button>
-              <p className="text-xs leading-5 text-muted-foreground">Generated code is an unreviewed draft. Check the source, test both ZIPs on a staging site, and confirm licensing/security before selling or submitting the core.</p>
+              <p className="text-xs leading-5 text-muted-foreground">Generated code is an unreviewed draft. Taskdrip currently verifies payment proof and admin approval; renewals are not automatically charged. Test both ZIPs before release.</p>
             </form>
           </CardContent>
         </Card>
@@ -212,7 +332,11 @@ export default function AdminPluginStudio() {
           {isLoading && <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading your plugin studio…</CardContent></Card>}
           {error && <Card className="border-red-200"><CardContent className="p-6 text-sm text-red-700">Could not load plugin projects. The admin session and database need to be available.</CardContent></Card>}
           {!isLoading && !error && projects.length === 0 && <Card><CardContent className="p-6 text-sm text-muted-foreground">No plugins yet. Describe a plugin on the left to generate its free core and premium add-on.</CardContent></Card>}
-          {projects.map((project) => (
+          {projects.map((project) => {
+            const settings = settingsFor(project);
+            const release = releaseFor(project);
+            const projectMetrics = metrics?.projects.find((item) => item.id === project.id);
+            return (
             <Card key={project.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -223,16 +347,50 @@ export default function AdminPluginStudio() {
                     </div>
                     <CardDescription>{project.shortDescription}</CardDescription>
                   </div>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold">{project.product ? `$${Number(project.product.price).toFixed(2)}` : "No shop item"}</span>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold">{project.product ? settings.monthlyPrice ? `$${Number(settings.monthlyPrice).toFixed(2)} / month` : "Pricing not configured" : "No shop item"}</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-2">
                   <div><span className="text-muted-foreground">Version:</span> {project.version}</div>
                   <div><span className="text-muted-foreground">Shop sales:</span> {project.product?.salesCount ?? 0}</div>
+                  <div><span className="text-muted-foreground">Active licenses:</span> {projectMetrics?.activeLicenses ?? 0}</div>
+                  <div><span className="text-muted-foreground">Active installs:</span> {projectMetrics?.installs ?? 0}</div>
+                  <div><span className="text-muted-foreground">Downloads:</span> {(projectMetrics?.usage.shop_download || 0) + (projectMetrics?.usage.update_download || 0)}</div>
                   <div><span className="text-muted-foreground">Free core files:</span> {project.coreFileCount || "Legacy template"}</div>
                   <div><span className="text-muted-foreground">Premium files:</span> {project.premiumFileCount || "Legacy template"}</div>
                   <div className="sm:col-span-2"><span className="text-muted-foreground">Shop SEO:</span> {project.seoTitle || "Not set"}</div>
+                </div>
+                <div className="space-y-3 rounded-xl border p-4">
+                  <h3 className="font-semibold">Plans, licensing, and activation controls</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1"><Label htmlFor={`month-${project.id}`}>Monthly price (USD)</Label><Input id={`month-${project.id}`} type="number" min="0.01" step="0.01" value={settings.monthlyPrice} onChange={(event) => setSettings(project.id, "monthlyPrice", event.target.value)} /></div>
+                    <div className="space-y-1"><Label htmlFor={`year-${project.id}`}>Yearly price (USD)</Label><Input id={`year-${project.id}`} type="number" min="0.01" step="0.01" value={settings.yearlyPrice} onChange={(event) => setSettings(project.id, "yearlyPrice", event.target.value)} /></div>
+                    <div className="space-y-1 sm:col-span-2"><Label htmlFor={`license-url-${project.id}`}>Public Taskdrip license server URL</Label><Input id={`license-url-${project.id}`} type="url" placeholder="https://your-published-taskdrip-domain" value={settings.licenseApiBaseUrl} onChange={(event) => setSettings(project.id, "licenseApiBaseUrl", event.target.value)} /><p className="text-xs text-muted-foreground">Use the published HTTPS URL. This workspace has no published production URL yet.</p></div>
+                    <div className="space-y-1"><Label htmlFor={`max-sites-${project.id}`}>Sites per license</Label><Input id={`max-sites-${project.id}`} type="number" min="1" max="100" step="1" value={settings.maxActivations} onChange={(event) => setSettings(project.id, "maxActivations", event.target.value)} /></div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => settingsMutation.mutate({
+                    id: project.id,
+                    values: {
+                      monthlyPrice: Number(settings.monthlyPrice),
+                      yearlyPrice: Number(settings.yearlyPrice),
+                      licenseApiBaseUrl: settings.licenseApiBaseUrl,
+                      maxActivations: Number(settings.maxActivations),
+                    },
+                  })} disabled={settingsMutation.isPending}>
+                    <Save className="mr-2 h-4 w-4" />Save license settings
+                  </Button>
+                </div>
+                <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                  <div><h3 className="font-semibold">Publish a premium update</h3><p className="text-xs text-muted-foreground">Upload the updated installable premium ZIP. Active licensed WordPress sites will receive the release through WordPress automatic updates.</p></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1"><Label htmlFor={`release-version-${project.id}`}>New version</Label><Input id={`release-version-${project.id}`} value={release.version} onChange={(event) => setReleaseField(project.id, "version", event.target.value)} placeholder="1.0.1" /></div>
+                    <div className="space-y-1"><Label htmlFor={`release-file-${project.id}`}>Premium plugin ZIP</Label><Input id={`release-file-${project.id}`} type="file" accept=".zip,application/zip" onChange={(event) => setReleaseField(project.id, "file", event.target.files?.[0] || null)} /></div>
+                    <div className="space-y-1 sm:col-span-2"><Label htmlFor={`release-notes-${project.id}`}>Release notes</Label><Textarea id={`release-notes-${project.id}`} rows={2} value={release.releaseNotes} onChange={(event) => setReleaseField(project.id, "releaseNotes", event.target.value)} placeholder="Describe fixes and improvements in this version." /></div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => releaseMutation.mutate({ project, form: release })} disabled={releaseMutation.isPending || !release.file || !release.releaseNotes.trim()}>
+                    <Upload className="mr-2 h-4 w-4" />{releaseMutation.isPending ? "Publishing update…" : "Publish update"}
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {project.coreFileCount > 0 ? (
@@ -262,7 +420,54 @@ export default function AdminPluginStudio() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );})}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><KeyRound className="h-4 w-4" />License sales and activations</CardTitle>
+              <CardDescription>Buyer email, plan, expiry, site count, and administrator revocation control.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!metrics?.licenses.length && <p className="text-sm text-muted-foreground">No plugin licenses issued yet. A key is created after an admin approves a paid monthly or yearly order.</p>}
+              {metrics?.licenses.map((license) => (
+                <div key={license.id} className="flex flex-col justify-between gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{license.projectName}</span><Badge variant={license.status === "active" ? "default" : "secondary"}>{license.status}</Badge><Badge variant="outline">{license.cadence}</Badge></div>
+                    <p className="mt-1 text-sm">{license.buyerEmail} · {license.keyPrefix} · {license.activeInstalls}/{license.maxActivations} sites</p>
+                    <p className="text-xs text-muted-foreground">Expires {new Date(license.expiresAt).toLocaleDateString()}</p>
+                  </div>
+                  {license.status === "active" && <Button size="sm" variant="destructive" onClick={() => {
+                    if (window.confirm(`Revoke the ${license.projectName} license for ${license.buyerEmail}? Their premium plugin features and updates will be disabled after WordPress next verifies the key.`)) revokeMutation.mutate(license.id);
+                  }} disabled={revokeMutation.isPending}>Revoke</Button>}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="border-sky-200 bg-sky-50/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><MessageSquare className="h-4 w-4" />Buyer support and update requests</CardTitle>
+              <CardDescription>Reply to licensed plugin customers from Plugin Studio.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {supportThreads.length === 0 && <p className="text-sm text-muted-foreground">No support conversations yet.</p>}
+              {supportThreads.map((thread) => (
+                <div key={thread.id} className="space-y-3 rounded-xl border bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div><p className="font-semibold">{thread.subject}</p><p className="text-xs text-muted-foreground">{thread.projectName} · {thread.buyerEmail} · {thread.requestType === "update_request" ? "Update request" : "Support"}</p></div>
+                    <Badge variant={thread.status === "open" ? "secondary" : "outline"}>{thread.status}</Badge>
+                  </div>
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg bg-slate-50 p-3">
+                    {thread.messages.map((message) => <p key={message.id} className="whitespace-pre-wrap text-sm">{message.content}<span className="ml-2 text-xs text-muted-foreground">{new Date(message.createdAt).toLocaleString()}</span></p>)}
+                  </div>
+                  <div className="space-y-2">
+                    <Textarea rows={2} value={supportReplies[thread.id] || ""} onChange={(event) => setSupportReplies((current) => ({ ...current, [thread.id]: event.target.value }))} placeholder="Write a reply to this customer." />
+                    <Button size="sm" onClick={() => supportReplyMutation.mutate({ threadId: thread.id, content: supportReplies[thread.id] || "" })} disabled={supportReplyMutation.isPending || !(supportReplies[thread.id] || "").trim()}>
+                      <MessageSquare className="mr-2 h-4 w-4" />Send reply
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           <Card className="border-amber-200 bg-amber-50/60">
             <CardHeader><CardTitle className="text-base">Test, list, and sell</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm leading-6 text-muted-foreground">

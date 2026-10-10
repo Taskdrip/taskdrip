@@ -1,13 +1,62 @@
 import type { Express } from "express";
+import multer from "multer";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { zipSync, strToU8 } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
-import { pluginStudioProjects, purchases, shopProducts } from "@shared/schema";
+import { pluginLicenseEvents, pluginLicenses, pluginLicenseSites, pluginStudioProjects, purchases, shopProducts } from "@shared/schema";
 import { createStudioAIClient, getCreatorStudioAIConfig } from "./creator-publishing";
 import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
 import { buildCourseBridgePluginEditions } from "./coursebridge-plugin";
+import { registerPluginLicenseRoutes } from "./plugin-licensing";
+
+const releaseUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 } });
+const PLAN_ADDONS = (monthly: number, yearly: number) => [
+  { id: "plugin-monthly", title: "Monthly license", description: "One month of premium plugin access and updates.", price: monthly },
+  { id: "plugin-yearly", title: "Yearly license", description: "One year of premium plugin access and updates.", price: yearly },
+];
+
+function validateZipDirectory(data: Uint8Array): boolean {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const minimum = Math.max(0, data.length - 65_557);
+  let eocd = -1;
+  for (let offset = data.length - 22; offset >= minimum; offset -= 1) {
+    if (view.getUint32(offset, true) === 0x06054b50) { eocd = offset; break; }
+  }
+  if (eocd < 0) return false;
+  const entries = view.getUint16(eocd + 10, true);
+  const directorySize = view.getUint32(eocd + 12, true);
+  const directoryOffset = view.getUint32(eocd + 16, true);
+  if (entries > 40 || directoryOffset + directorySize > eocd) return false;
+  let offset = directoryOffset;
+  let expandedBytes = 0;
+  for (let i = 0; i < entries; i += 1) {
+    if (offset + 46 > data.length || view.getUint32(offset, true) !== 0x02014b50) return false;
+    const flags = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 20, true);
+    const uncompressedSize = view.getUint32(offset + 24, true);
+    const nameLength = view.getUint16(offset + 28, true);
+    const extraLength = view.getUint16(offset + 30, true);
+    const commentLength = view.getUint16(offset + 32, true);
+    if ((flags & 1) !== 0 || uncompressedSize === 0xffffffff || compressedSize === 0xffffffff) return false;
+    expandedBytes += uncompressedSize;
+    if (expandedBytes > 120_000) return false;
+    offset += 46 + nameLength + extraLength + commentLength;
+    if (offset > data.length) return false;
+  }
+  return offset <= directoryOffset + directorySize;
+}
+
+function compareVersions(a: string, b: string): number {
+  const parts = (value: string) => value.split("-")[0].split(".").map((part) => Number.parseInt(part, 10) || 0);
+  const left = parts(a), right = parts(b);
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const difference = (left[i] || 0) - (right[i] || 0);
+    if (difference) return difference > 0 ? 1 : -1;
+  }
+  return 0;
+}
 
 const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
@@ -214,6 +263,7 @@ export function registerPluginStudioRoutes(app: Express) {
           product: product ? {
             id: product.id,
             price: product.price,
+            serviceAddons: product.serviceAddons || [],
             salesCount: product.salesCount,
             isActive: product.isActive,
             isFeatured: product.isFeatured,
@@ -238,9 +288,12 @@ export function registerPluginStudioRoutes(app: Express) {
       const seoTitle = String(req.body?.seoTitle || "").trim().slice(0, 70);
       const seoDescription = String(req.body?.seoDescription || "").trim().slice(0, 180);
       const seoKeywords = String(req.body?.seoKeywords || "").trim().slice(0, 600);
-      const price = Number(req.body?.price);
-      if (!name || sourcePrompt.length < 30 || !shortDescription || !description || !seoTitle || !seoDescription || !Number.isFinite(price) || price < 0.01 || price > 999999) {
-        return res.status(400).json({ message: "Enter a plugin name, a functional brief of at least 30 characters, product copy, SEO details, and a price above zero." });
+      const monthlyPrice = Number(req.body?.monthlyPrice);
+      const yearlyPrice = Number(req.body?.yearlyPrice);
+      if (!name || sourcePrompt.length < 30 || !shortDescription || !description || !seoTitle || !seoDescription ||
+          !Number.isFinite(monthlyPrice) || monthlyPrice < 0.01 || monthlyPrice > 999999 ||
+          !Number.isFinite(yearlyPrice) || yearlyPrice < 0.01 || yearlyPrice > 999999) {
+        return res.status(400).json({ message: "Enter plugin details, SEO copy, and valid monthly and yearly license prices." });
       }
       if (!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(version)) {
         return res.status(400).json({ message: "Use a semantic version such as 1.0.0." });
@@ -329,7 +382,8 @@ ${description}`,
           title: `${name} Premium Add-on`,
           description,
           shortDescription,
-          price: price.toFixed(2),
+          price: monthlyPrice.toFixed(2),
+          serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
           category: "WordPress Plugins",
           type: "plugin",
           features: [...premium.features, `Requires the free ${name} Core plugin`],
@@ -356,6 +410,9 @@ ${description}`,
           seoTitle,
           seoDescription,
           seoKeywords,
+          licenseApiBaseUrl: null,
+          maxActivations: 3,
+          releaseNotes: "",
           shopProductId: product.id,
           status: "draft",
           createdBy: req.user.id,
@@ -369,7 +426,7 @@ ${description}`,
           name: project.name,
           version: project.version,
           status: project.status,
-          product: { id: product.id, price: product.price, salesCount: 0, isActive: false },
+          product: { id: product.id, price: product.price, serviceAddons: product.serviceAddons, salesCount: 0, isActive: false },
           coreFileCount: Object.keys(core.files).length,
           premiumFileCount: Object.keys(premium.files).length,
         };
@@ -392,6 +449,40 @@ ${description}`,
       if (status !== undefined && !["draft", "published"].includes(status)) {
         return res.status(400).json({ message: "Plugin status must be draft or published." });
       }
+      const updates: any = { updatedAt: new Date() };
+      if (req.body?.licenseApiBaseUrl !== undefined) {
+        const rawUrl = String(req.body.licenseApiBaseUrl || "").trim();
+        if (rawUrl) {
+          let parsed: URL;
+          try { parsed = new URL(rawUrl); } catch { return res.status(400).json({ message: "Enter the public HTTPS URL for the Taskdrip license server." }); }
+          if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash) {
+            return res.status(400).json({ message: "The license server must be a public HTTPS base URL without credentials, query parameters, or a fragment." });
+          }
+          updates.licenseApiBaseUrl = parsed.toString().replace(/\/+$/, "");
+        } else {
+          updates.licenseApiBaseUrl = null;
+        }
+      }
+      if (req.body?.maxActivations !== undefined) {
+        const maxActivations = Number(req.body.maxActivations);
+        if (!Number.isInteger(maxActivations) || maxActivations < 1 || maxActivations > 100) {
+          return res.status(400).json({ message: "The activation limit must be a whole number from 1 to 100." });
+        }
+        updates.maxActivations = maxActivations;
+      }
+      if (req.body?.monthlyPrice !== undefined || req.body?.yearlyPrice !== undefined) {
+        const monthlyPrice = Number(req.body?.monthlyPrice);
+        const yearlyPrice = Number(req.body?.yearlyPrice);
+        if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0.01 || monthlyPrice > 999999 ||
+            !Number.isFinite(yearlyPrice) || yearlyPrice < 0.01 || yearlyPrice > 999999) {
+          return res.status(400).json({ message: "Monthly and yearly license prices must both be greater than zero." });
+        }
+        updates.monthlyPrice = monthlyPrice;
+        updates.yearlyPrice = yearlyPrice;
+      }
+      if (req.body?.releaseNotes !== undefined) {
+        updates.releaseNotes = String(req.body.releaseNotes || "").trim().slice(0, 8_000);
+      }
       if (
         status === "published" &&
         project.templateKey === "ai-generated-core-premium" &&
@@ -399,10 +490,31 @@ ${description}`,
       ) {
         return res.status(409).json({ message: "Generate both plugin editions before publishing the premium add-on." });
       }
-      const updates: any = { updatedAt: new Date() };
       if (status) updates.status = status;
+      const nextLicenseUrl = updates.licenseApiBaseUrl !== undefined ? updates.licenseApiBaseUrl : project.licenseApiBaseUrl;
+      const nextPlans = updates.monthlyPrice !== undefined
+        ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice)
+        : (await db.select({ serviceAddons: shopProducts.serviceAddons })
+            .from(shopProducts).where(eq(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
+      if (status === "published" && (!nextLicenseUrl || !nextPlans.some((plan) => plan.id === "plugin-monthly") || !nextPlans.some((plan) => plan.id === "plugin-yearly"))) {
+        return res.status(409).json({ message: "Set a public HTTPS license server URL and both monthly and yearly prices before publishing." });
+      }
       await db.transaction(async (tx) => {
-        await tx.update(pluginStudioProjects).set(updates).where(eq(pluginStudioProjects.id, project.id));
+        const projectUpdates = { ...updates };
+        delete projectUpdates.monthlyPrice;
+        delete projectUpdates.yearlyPrice;
+        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq(pluginStudioProjects.id, project.id));
+        if (projectUpdates.maxActivations !== undefined) {
+          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: new Date() })
+            .where(eq(pluginLicenses.projectId, project.id));
+        }
+        if (project.shopProductId && updates.monthlyPrice !== undefined) {
+          await tx.update(shopProducts).set({
+            price: Number(updates.monthlyPrice).toFixed(2),
+            serviceAddons: PLAN_ADDONS(Number(updates.monthlyPrice), Number(updates.yearlyPrice)),
+            updatedAt: new Date(),
+          }).where(eq(shopProducts.id, project.shopProductId));
+        }
         if (project.shopProductId && status) {
           await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: new Date() })
             .where(eq(shopProducts.id, project.shopProductId));
@@ -470,17 +582,27 @@ ${description}`,
       }
       const user = req.user;
       const admin = isAdmin(user);
+      let licenseId: string | null = null;
       if (!admin) {
-        const [purchase] = await db.select({ id: purchases.id }).from(purchases).where(and(
-          eq(purchases.userId, user.id),
-          eq(purchases.productId, product.id),
-          inArray(purchases.status, ["paid", "approved", "delivered"]),
+        const [license] = await db.select().from(pluginLicenses).where(and(
+          eq(pluginLicenses.userId, user.id),
+          eq(pluginLicenses.projectId, project.id),
+          eq(pluginLicenses.status, "active"),
         )).limit(1);
-        if (!purchase) return res.status(403).json({ message: "A verified paid purchase is required before downloading this plugin." });
+        if (!license || license.expiresAt <= new Date()) return res.status(403).json({ message: "An active plugin license is required before downloading this package." });
+        licenseId = license.id;
       }
       const release = await getProjectFiles(project.id, "premium");
       if (!release) return res.status(404).json({ message: "Plugin package not found." });
       const archive = archiveFor(release.folderSlug, release.files);
+      if (licenseId) {
+        await db.insert(pluginLicenseEvents).values({
+          projectId: project.id,
+          licenseId,
+          eventType: "shop_download",
+          details: { source: "shop-download" },
+        });
+      }
       res.setHeader("Content-Type", "application/zip");
       res.setHeader("Content-Disposition", `attachment; filename="${release.folderSlug}-${project.version}.zip"`);
       res.setHeader("Content-Length", archive.length);
@@ -489,5 +611,71 @@ ${description}`,
       console.error("[plugin-studio] Could not download purchased plugin:", error.message);
       res.status(500).json({ message: "Could not generate the plugin download." });
     }
+  });
+
+  app.post("/api/admin/plugin-studio/projects/:id/release", isAuthenticated, releaseUpload.single("zip"), async (req: any, res) => {
+    if (!adminOnly(req, res)) return;
+    try {
+      const [project] = await db.select().from(pluginStudioProjects).where(eq(pluginStudioProjects.id, req.params.id)).limit(1);
+      if (!project) return res.status(404).json({ message: "Plugin project not found." });
+      if (!req.file?.buffer) return res.status(400).json({ message: "Choose a premium plugin ZIP to release." });
+      const version = String(req.body?.version || "").trim().slice(0, 30);
+      const releaseNotes = String(req.body?.releaseNotes || "").trim().slice(0, 8_000);
+      if (!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(version) || compareVersions(version, project.version) <= 0) {
+        return res.status(400).json({ message: "Enter a semantic version greater than the current version." });
+      }
+      if (releaseNotes.length < 5) return res.status(400).json({ message: "Add release notes before publishing an update." });
+      const zipBytes = new Uint8Array(req.file.buffer);
+      if (!validateZipDirectory(zipBytes)) return res.status(400).json({ message: "The ZIP has an invalid or oversized file directory." });
+      let filesInZip: ReturnType<typeof unzipSync>;
+      try { filesInZip = unzipSync(zipBytes); }
+      catch { return res.status(400).json({ message: "The premium update ZIP could not be opened." }); }
+      const entries = Object.entries(filesInZip).filter(([path]) => !path.endsWith("/"));
+      if (entries.length > 40) return res.status(400).json({ message: "The uploaded archive has too many files." });
+      const entryPaths = entries.map(([path]) => path.replace(/\\/g, "/"));
+      const hasRootFile = entryPaths.some((path) => !path.includes("/"));
+      const roots = new Set(entryPaths.map((path) => path.split("/")[0]));
+      const zipRoot = !hasRootFile && roots.size === 1 ? Array.from(roots)[0] : null;
+      const premiumFiles: Record<string, string> = {};
+      let totalBytes = 0;
+      for (const [rawPath, contents] of entries) {
+        const normalizedPath = rawPath.replace(/\\/g, "/");
+        const segments = normalizedPath.split("/");
+        if (segments.some((part) => !part || part === "." || part === "..")) continue;
+        const sourcePath = zipRoot && segments[0] === zipRoot ? segments.slice(1).join("/") : normalizedPath;
+        const ext = sourcePath.slice(sourcePath.lastIndexOf(".")).toLowerCase();
+        if (!sourcePath || ![".php", ".js", ".css"].includes(ext)) continue;
+        totalBytes += contents.byteLength;
+        if (totalBytes > 120_000) return res.status(400).json({ message: "The uncompressed premium source files exceed the 120 KB limit." });
+        premiumFiles[sourcePath] = strFromU8(contents);
+        if (Object.keys(premiumFiles).length > 12) return res.status(400).json({ message: "A premium update may contain up to 12 PHP, JavaScript, or CSS files." });
+      }
+      const hasEntry = Object.entries(premiumFiles).some(([path, source]) =>
+        !path.includes("/") && path.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
+      if (!hasEntry || !Object.keys(premiumFiles).length) {
+        return res.status(400).json({ message: "The ZIP must contain a root-level premium plugin PHP entry file." });
+      }
+      await db.update(pluginStudioProjects).set({
+        version,
+        premiumFiles,
+        releaseNotes,
+        updatedAt: new Date(),
+      }).where(eq(pluginStudioProjects.id, project.id));
+      res.json({ success: true, version, releaseNotes });
+    } catch (error: any) {
+      console.error("[plugin-studio] Could not publish update:", error.message);
+      res.status(400).json({ message: "Could not read that ZIP. Upload a valid WordPress premium plugin package." });
+    }
+  });
+
+  registerPluginLicenseRoutes(app, {
+    buildPremiumArchive: async (projectId) => {
+      const release = await getProjectFiles(projectId, "premium");
+      if (!release) return null;
+      return {
+        filename: `${release.folderSlug}-${release.project.version}.zip`,
+        bytes: archiveFor(release.folderSlug, release.files),
+      };
+    },
   });
 }

@@ -19,6 +19,8 @@ type ReleaseProject = {
   coreShortDescription?: string | null;
   coreDescription?: string | null;
   seoKeywords?: string | null;
+  licenseApiBaseUrl?: string | null;
+  releaseNotes?: string | null;
 };
 
 const MAX_FILES = 12;
@@ -305,5 +307,276 @@ This premium add-on is distributed through Taskdrip Shop. Customers must install
 Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
 `;
   }
+  if (edition === "premium") {
+    const mainEntry = Object.entries(sourceFiles).find(([path, source]) =>
+      !path.includes("/") && path.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
+    if (!mainEntry) throw new Error("The premium package is missing its root plugin entry file.");
+
+    const [sourceMainPath, sourceMain] = mainEntry;
+    const apiBase = String(project.licenseApiBaseUrl || "").replace(/\/+$/, "");
+    const clientClass = `Taskdrip_${project.slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_License_Client`;
+    const optionPrefix = `taskdrip_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}`;
+    const apiBasePhp = phpSingleQuoted(apiBase);
+    const slugPhp = phpSingleQuoted(project.slug);
+    const versionPhp = phpSingleQuoted(project.version);
+    const licensePageNamePhp = phpSingleQuoted(`${project.name} Premium License`);
+    const lockedNoticePhp = phpSingleQuoted(`${project.name} Premium is locked. Open Settings → Plugin License to activate or renew a valid key.`);
+    const pluginDescriptionPhp = phpSingleQuoted(`Licensed premium add-on for ${project.name}.`);
+    const classPhp = `<?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+if ( ! class_exists( '${clientClass}', false ) ) {
+  class ${clientClass} {
+    private static $slug = ${slugPhp};
+    private static $version = ${versionPhp};
+    private static $api_base = ${apiBasePhp};
+    private static $plugin_file = '';
+    private static $option_prefix = '${optionPrefix}';
+
+    public static function boot( $plugin_file ) {
+      self::$plugin_file = $plugin_file;
+      add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
+      add_action( 'admin_post_taskdrip_activate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'activate' ) );
+      add_action( 'admin_post_taskdrip_deactivate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'deactivate' ) );
+      add_action( 'admin_notices', array( __CLASS__, 'notice' ) );
+      add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'inject_update' ) );
+      add_filter( 'plugins_api', array( __CLASS__, 'plugin_info' ), 20, 3 );
+      add_filter( 'auto_update_plugin', array( __CLASS__, 'allow_auto_update' ), 10, 2 );
+      add_action( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'refresh' ) );
+      if ( ! wp_next_scheduled( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' ) ) {
+        wp_schedule_event( time() + 300, 'twicedaily', 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' );
+      }
+      register_deactivation_hook( $plugin_file, array( __CLASS__, 'on_deactivate' ) );
+    }
+
+    private static function key_option() { return self::$option_prefix . '_license_key'; }
+    private static function state_transient() { return self::$option_prefix . '_license_state'; }
+    private static function update_transient() { return self::$option_prefix . '_update_data'; }
+    private static function install_id() {
+      $id = get_option( self::$option_prefix . '_install_id' );
+      if ( ! $id ) {
+        $id = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : wp_hash( home_url() . microtime( true ) );
+        update_option( self::$option_prefix . '_install_id', $id, false );
+      }
+      return $id;
+    }
+
+    private static function request( $action, $key = '' ) {
+      if ( ! self::$api_base || ! function_exists( 'wp_remote_post' ) ) {
+        return new WP_Error( 'taskdrip_license_server', 'The Taskdrip license server URL is not configured.' );
+      }
+      $response = wp_remote_post(
+        self::$api_base . '/api/plugin-license/' . rawurlencode( self::$slug ) . '/' . rawurlencode( $action ),
+        array(
+          'timeout' => 12,
+          'redirection' => 2,
+          'headers' => array( 'Accept' => 'application/json' ),
+          'body' => array(
+            'licenseKey' => $key ? $key : get_option( self::key_option(), '' ),
+            'installationId' => self::install_id(),
+            'siteUrl' => home_url(),
+            'pluginVersion' => self::$version,
+            'wordpressVersion' => get_bloginfo( 'version' ),
+          ),
+        )
+      );
+      if ( is_wp_error( $response ) ) { return $response; }
+      $code = (int) wp_remote_retrieve_response_code( $response );
+      $data = json_decode( wp_remote_retrieve_body( $response ), true );
+      if ( $code < 200 || $code >= 300 || ! is_array( $data ) ) {
+        return new WP_Error( 'taskdrip_license_response', 'The Taskdrip license server could not validate this request.' );
+      }
+      return $data;
+    }
+
+    private static function cache_state( $state ) {
+      if ( is_array( $state ) ) {
+        set_transient( self::state_transient(), $state, 12 * HOUR_IN_SECONDS );
+      }
+    }
+
+    public static function is_licensed() {
+      $state = get_transient( self::state_transient() );
+      return is_array( $state )
+        && ! empty( $state['valid'] )
+        && ! empty( $state['expiresAt'] )
+        && strtotime( $state['expiresAt'] ) > time();
+    }
+
+    public static function refresh() {
+      $key = get_option( self::key_option(), '' );
+      if ( ! $key ) { return false; }
+      $state = self::request( 'verify', $key );
+      if ( is_array( $state ) ) { self::cache_state( $state ); }
+      return is_array( $state ) && ! empty( $state['valid'] );
+    }
+
+    public static function activate() {
+      if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You are not allowed to manage this license.', 'taskdrip' ) ); }
+      check_admin_referer( 'taskdrip_activate_license' );
+      $key = isset( $_POST['taskdrip_license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['taskdrip_license_key'] ) ) : '';
+      update_option( self::key_option(), $key, false );
+      $state = self::request( 'activate', $key );
+      if ( is_array( $state ) ) { self::cache_state( $state ); }
+      wp_safe_redirect( add_query_arg( 'taskdrip_license', is_array( $state ) && ! empty( $state['valid'] ) ? 'active' : 'error', self::settings_url() ) );
+      exit;
+    }
+
+    public static function deactivate() {
+      if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You are not allowed to manage this license.', 'taskdrip' ) ); }
+      check_admin_referer( 'taskdrip_deactivate_license' );
+      self::request( 'deactivate' );
+      delete_transient( self::state_transient() );
+      delete_option( self::key_option() );
+      wp_safe_redirect( add_query_arg( 'taskdrip_license', 'deactivated', self::settings_url() ) );
+      exit;
+    }
+
+    private static function settings_url() {
+      return admin_url( 'options-general.php?page=' . rawurlencode( self::$option_prefix . '-license' ) );
+    }
+
+    public static function add_menu() {
+      add_options_page(
+        esc_html__( 'Plugin License', 'taskdrip' ),
+        esc_html__( 'Plugin License', 'taskdrip' ),
+        'manage_options',
+        self::$option_prefix . '-license',
+        array( __CLASS__, 'render_page' )
+      );
+    }
+
+    public static function render_page() {
+      if ( ! current_user_can( 'manage_options' ) ) { return; }
+      $state = get_transient( self::state_transient() );
+      $key = get_option( self::key_option(), '' );
+      $active = self::is_licensed();
+      $notice = isset( $_GET['taskdrip_license'] ) ? sanitize_key( wp_unslash( $_GET['taskdrip_license'] ) ) : '';
+      echo '<div class="wrap"><h1>' . esc_html( ${licensePageNamePhp} ) . '</h1>';
+      if ( $notice === 'active' ) { echo '<div class="notice notice-success"><p>' . esc_html__( 'License activated.', 'taskdrip' ) . '</p></div>'; }
+      if ( $notice === 'error' ) { echo '<div class="notice notice-error"><p>' . esc_html__( 'The key could not be activated. Check the key, expiry, and activation limit.', 'taskdrip' ) . '</p></div>'; }
+      if ( $notice === 'deactivated' ) { echo '<div class="notice notice-info"><p>' . esc_html__( 'This site has been deactivated.', 'taskdrip' ) . '</p></div>'; }
+      echo '<p>' . ( $active
+        ? esc_html__( 'Premium access is active until ', 'taskdrip' ) . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $state['expiresAt'] ) ) ) . '.'
+        : esc_html__( 'Enter a valid Taskdrip key to unlock premium features and updates. Expired or missing keys keep the premium add-on locked.', 'taskdrip' ) ) . '</p>';
+      echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+      wp_nonce_field( 'taskdrip_activate_license' );
+      echo '<input type="hidden" name="action" value="taskdrip_activate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}" />';
+      echo '<label for="taskdrip-license-key"><strong>' . esc_html__( 'License key', 'taskdrip' ) . '</strong></label><br />';
+      echo '<input id="taskdrip-license-key" class="regular-text" type="password" autocomplete="off" name="taskdrip_license_key" value="' . esc_attr( $key ) . '" required />';
+      submit_button( $active ? esc_html__( 'Replace / verify key', 'taskdrip' ) : esc_html__( 'Activate license', 'taskdrip' ) );
+      echo '</form>';
+      if ( $active ) {
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        wp_nonce_field( 'taskdrip_deactivate_license' );
+        echo '<input type="hidden" name="action" value="taskdrip_deactivate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}" />';
+        submit_button( esc_html__( 'Deactivate this site', 'taskdrip' ), 'secondary' );
+        echo '</form>';
+      }
+      if ( self::$api_base ) {
+        echo '<p><a href="' . esc_url( self::$api_base . '/my-plugins' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Manage downloads and renewals in Taskdrip', 'taskdrip' ) . '</a></p>';
+      } else {
+        echo '<p class="notice notice-error inline">' . esc_html__( 'This plugin package has no public Taskdrip license server URL. Contact the plugin publisher.', 'taskdrip' ) . '</p>';
+      }
+      echo '</div>';
+    }
+
+    public static function notice() {
+      if ( ! current_user_can( 'manage_options' ) || self::is_licensed() ) { return; }
+      echo '<div class="notice notice-warning"><p>' . esc_html( ${lockedNoticePhp} ) . '</p></div>';
+    }
+
+    private static function get_update() {
+      if ( ! self::is_licensed() ) { return false; }
+      $cached = get_transient( self::update_transient() );
+      if ( is_array( $cached ) ) { return $cached; }
+      $response = self::request( 'check-update' );
+      if ( ! is_array( $response ) || empty( $response['valid'] ) ) { return false; }
+      $update = ! empty( $response['update'] ) && is_array( $response['update'] ) ? $response['update'] : array();
+      set_transient( self::update_transient(), $update, 6 * HOUR_IN_SECONDS );
+      return $update;
+    }
+
+    public static function inject_update( $transient ) {
+      if ( ! is_object( $transient ) || ! self::is_licensed() ) { return $transient; }
+      $update = self::get_update();
+      if ( empty( $update['version'] ) || empty( $update['package'] ) ) { return $transient; }
+      if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) { $transient->response = array(); }
+      $transient->response[self::$plugin_file] = (object) array(
+        'slug' => self::$slug . '-premium',
+        'plugin' => self::$plugin_file,
+        'new_version' => sanitize_text_field( $update['version'] ),
+        'url' => self::$api_base . '/my-plugins',
+        'package' => esc_url_raw( $update['package'] ),
+      );
+      return $transient;
+    }
+
+    public static function plugin_info( $result, $action, $args ) {
+      if ( $action !== 'plugin_information' || empty( $args->slug ) || $args->slug !== self::$slug . '-premium' || ! self::is_licensed() ) {
+        return $result;
+      }
+      $update = self::get_update();
+      return (object) array(
+        'name' => esc_html( ${phpSingleQuoted(`${project.name} Premium`)} ),
+        'slug' => self::$slug . '-premium',
+        'version' => ! empty( $update['version'] ) ? sanitize_text_field( $update['version'] ) : self::$version,
+        'author' => 'Taskdrip',
+        'homepage' => self::$api_base . '/my-plugins',
+        'sections' => array( 'description' => esc_html( ${pluginDescriptionPhp} ), 'changelog' => nl2br( esc_html( $update['changelog'] ?? '' ) ) ),
+        'download_link' => ! empty( $update['package'] ) ? esc_url_raw( $update['package'] ) : '',
+      );
+    }
+
+    public static function allow_auto_update( $update, $item ) {
+      return is_object( $item ) && isset( $item->plugin ) && $item->plugin === self::$plugin_file && self::is_licensed() ? true : $update;
+    }
+
+    public static function on_deactivate() {
+      self::request( 'deactivate' );
+      delete_transient( self::state_transient() );
+      delete_transient( self::update_transient() );
+      wp_clear_scheduled_hook( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' );
+    }
+  }
+}
+`;
+    const coreConstant = coreVersionConstant(project.slug);
+    const wrapper = `<?php
+/*
+ * Plugin Name: ${cleanHeaderValue(pluginName, 120)}
+ * Description: Premium add-on for the free core plugin.
+ * Version: ${cleanHeaderValue(project.version, 30)}
+ * Author: ${cleanHeaderValue("Taskdrip", 80)}
+ * Text Domain: ${folderSlug}
+ * Update URI: ${cleanHeaderValue(project.licenseApiBaseUrl ? `${project.licenseApiBaseUrl.replace(/\/+$/, "")}/plugins/${folderSlug}` : `taskdrip-plugin:${folderSlug}`, 200)}
+ * Requires at least: 6.2
+ * Requires PHP: 7.4
+ * Requires Plugins: ${project.slug}
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ */
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( ! defined( '${coreConstant}' ) ) {
+  add_action( 'admin_notices', static function () {
+    if ( current_user_can( 'activate_plugins' ) ) {
+      echo '<div class="notice notice-error"><p>' . esc_html( ${phpSingleQuoted(`The ${project.name} Premium add-on requires the free core plugin (${project.slug}).`)} ) . '</p></div>';
+    }
+  } );
+  return;
+}
+require_once __DIR__ . '/includes/class-taskdrip-license.php';
+${clientClass}::boot( plugin_basename( __FILE__ ) );
+if ( ! ${clientClass}::is_licensed() ) { return; }
+require_once __DIR__ . '/${folderSlug}-generated-main.php';
+`;
+    const outputFiles = { ...files };
+    delete outputFiles[sourceMainPath];
+    outputFiles[`${folderSlug}-generated-main.php`] = sourceMain;
+    outputFiles["includes/class-taskdrip-license.php"] = classPhp;
+    outputFiles[`${folderSlug}.php`] = wrapper;
+    return { folderSlug, files: outputFiles };
+  }
+
   return { folderSlug, files };
 }

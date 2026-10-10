@@ -10,12 +10,13 @@ import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable, TASKDRIP_EMAILS } from "./email-service";
 import { activityAuditMiddleware, recordActivity } from "./activity-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or } from "drizzle-orm";
 import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./creator-publishing";
 import { registerPluginStudioRoutes } from "./plugin-studio";
+import { activatePluginLicenseForPurchase } from "./plugin-licensing";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -4597,11 +4598,22 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         return res.status(404).json({ message: "Product not found" });
       }
 
+      const [pluginProject] = await db.select({ id: pluginStudioProjects.id })
+        .from(pluginStudioProjects)
+        .where(eq(pluginStudioProjects.shopProductId, productId))
+        .limit(1);
+      if (pluginProject && !["plugin-monthly", "plugin-yearly"].includes(String(planId || ""))) {
+        return res.status(400).json({ message: "Choose a monthly or yearly plugin license plan before checkout." });
+      }
+
       const available = ((product as any).serviceAddons as any[]) || [];
 
       // Plan mode: a single tier (e.g. ?plan=plan-whitelabel) was selected.
       // The plan price IS the total — it is not stacked on top of the base price.
       if (planId) {
+        if (pluginProject && !["plugin-monthly", "plugin-yearly"].includes(String(planId))) {
+          return res.status(400).json({ message: "Choose a valid monthly or yearly plugin license plan." });
+        }
         const plan = available.find((a: any) => a.id === planId);
         if (!plan) {
           return res.status(400).json({ message: "Selected plan not found" });
@@ -9487,6 +9499,7 @@ Instructions:
       const existing = await storage.getPurchaseById(req.params.id);
       if (existing) {
         const product = await storage.getShopProductById(existing.productId);
+        await activatePluginLicenseForPurchase(existing.id);
         await storage.createNotification({
           userId: existing.userId,
           type: 'order_approved',
