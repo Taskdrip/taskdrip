@@ -17106,6 +17106,24 @@ var PLAN_ADDONS = (monthly, yearly) => [
   { id: "plugin-monthly", title: "Monthly license", description: "One month of premium plugin access and updates.", price: monthly },
   { id: "plugin-yearly", title: "Yearly license", description: "One year of premium plugin access and updates.", price: yearly }
 ];
+var STARTER_MONTHLY_PRICE = 49;
+async function ensureStarterPlans(productId) {
+  const [product] = await db.select({
+    price: shopProducts.price,
+    serviceAddons: shopProducts.serviceAddons
+  }).from(shopProducts).where(eq11(shopProducts.id, productId)).limit(1);
+  if (!product) return;
+  const plans = Array.isArray(product.serviceAddons) ? product.serviceAddons : [];
+  const monthlyPrice = Number(plans.find((plan) => plan.id === "plugin-monthly")?.price) || Number(product.price) || STARTER_MONTHLY_PRICE;
+  const yearlyPrice = Number(plans.find((plan) => plan.id === "plugin-yearly")?.price) || monthlyPrice * 12;
+  const hasMonthly = plans.some((plan) => plan.id === "plugin-monthly" && Number(plan.price) > 0);
+  const hasYearly = plans.some((plan) => plan.id === "plugin-yearly" && Number(plan.price) > 0);
+  if (hasMonthly && hasYearly) return;
+  await db.update(shopProducts).set({
+    serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq11(shopProducts.id, productId));
+}
 function validateZipDirectory(data) {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const minimum = Math.max(0, data.length - 65557);
@@ -17184,7 +17202,8 @@ async function ensureStarterProject(adminId) {
           title: `${STARTER.name} Premium`,
           description: STARTER.description,
           shortDescription: STARTER.shortDescription,
-          price: "49.00",
+          price: STARTER_MONTHLY_PRICE.toFixed(2),
+          serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
           category: "WordPress Plugins",
           type: "plugin",
           features: editions.premium.features,
@@ -17201,6 +17220,7 @@ async function ensureStarterProject(adminId) {
     } else {
       await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq11(shopProducts.id, shopProductId));
     }
+    await ensureStarterPlans(shopProductId);
     const packagesMissing = !Object.keys(existing.coreFiles || {}).length || !Object.keys(existing.premiumFiles || {}).length;
     if (packagesMissing || existing.shopProductId !== shopProductId) {
       await db.update(pluginStudioProjects).set({
@@ -17221,7 +17241,8 @@ async function ensureStarterProject(adminId) {
         title: `${STARTER.name} Premium`,
         description: STARTER.description,
         shortDescription: STARTER.shortDescription,
-        price: "49.00",
+        price: STARTER_MONTHLY_PRICE.toFixed(2),
+        serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
         category: "WordPress Plugins",
         type: "plugin",
         features: editions.premium.features,
