@@ -270,6 +270,15 @@ export function registerPluginLicenseRoutes(
       const sites = licenseIds.length
         ? await db.select().from(pluginLicenseSites).where(inArray(pluginLicenseSites.licenseId, licenseIds))
         : [];
+      const events = licenseIds.length
+        ? await db.select({
+            licenseId: pluginLicenseEvents.licenseId,
+            eventType: pluginLicenseEvents.eventType,
+            total: sql<number>`count(*)::int`,
+          }).from(pluginLicenseEvents)
+            .where(inArray(pluginLicenseEvents.licenseId, licenseIds))
+            .groupBy(pluginLicenseEvents.licenseId, pluginLicenseEvents.eventType)
+        : [];
       const threads = licenseIds.length
         ? await db.select().from(pluginSupportThreads)
           .where(and(eq(pluginSupportThreads.userId, req.user.id), inArray(pluginSupportThreads.licenseId, licenseIds)))
@@ -284,6 +293,14 @@ export function registerPluginLicenseRoutes(
       messages.forEach((message) => messageGroups.set(message.threadId, [...(messageGroups.get(message.threadId) || []), message]));
       const siteGroups = new Map<string, typeof sites>();
       sites.forEach((site) => siteGroups.set(site.licenseId, [...(siteGroups.get(site.licenseId) || []), site]));
+      const usageByLicense = new Map<string, Record<string, number>>();
+      events.forEach((event) => {
+        if (!event.licenseId) return;
+        usageByLicense.set(event.licenseId, {
+          ...(usageByLicense.get(event.licenseId) || {}),
+          [event.eventType]: Number(event.total),
+        });
+      });
       res.json(rows.map(({ license, project, product }) => ({
         id: license.id,
         status: license.expiresAt <= new Date() && license.status === "active" ? "expired" : license.status,
@@ -295,6 +312,7 @@ export function registerPluginLicenseRoutes(
         project: { id: project.id, slug: project.slug, name: project.name, version: project.version, status: project.status },
         product: { id: product.id, title: product.title, serviceAddons: product.serviceAddons },
         sites: (siteGroups.get(license.id) || []).filter((site) => site.status === "active"),
+        usage: usageByLicense.get(license.id) || {},
         threads: threads.filter((thread) => thread.licenseId === license.id)
           .map((thread) => ({ ...thread, messages: messageGroups.get(thread.id) || [] })),
       })));
@@ -396,6 +414,30 @@ export function registerPluginLicenseRoutes(
         eventType: pluginLicenseEvents.eventType,
         total: sql<number>`count(*)::int`,
       }).from(pluginLicenseEvents).groupBy(pluginLicenseEvents.projectId, pluginLicenseEvents.eventType);
+      const productIds = projects.flatMap(({ product }) => product?.id ? [product.id] : []);
+      const paidPurchases = productIds.length
+        ? await db.select({
+            productId: purchases.productId,
+            amount: purchases.amount,
+            selectedAddons: purchases.selectedAddons,
+          }).from(purchases).where(and(
+            inArray(purchases.productId, productIds),
+            inArray(purchases.status, ["paid", "approved", "delivered"]),
+          ))
+        : [];
+      const projectByProduct = new Map(
+        projects.flatMap(({ project, product }) => product?.id ? [[product.id, project.id] as const] : []),
+      );
+      const salesByProject = new Map<string, { salesCount: number; revenueUsd: number }>();
+      for (const purchase of paidPurchases) {
+        if (!purchase.selectedAddons?.some((plan) => plan.id === "plugin-monthly" || plan.id === "plugin-yearly")) continue;
+        const projectId = projectByProduct.get(purchase.productId);
+        if (!projectId) continue;
+        const current = salesByProject.get(projectId) || { salesCount: 0, revenueUsd: 0 };
+        current.salesCount += 1;
+        current.revenueUsd += Number(purchase.amount) || 0;
+        salesByProject.set(projectId, current);
+      }
       const siteCount = new Map<string, number>();
       sites.filter((site) => site.status === "active").forEach((site) => siteCount.set(site.licenseId, (siteCount.get(site.licenseId) || 0) + 1));
       const eventCount = new Map<string, Record<string, number>>();
@@ -409,14 +451,17 @@ export function registerPluginLicenseRoutes(
           activeLicenses: licenses.filter((row) => row.license.status === "active" && row.license.expiresAt > new Date()).length,
           activeInstalls: sites.filter((site) => site.status === "active").length,
           trackedEvents: events.reduce((sum, event) => sum + Number(event.total), 0),
+          pluginSales: Array.from(salesByProject.values()).reduce((sum, sales) => sum + sales.salesCount, 0),
+          revenueUsd: Math.round(Array.from(salesByProject.values()).reduce((sum, sales) => sum + sales.revenueUsd, 0) * 100) / 100,
         },
-        projects: projects.map(({ project, product }) => ({
+        projects: projects.map(({ project }) => ({
           id: project.id,
           name: project.name,
           slug: project.slug,
           version: project.version,
           status: project.status,
-          salesCount: product?.salesCount || 0,
+          salesCount: salesByProject.get(project.id)?.salesCount || 0,
+          revenueUsd: Math.round((salesByProject.get(project.id)?.revenueUsd || 0) * 100) / 100,
           activeLicenses: licenses.filter((row) => row.license.projectId === project.id && row.license.status === "active" && row.license.expiresAt > new Date()).length,
           installs: sites.filter((site) => site.status === "active" && licenses.some((row) => row.license.id === site.licenseId && row.license.projectId === project.id)).length,
           usage: eventCount.get(project.id) || {},

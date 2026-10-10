@@ -14871,7 +14871,7 @@ ${config.settings.toolPrompts[tool]}` },
 // server/plugin-studio.ts
 init_db();
 import multer2 from "multer";
-import { and as and8, desc as desc9, eq as eq11 } from "drizzle-orm";
+import { and as and8, desc as desc9, eq as eq11, isNull } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
 
@@ -16755,6 +16755,11 @@ function registerPluginLicenseRoutes(app2, options) {
       }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq10(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq10(pluginLicenses.productId, shopProducts.id)).where(eq10(pluginLicenses.userId, req.user.id)).orderBy(desc8(pluginLicenses.createdAt));
       const licenseIds = rows.map((row) => row.license.id);
       const sites = licenseIds.length ? await db.select().from(pluginLicenseSites).where(inArray7(pluginLicenseSites.licenseId, licenseIds)) : [];
+      const events = licenseIds.length ? await db.select({
+        licenseId: pluginLicenseEvents.licenseId,
+        eventType: pluginLicenseEvents.eventType,
+        total: sql8`count(*)::int`
+      }).from(pluginLicenseEvents).where(inArray7(pluginLicenseEvents.licenseId, licenseIds)).groupBy(pluginLicenseEvents.licenseId, pluginLicenseEvents.eventType) : [];
       const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and7(eq10(pluginSupportThreads.userId, req.user.id), inArray7(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc8(pluginSupportThreads.updatedAt)) : [];
       const threadIds = threads.map((thread) => thread.id);
       const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray7(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
@@ -16762,6 +16767,14 @@ function registerPluginLicenseRoutes(app2, options) {
       messages2.forEach((message) => messageGroups.set(message.threadId, [...messageGroups.get(message.threadId) || [], message]));
       const siteGroups = /* @__PURE__ */ new Map();
       sites.forEach((site) => siteGroups.set(site.licenseId, [...siteGroups.get(site.licenseId) || [], site]));
+      const usageByLicense = /* @__PURE__ */ new Map();
+      events.forEach((event) => {
+        if (!event.licenseId) return;
+        usageByLicense.set(event.licenseId, {
+          ...usageByLicense.get(event.licenseId) || {},
+          [event.eventType]: Number(event.total)
+        });
+      });
       res.json(rows.map(({ license, project, product }) => ({
         id: license.id,
         status: license.expiresAt <= /* @__PURE__ */ new Date() && license.status === "active" ? "expired" : license.status,
@@ -16773,6 +16786,7 @@ function registerPluginLicenseRoutes(app2, options) {
         project: { id: project.id, slug: project.slug, name: project.name, version: project.version, status: project.status },
         product: { id: product.id, title: product.title, serviceAddons: product.serviceAddons },
         sites: (siteGroups.get(license.id) || []).filter((site) => site.status === "active"),
+        usage: usageByLicense.get(license.id) || {},
         threads: threads.filter((thread) => thread.licenseId === license.id).map((thread) => ({ ...thread, messages: messageGroups.get(thread.id) || [] }))
       })));
     } catch (error) {
@@ -16864,6 +16878,28 @@ function registerPluginLicenseRoutes(app2, options) {
         eventType: pluginLicenseEvents.eventType,
         total: sql8`count(*)::int`
       }).from(pluginLicenseEvents).groupBy(pluginLicenseEvents.projectId, pluginLicenseEvents.eventType);
+      const productIds = projects.flatMap(({ product }) => product?.id ? [product.id] : []);
+      const paidPurchases = productIds.length ? await db.select({
+        productId: purchases.productId,
+        amount: purchases.amount,
+        selectedAddons: purchases.selectedAddons
+      }).from(purchases).where(and7(
+        inArray7(purchases.productId, productIds),
+        inArray7(purchases.status, ["paid", "approved", "delivered"])
+      )) : [];
+      const projectByProduct = new Map(
+        projects.flatMap(({ project, product }) => product?.id ? [[product.id, project.id]] : [])
+      );
+      const salesByProject = /* @__PURE__ */ new Map();
+      for (const purchase of paidPurchases) {
+        if (!purchase.selectedAddons?.some((plan) => plan.id === "plugin-monthly" || plan.id === "plugin-yearly")) continue;
+        const projectId = projectByProduct.get(purchase.productId);
+        if (!projectId) continue;
+        const current = salesByProject.get(projectId) || { salesCount: 0, revenueUsd: 0 };
+        current.salesCount += 1;
+        current.revenueUsd += Number(purchase.amount) || 0;
+        salesByProject.set(projectId, current);
+      }
       const siteCount = /* @__PURE__ */ new Map();
       sites.filter((site) => site.status === "active").forEach((site) => siteCount.set(site.licenseId, (siteCount.get(site.licenseId) || 0) + 1));
       const eventCount = /* @__PURE__ */ new Map();
@@ -16876,15 +16912,18 @@ function registerPluginLicenseRoutes(app2, options) {
           licenses: licenses.length,
           activeLicenses: licenses.filter((row) => row.license.status === "active" && row.license.expiresAt > /* @__PURE__ */ new Date()).length,
           activeInstalls: sites.filter((site) => site.status === "active").length,
-          trackedEvents: events.reduce((sum, event) => sum + Number(event.total), 0)
+          trackedEvents: events.reduce((sum, event) => sum + Number(event.total), 0),
+          pluginSales: Array.from(salesByProject.values()).reduce((sum, sales) => sum + sales.salesCount, 0),
+          revenueUsd: Math.round(Array.from(salesByProject.values()).reduce((sum, sales) => sum + sales.revenueUsd, 0) * 100) / 100
         },
-        projects: projects.map(({ project, product }) => ({
+        projects: projects.map(({ project }) => ({
           id: project.id,
           name: project.name,
           slug: project.slug,
           version: project.version,
           status: project.status,
-          salesCount: product?.salesCount || 0,
+          salesCount: salesByProject.get(project.id)?.salesCount || 0,
+          revenueUsd: Math.round((salesByProject.get(project.id)?.revenueUsd || 0) * 100) / 100,
           activeLicenses: licenses.filter((row) => row.license.projectId === project.id && row.license.status === "active" && row.license.expiresAt > /* @__PURE__ */ new Date()).length,
           installs: sites.filter((site) => site.status === "active" && licenses.some((row) => row.license.id === site.licenseId && row.license.projectId === project.id)).length,
           usage: eventCount.get(project.id) || {}
@@ -17107,6 +17146,21 @@ var PLAN_ADDONS = (monthly, yearly) => [
   { id: "plugin-yearly", title: "Yearly license", description: "One year of premium plugin access and updates.", price: yearly }
 ];
 var STARTER_MONTHLY_PRICE = 49;
+function defaultLicenseApiBaseUrl() {
+  const configured = process.env.TASKDRIP_PUBLIC_URL?.trim();
+  const raw = configured || (process.env.NODE_ENV === "production" ? "https://taskdrip.online" : "");
+  if (!raw) return null;
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("TASKDRIP_PUBLIC_URL must be a public HTTPS origin.");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== "/") {
+    throw new Error("TASKDRIP_PUBLIC_URL must be a public HTTPS origin without credentials, a path, query, or fragment.");
+  }
+  return parsed.origin;
+}
 async function ensureStarterPlans(productId) {
   const [product] = await db.select({
     price: shopProducts.price,
@@ -17222,9 +17276,11 @@ async function ensureStarterProject(adminId) {
     }
     await ensureStarterPlans(shopProductId);
     const packagesMissing = !Object.keys(existing.coreFiles || {}).length || !Object.keys(existing.premiumFiles || {}).length;
-    if (packagesMissing || existing.shopProductId !== shopProductId) {
+    const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
+    if (packagesMissing || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
       await db.update(pluginStudioProjects).set({
         shopProductId,
+        licenseApiBaseUrl,
         sourcePrompt: existing.sourcePrompt || STARTER.description,
         coreShortDescription: editions.core.shortDescription,
         coreDescription: editions.core.description,
@@ -17255,6 +17311,7 @@ async function ensureStarterProject(adminId) {
       }).returning();
       const [project] = await tx.insert(pluginStudioProjects).values({
         ...STARTER,
+        licenseApiBaseUrl: defaultLicenseApiBaseUrl(),
         sourcePrompt: STARTER.description,
         coreShortDescription: editions.core.shortDescription,
         coreDescription: editions.core.description,
@@ -17330,6 +17387,10 @@ function registerPluginStudioRoutes(app2) {
     if (!adminOnly(req, res)) return;
     try {
       await ensureStarterProject(String(req.user.id));
+      const licenseApiBaseUrl = defaultLicenseApiBaseUrl();
+      if (licenseApiBaseUrl) {
+        await db.update(pluginStudioProjects).set({ licenseApiBaseUrl, updatedAt: /* @__PURE__ */ new Date() }).where(isNull(pluginStudioProjects.licenseApiBaseUrl));
+      }
       const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq11(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc9(pluginStudioProjects.createdAt));
       res.json(rows.map(({ project, product }) => {
         const {
@@ -17487,7 +17548,7 @@ ${description}`
           seoTitle,
           seoDescription,
           seoKeywords,
-          licenseApiBaseUrl: null,
+          licenseApiBaseUrl: defaultLicenseApiBaseUrl(),
           maxActivations: 3,
           releaseNotes: "",
           shopProductId: product.id,
@@ -33605,6 +33666,9 @@ var REQUIRED_COLUMNS = [
   { table: "plugin_studio_projects", column: "core_description", definition: "text" },
   { table: "plugin_studio_projects", column: "core_files", definition: "jsonb NOT NULL DEFAULT '{}'::jsonb" },
   { table: "plugin_studio_projects", column: "premium_files", definition: "jsonb NOT NULL DEFAULT '{}'::jsonb" },
+  { table: "plugin_studio_projects", column: "license_api_base_url", definition: "varchar" },
+  { table: "plugin_studio_projects", column: "max_activations", definition: "integer NOT NULL DEFAULT 3" },
+  { table: "plugin_studio_projects", column: "release_notes", definition: "text" },
   { table: "users", column: "brand_tier", definition: "varchar DEFAULT 'startup'" },
   { table: "users", column: "brand_rank", definition: "varchar DEFAULT 'bronze'" },
   { table: "users", column: "total_transaction_volume", definition: "decimal(12,2) DEFAULT '0.00'" },
@@ -33974,6 +34038,74 @@ var REQUIRED_TABLES = [
     "updated_at" timestamp DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS "plugin_studio_projects_shop_product_idx" ON "plugin_studio_projects" ("shop_product_id")`,
+  `CREATE TABLE IF NOT EXISTS "plugin_licenses" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "project_id" varchar NOT NULL REFERENCES "plugin_studio_projects"("id") ON DELETE CASCADE,
+    "product_id" varchar NOT NULL REFERENCES "shop_products"("id") ON DELETE CASCADE,
+    "purchase_id" varchar NOT NULL UNIQUE REFERENCES "purchases"("id") ON DELETE CASCADE,
+    "key_hash" varchar NOT NULL UNIQUE,
+    "key_encrypted" text NOT NULL,
+    "key_prefix" varchar NOT NULL,
+    "cadence" varchar NOT NULL,
+    "status" varchar NOT NULL DEFAULT 'active',
+    "starts_at" timestamp NOT NULL,
+    "expires_at" timestamp NOT NULL,
+    "reminder_stage" varchar NOT NULL DEFAULT '',
+    "max_activations" integer NOT NULL DEFAULT 3,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "plugin_licenses_user_status_idx" ON "plugin_licenses" ("user_id", "status")`,
+  `CREATE INDEX IF NOT EXISTS "plugin_licenses_project_status_idx" ON "plugin_licenses" ("project_id", "status")`,
+  `CREATE INDEX IF NOT EXISTS "plugin_licenses_expiry_idx" ON "plugin_licenses" ("status", "expires_at")`,
+  `CREATE TABLE IF NOT EXISTS "plugin_license_sites" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "license_id" varchar NOT NULL REFERENCES "plugin_licenses"("id") ON DELETE CASCADE,
+    "installation_id" varchar NOT NULL,
+    "site_url" text NOT NULL,
+    "plugin_version" varchar,
+    "wordpress_version" varchar,
+    "status" varchar NOT NULL DEFAULT 'active',
+    "activated_at" timestamp DEFAULT now(),
+    "last_seen_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "plugin_license_sites_license_installation_unique" ON "plugin_license_sites" ("license_id", "installation_id")`,
+  `CREATE INDEX IF NOT EXISTS "plugin_license_sites_license_status_idx" ON "plugin_license_sites" ("license_id", "status")`,
+  `CREATE INDEX IF NOT EXISTS "plugin_license_sites_installation_idx" ON "plugin_license_sites" ("installation_id")`,
+  `CREATE TABLE IF NOT EXISTS "plugin_license_events" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "license_id" varchar REFERENCES "plugin_licenses"("id") ON DELETE SET NULL,
+    "project_id" varchar NOT NULL REFERENCES "plugin_studio_projects"("id") ON DELETE CASCADE,
+    "installation_id" varchar,
+    "event_type" varchar NOT NULL,
+    "details" jsonb DEFAULT '{}'::jsonb,
+    "created_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "plugin_license_events_project_date_idx" ON "plugin_license_events" ("project_id", "created_at")`,
+  `CREATE INDEX IF NOT EXISTS "plugin_license_events_license_date_idx" ON "plugin_license_events" ("license_id", "created_at")`,
+  `CREATE TABLE IF NOT EXISTS "plugin_support_threads" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "license_id" varchar NOT NULL REFERENCES "plugin_licenses"("id") ON DELETE CASCADE,
+    "project_id" varchar NOT NULL REFERENCES "plugin_studio_projects"("id") ON DELETE CASCADE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "developer_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+    "request_type" varchar NOT NULL DEFAULT 'support',
+    "subject" varchar NOT NULL,
+    "status" varchar NOT NULL DEFAULT 'open',
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "plugin_support_messages" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "thread_id" varchar NOT NULL REFERENCES "plugin_support_threads"("id") ON DELETE CASCADE,
+    "sender_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "content" text NOT NULL,
+    "created_at" timestamp DEFAULT now(),
+    "read_at" timestamp
+  )`,
+  `CREATE INDEX IF NOT EXISTS "plugin_support_messages_thread_date_idx" ON "plugin_support_messages" ("thread_id", "created_at")`,
   // Auto-blogger jobs
   `CREATE TABLE IF NOT EXISTS "auto_blog_jobs" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),

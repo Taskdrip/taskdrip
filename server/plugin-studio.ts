@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import multer from "multer";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
@@ -17,6 +17,23 @@ const PLAN_ADDONS = (monthly: number, yearly: number) => [
   { id: "plugin-yearly", title: "Yearly license", description: "One year of premium plugin access and updates.", price: yearly },
 ];
 const STARTER_MONTHLY_PRICE = 49;
+
+function defaultLicenseApiBaseUrl(): string | null {
+  const configured = process.env.TASKDRIP_PUBLIC_URL?.trim();
+  const raw = configured || (process.env.NODE_ENV === "production" ? "https://taskdrip.online" : "");
+  if (!raw) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error("TASKDRIP_PUBLIC_URL must be a public HTTPS origin.");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== "/") {
+    throw new Error("TASKDRIP_PUBLIC_URL must be a public HTTPS origin without credentials, a path, query, or fragment.");
+  }
+  return parsed.origin;
+}
 
 async function ensureStarterPlans(productId: string): Promise<void> {
   const [product] = await db.select({
@@ -149,9 +166,11 @@ async function ensureStarterProject(adminId: string) {
     const packagesMissing =
       !Object.keys(existing.coreFiles || {}).length ||
       !Object.keys(existing.premiumFiles || {}).length;
-    if (packagesMissing || existing.shopProductId !== shopProductId) {
+    const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
+    if (packagesMissing || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
       await db.update(pluginStudioProjects).set({
         shopProductId,
+        licenseApiBaseUrl,
         sourcePrompt: existing.sourcePrompt || STARTER.description,
         coreShortDescription: editions.core.shortDescription,
         coreDescription: editions.core.description,
@@ -183,6 +202,7 @@ async function ensureStarterProject(adminId: string) {
       }).returning();
       const [project] = await tx.insert(pluginStudioProjects).values({
         ...STARTER,
+        licenseApiBaseUrl: defaultLicenseApiBaseUrl(),
         sourcePrompt: STARTER.description,
         coreShortDescription: editions.core.shortDescription,
         coreDescription: editions.core.description,
@@ -267,6 +287,12 @@ export function registerPluginStudioRoutes(app: Express) {
     if (!adminOnly(req, res)) return;
     try {
       await ensureStarterProject(String(req.user.id));
+      const licenseApiBaseUrl = defaultLicenseApiBaseUrl();
+      if (licenseApiBaseUrl) {
+        await db.update(pluginStudioProjects)
+          .set({ licenseApiBaseUrl, updatedAt: new Date() })
+          .where(isNull(pluginStudioProjects.licenseApiBaseUrl));
+      }
       const rows = await db.select({ project: pluginStudioProjects, product: shopProducts })
         .from(pluginStudioProjects)
         .leftJoin(shopProducts, eq(pluginStudioProjects.shopProductId, shopProducts.id))
@@ -434,7 +460,7 @@ ${description}`,
           seoTitle,
           seoDescription,
           seoKeywords,
-          licenseApiBaseUrl: null,
+          licenseApiBaseUrl: defaultLicenseApiBaseUrl(),
           maxActivations: 3,
           releaseNotes: "",
           shopProductId: product.id,

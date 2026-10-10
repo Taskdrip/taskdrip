@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowDownToLine, ExternalLink, Eye, EyeOff, PackageCheck, Plus, Rocket, Search, WandSparkles, Save, Upload, MessageSquare, KeyRound } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ExternalLink, Eye, EyeOff, PackageCheck, Plus, Rocket, Search, WandSparkles, Save, Upload, MessageSquare, KeyRound, RefreshCw } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,8 @@ type Project = {
 };
 
 type StudioMetrics = {
-  totals: { licenses: number; activeLicenses: number; activeInstalls: number; trackedEvents: number };
-  projects: { id: string; name: string; salesCount: number; activeLicenses: number; installs: number; usage: Record<string, number> }[];
+  totals: { licenses: number; activeLicenses: number; activeInstalls: number; trackedEvents: number; pluginSales: number; revenueUsd: number };
+  projects: { id: string; name: string; salesCount: number; revenueUsd: number; activeLicenses: number; installs: number; usage: Record<string, number> }[];
   licenses: { id: string; projectName: string; buyerEmail: string; status: string; cadence: string; keyPrefix: string; expiresAt: string; activeInstalls: number; maxActivations: number }[];
 };
 
@@ -76,6 +76,37 @@ const featurePillars = [
   ["Review before release", "New products stay in draft until an admin reviews both packages and tests them on a staging WordPress site."],
 ];
 
+function projectLoadErrorDetails(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const status = Number(message.match(/(?:^|\D)(\d{3})(?=[:\s])/)?.[1] || 0);
+  if (status === 401) {
+    return {
+      title: "Your admin session has expired",
+      message: "Sign in again to reload Plugin Studio. Your projects and license data remain protected until an administrator is authenticated.",
+      signIn: true,
+    };
+  }
+  if (status === 403) {
+    return {
+      title: "Administrator access is required",
+      message: "This account is signed in but does not have permission to manage Plugin Studio.",
+      signIn: false,
+    };
+  }
+  if (status >= 500) {
+    return {
+      title: "Plugin Studio could not read its data",
+      message: "The server returned an error while loading the project records. Safe startup setup now creates the required plugin, license, usage, and support tables. Retry after the server finishes restarting; if this continues, check the Taskdrip server logs and database connection.",
+      signIn: false,
+    };
+  }
+  return {
+    title: "Plugin Studio could not connect",
+    message: "Check your connection and retry. If the problem continues, check the Taskdrip server logs.",
+    signIn: false,
+  };
+}
+
 function nextPatchVersion(version: string): string {
   const [base = "1.0.0"] = version.split("-");
   const parts = base.split(".");
@@ -90,13 +121,39 @@ export default function AdminPluginStudio() {
   const [projectSettings, setProjectSettings] = useState<Record<string, { monthlyPrice: string; yearlyPrice: string; licenseApiBaseUrl: string; maxActivations: string }>>({});
   const [releaseForms, setReleaseForms] = useState<Record<string, { version: string; releaseNotes: string; file: File | null }>>({});
   const [supportReplies, setSupportReplies] = useState<Record<string, string>>({});
-  const { data: projects = [], isLoading, error } = useQuery<Project[]>({
+  const {
+    data: projects = [],
+    isLoading,
+    error,
+    isFetching: projectsFetching,
+    refetch: refetchProjects,
+  } = useQuery<Project[]>({
     queryKey: ["/api/admin/plugin-studio/projects"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/plugin-studio/projects")).json(),
+    retry: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
-  const { data: metrics } = useQuery<StudioMetrics>({ queryKey: ["/api/admin/plugin-studio/licensing"] });
-  const { data: supportThreads = [] } = useQuery<SupportThread[]>({ queryKey: ["/api/admin/plugin-studio/support"] });
+  const { data: metrics, error: metricsError, isFetching: metricsFetching, refetch: refetchMetrics } = useQuery<StudioMetrics>({
+    queryKey: ["/api/admin/plugin-studio/licensing"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/plugin-studio/licensing")).json(),
+    retry: false,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const { data: supportThreads = [], error: supportError, isFetching: supportFetching, refetch: refetchSupport } = useQuery<SupportThread[]>({
+    queryKey: ["/api/admin/plugin-studio/support"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/plugin-studio/support")).json(),
+    retry: false,
+    staleTime: 5_000,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+  });
   const { data: aiStatus } = useQuery<{ aiAvailable: boolean; provider: string; model: string; settingsUrl: string }>({
     queryKey: ["/api/admin/plugin-studio/ai-status"],
+    queryFn: async () => (await apiRequest("GET", "/api/admin/plugin-studio/ai-status")).json(),
+    retry: false,
   });
 
   const createMutation = useMutation({
@@ -237,6 +294,38 @@ export default function AdminPluginStudio() {
     if (project) setReleaseForms((current) => ({ ...current, [id]: { ...releaseFor(project), [key]: value } as { version: string; releaseNotes: string; file: File | null } }));
   };
 
+  if (isLoading) {
+    return (
+      <main className="mx-auto max-w-7xl p-4 md:p-8">
+        <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading Plugin Studio projects and admin session…</CardContent></Card>
+      </main>
+    );
+  }
+  if (error) {
+    const details = projectLoadErrorDetails(error);
+    return (
+      <main className="mx-auto max-w-3xl space-y-5 p-4 md:p-8">
+        <header className="rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 p-6 text-white">
+          <p className="text-sm font-semibold tracking-wide text-violet-200">TASKDRIP PLUGIN STUDIO</p>
+          <h1 className="mt-2 text-2xl font-bold">Build and manage paid plugins</h1>
+        </header>
+        <Card className="border-amber-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-600" />{details.title}</CardTitle>
+            <CardDescription>{details.message}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {details.signIn && <Button asChild><a href="/login?redirect=%2Fadmin%2Fplugin-studio">Sign in as an administrator</a></Button>}
+            <Button variant="outline" onClick={() => { void refetchProjects(); }} disabled={projectsFetching}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${projectsFetching ? "animate-spin" : ""}`} />
+              {projectsFetching ? "Retrying…" : "Retry"}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-7xl space-y-7 p-4 md:p-8">
       <header className="flex flex-col justify-between gap-4 rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 p-7 text-white md:flex-row md:items-center">
@@ -245,9 +334,11 @@ export default function AdminPluginStudio() {
           <h1 className="text-3xl font-bold md:text-4xl">Build and sell WordPress plugins</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-200 md:text-base">Create free WordPress cores and premium add-ons with monthly/yearly licenses, tracked installs, renewals, support, and automatic updates.</p>
         </div>
-        <div className="grid min-w-[250px] grid-cols-2 gap-2">
+        <div className="grid min-w-[250px] grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{projects.length}</div><div className="text-xs text-slate-300">Plugin packages</div></div>
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{publishedCount}</div><div className="text-xs text-slate-300">Listed in shop</div></div>
+          <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{metrics?.totals.pluginSales ?? 0}</div><div className="text-xs text-slate-300">Paid plugin sales</div></div>
+          <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">${(metrics?.totals.revenueUsd ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div className="text-xs text-slate-300">Sales revenue (USD)</div></div>
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{metrics?.totals.activeLicenses ?? 0}</div><div className="text-xs text-slate-300">Active licenses</div></div>
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{metrics?.totals.activeInstalls ?? 0}</div><div className="text-xs text-slate-300">Tracked installs</div></div>
         </div>
@@ -261,6 +352,18 @@ export default function AdminPluginStudio() {
               <p className="text-sm text-amber-900">The built-in CourseBridge Core and Premium packages remain available to download without AI. Set up the Creator Studio provider only to generate additional plugins.</p>
             </div>
             <Button asChild variant="outline"><a href={aiStatus.settingsUrl}>Open AI settings</a></Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {(metricsError || supportError) && (
+        <Card className="border-amber-300 bg-amber-50/70">
+          <CardContent className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="font-semibold text-amber-950">Some license or support data could not load</p>
+              <p className="text-sm text-amber-900">Project packages are available, but check the database migration logs and retry these dashboard records.</p>
+            </div>
+            <Button variant="outline" onClick={() => { void Promise.all([refetchMetrics(), refetchSupport()]); }} disabled={metricsFetching || supportFetching}>Retry license and support data</Button>
           </CardContent>
         </Card>
       )}
@@ -284,6 +387,13 @@ export default function AdminPluginStudio() {
           ))}
         </CardContent>
       </Card>
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => { void Promise.all([refetchProjects(), refetchMetrics(), refetchSupport()]); }} disabled={projectsFetching || metricsFetching || supportFetching}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${projectsFetching || metricsFetching || supportFetching ? "animate-spin" : ""}`} />
+          {projectsFetching || metricsFetching || supportFetching ? "Refreshing…" : "Refresh dashboard"}
+        </Button>
+      </div>
 
       <div className="grid items-start gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <Card>
@@ -353,7 +463,8 @@ export default function AdminPluginStudio() {
               <CardContent className="space-y-4">
                 <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm sm:grid-cols-2">
                   <div><span className="text-muted-foreground">Version:</span> {project.version}</div>
-                  <div><span className="text-muted-foreground">Shop sales:</span> {project.product?.salesCount ?? 0}</div>
+                  <div><span className="text-muted-foreground">Paid plugin sales:</span> {projectMetrics?.salesCount ?? 0}</div>
+                  <div><span className="text-muted-foreground">Sales revenue (USD):</span> ${(projectMetrics?.revenueUsd ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <div><span className="text-muted-foreground">Active licenses:</span> {projectMetrics?.activeLicenses ?? 0}</div>
                   <div><span className="text-muted-foreground">Active installs:</span> {projectMetrics?.installs ?? 0}</div>
                   <div><span className="text-muted-foreground">Downloads:</span> {(projectMetrics?.usage.shop_download || 0) + (projectMetrics?.usage.update_download || 0)}</div>
@@ -366,7 +477,7 @@ export default function AdminPluginStudio() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1"><Label htmlFor={`month-${project.id}`}>Monthly price (USD)</Label><Input id={`month-${project.id}`} type="number" min="0.01" step="0.01" value={settings.monthlyPrice} onChange={(event) => setSettings(project.id, "monthlyPrice", event.target.value)} /></div>
                     <div className="space-y-1"><Label htmlFor={`year-${project.id}`}>Yearly price (USD)</Label><Input id={`year-${project.id}`} type="number" min="0.01" step="0.01" value={settings.yearlyPrice} onChange={(event) => setSettings(project.id, "yearlyPrice", event.target.value)} /></div>
-                    <div className="space-y-1 sm:col-span-2"><Label htmlFor={`license-url-${project.id}`}>Public Taskdrip license server URL</Label><Input id={`license-url-${project.id}`} type="url" placeholder="https://your-published-taskdrip-domain" value={settings.licenseApiBaseUrl} onChange={(event) => setSettings(project.id, "licenseApiBaseUrl", event.target.value)} /><p className="text-xs text-muted-foreground">Use the published HTTPS URL. This workspace has no published production URL yet.</p></div>
+                    <div className="space-y-1 sm:col-span-2"><Label htmlFor={`license-url-${project.id}`}>Taskdrip license server URL</Label><Input id={`license-url-${project.id}`} type="url" placeholder="https://taskdrip.online" value={settings.licenseApiBaseUrl} onChange={(event) => setSettings(project.id, "licenseApiBaseUrl", event.target.value)} /><p className="text-xs text-muted-foreground">Production projects default to Taskdrip’s HTTPS site automatically. Change this only when using a different public Taskdrip deployment.</p></div>
                     <div className="space-y-1"><Label htmlFor={`max-sites-${project.id}`}>Sites per license</Label><Input id={`max-sites-${project.id}`} type="number" min="1" max="100" step="1" value={settings.maxActivations} onChange={(event) => setSettings(project.id, "maxActivations", event.target.value)} /></div>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => settingsMutation.mutate({

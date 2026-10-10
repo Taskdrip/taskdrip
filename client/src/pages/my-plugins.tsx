@@ -30,6 +30,7 @@ type PluginLicense = {
   project: { id: string; slug: string; name: string; version: string; status: string };
   product: { id: string; title: string; serviceAddons: { id: string; title: string; price: number }[] };
   sites: { id: string; siteUrl: string; pluginVersion: string | null; lastSeenAt: string | null }[];
+  usage: Record<string, number>;
   threads: SupportThread[];
 };
 
@@ -40,6 +41,11 @@ export default function MyPluginsPage() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const { data: licenses = [], isLoading, error } = useQuery<PluginLicense[]>({
     queryKey: ["/api/my/plugin-licenses"],
+    queryFn: async () => (await apiRequest("GET", "/api/my/plugin-licenses")).json(),
+    retry: false,
+    refetchInterval: 15_000,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
   });
 
   const revealMutation = useMutation({
@@ -174,6 +180,26 @@ export default function MyPluginsPage() {
                     </div>)}
                   </div>
                 )}
+              </section>
+
+              <section className="space-y-2 border-t pt-4">
+                <h3 className="font-semibold">Tracked usage and updates</h3>
+                <p className="text-xs text-muted-foreground">Activity reported by the activated WordPress sites on this license.</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                  {[
+                    ["Activations", license.usage.activated || 0],
+                    ["License checks", license.usage.heartbeat || 0],
+                    ["Update checks", license.usage.update_check || 0],
+                    ["Update downloads", license.usage.update_download || 0],
+                    ["Plugin downloads", license.usage.shop_download || 0],
+                    ["Deactivations", license.usage.deactivated || 0],
+                  ].map(([label, count]) => (
+                    <div key={label} className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-xl font-semibold">{count}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                    </div>
+                  ))}
+                </div>
               </section>
 
               <section className="space-y-3 border-t pt-4">
