@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -1254,6 +1254,7 @@ function BreedSkoolTrainingCard() {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function MyOrdersPage() {
+  const [, setLocation] = useLocation();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<UnifiedOrder | null>(null);
@@ -1559,7 +1560,7 @@ export default function MyOrdersPage() {
                       variant="outline"
                       size="sm"
                       className="shrink-0"
-                      onClick={() => openDetail(order)}
+                      onClick={() => order.type === "shop" ? setLocation(`/orders/${order.id}`) : openDetail(order)}
                       data-testid={`button-preview-${order.id}`}
                     >
                       <Eye className="h-4 w-4 mr-1.5" />

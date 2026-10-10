@@ -27,6 +27,7 @@ The dev server runs on port 5000.
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string | ✅ (auto-injected by Replit) |
 | `SESSION_SECRET` | Session signing key | ✅ |
+| `PUBLIC_APP_URL` | Public site origin used for order and plugin-license email links (defaults to `https://taskdrip.online`) | Optional |
 | `SENDGRID_API_KEY` | Transactional email | For email features |
 | `GROQ_API_KEY` | Groq-hosted Creator Studio models | For Groq-backed AI features |
 | `BOOK_AI_BASE_URL` / `BOOK_AI_MODEL` | OpenAI-compatible or Ollama-compatible Creator Studio model | Optional |

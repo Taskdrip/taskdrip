@@ -2,7 +2,8 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   ArrowLeft, Package, CheckCircle, Clock, Truck, XCircle, Download,
   MessageCircle, Star, ExternalLink, Copy, ShoppingBag, CreditCard,
   MapPin, Hash, Shield, User, AlertCircle, Zap, RefreshCw,
-  FileText, Receipt, ChevronRight, Info, Printer, Eye,
+  FileText, Receipt, ChevronRight, Info, Printer, Eye, KeyRound, CalendarDays,
 } from "lucide-react";
 
 // ── Status Config ─────────────────────────────────────────────────────────────
@@ -125,15 +126,63 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [showReview, setShowReview] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [revealedPluginKeys, setRevealedPluginKeys] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!authLoading && !user && id) {
+      navigate(`/login?redirect=${encodeURIComponent(`/orders/${id}`)}`);
+    }
+  }, [authLoading, user, id, navigate]);
 
   const { data: order, isLoading, error } = useQuery<any>({
     queryKey: ["/api/my-orders/shop", id],
-    enabled: !!id,
+    enabled: !!id && !!user,
     refetchInterval: 8000,
+  });
+
+  const revealPluginKeyMutation = useMutation({
+    mutationFn: async (licenseId: string) => {
+      const response = await apiRequest("POST", `/api/my/plugin-licenses/${licenseId}/reveal`, {});
+      return response.json();
+    },
+    onSuccess: (result, licenseId) => {
+      setRevealedPluginKeys((current) => ({ ...current, [licenseId]: result.licenseKey }));
+    },
+    onError: (err: Error) => toast({ title: "Could not show license key", description: err.message, variant: "destructive" }),
+  });
+
+  const downloadPluginMutation = useMutation({
+    mutationFn: async (license: { id: string; project: { slug: string; version: string } }) => {
+      const response = await fetch(`/api/my/plugin-licenses/${license.id}/download`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.message || "Could not download the plugin.");
+      }
+      return {
+        blob: await response.blob(),
+        filename: `${license.project.slug}-premium-${license.project.version}.zip`,
+      };
+    },
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast({ title: "Plugin ZIP downloaded" });
+    },
+    onError: (err: Error) => toast({ title: "Download failed", description: err.message, variant: "destructive" }),
   });
 
   const reviewMutation = useMutation({
@@ -157,7 +206,7 @@ export default function OrderDetailPage() {
     navigator.clipboard.writeText(text).then(() => toast({ title: label }));
   }
 
-  if (isLoading) {
+  if (authLoading || !user || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <NavigationFixed />
@@ -194,6 +243,17 @@ export default function OrderDetailPage() {
   const product = order.product || {};
   const seller = order.seller;
   const delivery = order.deliveryDetails || {};
+  const pluginLicense = order.pluginLicense || null;
+  const pluginPlan = Array.isArray(order.selectedAddons)
+    ? order.selectedAddons.find((addon: any) => addon.id === "plugin-monthly" || addon.id === "plugin-yearly")
+    : null;
+  const hasPluginLicensePlan = !!pluginPlan;
+  const revealedPluginKey = pluginLicense ? revealedPluginKeys[pluginLicense.id] : null;
+  const pluginExpiresAt = pluginLicense?.expiresAt ? new Date(pluginLicense.expiresAt) : null;
+  const pluginDaysRemaining = pluginExpiresAt
+    ? Math.max(0, Math.ceil((pluginExpiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : 0;
+  const pluginLicenseActive = pluginLicense?.status === "active" && !!pluginExpiresAt && pluginExpiresAt.getTime() > Date.now();
   const shippingUpdates: any[] = Array.isArray(delivery.shippingUpdates) ? delivery.shippingUpdates : [];
   const status = order.status || "pending";
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
@@ -456,6 +516,108 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* ── Plugin License ─────────────────────────────── */}
+        {(pluginLicense || hasPluginLicensePlan) && (
+          <Card className="mb-5 overflow-hidden border-indigo-100 shadow-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-950 via-indigo-950 to-violet-900 text-white">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <KeyRound className="h-4 w-4 text-violet-200" />
+                Plugin license &amp; WordPress access
+              </CardTitle>
+              <p className="text-sm text-indigo-100">
+                {pluginLicense
+                  ? `${pluginLicense.project?.name || product.title} · ${pluginLicense.cadence} plan`
+                  : `${product.title} · ${pluginPlan?.title || "Plugin license"}`}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4 p-5">
+              {pluginLicense ? (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">License status</p>
+                      <Badge className={`mt-1 ${pluginLicenseActive ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : "bg-amber-100 text-amber-800 hover:bg-amber-100"}`}>
+                        {pluginLicenseActive ? "Active" : pluginLicense.status}
+                      </Badge>
+                    </div>
+                    <div className="rounded-xl border bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">Valid through</p>
+                      <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                        <CalendarDays className="h-4 w-4 text-indigo-600" />
+                        {pluginExpiresAt ? format(pluginExpiresAt, "MMMM d, yyyy") : "Not available"}
+                      </p>
+                      {pluginLicenseActive && <p className="mt-1 text-xs text-gray-500">{pluginDaysRemaining} day{pluginDaysRemaining === 1 ? "" : "s"} remaining</p>}
+                    </div>
+                    <div className="rounded-xl border bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">WordPress sites</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">Up to {pluginLicense.maxActivations} sites</p>
+                      <p className="mt-1 text-xs text-gray-500">Plan: {pluginLicense.cadence}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+                    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                      <div>
+                        <p className="text-sm font-semibold text-indigo-950">Your Taskdrip license key</p>
+                        <p className="mt-1 text-xs text-indigo-700">Key ending {pluginLicense.keyPrefix}</p>
+                      </div>
+                      {revealedPluginKey ? (
+                        <Button size="sm" variant="outline" onClick={() => copyToClipboard(revealedPluginKey, "License key copied")}>
+                          <Copy className="mr-2 h-4 w-4" />Copy key
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => revealPluginKeyMutation.mutate(pluginLicense.id)} disabled={revealPluginKeyMutation.isPending}>
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          {revealPluginKeyMutation.isPending ? "Loading key…" : "Show license key"}
+                        </Button>
+                      )}
+                    </div>
+                    {revealedPluginKey && (
+                      <p className="mt-3 break-all rounded-lg border border-indigo-100 bg-white p-3 font-mono text-sm text-gray-900" data-testid="text-plugin-license-key">
+                        {revealedPluginKey}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => downloadPluginMutation.mutate(pluginLicense)} disabled={!pluginLicenseActive || downloadPluginMutation.isPending} className="bg-indigo-700 hover:bg-indigo-800">
+                      <Download className="mr-2 h-4 w-4" />
+                      {downloadPluginMutation.isPending ? "Preparing download…" : "Download premium ZIP"}
+                    </Button>
+                    {product.id && (
+                      <Button asChild variant="outline">
+                        <a href={`/shop/product/${product.id}?plan=${pluginLicense.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
+                          <RefreshCw className="mr-2 h-4 w-4" />Renew {pluginLicense.cadence} plan
+                        </a>
+                      </Button>
+                    )}
+                    <Button asChild variant="outline">
+                      <a href={`/my-plugins?license=${encodeURIComponent(pluginLicense.id)}#support`}>
+                        <MessageCircle className="mr-2 h-4 w-4" />Developer chat
+                      </a>
+                    </Button>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">
+                    Install the free Core plugin first, then the Premium ZIP. In WordPress, open <strong>Settings → Plugin License</strong>, paste the key, and choose <strong>Activate license</strong>. This plan does not renew automatically; renew before the valid-through date.
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-900">License is being prepared</p>
+                    <p className="mt-1 text-sm text-amber-800">
+                      {status === "paid"
+                        ? "Your payment is approved. The license key and premium download will appear here as soon as issuance completes."
+                        : "After your payment is approved, the license key, validity date, and premium download will appear here."}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Delivery / Download ────────────────────────── */}
         {(hasDownload || (isPhysical && (hasTracking || delivery.address))) && (

@@ -335,6 +335,7 @@ function Router() {
             <Route path="/p2p-deals" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/p2p-deals')}`; return null; }} />
             <Route path="/p2p-deals/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return null; }} />
             <Route path="/my-training" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/my-training')}`; return null; }} />
+            <Route path="/orders/:id" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
           </>
         )}
         <Route component={NotFound} />

@@ -126,6 +126,27 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+function publicAppUrl(): string {
+  const configuredUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://taskdrip.online";
+  try {
+    const parsed = new URL(configuredUrl);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") return parsed.origin;
+  } catch {
+    // Use the Taskdrip canonical URL when an invalid public URL is configured.
+  }
+  return "https://taskdrip.online";
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character] as string);
+}
+
 export async function activatePluginLicenseForPurchase(purchaseId: string): Promise<{ issued: boolean; licenseId?: string }> {
   const [purchase] = await db.select().from(purchases).where(eq(purchases.id, purchaseId)).limit(1);
   if (!purchase || !["paid", "approved", "delivered"].includes(purchase.status)) return { issued: false };
@@ -198,15 +219,125 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
   const [buyer] = await db.select({ email: users.email, firstName: users.firstName })
     .from(users).where(eq(users.id, purchase.userId)).limit(1);
   if (buyer?.email) {
+    const appUrl = publicAppUrl();
+    const orderUrl = `${appUrl}/orders/${encodeURIComponent(purchase.id)}`;
+    const pluginsUrl = `${appUrl}/my-plugins?license=${encodeURIComponent(created.id)}#support`;
+    const safeName = escapeHtml(project.name);
+    const safeBuyerName = escapeHtml(buyer.firstName || "there");
+    const safeCadence = escapeHtml(cadence);
+    const safeKey = escapeHtml(key);
+    const safeExpiry = escapeHtml(expiresAt.toLocaleDateString("en-NG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Africa/Lagos",
+    }));
+    const safeOrderUrl = escapeHtml(orderUrl);
+    const safePluginsUrl = escapeHtml(pluginsUrl);
     await sendEmail({
       to: buyer.email,
       toName: buyer.firstName || undefined,
-      subject: `${project.name}: your Taskdrip plugin license is ready`,
-      text: `Your ${cadence} license has been approved. License key: ${key}. Sign in to Taskdrip and open My Plugins to view your license, downloads, renewal date, and developer chat.`,
-      html: `<p>Your ${cadence} license for <strong>${project.name}</strong> has been approved.</p><p><strong>License key:</strong> ${key}</p><p>Sign in to Taskdrip and open My Plugins to view your downloads, renewal date, and developer chat.</p>`,
+      subject: `${project.name}: your license is approved and ready`,
+      text: [
+        `Hi ${buyer.firstName || "there"},`,
+        `Your ${cadence} license for ${project.name} has been approved.`,
+        `License key: ${key}`,
+        `Valid until: ${safeExpiry}`,
+        `View your order, download the premium plugin, and manage renewal: ${orderUrl}`,
+        `Open developer support: ${pluginsUrl}`,
+        `In WordPress, install the free core plugin and the premium ZIP, then open Settings → Plugin License to activate this key.`,
+        "Taskdrip Support: support@taskdrip.online",
+      ].join("\n\n"),
+      html: `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#f3f4f8;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f4f8;padding:28px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e7e9f1;">
+          <tr>
+            <td style="padding:24px 30px;background:#17152f;background-image:linear-gradient(120deg,#17152f,#39247b);">
+              <div style="font-size:24px;font-weight:800;letter-spacing:-.5px;color:#ffffff;">Taskdrip<span style="color:#b9a5ff;">™</span></div>
+              <div style="margin-top:5px;font-size:12px;letter-spacing:1.3px;color:#d6d0f3;">CREATOR TOOLS · PLUGIN STUDIO</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 30px 20px;">
+              <div style="display:inline-block;padding:6px 10px;border-radius:999px;background:#e9f8ef;color:#187443;font-size:11px;font-weight:700;letter-spacing:.5px;">PAYMENT APPROVED</div>
+              <h1 style="margin:18px 0 8px;font-size:25px;line-height:1.25;color:#17152f;">Your plugin license is ready, ${safeBuyerName}</h1>
+              <p style="margin:0;font-size:15px;line-height:1.7;color:#586174;">Your <strong>${safeCadence}</strong> license for <strong>${safeName}</strong> is active. Keep this email for your license key and use the button below to manage your purchase.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 30px 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f6fc;border:1px solid #e5e0f5;border-radius:12px;">
+                <tr><td style="padding:16px 18px 8px;font-size:12px;font-weight:700;color:#62578d;text-transform:uppercase;letter-spacing:.6px;">Your WordPress license key</td></tr>
+                <tr><td style="padding:0 18px 16px;">
+                  <div style="padding:13px 14px;border-radius:8px;background:#211d3c;color:#ffffff;font-family:Consolas,'Courier New',monospace;font-size:14px;line-height:1.55;word-break:break-all;">${safeKey}</div>
+                  <p style="margin:10px 0 0;font-size:13px;color:#5d6475;"><strong>Valid through:</strong> ${safeExpiry} · ${safeCadence} plan</p>
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 30px 12px;">
+              <a href="${safeOrderUrl}" style="display:block;padding:14px 18px;border-radius:10px;background:#6c45d9;color:#ffffff;text-align:center;text-decoration:none;font-size:15px;font-weight:700;">View order, downloads &amp; renewal</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 30px 24px;font-size:13px;line-height:1.7;color:#596174;">
+              <p style="margin:0 0 10px;"><strong>Activate in WordPress:</strong> install the free Core plugin first, then install the Premium ZIP. In your WordPress dashboard, open <strong>Settings → Plugin License</strong>, paste the key above, and select <strong>Activate license</strong>.</p>
+              <p style="margin:0;">Need help or want to message the developer? <a href="${safePluginsUrl}" style="color:#6242c7;font-weight:700;">Open your developer support chat</a>.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 30px;background:#f8f8fb;border-top:1px solid #ececf2;font-size:11px;line-height:1.65;color:#858b9b;">
+              This license does not renew automatically. Renew it before the validity date from your order page to avoid interruption.<br>
+              Questions? <a href="mailto:support@taskdrip.online" style="color:#6242c7;">support@taskdrip.online</a> · <a href="${safePluginsUrl}" style="color:#6242c7;">My Plugins</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:14px 0 0;font-size:11px;color:#9298a8;">Taskdrip · Creator tools and digital products</p>
+      </td></tr>
+    </table>
+  </body>
+</html>`,
     }).catch((error) => console.warn("[plugin-license] License email could not be sent; key remains in My Plugins:", error?.message || error));
   }
   return { issued: true, licenseId: created.id };
+}
+
+export async function getPluginLicenseSummaryForPurchase(purchaseId: string, userId: string) {
+  const [row] = await db.select({
+    license: pluginLicenses,
+    projectName: pluginStudioProjects.name,
+    projectSlug: pluginStudioProjects.slug,
+    projectVersion: pluginStudioProjects.version,
+  }).from(pluginLicenses)
+    .innerJoin(pluginStudioProjects, eq(pluginLicenses.projectId, pluginStudioProjects.id))
+    .where(and(
+      eq(pluginLicenses.purchaseId, purchaseId),
+      eq(pluginLicenses.userId, userId),
+    ))
+    .limit(1);
+
+  if (!row) return null;
+  const status = row.license.status === "active" && row.license.expiresAt <= new Date()
+    ? "expired"
+    : row.license.status;
+  return {
+    id: row.license.id,
+    status,
+    cadence: row.license.cadence,
+    startsAt: row.license.startsAt,
+    expiresAt: row.license.expiresAt,
+    maxActivations: row.license.maxActivations,
+    keyPrefix: row.license.keyPrefix,
+    project: {
+      name: row.projectName,
+      slug: row.projectSlug,
+      version: row.projectVersion,
+    },
+  };
 }
 
 async function sendExpiryReminders(): Promise<void> {

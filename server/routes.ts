@@ -16,7 +16,7 @@ import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or } from "drizzle-orm";
 import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./creator-publishing";
 import { registerPluginStudioRoutes } from "./plugin-studio";
-import { activatePluginLicenseForPurchase } from "./plugin-licensing";
+import { activatePluginLicenseForPurchase, getPluginLicenseSummaryForPurchase } from "./plugin-licensing";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -9478,7 +9478,7 @@ Instructions:
         type: 'order_delivered',
         title: '🎉 Your order is ready',
         content: `Your purchase of "${product?.title || 'product'}" has been fulfilled. View access details in My Orders.`,
-        actionUrl: `/my-orders?order=${existing.id}`,
+        actionUrl: `/orders/${existing.id}`,
         relatedId: existing.id,
       });
       res.json(updated);
@@ -9505,7 +9505,7 @@ Instructions:
           type: 'order_approved',
           title: '✅ Payment Approved',
           content: `Your payment for "${product?.title || 'your order'}" has been approved. Delivery details will follow shortly.`,
-          actionUrl: `/my-orders?order=${existing.id}`,
+          actionUrl: `/orders/${existing.id}`,
           relatedId: existing.id,
         });
 
@@ -12796,7 +12796,10 @@ Instructions:
         const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq(users.id, sellerId));
         seller = s || null;
       }
-      res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? 'seller' : 'buyer' });
+      const pluginLicense = isBuyer
+        ? await getPluginLicenseSummaryForPurchase(purchase.id, req.user.id)
+        : null;
+      res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? 'seller' : 'buyer', pluginLicense });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

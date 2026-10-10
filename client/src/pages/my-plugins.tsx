@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowDownToLine, KeyRound, MessageSquare, RefreshCw, Send } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -47,6 +47,18 @@ export default function MyPluginsPage() {
     staleTime: 5_000,
     refetchOnWindowFocus: true,
   });
+  const selectedLicenseId = new URLSearchParams(window.location.search).get("license");
+  const hasSelectedLicense = licenses.some((license) => license.id === selectedLicenseId);
+
+  useEffect(() => {
+    if (!selectedLicenseId || isLoading || !hasSelectedLicense) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(`plugin-license-${selectedLicenseId}`)
+        ?.querySelector<HTMLElement>("[data-plugin-support]")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [selectedLicenseId, isLoading, hasSelectedLicense]);
 
   const revealMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -137,7 +149,7 @@ export default function MyPluginsPage() {
         const isActive = license.status === "active" && new Date(license.expiresAt).getTime() > Date.now();
         const draft = supportDrafts[license.id] || { subject: "", content: "", requestType: "support" };
         return (
-          <Card key={license.id} className="overflow-hidden">
+          <Card key={license.id} id={`plugin-license-${license.id}`} className="overflow-hidden">
             <CardHeader>
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                 <div>
@@ -202,7 +214,7 @@ export default function MyPluginsPage() {
                 </div>
               </section>
 
-              <section className="space-y-3 border-t pt-4">
+              <section className="space-y-3 border-t pt-4 scroll-mt-6" data-plugin-support>
                 <h3 className="flex items-center gap-2 font-semibold"><MessageSquare className="h-4 w-4" />Developer support and update requests</h3>
                 {license.threads.map((thread) => (
                   <div key={thread.id} className="space-y-2 rounded-xl border bg-slate-50 p-3">

@@ -2870,21 +2870,21 @@ async function sendAdminActivityEmail(opts) {
       advertising: "New advertising enquiry",
       activity: "Platform activity"
     };
-    const escapeHtml2 = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const escapeHtml3 = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const rows = opts.details.filter((item) => item.value !== null && item.value !== void 0 && String(item.value).trim() !== "").map((item) => `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:30%;font-weight:600">${escapeHtml2(item.label)}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;white-space:pre-line">${escapeHtml2(String(item.value))}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:30%;font-weight:600">${escapeHtml3(item.label)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;white-space:pre-line">${escapeHtml3(String(item.value))}</td>
         </tr>`).join("");
     const customerLines = [
-      opts.customer.name ? `<strong>${escapeHtml2(opts.customer.name)}</strong>` : "",
-      opts.customer.email ? escapeHtml2(opts.customer.email) : "",
-      opts.customer.phone ? escapeHtml2(opts.customer.phone) : ""
+      opts.customer.name ? `<strong>${escapeHtml3(opts.customer.name)}</strong>` : "",
+      opts.customer.email ? escapeHtml3(opts.customer.email) : "",
+      opts.customer.phone ? escapeHtml3(opts.customer.phone) : ""
     ].filter(Boolean).join("<br>");
     const html = buildDefaultEmailHtml(`
       <div style="font-family:Arial,sans-serif">
         <p style="margin:0 0 6px;color:#7c3aed;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">${eventLabels[opts.event]}</p>
-        <h2 style="margin:0 0 18px;color:#111827">${escapeHtml2(opts.subject)}</h2>
+        <h2 style="margin:0 0 18px;color:#111827">${escapeHtml3(opts.subject)}</h2>
         <div style="margin-bottom:18px;padding:12px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px">
           <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-weight:700;text-transform:uppercase">Customer</p>
           <p style="margin:0;line-height:1.55">${customerLines || "Customer details unavailable"}</p>
@@ -16646,6 +16646,24 @@ function compareVersions(a, b) {
   }
   return 0;
 }
+function publicAppUrl() {
+  const configuredUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || "https://taskdrip.online";
+  try {
+    const parsed = new URL(configuredUrl);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") return parsed.origin;
+  } catch {
+  }
+  return "https://taskdrip.online";
+}
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
 async function activatePluginLicenseForPurchase(purchaseId) {
   const [purchase] = await db.select().from(purchases).where(eq10(purchases.id, purchaseId)).limit(1);
   if (!purchase || !["paid", "approved", "delivered"].includes(purchase.status)) return { issued: false };
@@ -16706,15 +16724,118 @@ async function activatePluginLicenseForPurchase(purchaseId) {
   }
   const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq10(users.id, purchase.userId)).limit(1);
   if (buyer?.email) {
+    const appUrl = publicAppUrl();
+    const orderUrl = `${appUrl}/orders/${encodeURIComponent(purchase.id)}`;
+    const pluginsUrl = `${appUrl}/my-plugins?license=${encodeURIComponent(created.id)}#support`;
+    const safeName = escapeHtml(project.name);
+    const safeBuyerName = escapeHtml(buyer.firstName || "there");
+    const safeCadence = escapeHtml(cadence);
+    const safeKey = escapeHtml(key);
+    const safeExpiry = escapeHtml(expiresAt.toLocaleDateString("en-NG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Africa/Lagos"
+    }));
+    const safeOrderUrl = escapeHtml(orderUrl);
+    const safePluginsUrl = escapeHtml(pluginsUrl);
     await sendEmail({
       to: buyer.email,
       toName: buyer.firstName || void 0,
-      subject: `${project.name}: your Taskdrip plugin license is ready`,
-      text: `Your ${cadence} license has been approved. License key: ${key}. Sign in to Taskdrip and open My Plugins to view your license, downloads, renewal date, and developer chat.`,
-      html: `<p>Your ${cadence} license for <strong>${project.name}</strong> has been approved.</p><p><strong>License key:</strong> ${key}</p><p>Sign in to Taskdrip and open My Plugins to view your downloads, renewal date, and developer chat.</p>`
+      subject: `${project.name}: your license is approved and ready`,
+      text: [
+        `Hi ${buyer.firstName || "there"},`,
+        `Your ${cadence} license for ${project.name} has been approved.`,
+        `License key: ${key}`,
+        `Valid until: ${safeExpiry}`,
+        `View your order, download the premium plugin, and manage renewal: ${orderUrl}`,
+        `Open developer support: ${pluginsUrl}`,
+        `In WordPress, install the free core plugin and the premium ZIP, then open Settings \u2192 Plugin License to activate this key.`,
+        "Taskdrip Support: support@taskdrip.online"
+      ].join("\n\n"),
+      html: `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#f3f4f8;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f4f8;padding:28px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e7e9f1;">
+          <tr>
+            <td style="padding:24px 30px;background:#17152f;background-image:linear-gradient(120deg,#17152f,#39247b);">
+              <div style="font-size:24px;font-weight:800;letter-spacing:-.5px;color:#ffffff;">Taskdrip<span style="color:#b9a5ff;">\u2122</span></div>
+              <div style="margin-top:5px;font-size:12px;letter-spacing:1.3px;color:#d6d0f3;">CREATOR TOOLS \xB7 PLUGIN STUDIO</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 30px 20px;">
+              <div style="display:inline-block;padding:6px 10px;border-radius:999px;background:#e9f8ef;color:#187443;font-size:11px;font-weight:700;letter-spacing:.5px;">PAYMENT APPROVED</div>
+              <h1 style="margin:18px 0 8px;font-size:25px;line-height:1.25;color:#17152f;">Your plugin license is ready, ${safeBuyerName}</h1>
+              <p style="margin:0;font-size:15px;line-height:1.7;color:#586174;">Your <strong>${safeCadence}</strong> license for <strong>${safeName}</strong> is active. Keep this email for your license key and use the button below to manage your purchase.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 30px 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f6fc;border:1px solid #e5e0f5;border-radius:12px;">
+                <tr><td style="padding:16px 18px 8px;font-size:12px;font-weight:700;color:#62578d;text-transform:uppercase;letter-spacing:.6px;">Your WordPress license key</td></tr>
+                <tr><td style="padding:0 18px 16px;">
+                  <div style="padding:13px 14px;border-radius:8px;background:#211d3c;color:#ffffff;font-family:Consolas,'Courier New',monospace;font-size:14px;line-height:1.55;word-break:break-all;">${safeKey}</div>
+                  <p style="margin:10px 0 0;font-size:13px;color:#5d6475;"><strong>Valid through:</strong> ${safeExpiry} \xB7 ${safeCadence} plan</p>
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 30px 12px;">
+              <a href="${safeOrderUrl}" style="display:block;padding:14px 18px;border-radius:10px;background:#6c45d9;color:#ffffff;text-align:center;text-decoration:none;font-size:15px;font-weight:700;">View order, downloads &amp; renewal</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 30px 24px;font-size:13px;line-height:1.7;color:#596174;">
+              <p style="margin:0 0 10px;"><strong>Activate in WordPress:</strong> install the free Core plugin first, then install the Premium ZIP. In your WordPress dashboard, open <strong>Settings \u2192 Plugin License</strong>, paste the key above, and select <strong>Activate license</strong>.</p>
+              <p style="margin:0;">Need help or want to message the developer? <a href="${safePluginsUrl}" style="color:#6242c7;font-weight:700;">Open your developer support chat</a>.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 30px;background:#f8f8fb;border-top:1px solid #ececf2;font-size:11px;line-height:1.65;color:#858b9b;">
+              This license does not renew automatically. Renew it before the validity date from your order page to avoid interruption.<br>
+              Questions? <a href="mailto:support@taskdrip.online" style="color:#6242c7;">support@taskdrip.online</a> \xB7 <a href="${safePluginsUrl}" style="color:#6242c7;">My Plugins</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:14px 0 0;font-size:11px;color:#9298a8;">Taskdrip \xB7 Creator tools and digital products</p>
+      </td></tr>
+    </table>
+  </body>
+</html>`
     }).catch((error) => console.warn("[plugin-license] License email could not be sent; key remains in My Plugins:", error?.message || error));
   }
   return { issued: true, licenseId: created.id };
+}
+async function getPluginLicenseSummaryForPurchase(purchaseId, userId) {
+  const [row] = await db.select({
+    license: pluginLicenses,
+    projectName: pluginStudioProjects.name,
+    projectSlug: pluginStudioProjects.slug,
+    projectVersion: pluginStudioProjects.version
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq10(pluginLicenses.projectId, pluginStudioProjects.id)).where(and7(
+    eq10(pluginLicenses.purchaseId, purchaseId),
+    eq10(pluginLicenses.userId, userId)
+  )).limit(1);
+  if (!row) return null;
+  const status = row.license.status === "active" && row.license.expiresAt <= /* @__PURE__ */ new Date() ? "expired" : row.license.status;
+  return {
+    id: row.license.id,
+    status,
+    cadence: row.license.cadence,
+    startsAt: row.license.startsAt,
+    expiresAt: row.license.expiresAt,
+    maxActivations: row.license.maxActivations,
+    keyPrefix: row.license.keyPrefix,
+    project: {
+      name: row.projectName,
+      slug: row.projectSlug,
+      version: row.projectVersion
+    }
+  };
 }
 async function sendExpiryReminders() {
   const now = /* @__PURE__ */ new Date();
@@ -18447,18 +18568,18 @@ async function registerRoutes(app2, existingServer) {
       return res.status(400).json({ message: "Please check the form and complete all required fields." });
     }
     if (parsed.data.website) return res.json({ ok: true });
-    const escapeHtml2 = (value) => value.replace(/[&<>"']/g, (character) => ({
+    const escapeHtml3 = (value) => value.replace(/[&<>"']/g, (character) => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
       "'": "&#39;"
     })[character]);
-    const name = escapeHtml2(parsed.data.name);
-    const email = escapeHtml2(parsed.data.email);
-    const service = escapeHtml2(parsed.data.service);
-    const budget = escapeHtml2(parsed.data.budget);
-    const projectBrief = escapeHtml2(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
+    const name = escapeHtml3(parsed.data.name);
+    const email = escapeHtml3(parsed.data.email);
+    const service = escapeHtml3(parsed.data.service);
+    const budget = escapeHtml3(parsed.data.budget);
+    const projectBrief = escapeHtml3(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
     try {
       const subject = `New ${parsed.data.service.toLowerCase()} enquiry from ${parsed.data.name}`;
       const html = `
@@ -26519,7 +26640,7 @@ Instructions:
         type: "order_delivered",
         title: "\u{1F389} Your order is ready",
         content: `Your purchase of "${product?.title || "product"}" has been fulfilled. View access details in My Orders.`,
-        actionUrl: `/my-orders?order=${existing.id}`,
+        actionUrl: `/orders/${existing.id}`,
         relatedId: existing.id
       });
       res.json(updated);
@@ -26544,7 +26665,7 @@ Instructions:
           type: "order_approved",
           title: "\u2705 Payment Approved",
           content: `Your payment for "${product?.title || "your order"}" has been approved. Delivery details will follow shortly.`,
-          actionUrl: `/my-orders?order=${existing.id}`,
+          actionUrl: `/orders/${existing.id}`,
           relatedId: existing.id
         });
         let productReferralFee = 0;
@@ -29582,7 +29703,8 @@ ${body}`,
         const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq15(users.id, sellerId));
         seller = s || null;
       }
-      res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? "seller" : "buyer" });
+      const pluginLicense = isBuyer ? await getPluginLicenseSummaryForPurchase(purchase.id, req.user.id) : null;
+      res.json({ ...purchase, product: product || null, seller, sellerId, role: isSeller ? "seller" : "buyer", pluginLicense });
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
@@ -30949,7 +31071,7 @@ import path4 from "path";
 init_db();
 init_schema();
 import { eq as eq16 } from "drizzle-orm";
-var escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   return clean.length > max ? clean.slice(0, max - 1) + "\u2026" : clean;
@@ -31219,26 +31341,26 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
   const type = meta.type || "website";
   let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "").replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/gi, "");
   if (title) {
-    out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+    out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml2(title)}</title>`);
   }
   const tags = [
-    description ? `<meta name="description" content="${escapeHtml(description)}" />` : "",
-    meta.keywords ? `<meta name="keywords" content="${escapeHtml(meta.keywords)}" />` : "",
+    description ? `<meta name="description" content="${escapeHtml2(description)}" />` : "",
+    meta.keywords ? `<meta name="keywords" content="${escapeHtml2(meta.keywords)}" />` : "",
     meta.noIndex ? `<meta name="robots" content="noindex, nofollow" />` : `<meta name="robots" content="index, follow" />`,
-    `<link rel="canonical" href="${escapeHtml(fullUrl)}" />`,
-    title ? `<meta property="og:title" content="${escapeHtml(title)}" />` : "",
-    description ? `<meta property="og:description" content="${escapeHtml(description)}" />` : "",
-    `<meta property="og:type" content="${escapeHtml(type)}" />`,
-    `<meta property="og:url" content="${escapeHtml(fullUrl)}" />`,
-    image ? `<meta property="og:image" content="${escapeHtml(image)}" />` : "",
+    `<link rel="canonical" href="${escapeHtml2(fullUrl)}" />`,
+    title ? `<meta property="og:title" content="${escapeHtml2(title)}" />` : "",
+    description ? `<meta property="og:description" content="${escapeHtml2(description)}" />` : "",
+    `<meta property="og:type" content="${escapeHtml2(type)}" />`,
+    `<meta property="og:url" content="${escapeHtml2(fullUrl)}" />`,
+    image ? `<meta property="og:image" content="${escapeHtml2(image)}" />` : "",
     image ? `<meta property="og:image:width" content="1200" />` : "",
     image ? `<meta property="og:image:height" content="630" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:site" content="@taskdrip" />`,
-    title ? `<meta name="twitter:title" content="${escapeHtml(title)}" />` : "",
-    description ? `<meta name="twitter:description" content="${escapeHtml(description)}" />` : "",
-    image ? `<meta name="twitter:image" content="${escapeHtml(image)}" />` : ""
+    title ? `<meta name="twitter:title" content="${escapeHtml2(title)}" />` : "",
+    description ? `<meta name="twitter:description" content="${escapeHtml2(description)}" />` : "",
+    image ? `<meta name="twitter:image" content="${escapeHtml2(image)}" />` : ""
   ].filter(Boolean).join("\n    ");
   let result = out.replace(/<\/head>/i, `    ${tags}
   </head>`);
