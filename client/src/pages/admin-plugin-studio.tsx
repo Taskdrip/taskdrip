@@ -69,7 +69,7 @@ const initialDraft = {
 };
 
 const featurePillars = [
-  ["CourseBridge starter", "A built-in LearnPress + WooCommerce package is generated from reviewed source templates; no AI provider is needed to download it."],
+  ["CourseBridge starter", "The free core maps products to LearnPress courses and lets site admins assign courses directly to users; no AI provider is needed."],
   ["Describe another plugin", "Turn a feature brief into separate core and premium source packages using the configured Creator Studio AI model."],
   ["Test the free core", "Download the useful, GPL-compatible core ZIP for review and WordPress.org submission preparation."],
   ["Sell the add-on", "Download and test the separate premium add-on, then publish its product through the existing Taskdrip Shop."],

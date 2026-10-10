@@ -29,6 +29,7 @@ define('TDLPW_PATH', plugin_dir_path(__FILE__));
 define('TDLPW_URL', plugin_dir_url(__FILE__));
 require_once TDLPW_PATH . 'includes/class-activator.php';
 require_once TDLPW_PATH . 'includes/class-bridge.php';
+require_once TDLPW_PATH . 'includes/class-course-admin.php';
 require_once TDLPW_PATH . 'includes/class-core.php';
 register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
 register_deactivation_hook(__FILE__, array('TDLPW_Activator', 'deactivate'));
@@ -43,6 +44,7 @@ if (!defined('ABSPATH')) { exit; }
 final class TDLPW_Core {
     public function run() {
         (new TDLPW_Bridge())->run();
+        (new TDLPW_Course_Admin())->run();
         add_action('admin_notices', array($this, 'dependency_notice'));
         add_action('init', array($this, 'unsubscribe_route'));
         add_action('init', array($this, 'register_privacy_handlers'));
@@ -129,6 +131,137 @@ final class TDLPW_Core {
 }
 `;
 
+const courseAdmin = (project: Project) => `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Course_Admin {
+    public function run() {
+        add_action('admin_menu', array($this, 'menu'));
+        add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
+    }
+
+    public function menu() {
+        add_menu_page(
+            esc_html__('Course Assignments', '${project.slug}'),
+            esc_html__('Course Assignments', '${project.slug}'),
+            'manage_options',
+            'tdlpw-course-assignments',
+            array($this, 'render'),
+            'dashicons-welcome-learn-more',
+            58
+        );
+    }
+
+    public function assign_course() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        check_admin_referer('tdlpw_assign_course');
+
+        $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
+        $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
+        $search = sanitize_text_field(wp_unslash($_POST['user_search'] ?? ''));
+        $user = $user_id ? get_user_by('id', $user_id) : false;
+        if (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
+            $result = new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
+        } else {
+            $result = TDLPW_Bridge::enroll_user_in_course($user_id, $course_id);
+        }
+
+        $args = array(
+            'page' => 'tdlpw-course-assignments',
+            'notice' => is_wp_error($result) ? 'failed' : 'enrolled',
+        );
+        if ($search !== '') { $args['user_search'] = $search; }
+        if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    private function users($search) {
+        $args = array(
+            'number' => 200,
+            'orderby' => 'display_name',
+            'order' => 'ASC',
+            'fields' => array('ID', 'display_name', 'user_email'),
+        );
+        if ($search !== '') {
+            $args['search'] = '*' . $search . '*';
+            $args['search_columns'] = array('user_login', 'user_email', 'display_name');
+        }
+        return get_users($args);
+    }
+
+    private function courses() {
+        return get_posts(array(
+            'post_type' => 'lp_course',
+            'post_status' => array('publish', 'private'),
+            'numberposts' => 500,
+            'orderby' => 'title',
+            'order' => 'ASC',
+        ));
+    }
+
+    public function render() {
+        if (!current_user_can('manage_options')) { return; }
+
+        $search = sanitize_text_field(wp_unslash($_GET['user_search'] ?? ''));
+        $notice = sanitize_key(wp_unslash($_GET['notice'] ?? ''));
+        echo '<div class="wrap"><h1>' . esc_html__('Assign LearnPress Courses', '${project.slug}') . '</h1>';
+        echo '<p>' . esc_html__('Choose a WordPress user and course to enroll them directly. This does not create or change a WooCommerce order.', '${project.slug}') . '</p>';
+        if ($notice === 'enrolled') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The user was enrolled in the selected course.', '${project.slug}') . '</p></div>';
+        } elseif ($notice === 'failed') {
+            $detail = sanitize_text_field(wp_unslash($_GET['detail'] ?? ''));
+            echo '<div class="notice notice-error is-dismissible"><p>' .
+                esc_html($detail ?: __('The course assignment could not be completed.', '${project.slug}')) . '</p></div>';
+        }
+
+        if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
+            echo '<div class="notice notice-warning"><p>' . esc_html__('Activate WooCommerce and LearnPress to use CourseBridge.', '${project.slug}') . '</p></div>';
+        }
+
+        echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="margin:16px 0">';
+        echo '<input type="hidden" name="page" value="tdlpw-course-assignments">';
+        echo '<label for="tdlpw-user-search"><strong>' . esc_html__('Find a user by name or email', '${project.slug}') . '</strong></label> ';
+        echo '<input type="search" id="tdlpw-user-search" name="user_search" value="' . esc_attr($search) . '" class="regular-text">';
+        echo '<button class="button">' . esc_html__('Search users', '${project.slug}') . '</button></form>';
+
+        $users = $this->users($search);
+        $courses = $this->courses();
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="max-width:760px;background:#fff;border:1px solid #dcdcde;padding:20px">';
+        echo '<input type="hidden" name="action" value="tdlpw_assign_course">';
+        echo '<input type="hidden" name="user_search" value="' . esc_attr($search) . '">';
+        wp_nonce_field('tdlpw_assign_course');
+        echo '<p><label for="tdlpw-user"><strong>' . esc_html__('WordPress user', '${project.slug}') . '</strong></label><br>';
+        echo '<select id="tdlpw-user" name="user_id" required style="min-width:360px;max-width:100%">';
+        echo '<option value="">' . esc_html__('Select a user', '${project.slug}') . '</option>';
+        foreach ($users as $user) {
+            $label = $user->display_name . ' (' . $user->user_email . ')';
+            echo '<option value="' . esc_attr((string) $user->ID) . '">' . esc_html($label) . '</option>';
+        }
+        echo '</select></p>';
+        echo '<p><label for="tdlpw-course"><strong>' . esc_html__('LearnPress course', '${project.slug}') . '</strong></label><br>';
+        echo '<select id="tdlpw-course" name="course_id" required style="min-width:360px;max-width:100%">';
+        echo '<option value="">' . esc_html__('Select a course', '${project.slug}') . '</option>';
+        foreach ($courses as $course) {
+            echo '<option value="' . esc_attr((string) $course->ID) . '">' . esc_html($course->post_title) . '</option>';
+        }
+        echo '</select></p>';
+        if (!$users) {
+            echo '<p>' . esc_html__('No users matched. Search with another name or email address.', '${project.slug}') . '</p>';
+        } elseif (!$search) {
+            echo '<p class="description">' . esc_html__('Showing up to 200 users. Search by name or email if the user is not listed.', '${project.slug}') . '</p>';
+        }
+        if (!$courses) {
+            echo '<p class="notice notice-warning inline">' . esc_html__('No published or private LearnPress courses were found.', '${project.slug}') . '</p>';
+        }
+        echo '<p><button type="submit" class="button button-primary" ' . ((!$users || !$courses) ? 'disabled' : '') . '>' .
+            esc_html__('Enroll user in course', '${project.slug}') . '</button></p></form></div>';
+    }
+}
+`;
+
 const premiumMain = (project: Project) => `<?php
 /**
  * Plugin Name: ${project.name} Premium
@@ -152,9 +285,9 @@ if (!defined('TASKDRIP_${project.slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}
 }
 if (!defined('TDLPW_PATH') || !defined('TDLPW_URL')) { return; }
 define('TDLPW_PREMIUM_URL', plugin_dir_url(__FILE__));
-require_once TDLPW_PATH . 'includes/class-audience.php';
-require_once TDLPW_PATH . 'includes/class-resend.php';
-require_once TDLPW_PATH . 'includes/class-admin.php';
+require_once __DIR__ . '/includes/class-audience.php';
+require_once __DIR__ . '/includes/class-resend.php';
+require_once __DIR__ . '/includes/class-admin.php';
 register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
 add_action('plugins_loaded', function () {
     (new TDLPW_Admin())->run();
@@ -197,16 +330,18 @@ export function buildCourseBridgePluginEdition(project: Project, edition: Plugin
       [`${project.slug}.php`]: coreMain(project),
       "includes/class-activator.php": legacy["includes/class-activator.php"],
       "includes/class-core.php": coreClass,
+      "includes/class-course-admin.php": courseAdmin(project),
       "includes/class-bridge.php": bridge,
       "uninstall.php": legacy["uninstall.php"],
     };
     return normalizeGeneratedEdition({
       mainFile: `${project.slug}.php`,
       shortDescription: "Link WooCommerce products to LearnPress courses and enroll paid customers automatically.",
-      description: "A useful free core for mapping WooCommerce products to LearnPress courses and enrolling customers after confirmed payment.",
+      description: "A useful free core for mapping WooCommerce products to LearnPress courses, enrolling customers after confirmed payment, and assigning courses to users from the WordPress admin dashboard.",
       features: [
         "Map one product to multiple LearnPress courses",
         "Enroll customers after successful payment",
+        "Search for WordPress users and manually enroll them in LearnPress courses from the admin dashboard",
         "Prevent duplicate enrollments when WooCommerce order hooks repeat",
       ],
       requirements: ["WooCommerce", "LearnPress"],

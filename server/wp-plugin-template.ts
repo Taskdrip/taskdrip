@@ -371,8 +371,8 @@ final class TDLPW_Bridge {
                 if (!$course_id || get_post_type($course_id) !== 'lp_course') { continue; }
                 $course_ids[] = $course_id;
                 $done = array_map('absint', (array) $order->get_meta('_tdlpw_enrolled_courses', true));
-                if ($user_id && function_exists('learn_press_user_enroll_course') && !in_array($course_id, $done, true)) {
-                    $result = learn_press_user_enroll_course($user_id, $course_id);
+                if ($user_id && !in_array($course_id, $done, true)) {
+                    $result = self::enroll_user_in_course($user_id, $course_id);
                     if (!is_wp_error($result)) {
                         $done[] = $course_id;
                         $order->update_meta_data('_tdlpw_enrolled_courses', array_values(array_unique($done)));
@@ -387,6 +387,30 @@ final class TDLPW_Bridge {
         }
         $order->save();
         TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));
+    }
+
+    public static function enroll_user_in_course($user_id, $course_id) {
+        $user_id = absint($user_id);
+        $course_id = absint($course_id);
+        if (!$user_id || !get_user_by('id', $user_id) || get_post_type($course_id) !== 'lp_course') {
+            return new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '{{SLUG}}'));
+        }
+        if (function_exists('learn_press_user_enroll_course')) {
+            $result = learn_press_user_enroll_course($user_id, $course_id);
+        } elseif (function_exists('learn_press_get_user')) {
+            $lp_user = learn_press_get_user($user_id);
+            if (!is_object($lp_user) || !method_exists($lp_user, 'enroll')) {
+                return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}'));
+            }
+            $result = $lp_user->enroll($course_id);
+        } else {
+            return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment is not available. Confirm LearnPress is installed and active.', '{{SLUG}}'));
+        }
+        if (is_wp_error($result)) { return $result; }
+        if ($result === false) {
+            return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not enroll this user. Check the course and user status.', '{{SLUG}}'));
+        }
+        return true;
     }
 
     public function sync_order_status($order_id, $from, $to, $order) {

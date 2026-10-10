@@ -100,11 +100,11 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "1.0.0",
+  version: "1.0.1",
   author: "Taskdrip",
-  shortDescription: "Automatically enroll WooCommerce customers in linked LearnPress courses, track buyers, and run consent-based Resend campaigns.",
+  shortDescription: "Map WooCommerce products to LearnPress courses, assign courses manually, track buyers, and send consent-based Resend campaigns.",
   description:
-    "CourseBridge Core links WooCommerce products to LearnPress courses and enrolls customers after confirmed payment. The separate paid Premium add-on gives administrators a dashboard for successful product and course purchases, WordPress roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group Resend campaigns only to opted-in users, with unsubscribe links and send logs.",
+    "CourseBridge Core links WooCommerce products to LearnPress courses, enrolls customers after confirmed payment, and lets administrators find users and assign courses directly from the WordPress dashboard. The separate paid Premium add-on gives administrators a dashboard for successful product and course purchases, WordPress roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group Resend campaigns only to opted-in users, with unsubscribe links and send logs.",
   seoTitle: "LearnPress WooCommerce Integration & Email Marketing Plugin",
   seoDescription:
     "Connect LearnPress courses to WooCommerce products. Auto-enroll paid buyers, track customers and course purchases, and send consent-based Resend email campaigns.",
@@ -133,9 +133,9 @@ async function ensureStarterProject(adminId: string) {
     .where(eq(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
   const editions = buildCourseBridgePluginEditions(STARTER);
   if (existing) {
-    let shopProductId = existing.shopProductId;
+    let shopProductId: string = existing.shopProductId || "";
     if (!shopProductId) {
-      await db.transaction(async (tx) => {
+      shopProductId = await db.transaction(async (tx) => {
         const [product] = await tx.insert(shopProducts).values({
           title: `${STARTER.name} Premium`,
           description: STARTER.description,
@@ -152,10 +152,10 @@ async function ensureStarterProject(adminId: string) {
           isFree: false,
           createdBy: adminId,
         }).returning();
-        shopProductId = product.id;
         await tx.update(shopProducts)
           .set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` })
           .where(eq(shopProducts.id, product.id));
+        return product.id;
       });
     } else {
       await db.update(shopProducts)
@@ -163,21 +163,32 @@ async function ensureStarterProject(adminId: string) {
         .where(eq(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
+    const refreshLegacyStarter = existing.version === "1.0.0";
     const packagesMissing =
       !Object.keys(existing.coreFiles || {}).length ||
       !Object.keys(existing.premiumFiles || {}).length;
     const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
-    if (packagesMissing || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
+    if (packagesMissing || refreshLegacyStarter || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
       await db.update(pluginStudioProjects).set({
         shopProductId,
         licenseApiBaseUrl,
-        sourcePrompt: existing.sourcePrompt || STARTER.description,
+        version: refreshLegacyStarter ? STARTER.version : existing.version,
+        shortDescription: refreshLegacyStarter ? STARTER.shortDescription : existing.shortDescription,
+        description: refreshLegacyStarter ? STARTER.description : existing.description,
+        sourcePrompt: refreshLegacyStarter ? STARTER.description : (existing.sourcePrompt || STARTER.description),
         coreShortDescription: editions.core.shortDescription,
         coreDescription: editions.core.description,
         coreFiles: editions.core.files,
         premiumFiles: editions.premium.files,
         updatedAt: new Date(),
       }).where(eq(pluginStudioProjects.id, existing.id));
+    }
+    if (refreshLegacyStarter) {
+      await db.update(shopProducts).set({
+        shortDescription: STARTER.shortDescription,
+        description: STARTER.description,
+        updatedAt: new Date(),
+      }).where(eq(shopProducts.id, shopProductId));
     }
     return;
   }

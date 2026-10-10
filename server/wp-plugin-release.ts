@@ -122,6 +122,19 @@ if ( ! defined( '${constant}' ) ) {
   return source.slice(0, headerEnd) + contract + source.slice(headerEnd);
 }
 
+function stripWordPressPluginHeader(source: string): string {
+  const match = source.match(/Plugin Name\s*:/i);
+  if (!match || match.index === undefined) return source;
+
+  const commentStart = source.lastIndexOf("/*", match.index);
+  const commentEnd = source.indexOf("*/", match.index);
+  if (commentStart < 0 || commentEnd < 0) return source;
+
+  const headerComment = source.slice(commentStart, commentEnd + 2);
+  if (!/Plugin Name\s*:/i.test(headerComment)) return source;
+  return source.slice(0, commentStart) + source.slice(commentEnd + 2);
+}
+
 export function normalizeGeneratedEdition(
   input: unknown,
   project: Pick<ReleaseProject, "slug" | "name" | "version" | "author">,
@@ -261,9 +274,10 @@ Install and activate the free ${cleanReadmeText(project.name)} Core plugin first
 1. Back up the site and use a staging WordPress site.
 2. Install and activate the free core package (${project.slug}.zip).
 3. Install and activate this premium add-on package (${folderSlug}.zip).
-4. Confirm there are no PHP errors; test each feature and permission with admin and non-admin accounts.
-5. Test activation, deactivation, upgrades, and uninstall cleanup with disposable site data.
-6. Confirm the add-on is blocked with a clear admin notice if the core plugin is inactive.
+4. Install each package once. If an older Premium package appears twice in Plugins, deactivate and remove both old copies before installing this release.
+5. Confirm there are no PHP errors; test each feature and permission with admin and non-admin accounts.
+6. Test activation, deactivation, upgrades, and uninstall cleanup with disposable site data.
+7. Confirm the add-on is blocked with a clear admin notice if the core plugin is inactive.
 
 The generated package is not a substitute for a human security or compatibility review.
 `
@@ -272,9 +286,10 @@ The generated package is not a substitute for a human security or compatibility 
 1. Back up the site and use a staging WordPress site.
 2. In WordPress, open Plugins > Add New Plugin > Upload Plugin and upload this ZIP.
 3. Activate the plugin and check for PHP errors or unexpected database changes.
-4. Test every advertised core feature with representative data and both admin and non-admin accounts.
-5. Test activation, deactivation, upgrades, and uninstall cleanup with disposable site data.
-6. Run the current WordPress Plugin Check and test every currently supported WordPress/PHP version.
+4. In Course Assignments, search for a WordPress user, select a LearnPress course, and verify that the user is enrolled in their LearnPress dashboard.
+5. Test every advertised core feature with representative data and both admin and non-admin accounts.
+6. Test activation, deactivation, upgrades, and uninstall cleanup with disposable site data.
+7. Run the current WordPress Plugin Check and test every currently supported WordPress/PHP version.
 
 Submitting a plugin requires its own WordPress.org review and SVN release process. This ZIP is not automatically approved or uploaded.
 `;
@@ -312,7 +327,11 @@ Review licensing, generated source, WordPress compatibility, security, and the i
       !path.includes("/") && path.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
     if (!mainEntry) throw new Error("The premium package is missing its root plugin entry file.");
 
-    const [sourceMainPath, sourceMain] = mainEntry;
+    const [sourceMainPath, rawSourceMain] = mainEntry;
+    // WordPress scans every PHP file in a plugin's root folder. Keep the
+    // generated implementation header-free so only the licensed wrapper is
+    // listed as an installable plugin.
+    const sourceMain = stripWordPressPluginHeader(rawSourceMain);
     const apiBase = String(project.licenseApiBaseUrl || "").replace(/\/+$/, "");
     const clientClass = `Taskdrip_${project.slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_License_Client`;
     const optionPrefix = `taskdrip_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}`;
