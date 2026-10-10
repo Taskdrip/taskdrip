@@ -447,7 +447,6 @@ final class TDLPW_Bridge {
         TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));
     }
 
-    public static function enroll_user_in_course($user_id, $course_id) {
     public static function enroll_user_in_course($user_id, $course_id, $source = 'purchase', $source_id = 0, $expires_at = null, $starts_at = null) {
         $user_id = absint($user_id);
         $course_id = absint($course_id);
@@ -457,7 +456,7 @@ final class TDLPW_Bridge {
         global $wpdb;
         $table = $wpdb->prefix . 'learnpress_user_items';
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
-        $model_class = '\LearnPress\Models\UserItems\UserCourseModel';
+        $model_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
         if (class_exists($model_class) && method_exists($model_class, 'find')) {
             try {
                 $course_item = $model_class::find($user_id, $course_id, false);
@@ -524,7 +523,7 @@ final class TDLPW_Bridge {
         if (!$user_id || !$course_id || get_post_type($course_id) !== 'lp_course') {
             return new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '{{SLUG}}'));
         }
-        $model_class = '\LearnPress\Models\UserItems\UserCourseModel';
+        $model_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
         if (class_exists($model_class) && method_exists($model_class, 'find')) {
             try {
                 $course_item = $model_class::find($user_id, $course_id, false);

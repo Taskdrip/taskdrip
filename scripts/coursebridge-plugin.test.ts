@@ -7,7 +7,7 @@ import { buildPluginReleaseFiles } from "../server/wp-plugin-release";
 const project = {
   slug: "coursebridge-learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "1.0.1",
+  version: "2.1.1",
   author: "Taskdrip",
   shortDescription: "Connect WooCommerce purchases and LearnPress courses.",
   description: "Connect WooCommerce products to LearnPress courses and manage student enrollments.",
@@ -22,13 +22,25 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.ok(admin, "course assignment admin module is included");
   assert.match(main, /class-course-admin\.php/);
   assert.match(admin, /admin_post_tdlpw_assign_course/);
+  assert.match(admin, /admin_post_tdlpw_cancel_course_access/);
+  assert.match(admin, /wp_ajax_tdlpw_search_users/);
+  assert.match(admin, /search_columns.*user_login.*user_email.*display_name/s);
   assert.match(admin, /admin_post_tdlpw_save_product_courses/);
   assert.match(admin, /check_admin_referer\('tdlpw_save_product_courses'\)/);
   assert.match(admin, /update_post_meta\(\$product_id, '_tdlpw_course_ids', \$valid\)/);
   assert.match(admin, /check_admin_referer\('tdlpw_assign_course'\)/);
   assert.match(admin, /current_user_can\('manage_options'\)/);
   assert.match(admin, /TDLPW_Bridge::enroll_user_in_course/);
+  assert.match(admin, /tdlpw_course_access/);
+  assert.match(admin, /expires_at/);
+  assert.match(admin, /Student course access/);
+  assert.match(admin, /Cancel access/);
+  assert.match(admin, /tdlpw_reconcile_paid_course_orders/);
   assert.match(bridge, /learn_press_get_user/);
+  assert.match(bridge, /\\LearnPress\\Models\\UserItems\\UserCourseModel/);
+  assert.match(bridge, /\$course_item->save\(\)/);
+  assert.match(bridge, /'purchase', \$order->get_id\(\)/);
+  assert.match(bridge, /set_course_enrollment_status/);
   assert.match(bridge, /woocommerce_account_dashboard/);
   assert.match(bridge, /Start \/ continue course/);
   assert.match(bridge, /woocommerce_checkout_registration_required/);

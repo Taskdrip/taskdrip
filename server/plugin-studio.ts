@@ -100,11 +100,11 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.0",
+  version: "2.1.1",
   author: "Taskdrip",
-  shortDescription: "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and list their courses in My Account.",
+  shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:
-    "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls account holders after confirmed payment, and lets site administrators assign courses directly to users. Course buyers and manually assigned students can open their courses from WooCommerce My Account and LearnPress profiles. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
+    "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The plugin also includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
   seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
   seoDescription:
     "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",

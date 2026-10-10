@@ -681,8 +681,9 @@ export function buildCourseBridgePaidEdition(project: Project) {
     features: [
       "Link WooCommerce products to multiple LearnPress courses from Course Assignments or product settings",
       "Require or create a buyer account for mapped course purchases, then enroll on confirmed payment",
-      "Backfill existing paid orders after a product-to-course mapping is saved",
-      "Assign users to LearnPress courses directly from the WordPress dashboard",
+      "Reconcile existing paid WooCommerce orders after plugin updates and mapping changes",
+      "Search users by display name, username, or email before assigning LearnPress courses",
+      "Set optional course access expiry dates, review student access, and cancel assignments",
       "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
       "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
