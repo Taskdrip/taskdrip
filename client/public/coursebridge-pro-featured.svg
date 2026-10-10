@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">CourseBridge Pro for LearnPress and WooCommerce</title>
+  <desc id="description">CourseBridge Pro connects WooCommerce purchases to LearnPress courses, enrollment management, and customer insights.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111936"/>
+      <stop offset="1" stop-color="#342188"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b7bff"/>
+      <stop offset="1" stop-color="#38c9ee"/>
+    </linearGradient>
+    <pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#fff" opacity=".12"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" rx="36" fill="url(#background)"/>
+  <rect width="1200" height="630" rx="36" fill="url(#dots)"/>
+  <circle cx="1010" cy="120" r="215" fill="#7165ef" opacity=".12"/>
+  <circle cx="1090" cy="510" r="250" fill="#23c5e4" opacity=".09"/>
+
+  <g font-family="Inter, Arial, sans-serif">
+    <rect x="76" y="74" width="178" height="38" rx="19" fill="#fff" opacity=".12"/>
+    <text x="165" y="99" fill="#d9dcff" font-size="16" font-weight="700" letter-spacing="2" text-anchor="middle">TASKDRIP PLUGINS</text>
+    <text x="76" y="222" fill="#fff" font-size="66" font-weight="800">CourseBridge Pro</text>
+    <text x="80" y="275" fill="#c7ccf2" font-size="26" font-weight="500">LearnPress + WooCommerce, working together.</text>
+    <text x="80" y="337" fill="#e4e7ff" font-size="19">Automated course enrollment, buyer insights, and</text>
+    <text x="80" y="369" fill="#e4e7ff" font-size="19">consent-based email campaigns in one plugin.</text>
+    <rect x="80" y="423" width="248" height="54" rx="27" fill="url(#accent)"/>
+    <text x="204" y="457" fill="#101735" font-size="17" font-weight="800" text-anchor="middle">BUILT FOR WORDPRESS</text>
+  </g>
+
+  <g transform="translate(735 155)">
+    <path d="M62 154H180M250 154h111" fill="none" stroke="#a9b4ff" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 12"/>
+    <circle cx="180" cy="154" r="10" fill="#55d9eb"/>
+    <circle cx="250" cy="154" r="10" fill="#8e83ff"/>
+
+    <rect x="0" y="72" width="132" height="164" rx="22" fill="#fff" opacity=".1" stroke="#fff" stroke-opacity=".32" stroke-width="2"/>
+    <rect x="26" y="101" width="80" height="80" rx="20" fill="#7b61ff"/>
+    <path d="M45 126h41l-20 34z" fill="#fff"/>
+    <text x="66" y="211" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700" text-anchor="middle">WooCommerce</text>
+
+    <rect x="283" y="72" width="132" height="164" rx="22" fill="#fff" opacity=".1" stroke="#fff" stroke-opacity=".32" stroke-width="2"/>
+    <rect x="309" y="101" width="80" height="80" rx="20" fill="#1bb7d5"/>
+    <path d="M327 134l22-13 22 13-22 13z" fill="#fff"/>
+    <path d="M335 142v14c8 7 20 7 28 0v-14l-14 8z" fill="#d9fbff"/>
+    <text x="349" y="211" fill="#fff" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700" text-anchor="middle">LearnPress</text>
+
+    <rect x="153" y="273" width="128" height="98" rx="23" fill="#211b56" stroke="url(#accent)" stroke-width="3"/>
+    <path d="M189 326l18 18 38-43" fill="none" stroke="#62e4d2" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="217" y="396" fill="#dfe4ff" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="middle">AUTO-ENROLL</text>
+    <path d="M217 236v37" stroke="#a9b4ff" stroke-width="5" stroke-linecap="round" stroke-dasharray="7 9"/>
+  </g>
+</svg>

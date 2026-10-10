@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import multer from "multer";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
@@ -105,11 +105,12 @@ const STARTER = {
   shortDescription: "One licensed plugin to map WooCommerce products to LearnPress courses, enroll users, manage buyers, and send consent-based campaigns.",
   description:
     "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls buyers after confirmed payment, and lets site administrators assign courses directly to users. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
-  seoTitle: "LearnPress WooCommerce Integration & Email Marketing Plugin",
+  seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
   seoDescription:
-    "Connect LearnPress courses to WooCommerce products. Auto-enroll paid buyers, track customers and course purchases, and send consent-based Resend email campaigns.",
+    "Connect WooCommerce products to LearnPress courses, automatically enroll paying customers, manage course buyers, and send consent-based email campaigns with CourseBridge Pro.",
   seoKeywords:
-    "LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, Resend email marketing, course customer management",
+    "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
+  featuredImage: "/coursebridge-pro-featured.svg",
 };
 
 function slugify(value: string): string {
@@ -140,6 +141,7 @@ async function ensureStarterProject(adminId: string) {
           title: STARTER.name,
           description: STARTER.description,
           shortDescription: STARTER.shortDescription,
+          featuredImage: STARTER.featuredImage,
           price: STARTER_MONTHLY_PRICE.toFixed(2),
           serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
           category: "WordPress Plugins",
@@ -168,13 +170,27 @@ async function ensureStarterProject(adminId: string) {
       !existing.premiumFiles?.[`${STARTER.slug}.php`];
     const packagesMissing = !Object.keys(existing.premiumFiles || {}).length;
     const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
-    if (packagesMissing || refreshLegacyStarter || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
+    const projectMetadataNeedsSync =
+      existing.name !== STARTER.name ||
+      existing.author !== STARTER.author ||
+      existing.shortDescription !== STARTER.shortDescription ||
+      existing.description !== STARTER.description ||
+      existing.seoTitle !== STARTER.seoTitle ||
+      existing.seoDescription !== STARTER.seoDescription ||
+      existing.seoKeywords !== STARTER.seoKeywords;
+    if (packagesMissing || refreshLegacyStarter || existing.shopProductId !== shopProductId ||
+        licenseApiBaseUrl !== existing.licenseApiBaseUrl || projectMetadataNeedsSync) {
       await db.update(pluginStudioProjects).set({
         shopProductId,
         licenseApiBaseUrl,
         version: refreshLegacyStarter ? STARTER.version : existing.version,
-        shortDescription: refreshLegacyStarter ? STARTER.shortDescription : existing.shortDescription,
-        description: refreshLegacyStarter ? STARTER.description : existing.description,
+        name: STARTER.name,
+        author: STARTER.author,
+        shortDescription: STARTER.shortDescription,
+        description: STARTER.description,
+        seoTitle: STARTER.seoTitle,
+        seoDescription: STARTER.seoDescription,
+        seoKeywords: STARTER.seoKeywords,
         sourcePrompt: refreshLegacyStarter ? STARTER.description : (existing.sourcePrompt || STARTER.description),
         coreShortDescription: "",
         coreDescription: "",
@@ -183,13 +199,25 @@ async function ensureStarterProject(adminId: string) {
         updatedAt: new Date(),
       }).where(eq(pluginStudioProjects.id, existing.id));
     }
-    if (refreshLegacyStarter) {
+    const [existingProduct] = await db.select().from(shopProducts).where(eq(shopProducts.id, shopProductId)).limit(1);
+    const productMetadataNeedsSync = existingProduct && (
+      existingProduct.title !== STARTER.name ||
+      existingProduct.shortDescription !== STARTER.shortDescription ||
+      existingProduct.description !== STARTER.description ||
+      existingProduct.featuredImage !== STARTER.featuredImage ||
+      JSON.stringify(existingProduct.features || []) !== JSON.stringify(paidEdition.features) ||
+      JSON.stringify(existingProduct.requirements || []) !== JSON.stringify(Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10)) ||
+      JSON.stringify(existingProduct.tags || []) !== JSON.stringify(["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"])
+    );
+    if (productMetadataNeedsSync) {
       await db.update(shopProducts).set({
         title: STARTER.name,
         shortDescription: STARTER.shortDescription,
         description: STARTER.description,
+        featuredImage: STARTER.featuredImage,
         features: paidEdition.features,
         requirements: Array.from(new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
+        tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         updatedAt: new Date(),
       }).where(eq(shopProducts.id, shopProductId));
     }
@@ -202,6 +230,7 @@ async function ensureStarterProject(adminId: string) {
         title: STARTER.name,
         description: STARTER.description,
         shortDescription: STARTER.shortDescription,
+        featuredImage: STARTER.featuredImage,
           price: STARTER_MONTHLY_PRICE.toFixed(2),
           serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
         category: "WordPress Plugins",
@@ -616,6 +645,7 @@ ${description}`,
 
   app.get("/api/shop/plugin-seo/:productId", async (req, res) => {
     try {
+      const key = String(req.params.productId);
       const [project] = await db.select({
         id: pluginStudioProjects.id,
         slug: pluginStudioProjects.slug,
@@ -625,12 +655,13 @@ ${description}`,
         seoDescription: pluginStudioProjects.seoDescription,
         seoKeywords: pluginStudioProjects.seoKeywords,
         productId: shopProducts.id,
+        featuredImage: shopProducts.featuredImage,
         price: shopProducts.price,
         isActive: shopProducts.isActive,
       }).from(pluginStudioProjects)
         .innerJoin(shopProducts, eq(pluginStudioProjects.shopProductId, shopProducts.id))
         .where(and(
-          eq(pluginStudioProjects.shopProductId, req.params.productId),
+          or(eq(pluginStudioProjects.shopProductId, key), eq(pluginStudioProjects.slug, key)),
           eq(pluginStudioProjects.status, "published"),
           eq(shopProducts.isActive, true),
         )).limit(1);

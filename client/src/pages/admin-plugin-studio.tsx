@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownToLine, ExternalLink, Eye, EyeOff, PackageCheck, Plus, Rocket, Search, WandSparkles, Save, Upload, MessageSquare, KeyRound, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ExternalLink, Eye, EyeOff, PackageCheck, Plus, Rocket, Search, WandSparkles, Save, Upload, MessageSquare, KeyRound, RefreshCw, Copy } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,6 +121,12 @@ export default function AdminPluginStudio() {
   const [projectSettings, setProjectSettings] = useState<Record<string, { monthlyPrice: string; yearlyPrice: string; licenseApiBaseUrl: string; maxActivations: string }>>({});
   const [releaseForms, setReleaseForms] = useState<Record<string, { version: string; releaseNotes: string; file: File | null }>>({});
   const [supportReplies, setSupportReplies] = useState<Record<string, string>>({});
+  const [licenseDraft, setLicenseDraft] = useState<{ projectId: string; email: string; cadence: "monthly" | "yearly" }>({
+    projectId: "",
+    email: "",
+    cadence: "yearly",
+  });
+  const [adminLicenseKeys, setAdminLicenseKeys] = useState<Record<string, string>>({});
   const {
     data: projects = [],
     isLoading,
@@ -244,6 +250,29 @@ export default function AdminPluginStudio() {
       toast({ title: "License revoked" });
     },
     onError: (mutationError: Error) => toast({ title: "Could not revoke license", description: mutationError.message, variant: "destructive" }),
+  });
+
+  const issueLicenseMutation = useMutation({
+    mutationFn: async (values: typeof licenseDraft) => {
+      const response = await apiRequest("POST", "/api/admin/plugin-studio/licenses", values);
+      return response.json();
+    },
+    onSuccess: (license) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/licensing"] });
+      setAdminLicenseKeys((current) => ({ ...current, [license.id]: license.licenseKey }));
+      setLicenseDraft((current) => ({ ...current, email: "" }));
+      toast({ title: "Plugin license generated", description: `${license.projectName} is active through ${new Date(license.expiresAt).toLocaleDateString()}.` });
+    },
+    onError: (mutationError: Error) => toast({ title: "Could not generate license", description: mutationError.message, variant: "destructive" }),
+  });
+
+  const revealAdminLicenseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("POST", `/api/admin/plugin-studio/licenses/${id}/reveal`, {});
+      return response.json();
+    },
+    onSuccess: (result, id) => setAdminLicenseKeys((current) => ({ ...current, [id]: result.licenseKey })),
+    onError: (mutationError: Error) => toast({ title: "Could not reveal license key", description: mutationError.message, variant: "destructive" }),
   });
 
   const download = async (project: Project, edition: "core" | "premium") => {
@@ -513,7 +542,7 @@ export default function AdminPluginStudio() {
                     <ArrowDownToLine className="mr-2 h-4 w-4" />{downloadingKey === `${project.id}:premium` ? "Preparing add-on ZIP…" : project.coreFileCount > 0 ? "Download premium add-on ZIP" : "Download legacy plugin ZIP"}
                   </Button>
                   {project.product && project.status === "published" && (
-                    <Button asChild size="sm" variant="outline"><a href={`/shop/product/${project.product.id}`}><ExternalLink className="mr-2 h-4 w-4" />View shop page</a></Button>
+                    <Button asChild size="sm" variant="outline"><a href={`/shop/product/${project.status === "published" ? project.slug : project.product.id}`}><ExternalLink className="mr-2 h-4 w-4" />View shop page</a></Button>
                   )}
                   {project.status === "published" ? (
                     <Button size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: project.id, status: "draft" })} disabled={statusMutation.isPending}>
@@ -538,17 +567,93 @@ export default function AdminPluginStudio() {
               <CardDescription>Buyer email, plan, expiry, site count, and administrator revocation control.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!metrics?.licenses.length && <p className="text-sm text-muted-foreground">No plugin licenses issued yet. A key is created after an admin approves a paid monthly or yearly order.</p>}
+              <form
+                className="grid gap-3 rounded-xl border bg-slate-50 p-4 sm:grid-cols-[1.2fr_1.2fr_0.8fr_auto]"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  issueLicenseMutation.mutate(licenseDraft);
+                }}
+              >
+                <div className="space-y-1">
+                  <Label htmlFor="manual-license-project">Plugin</Label>
+                  <select
+                    id="manual-license-project"
+                    className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+                    value={licenseDraft.projectId}
+                    onChange={(event) => setLicenseDraft((current) => ({ ...current, projectId: event.target.value }))}
+                    required
+                  >
+                    <option value="">Choose a plugin</option>
+                    {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="manual-license-email">Customer Taskdrip email</Label>
+                  <Input
+                    id="manual-license-email"
+                    type="email"
+                    autoComplete="email"
+                    value={licenseDraft.email}
+                    onChange={(event) => setLicenseDraft((current) => ({ ...current, email: event.target.value }))}
+                    placeholder="customer@example.com"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="manual-license-cadence">License term</Label>
+                  <select
+                    id="manual-license-cadence"
+                    className="h-10 w-full rounded-md border bg-white px-3 text-sm"
+                    value={licenseDraft.cadence}
+                    onChange={(event) => setLicenseDraft((current) => ({ ...current, cadence: event.target.value as "monthly" | "yearly" }))}
+                  >
+                    <option value="monthly">Monthly · 30 days</option>
+                    <option value="yearly">Yearly · 12 months</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="w-full sm:w-auto" disabled={issueLicenseMutation.isPending || !projects.length}>
+                    <KeyRound className="mr-2 h-4 w-4" />{issueLicenseMutation.isPending ? "Generating…" : "Generate license"}
+                  </Button>
+                </div>
+              </form>
+              <p className="text-xs text-muted-foreground">Issue a valid WordPress activation key for any Plugin Studio project. The customer must have a Taskdrip account with this email; the license will also appear under My Plugins.</p>
+              {issueLicenseMutation.data?.licenseKey && (
+                <div className="flex flex-col gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 sm:flex-row sm:items-end">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Label htmlFor="new-plugin-license-key">Generated WordPress license key</Label>
+                    <Input id="new-plugin-license-key" value={issueLicenseMutation.data.licenseKey} readOnly className="bg-white font-mono" onFocus={(event) => event.currentTarget.select()} />
+                    <p className="text-xs text-emerald-900">Copy this key into the plugin’s License screen in WordPress. The key is also recoverable from this admin list.</p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(issueLicenseMutation.data.licenseKey).then(() => toast({ title: "License key copied" })).catch(() => toast({ title: "Select and copy the key manually", variant: "destructive" }))}>
+                    <Copy className="mr-2 h-4 w-4" />Copy key
+                  </Button>
+                </div>
+              )}
+              {!metrics?.licenses.length && <p className="text-sm text-muted-foreground">No plugin licenses issued yet. You can generate an admin license above or approve a paid monthly or yearly order.</p>}
               {metrics?.licenses.map((license) => (
                 <div key={license.id} className="flex flex-col justify-between gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
                   <div>
                     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{license.projectName}</span><Badge variant={license.status === "active" ? "default" : "secondary"}>{license.status}</Badge><Badge variant="outline">{license.cadence}</Badge></div>
                     <p className="mt-1 text-sm">{license.buyerEmail} · {license.keyPrefix} · {license.activeInstalls}/{license.maxActivations} sites</p>
                     <p className="text-xs text-muted-foreground">Expires {new Date(license.expiresAt).toLocaleDateString()}</p>
+                    {adminLicenseKeys[license.id] && <p className="mt-2 break-all rounded bg-slate-50 p-2 font-mono text-xs select-all">{adminLicenseKeys[license.id]}</p>}
                   </div>
-                  {license.status === "active" && <Button size="sm" variant="destructive" onClick={() => {
-                    if (window.confirm(`Revoke the ${license.projectName} license for ${license.buyerEmail}? Their premium plugin features and updates will be disabled after WordPress next verifies the key.`)) revokeMutation.mutate(license.id);
-                  }} disabled={revokeMutation.isPending}>Revoke</Button>}
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const key = adminLicenseKeys[license.id];
+                      if (key) {
+                        void navigator.clipboard.writeText(key).then(() => toast({ title: "License key copied" })).catch(() => toast({ title: "Select and copy the key manually", variant: "destructive" }));
+                      } else {
+                        revealAdminLicenseMutation.mutate(license.id);
+                      }
+                    }} disabled={revealAdminLicenseMutation.isPending}>
+                      <Copy className="mr-2 h-4 w-4" />{adminLicenseKeys[license.id] ? "Copy key" : "Show key"}
+                    </Button>
+                    {license.status === "active" && <Button size="sm" variant="destructive" onClick={() => {
+                      if (window.confirm(`Revoke the ${license.projectName} license for ${license.buyerEmail}? Their premium plugin features and updates will be disabled after WordPress next verifies the key.`)) revokeMutation.mutate(license.id);
+                    }} disabled={revokeMutation.isPending}>Revoke</Button>}
+                  </div>
                 </div>
               ))}
             </CardContent>

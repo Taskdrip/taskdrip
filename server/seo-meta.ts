@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { campaigns, blogPosts, shopProducts, users, courseEnrollments, p2pListings, pageSeoSettings, pwaSettings } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { campaigns, blogPosts, shopProducts, users, courseEnrollments, p2pListings, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
+import { and, eq, or } from "drizzle-orm";
 
 type Meta = {
   title?: string;
@@ -189,6 +189,27 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
   const shopMatch = pathname.match(/^\/shop\/product\/([^/?#]+)/);
   if (shopMatch) {
     const key = decodeURIComponent(shopMatch[1]);
+    const [pluginListing] = await db.select({
+      project: pluginStudioProjects,
+      product: shopProducts,
+    }).from(pluginStudioProjects)
+      .innerJoin(shopProducts, eq(pluginStudioProjects.shopProductId, shopProducts.id))
+      .where(and(
+        or(eq(pluginStudioProjects.slug, key), eq(pluginStudioProjects.shopProductId, key)),
+        eq(pluginStudioProjects.status, "published"),
+        eq(shopProducts.isActive, true),
+      )).limit(1);
+    if (pluginListing) {
+      const canonicalUrl = `${origin}/shop/product/${encodeURIComponent(pluginListing.project.slug)}`;
+      return {
+        title: pluginListing.project.seoTitle || `${pluginListing.project.name} | Taskdrip Shop`,
+        description: trimText(pluginListing.project.seoDescription || pluginListing.project.shortDescription || pluginListing.product.description || ""),
+        image: absolutize(origin, pluginListing.product.featuredImage),
+        keywords: pluginListing.project.seoKeywords || undefined,
+        url: canonicalUrl,
+        canonicalUrl,
+      };
+    }
     const [p] =
       (await db.select().from(shopProducts).where(eq(shopProducts.id, key))) ||
       [];

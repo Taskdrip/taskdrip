@@ -386,7 +386,7 @@ export const pluginLicenses = pgTable("plugin_licenses", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   projectId: varchar("project_id").notNull().references(() => pluginStudioProjects.id, { onDelete: "cascade" }),
   productId: varchar("product_id").notNull().references(() => shopProducts.id, { onDelete: "cascade" }),
-  purchaseId: varchar("purchase_id").notNull().unique().references(() => purchases.id, { onDelete: "cascade" }),
+  purchaseId: varchar("purchase_id").unique().references(() => purchases.id, { onDelete: "cascade" }),
   keyHash: varchar("key_hash").notNull().unique(),
   keyEncrypted: text("key_encrypted").notNull(),
   keyPrefix: varchar("key_prefix").notNull(),
@@ -1161,7 +1161,7 @@ export type BlogCategoryFollow = typeof blogCategoryFollows.$inferSelect;
 
 export const insertBlogCommentSchema = createInsertSchema(blogComments).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;
-export type ShopProduct = typeof shopProducts.$inferSelect;
+export type ShopProduct = typeof shopProducts.$inferSelect & { pluginSlug?: string };
 export type InsertShopProduct = z.infer<typeof insertShopProductSchema>;
 export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;

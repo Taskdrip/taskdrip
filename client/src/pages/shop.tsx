@@ -82,6 +82,7 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
   const { toast } = useToast();
   const TypeIcon = TYPE_ICONS[product.type] || Package;
   const image = getProductImage(product);
+  const productPageHref = `/shop/product/${product.pluginSlug || product.id}`;
   const rating = parseFloat(product.rating || "0");
   const discount = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price)
     ? Math.round((1 - parseFloat(product.price) / parseFloat(product.originalPrice)) * 100)
@@ -121,7 +122,7 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
     <div className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
       {/* Image */}
       <div className="relative overflow-hidden">
-        <Link href={`/shop/product/${product.id}`}>
+        <Link href={productPageHref}>
           {image ? (
             <img src={image} alt={product.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" data-testid={`img-product-${product.id}`} />
           ) : (
@@ -148,7 +149,7 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
       <div className="p-4 flex flex-col flex-1">
         <div className="mb-2">
           <Badge variant="outline" className="text-xs text-gray-500 mb-2">{formatLabel(product.category)}</Badge>
-          <Link href={`/shop/product/${product.id}`}>
+          <Link href={productPageHref}>
             <h3 className="font-bold text-gray-900 whitespace-normal break-anywhere group-hover:text-indigo-600 transition-colors leading-snug text-[15px]">
               {product.title}
             </h3>
@@ -210,7 +211,7 @@ function ProductCard({ product }: { product: ShopProduct & { likesCount?: number
             <p className="text-xs text-gray-400">USD guide price</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
-            <Link href={`/shop/product/${product.id}`}>
+            <Link href={productPageHref}>
               <Button size="sm" variant="outline" className="h-9 w-9 p-0" data-testid={`button-view-${product.id}`}>
                 <Eye className="h-4 w-4" />
               </Button>
@@ -260,7 +261,7 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
         <h2 className="text-xl font-bold text-gray-900">Spotlight Products</h2>
         {total > 1 && <span className="text-xs text-gray-400 ml-1">{total} featured</span>}
       </div>
-      <div className="relative rounded-2xl sm:rounded-[2rem] overflow-hidden cursor-pointer group min-h-[260px] sm:min-h-[310px] shadow-2xl shadow-indigo-200/70" onClick={() => setLocation(`/shop/product/${product.id}`)}>
+      <div className="relative rounded-2xl sm:rounded-[2rem] overflow-hidden cursor-pointer group min-h-[260px] sm:min-h-[310px] shadow-2xl shadow-indigo-200/70" onClick={() => setLocation(`/shop/product/${product.pluginSlug || product.id}`)}>
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-purple-700 to-slate-950" />
         {image && (
           <img src={image} alt={product.title}
@@ -301,7 +302,7 @@ function ProductSpotlightCarousel({ products }: { products: any[] }) {
             </span>
           </div>
             <Button
-              onClick={e => { e.stopPropagation(); setLocation(`/shop/product/${product.id}`); }}
+              onClick={e => { e.stopPropagation(); setLocation(`/shop/product/${product.pluginSlug || product.id}`); }}
               className="bg-white text-gray-900 hover:bg-yellow-50 font-bold px-6 rounded-xl shadow-lg"
               data-testid={`btn-spotlight-product-${product.id}`}
             >

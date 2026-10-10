@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
@@ -146,6 +146,12 @@ export default function ProductDetail() {
     queryKey: ["/api/shop/products", productId],
     enabled: !!productId,
   });
+  const productRecordId = product?.id;
+
+  useEffect(() => {
+    if (!product?.pluginSlug || !productId || productId === product.pluginSlug) return;
+    navigate(`/shop/product/${encodeURIComponent(product.pluginSlug)}${window.location.search}`, { replace: true });
+  }, [product?.pluginSlug, productId, navigate]);
 
   const { data: pluginSeo } = useQuery<any>({
     queryKey: ["/api/shop/plugin-seo", productId],
@@ -158,10 +164,10 @@ export default function ProductDetail() {
   });
 
   const { data: publishingInfo } = useQuery<any>({
-    queryKey: ["/api/publishing/products", productId],
-    enabled: !!productId,
+    queryKey: ["/api/publishing/products", productRecordId],
+    enabled: !!productRecordId,
     queryFn: async () => {
-      const response = await fetch(`/api/publishing/products/${productId}`);
+      const response = await fetch(`/api/publishing/products/${productRecordId}`);
       if (response.status === 404) return null;
       if (!response.ok) throw new Error("Could not load publishing details");
       return response.json();
@@ -169,8 +175,8 @@ export default function ProductDetail() {
   });
 
   const { data: reviews = [] } = useQuery<ProductReview[]>({
-    queryKey: ["/api/shop/products", productId, "reviews"],
-    enabled: !!productId,
+    queryKey: ["/api/shop/products", productRecordId, "reviews"],
+    enabled: !!productRecordId,
   });
 
   const { data: relatedProducts = [] } = useQuery<ShopProduct[]>({
@@ -185,11 +191,12 @@ export default function ProductDetail() {
 
   const createReviewMutation = useMutation({
     mutationFn: async (reviewData: { rating: number; comment: string }) => {
-      const response = await apiRequest("POST", `/api/shop/products/${productId}/reviews`, reviewData);
+      if (!productRecordId) throw new Error("The product is still loading.");
+      const response = await apiRequest("POST", `/api/shop/products/${productRecordId}/reviews`, reviewData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productId, "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productRecordId, "reviews"] });
       setReviewText("");
       setReviewRating(5);
       toast({ title: "Review submitted successfully!" });
@@ -204,23 +211,24 @@ export default function ProductDetail() {
   });
 
   const { data: myReaction } = useQuery({
-    queryKey: ["/api/shop/products", productId, "reaction"],
+    queryKey: ["/api/shop/products", productRecordId, "reaction"],
     queryFn: async () => {
-      const res = await fetch(`/api/shop/products/${productId}/reaction`, { credentials: "include" });
+      const res = await fetch(`/api/shop/products/${productRecordId}/reaction`, { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: !!productId && !!user,
+    enabled: !!productRecordId && !!user,
   });
 
   const reactMutation = useMutation({
     mutationFn: async (type: "like" | "dislike") => {
-      const res = await apiRequest("POST", `/api/shop/products/${productId}/react`, { type });
+      if (!productRecordId) throw new Error("The product is still loading.");
+      const res = await apiRequest("POST", `/api/shop/products/${productRecordId}/react`, { type });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productId, "reaction"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productRecordId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/products", productRecordId, "reaction"] });
     },
     onError: () => toast({ title: "Please log in to react", variant: "destructive" }),
   });
@@ -286,6 +294,9 @@ export default function ProductDetail() {
   const discount = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price)
     ? Math.round(((parseFloat(product.originalPrice) - parseFloat(product.price)) / parseFloat(product.originalPrice)) * 100)
     : 0;
+  const canonicalProductUrl = pluginSeo?.slug
+    ? `${window.location.origin}/shop/product/${encodeURIComponent(pluginSeo.slug)}`
+    : window.location.href.split("?")[0];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -296,21 +307,23 @@ export default function ProductDetail() {
           keywords={pluginSeo.seoKeywords || undefined}
           ogType="product"
           ogImage={product.featuredImage || undefined}
-          canonicalUrl={window.location.href.split("?")[0]}
+          canonicalUrl={canonicalProductUrl}
           jsonLd={{
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             name: pluginSeo.name,
             description: pluginSeo.seoDescription || product.shortDescription || product.description,
+            image: product.featuredImage || undefined,
             applicationCategory: "BusinessApplication",
             operatingSystem: "WordPress",
             softwareVersion: pluginSeo.version,
+            url: canonicalProductUrl,
             offers: {
               "@type": "Offer",
               price: String(pluginSeo.price ?? product.price),
               priceCurrency: "USD",
               availability: "https://schema.org/InStock",
-              url: window.location.href.split("?")[0],
+              url: canonicalProductUrl,
             },
           }}
         />
@@ -963,7 +976,7 @@ export default function ProductDetail() {
                       <span className="font-bold text-green-600">
                         {relatedProduct.isFree ? "Free" : `$${relatedProduct.price}`}
                       </span>
-                      <Link href={`/shop/product/${relatedProduct.id}`}>
+                      <Link href={`/shop/product/${relatedProduct.pluginSlug || relatedProduct.id}`}>
                         <Button size="sm" variant="outline">View</Button>
                       </Link>
                     </div>

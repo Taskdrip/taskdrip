@@ -147,6 +147,7 @@ export default function MyPluginsPage() {
 
       {licenses.map((license) => {
         const isActive = license.status === "active" && new Date(license.expiresAt).getTime() > Date.now();
+        const productPageRef = license.project.status === "published" ? license.project.slug : license.product.id;
         const draft = supportDrafts[license.id] || { subject: "", content: "", requestType: "support" };
         return (
           <Card key={license.id} id={`plugin-license-${license.id}`} className="overflow-hidden">
@@ -170,12 +171,12 @@ export default function MyPluginsPage() {
                 </Button>
                 {isActive && <Button size="sm" onClick={() => download(license)}><ArrowDownToLine className="mr-2 h-4 w-4" />Download premium ZIP</Button>}
                 <Button asChild size="sm" variant="outline">
-                  <a href={`/shop/product/${license.product.id}?plan=${license.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
+                  <a href={`/shop/product/${productPageRef}?plan=${license.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
                     <RefreshCw className="mr-2 h-4 w-4" />Renew {license.cadence}
                   </a>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <a href={`/shop/product/${license.product.id}?plan=${license.cadence === "yearly" ? "plugin-monthly" : "plugin-yearly"}`}>
+                  <a href={`/shop/product/${productPageRef}?plan=${license.cadence === "yearly" ? "plugin-monthly" : "plugin-yearly"}`}>
                     Renew {license.cadence === "yearly" ? "monthly" : "yearly"}
                   </a>
                 </Button>

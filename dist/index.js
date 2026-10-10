@@ -588,7 +588,7 @@ var init_schema = __esm({
       userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
       projectId: varchar("project_id").notNull().references(() => pluginStudioProjects.id, { onDelete: "cascade" }),
       productId: varchar("product_id").notNull().references(() => shopProducts.id, { onDelete: "cascade" }),
-      purchaseId: varchar("purchase_id").notNull().unique().references(() => purchases.id, { onDelete: "cascade" }),
+      purchaseId: varchar("purchase_id").unique().references(() => purchases.id, { onDelete: "cascade" }),
       keyHash: varchar("key_hash").notNull().unique(),
       keyEncrypted: text("key_encrypted").notNull(),
       keyPrefix: varchar("key_prefix").notNull(),
@@ -12217,7 +12217,7 @@ function scanRequestBody(body, depth = 0) {
 init_schema();
 init_lead_service();
 init_db();
-import { desc as desc11, sql as sql13, eq as eq15, and as and11, count as count4, gte as gte2, inArray as inArray11, ilike as ilike2, or } from "drizzle-orm";
+import { desc as desc11, sql as sql13, eq as eq15, and as and11, count as count4, gte as gte2, inArray as inArray11, ilike as ilike2, or as or2, isNull as isNull2 } from "drizzle-orm";
 
 // server/creator-publishing.ts
 init_schema();
@@ -14871,7 +14871,7 @@ ${config.settings.toolPrompts[tool]}` },
 // server/plugin-studio.ts
 init_db();
 import multer2 from "multer";
-import { and as and8, desc as desc9, eq as eq11, isNull } from "drizzle-orm";
+import { and as and8, desc as desc9, eq as eq11, isNull, or } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
 
@@ -14926,6 +14926,7 @@ function phpSingleQuoted(value) {
   return `'${safe}'`;
 }
 function addCoreDependencyContract(source, project, edition) {
+  if (edition === "paid") return source;
   const headerStart = source.indexOf("/*", source.indexOf("<?php"));
   const headerEnd = source.indexOf("*/", headerStart) + 2;
   const constant = coreVersionConstant(project.slug);
@@ -14996,12 +14997,12 @@ function normalizeGeneratedEdition(input, project, edition) {
   }
   const coreSlug = edition === "premium" ? project.slug : void 0;
   const pluginSlug = edition === "premium" ? `${project.slug}-premium` : project.slug;
-  const pluginName = edition === "premium" ? `${project.name} Premium` : `${project.name} Core`;
+  const pluginName = edition === "premium" ? `${project.name} Premium` : edition === "core" ? `${project.name} Core` : project.name;
   const normalizedFiles = { ...files };
   delete normalizedFiles[rawMainFile];
   const normalizedMain = normalizePluginHeader(mainSource, {
     name: pluginName,
-    description: edition === "premium" ? "Premium add-on for the free core plugin." : `Free core edition of ${project.name}.`,
+    description: edition === "premium" ? "Premium add-on for the free core plugin." : edition === "paid" ? `Licensed standalone plugin: ${project.name}.` : `Free core edition of ${project.name}.`,
     version: project.version,
     author: project.author,
     slug: pluginSlug,
@@ -15027,9 +15028,9 @@ function normalizeGeneratedEdition(input, project, edition) {
 }
 function buildPluginReleaseFiles(project, edition, sourceFiles) {
   const folderSlug = edition === "premium" ? `${project.slug}-premium` : project.slug;
-  const pluginName = edition === "premium" ? `${project.name} Premium` : `${project.name} Core`;
-  const shortDescription = edition === "premium" ? project.shortDescription || `${project.name} premium add-on` : project.coreShortDescription || `${project.name} free core plugin`;
-  const description = edition === "premium" ? project.description : project.coreDescription || project.description;
+  const pluginName = edition === "premium" ? `${project.name} Premium` : edition === "core" ? `${project.name} Core` : project.name;
+  const shortDescription = edition === "core" ? project.coreShortDescription || `${project.name} free core plugin` : project.shortDescription || `${project.name} paid plugin`;
+  const description = edition === "core" ? project.coreDescription || project.description : project.description;
   const tags = (project.seoKeywords || "").split(",").map((tag) => tag.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/\s+/g, "-")).filter((tag) => tag.length > 1 && tag.length <= 30).slice(0, 5);
   const readme2 = `=== ${cleanReadmeText(pluginName)} ===
 Contributors: taskdrip
@@ -15050,11 +15051,16 @@ ${edition === "premium" ? `== Requirements ==
 
 Install and activate the free ${cleanReadmeText(project.name)} Core plugin first (slug: ${project.slug}).
 
+` : edition === "paid" ? `== Requirements ==
+
+This paid plugin requires WooCommerce and LearnPress, plus an active Taskdrip license.
+
 ` : ""}== Installation ==
 
 1. In WordPress, open Plugins > Add New Plugin > Upload Plugin and choose this ZIP.
-2. Install and activate the ${edition === "premium" ? "core plugin first, then this premium add-on" : "core plugin"}.
+2. Activate WooCommerce and LearnPress, then activate ${edition === "premium" ? "the free core first and this premium add-on" : edition === "paid" ? "this paid plugin" : "the core plugin"}.
 3. Review the plugin settings and permissions before enabling it on a live site.
+${edition === "paid" ? "4. Open CourseBridge Pro \u2192 License to activate the purchased key, then configure CourseBridge Pro \u2192 Settings.\n" : ""}
 4. Test the requested features on a staging WordPress site with representative data.
 
 == Changelog ==
@@ -15073,6 +15079,16 @@ Install and activate the free ${cleanReadmeText(project.name)} Core plugin first
 7. Confirm the add-on is blocked with a clear admin notice if the core plugin is inactive.
 
 The generated package is not a substitute for a human security or compatibility review.
+` : edition === "paid" ? `# Install and test ${pluginName}
+
+1. Back up the site and use a staging WordPress site.
+2. Deactivate and remove any old CourseBridge Premium add-on copies before installing this release.
+3. Upload this single ZIP from WordPress Admin \u2192 Plugins \u2192 Add New Plugin \u2192 Upload Plugin and activate it.
+4. Open CourseBridge Pro \u2192 License to activate the purchased license. Then use Dashboard, Course Assignments, and Settings from the CourseBridge Pro menu.
+5. Map a WooCommerce product to LearnPress courses, assign a test user, and place a test paid order to verify both enrollment paths.
+6. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
+
+This licensed Taskdrip package is not a separate free Core plus Premium pair and is not a WordPress.org directory package.
 ` : `# Install and test ${pluginName}
 
 1. Back up the site and use a staging WordPress site.
@@ -15106,6 +15122,15 @@ This is the free core edition. Before submitting it:
 
 The directory team makes all acceptance decisions. The paid add-on is distributed separately through Taskdrip and must not be included in this core ZIP.
 `;
+  } else if (edition === "paid") {
+    files["TASKDRIP-RELEASE.md"] = `# ${pluginName} \u2014 licensed standalone plugin
+
+This paid plugin combines WooCommerce-to-LearnPress course mapping, automatic and manual enrollment, buyer reporting, and consent-based Resend campaigns in one installable package. It is distributed through Taskdrip Shop and requires an active Taskdrip license.
+
+For existing CourseBridge sites, replace the old Core package in place with this package, and deactivate/remove all separate CourseBridge Premium add-on copies first. The plugin slug remains ${project.slug} so the existing Core installation path can be upgraded without leaving a second CourseBridge plugin entry.
+
+Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
+`;
   } else {
     files["TASKDRIP-RELEASE.md"] = `# Taskdrip premium release
 
@@ -15114,9 +15139,10 @@ This premium add-on is distributed through Taskdrip Shop. Customers must install
 Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
 `;
   }
-  if (edition === "premium") {
+  if (edition !== "core") {
     const mainEntry = Object.entries(sourceFiles).find(([path6, source]) => !path6.includes("/") && path6.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
     if (!mainEntry) throw new Error("The premium package is missing its root plugin entry file.");
+    const standalonePaid = edition === "paid";
     const [sourceMainPath, rawSourceMain] = mainEntry;
     const sourceMain = stripWordPressPluginHeader(rawSourceMain);
     const apiBase = String(project.licenseApiBaseUrl || "").replace(/\/+$/, "");
@@ -15125,15 +15151,21 @@ Review licensing, generated source, WordPress compatibility, security, and the i
     const apiBasePhp = phpSingleQuoted(apiBase);
     const slugPhp = phpSingleQuoted(project.slug);
     const versionPhp = phpSingleQuoted(project.version);
-    const licensePageNamePhp = phpSingleQuoted(`${project.name} Premium License`);
-    const lockedNoticePhp = phpSingleQuoted(`${project.name} Premium is locked. Open Settings \u2192 Plugin License to activate or renew a valid key.`);
-    const pluginDescriptionPhp = phpSingleQuoted(`Licensed premium add-on for ${project.name}.`);
+    const licensePageNamePhp = phpSingleQuoted(`${project.name}${standalonePaid ? "" : " Premium"} License`);
+    const lockedNoticePhp = phpSingleQuoted(
+      standalonePaid ? `${project.name} is locked. Open CourseBridge Pro \u2192 License to activate or renew a valid key.` : `${project.name} Premium is locked. Open Settings \u2192 Plugin License to activate or renew a valid key.`
+    );
+    const pluginDescriptionPhp = phpSingleQuoted(
+      standalonePaid ? `Licensed standalone plugin: ${project.name}.` : `Licensed premium add-on for ${project.name}.`
+    );
+    const updateSlugPhp = phpSingleQuoted(folderSlug);
     const classPhp = `<?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 if ( ! class_exists( '${clientClass}', false ) ) {
   class ${clientClass} {
     private static $slug = ${slugPhp};
+      private static $plugin_slug = ${updateSlugPhp};
     private static $version = ${versionPhp};
     private static $api_base = ${apiBasePhp};
     private static $plugin_file = '';
@@ -15141,7 +15173,7 @@ if ( ! class_exists( '${clientClass}', false ) ) {
 
     public static function boot( $plugin_file ) {
       self::$plugin_file = $plugin_file;
-      add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
+      add_action( 'admin_menu', array( __CLASS__, 'add_menu' ), 10 );
       add_action( 'admin_post_taskdrip_activate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'activate' ) );
       add_action( 'admin_post_taskdrip_deactivate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'deactivate' ) );
       add_action( 'admin_notices', array( __CLASS__, 'notice' ) );
@@ -15239,17 +15271,43 @@ if ( ! class_exists( '${clientClass}', false ) ) {
     }
 
     private static function settings_url() {
-      return admin_url( 'options-general.php?page=' . rawurlencode( self::$option_prefix . '-license' ) );
+      return admin_url( ${phpSingleQuoted(standalonePaid ? "admin.php?page=" : "options-general.php?page=")} . rawurlencode( self::$option_prefix . '-license' ) );
     }
 
     public static function add_menu() {
+      ${standalonePaid ? `
+      add_menu_page(
+        esc_html__( 'CourseBridge Pro', 'taskdrip' ),
+        esc_html__( 'CourseBridge Pro', 'taskdrip' ),
+        'manage_options',
+        'tdlpw-dashboard',
+        array( __CLASS__, 'render_root' ),
+        'dashicons-welcome-learn-more',
+        58
+      );
+      add_submenu_page(
+        'tdlpw-dashboard',
+        esc_html__( 'License', 'taskdrip' ),
+        esc_html__( 'License', 'taskdrip' ),
+        'manage_options',
+        self::$option_prefix . '-license',
+        array( __CLASS__, 'render_page' )
+      );` : `
       add_options_page(
         esc_html__( 'Plugin License', 'taskdrip' ),
         esc_html__( 'Plugin License', 'taskdrip' ),
         'manage_options',
         self::$option_prefix . '-license',
         array( __CLASS__, 'render_page' )
-      );
+      );`}
+    }
+
+    public static function render_root() {
+      if ( class_exists( 'TDLPW_Admin', false ) ) {
+        ( new TDLPW_Admin() )->render();
+        return;
+      }
+      self::render_page();
     }
 
     public static function render_page() {
@@ -15264,7 +15322,7 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       if ( $notice === 'deactivated' ) { echo '<div class="notice notice-info"><p>' . esc_html__( 'This site has been deactivated.', 'taskdrip' ) . '</p></div>'; }
       echo '<p>' . ( $active
         ? esc_html__( 'Premium access is active until ', 'taskdrip' ) . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $state['expiresAt'] ) ) ) . '.'
-        : esc_html__( 'Enter a valid Taskdrip key to unlock premium features and updates. Expired or missing keys keep the premium add-on locked.', 'taskdrip' ) ) . '</p>';
+        : esc_html__( ${phpSingleQuoted(standalonePaid ? "Enter a valid Taskdrip key to activate this plugin and enable its features and updates." : "Enter a valid Taskdrip key to unlock premium features and updates. Expired or missing keys keep the premium add-on locked.")}, 'taskdrip' ) ) . '</p>';
       echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
       wp_nonce_field( 'taskdrip_activate_license' );
       echo '<input type="hidden" name="action" value="taskdrip_activate_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}" />';
@@ -15309,7 +15367,7 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       if ( empty( $update['version'] ) || empty( $update['package'] ) ) { return $transient; }
       if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) { $transient->response = array(); }
       $transient->response[self::$plugin_file] = (object) array(
-        'slug' => self::$slug . '-premium',
+        'slug' => self::$plugin_slug,
         'plugin' => self::$plugin_file,
         'new_version' => sanitize_text_field( $update['version'] ),
         'url' => self::$api_base . '/my-plugins',
@@ -15319,13 +15377,13 @@ if ( ! class_exists( '${clientClass}', false ) ) {
     }
 
     public static function plugin_info( $result, $action, $args ) {
-      if ( $action !== 'plugin_information' || empty( $args->slug ) || $args->slug !== self::$slug . '-premium' || ! self::is_licensed() ) {
+      if ( $action !== 'plugin_information' || empty( $args->slug ) || $args->slug !== self::$plugin_slug || ! self::is_licensed() ) {
         return $result;
       }
       $update = self::get_update();
       return (object) array(
-        'name' => esc_html( ${phpSingleQuoted(`${project.name} Premium`)} ),
-        'slug' => self::$slug . '-premium',
+        'name' => esc_html( ${phpSingleQuoted(standalonePaid ? project.name : `${project.name} Premium`)} ),
+        'slug' => self::$plugin_slug,
         'version' => ! empty( $update['version'] ) ? sanitize_text_field( $update['version'] ) : self::$version,
         'author' => 'Taskdrip',
         'homepage' => self::$api_base . '/my-plugins',
@@ -15348,22 +15406,34 @@ if ( ! class_exists( '${clientClass}', false ) ) {
 }
 `;
     const coreConstant = coreVersionConstant(project.slug);
+    const legacyPremiumFile = `${project.slug}-premium/${project.slug}-premium.php`;
     const wrapper = `<?php
 /*
  * Plugin Name: ${cleanHeaderValue(pluginName, 120)}
- * Description: Premium add-on for the free core plugin.
+ * Description: ${cleanHeaderValue(standalonePaid ? `Licensed plugin: ${project.name}.` : "Premium add-on for the free core plugin.", 200)}
  * Version: ${cleanHeaderValue(project.version, 30)}
  * Author: ${cleanHeaderValue("Taskdrip", 80)}
  * Text Domain: ${folderSlug}
  * Update URI: ${cleanHeaderValue(project.licenseApiBaseUrl ? `${project.licenseApiBaseUrl.replace(/\/+$/, "")}/plugins/${folderSlug}` : `taskdrip-plugin:${folderSlug}`, 200)}
  * Requires at least: 6.2
  * Requires PHP: 7.4
- * Requires Plugins: ${project.slug}
+ * Requires Plugins: ${standalonePaid ? "woocommerce, learnpress" : project.slug}
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-if ( ! defined( '${coreConstant}' ) ) {
+${standalonePaid ? `$active_plugins = (array) get_option( 'active_plugins', array() );
+$network_active_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
+$legacy_premium_file = ${phpSingleQuoted(legacyPremiumFile)};
+if ( in_array( $legacy_premium_file, $active_plugins, true ) || isset( $network_active_plugins[$legacy_premium_file] ) ) {
+  add_action( 'admin_notices', static function () {
+    if ( current_user_can( 'activate_plugins' ) ) {
+      echo '<div class="notice notice-error"><p>' . esc_html__( 'Deactivate and remove the old CourseBridge Premium add-on before using the combined CourseBridge Pro plugin.', 'taskdrip' ) . '</p></div>';
+    }
+  } );
+  return;
+}
+` : `if ( ! defined( '${coreConstant}' ) ) {
   add_action( 'admin_notices', static function () {
     if ( current_user_can( 'activate_plugins' ) ) {
       echo '<div class="notice notice-error"><p>' . esc_html( ${phpSingleQuoted(`The ${project.name} Premium add-on requires the free core plugin (${project.slug}).`)} ) . '</p></div>';
@@ -15371,6 +15441,7 @@ if ( ! defined( '${coreConstant}' ) ) {
   } );
   return;
 }
+`}
 require_once __DIR__ . '/includes/class-taskdrip-license.php';
 ${clientClass}::boot( plugin_basename( __FILE__ ) );
 if ( ! ${clientClass}::is_licensed() ) { return; }
@@ -16041,9 +16112,20 @@ final class TDLPW_Admin {
     }
 
     public function menu() {
+        if (defined('TDLPW_SINGLE_PAID_PLUGIN') && TDLPW_SINGLE_PAID_PLUGIN) {
+            add_submenu_page(
+                'tdlpw-dashboard',
+                esc_html__('CourseBridge Pro Settings', '{{SLUG}}'),
+                esc_html__('Settings', '{{SLUG}}'),
+                'manage_options',
+                'tdlpw-settings',
+                array($this, 'render')
+            );
+            return;
+        }
         add_menu_page(
-            esc_html__('Course Bridge', '{{SLUG}}'),
-            esc_html__('Course Bridge', '{{SLUG}}'),
+            esc_html__('CourseBridge Pro', '{{SLUG}}'),
+            esc_html__('CourseBridge Pro', '{{SLUG}}'),
             'manage_woocommerce',
             'tdlpw-dashboard',
             array($this, 'render'),
@@ -16097,16 +16179,17 @@ final class TDLPW_Admin {
 
     public function render() {
         if (!current_user_can('manage_woocommerce')) { return; }
-        $tab = sanitize_key($_GET['tab'] ?? 'overview');
+        $default_tab = sanitize_key($_GET['page'] ?? '') === 'tdlpw-settings' ? 'settings' : 'overview';
+        $tab = sanitize_key($_GET['tab'] ?? $default_tab);
         $settings = get_option('tdlpw_settings', array());
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
-        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('LearnPress + WooCommerce Course Bridge', '{{SLUG}}') . '</h1>';
-        echo '<p>' . esc_html__('Link course products, verify paid orders, review buyers, and send consent-based course updates through Resend.', '{{SLUG}}') . '</p>';
+        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
+        echo '<p>' . esc_html__('Link course products, assign users to courses, verify paid orders, review buyers, and send consent-based course updates through Resend.', '{{SLUG}}') . '</p>';
         if (!empty($_GET['notice'])) {
             echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
         }
         echo '<nav class="nav-tab-wrapper">';
-        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Customers & Campaigns', '{{SLUG}}'), 'settings' => __('Email Settings', '{{SLUG}}')) as $key => $label) {
+        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Customers & Campaigns', '{{SLUG}}'), 'settings' => __('Settings', '{{SLUG}}')) as $key => $label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' .
                 esc_url(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => $key), admin_url('admin.php'))) . '">' . esc_html($label) . '</a>';
         }
@@ -16365,10 +16448,10 @@ function buildWordPressPluginFiles(info) {
 }
 
 // server/coursebridge-plugin.ts
-var coreMain = (project) => `<?php
+var paidMain = (project) => `<?php
 /**
  * Plugin Name: ${project.name} Core
- * Description: Free core for connecting WooCommerce products to LearnPress courses.
+ * Description: Licensed CourseBridge plugin for WooCommerce and LearnPress course management.
  * Version: ${project.version}
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -16378,6 +16461,7 @@ var coreMain = (project) => `<?php
  * Text Domain: ${project.slug}
  */
 if (!defined('ABSPATH')) { exit; }
+define('TDLPW_SINGLE_PAID_PLUGIN', true);
 define('TDLPW_VERSION', '${project.version}');
 define('TDLPW_FILE', __FILE__);
 define('TDLPW_PATH', plugin_dir_path(__FILE__));
@@ -16386,11 +16470,17 @@ require_once TDLPW_PATH . 'includes/class-activator.php';
 require_once TDLPW_PATH . 'includes/class-bridge.php';
 require_once TDLPW_PATH . 'includes/class-course-admin.php';
 require_once TDLPW_PATH . 'includes/class-core.php';
+require_once TDLPW_PATH . 'includes/class-audience.php';
+require_once TDLPW_PATH . 'includes/class-resend.php';
+require_once TDLPW_PATH . 'includes/class-admin.php';
 register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
 register_deactivation_hook(__FILE__, array('TDLPW_Activator', 'deactivate'));
 add_action('plugins_loaded', function () {
     load_plugin_textdomain('${project.slug}', false, dirname(plugin_basename(__FILE__)) . '/languages');
     (new TDLPW_Core())->run();
+    (new TDLPW_Admin())->run();
+    add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
+    add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
 });
 `;
 var coreClass = `<?php
@@ -16489,12 +16579,13 @@ if (!defined('ABSPATH')) { exit; }
 
 final class TDLPW_Course_Admin {
     public function run() {
-        add_action('admin_menu', array($this, 'menu'));
+        add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
     }
 
     public function menu() {
-        add_menu_page(
+        add_submenu_page(
+            'tdlpw-dashboard',
             esc_html__('Course Assignments', '${project.slug}'),
             esc_html__('Course Assignments', '${project.slug}'),
             'manage_options',
@@ -16614,40 +16705,7 @@ final class TDLPW_Course_Admin {
     }
 }
 `;
-var premiumMain = (project) => `<?php
-/**
- * Plugin Name: ${project.name} Premium
- * Description: Buyer analytics and consent-based Resend campaigns for CourseBridge.
- * Version: ${project.version}
- * Requires at least: 6.2
- * Requires PHP: 7.4
- * Requires Plugins: ${project.slug}
- * Author: ${project.author}
- * License: GPL-2.0-or-later
- * Text Domain: ${project.slug}-premium
- */
-if (!defined('ABSPATH')) { exit; }
-if (!defined('TASKDRIP_${project.slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_CORE_VERSION')) {
-    add_action('admin_notices', static function () {
-        if (current_user_can('activate_plugins')) {
-            echo '<div class="notice notice-error"><p>' . esc_html__('CourseBridge Premium requires the free CourseBridge Core plugin. Activate the core first.', '${project.slug}-premium') . '</p></div>';
-        }
-    });
-    return;
-}
-if (!defined('TDLPW_PATH') || !defined('TDLPW_URL')) { return; }
-define('TDLPW_PREMIUM_URL', plugin_dir_url(__FILE__));
-require_once __DIR__ . '/includes/class-audience.php';
-require_once __DIR__ . '/includes/class-resend.php';
-require_once __DIR__ . '/includes/class-admin.php';
-register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
-add_action('plugins_loaded', function () {
-    (new TDLPW_Admin())->run();
-    add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
-    add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
-});
-`;
-function buildCourseBridgePluginEdition(project, edition) {
+function buildCourseBridgePaidEdition(project) {
   const legacy = buildWordPressPluginFiles({
     ...project,
     slug: project.slug,
@@ -16661,61 +16719,39 @@ function buildCourseBridgePluginEdition(project, edition) {
     version: project.version,
     author: project.author
   };
-  if (edition === "core") {
-    const bridge2 = legacy["includes/class-bridge.php"].replace(
-      "        TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));",
-      "        if (class_exists('TDLPW_Audience')) { TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids))); }"
-    ).replace(
-      "        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),",
-      "        if (!class_exists('TDLPW_Audience')) { return; }\n        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),"
-    );
-    const coreFiles = {
-      [`${project.slug}.php`]: coreMain(project),
-      "includes/class-activator.php": legacy["includes/class-activator.php"],
-      "includes/class-core.php": coreClass,
-      "includes/class-course-admin.php": courseAdmin(project),
-      "includes/class-bridge.php": bridge2,
-      "uninstall.php": legacy["uninstall.php"]
-    };
-    return normalizeGeneratedEdition({
-      mainFile: `${project.slug}.php`,
-      shortDescription: "Link WooCommerce products to LearnPress courses and enroll paid customers automatically.",
-      description: "A useful free core for mapping WooCommerce products to LearnPress courses, enrolling customers after confirmed payment, and assigning courses to users from the WordPress admin dashboard.",
-      features: [
-        "Map one product to multiple LearnPress courses",
-        "Enroll customers after successful payment",
-        "Search for WordPress users and manually enroll them in LearnPress courses from the admin dashboard",
-        "Prevent duplicate enrollments when WooCommerce order hooks repeat"
-      ],
-      requirements: ["WooCommerce", "LearnPress"],
-      files: coreFiles
-    }, common, edition);
-  }
-  const premiumFiles = {
-    [`${project.slug}-premium.php`]: premiumMain(project),
+  const bridge2 = legacy["includes/class-bridge.php"].replace(
+    "        TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids)));",
+    "        if (class_exists('TDLPW_Audience')) { TDLPW_Audience::index_order($order, array_values(array_unique($product_ids)), array_values(array_unique($course_ids))); }"
+  ).replace(
+    "        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),",
+    "        if (!class_exists('TDLPW_Audience')) { return; }\n        global $wpdb;\n        $wpdb->update(\n            TDLPW_Audience::table(),"
+  );
+  const paidFiles = {
+    [`${project.slug}.php`]: paidMain(project),
+    "includes/class-activator.php": legacy["includes/class-activator.php"],
+    "includes/class-core.php": coreClass,
+    "includes/class-course-admin.php": courseAdmin(project),
+    "includes/class-bridge.php": bridge2,
     "includes/class-audience.php": legacy["includes/class-audience.php"],
     "includes/class-resend.php": legacy["includes/class-resend.php"],
-    "includes/class-admin.php": legacy["includes/class-admin.php"].replaceAll("TDLPW_URL . 'assets/css/admin.css'", "TDLPW_PREMIUM_URL . 'assets/css/admin.css'"),
-    "assets/css/admin.css": legacy["assets/css/admin.css"]
+    "includes/class-admin.php": legacy["includes/class-admin.php"],
+    "assets/css/admin.css": legacy["assets/css/admin.css"],
+    "uninstall.php": legacy["uninstall.php"]
   };
   return normalizeGeneratedEdition({
-    mainFile: `${project.slug}-premium.php`,
+    mainFile: `${project.slug}.php`,
     shortDescription: project.shortDescription,
     description: project.description,
     features: [
+      "Map WooCommerce products to multiple LearnPress courses and auto-enroll buyers after successful payment",
+      "Assign users to LearnPress courses directly from the WordPress dashboard",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
       "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
-      "Store sender settings, unsubscribe preferences, and campaign delivery logs"
+      "Manage plugin settings, sender details, and license from one CourseBridge Pro menu"
     ],
-    requirements: ["WooCommerce", "LearnPress", `CourseBridge Core (${project.slug})`, "Resend API key and verified sender domain"],
-    files: premiumFiles
-  }, common, edition);
-}
-function buildCourseBridgePluginEditions(project) {
-  return {
-    core: buildCourseBridgePluginEdition(project, "core"),
-    premium: buildCourseBridgePluginEdition(project, "premium")
-  };
+    requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license", "Resend API key for email campaigns"],
+    files: paidFiles
+  }, common, "paid");
 }
 
 // server/plugin-licensing.ts
@@ -16769,6 +16805,9 @@ function addPeriod(from, cadence) {
   const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
   result.setUTCDate(Math.min(dayOfMonth, lastDay));
   return result;
+}
+function validCadence(value) {
+  return value === "monthly" || value === "yearly";
 }
 function cleanSiteUrl(value) {
   try {
@@ -17237,6 +17276,90 @@ function registerPluginLicenseRoutes(app2, options) {
       res.status(500).json({ message: "Could not load plugin license metrics." });
     }
   });
+  app2.post("/api/admin/plugin-studio/licenses", isAuthenticated, async (req, res) => {
+    if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
+    try {
+      const projectId = String(req.body?.projectId || "").trim().slice(0, 120);
+      const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 254);
+      const cadence = req.body?.cadence;
+      if (!projectId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !validCadence(cadence)) {
+        return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly or yearly license." });
+      }
+      const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.id, projectId)).limit(1);
+      if (!project) return res.status(404).json({ message: "Plugin not found." });
+      let licenseServer = null;
+      try {
+        licenseServer = project.licenseApiBaseUrl ? new URL(project.licenseApiBaseUrl) : null;
+      } catch {
+      }
+      if (!licenseServer || licenseServer.protocol !== "https:" || licenseServer.username || licenseServer.password || licenseServer.search || licenseServer.hash) {
+        return res.status(409).json({ message: "Set a public HTTPS Taskdrip license server URL in this plugin's settings before issuing a WordPress key." });
+      }
+      if (!project.shopProductId) return res.status(409).json({ message: "This plugin has no linked shop product and cannot receive a license yet." });
+      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq10(shopProducts.id, project.shopProductId)).limit(1);
+      if (!product) return res.status(409).json({ message: "The plugin's shop product is missing. Repair the listing before issuing a license." });
+      const [recipient] = await db.select({ id: users.id, email: users.email }).from(users).where(sql8`lower(${users.email}) = ${email}`).limit(1);
+      if (!recipient) return res.status(404).json({ message: "No Taskdrip account uses that email. The customer must create an account before a license can be assigned." });
+      const key = makeLicenseKey(project.slug);
+      const startsAt = /* @__PURE__ */ new Date();
+      const expiresAt = addPeriod(startsAt, cadence);
+      const license = await db.transaction(async (tx) => {
+        const [created] = await tx.insert(pluginLicenses).values({
+          userId: recipient.id,
+          projectId: project.id,
+          productId: product.id,
+          purchaseId: null,
+          keyHash: hashLicenseKey(key),
+          keyEncrypted: encryptLicenseKey(key),
+          keyPrefix: key.slice(0, 12),
+          cadence,
+          status: "active",
+          startsAt,
+          expiresAt,
+          maxActivations: project.maxActivations || 3
+        }).returning({
+          id: pluginLicenses.id,
+          status: pluginLicenses.status,
+          cadence: pluginLicenses.cadence,
+          keyPrefix: pluginLicenses.keyPrefix,
+          expiresAt: pluginLicenses.expiresAt,
+          maxActivations: pluginLicenses.maxActivations
+        });
+        await tx.insert(pluginLicenseEvents).values({
+          licenseId: created.id,
+          projectId: project.id,
+          eventType: "license_issued",
+          details: {
+            source: "admin",
+            issuedByAdminId: String(req.user.id),
+            cadence,
+            expiresAt: expiresAt.toISOString()
+          }
+        });
+        return created;
+      });
+      res.status(201).json({
+        ...license,
+        projectName: project.name,
+        buyerEmail: recipient.email,
+        licenseKey: key
+      });
+    } catch (error) {
+      console.error("[plugin-license] Could not issue admin license:", error.message);
+      res.status(500).json({ message: "Could not issue this plugin license." });
+    }
+  });
+  app2.post("/api/admin/plugin-studio/licenses/:id/reveal", isAuthenticated, async (req, res) => {
+    if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
+    try {
+      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq10(pluginLicenses.id, req.params.id)).limit(1);
+      if (!license) return res.status(404).json({ message: "License not found." });
+      res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
+    } catch (error) {
+      console.error("[plugin-license] Could not reveal admin license:", error.message);
+      res.status(500).json({ message: "Could not retrieve this license key." });
+    }
+  });
   app2.get("/api/admin/plugin-studio/support", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
@@ -17516,13 +17639,14 @@ var STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "1.0.1",
+  version: "2.0.0",
   author: "Taskdrip",
-  shortDescription: "Map WooCommerce products to LearnPress courses, assign courses manually, track buyers, and send consent-based Resend campaigns.",
-  description: "CourseBridge Core links WooCommerce products to LearnPress courses, enrolls customers after confirmed payment, and lets administrators find users and assign courses directly from the WordPress dashboard. The separate paid Premium add-on gives administrators a dashboard for successful product and course purchases, WordPress roles, order totals, and enrollment history. Build course-specific audiences and send individual or selected-group Resend campaigns only to opted-in users, with unsubscribe links and send logs.",
-  seoTitle: "LearnPress WooCommerce Integration & Email Marketing Plugin",
-  seoDescription: "Connect LearnPress courses to WooCommerce products. Auto-enroll paid buyers, track customers and course purchases, and send consent-based Resend email campaigns.",
-  seoKeywords: "LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, Resend email marketing, course customer management"
+  shortDescription: "One licensed plugin to map WooCommerce products to LearnPress courses, enroll users, manage buyers, and send consent-based campaigns.",
+  description: "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls buyers after confirmed payment, and lets site administrators assign courses directly to users. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
+  seoTitle: "CourseBridge Pro \u2013 LearnPress & WooCommerce Plugin",
+  seoDescription: "Connect WooCommerce products to LearnPress courses, automatically enroll paying customers, manage course buyers, and send consent-based email campaigns with CourseBridge Pro.",
+  seoKeywords: "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
+  featuredImage: "/coursebridge-pro-featured.svg"
 };
 function slugify2(value) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
@@ -17539,21 +17663,22 @@ function adminOnly(req, res) {
 }
 async function ensureStarterProject(adminId) {
   const [existing] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
-  const editions = buildCourseBridgePluginEditions(STARTER);
+  const paidEdition = buildCourseBridgePaidEdition(STARTER);
   if (existing) {
     let shopProductId = existing.shopProductId || "";
     if (!shopProductId) {
       shopProductId = await db.transaction(async (tx) => {
         const [product] = await tx.insert(shopProducts).values({
-          title: `${STARTER.name} Premium`,
+          title: STARTER.name,
           description: STARTER.description,
           shortDescription: STARTER.shortDescription,
+          featuredImage: STARTER.featuredImage,
           price: STARTER_MONTHLY_PRICE.toFixed(2),
           serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
           category: "WordPress Plugins",
           type: "plugin",
-          features: editions.premium.features,
-          requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...editions.premium.requirements])).slice(0, 10),
+          features: paidEdition.features,
+          requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
           tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
           isActive: false,
           isFeatured: false,
@@ -17567,28 +17692,41 @@ async function ensureStarterProject(adminId) {
       await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq11(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
-    const refreshLegacyStarter = existing.version === "1.0.0";
-    const packagesMissing = !Object.keys(existing.coreFiles || {}).length || !Object.keys(existing.premiumFiles || {}).length;
+    const refreshLegacyStarter = compareVersions2(existing.version, STARTER.version) < 0 || Object.keys(existing.coreFiles || {}).length > 0 || !existing.premiumFiles?.[`${STARTER.slug}.php`];
+    const packagesMissing = !Object.keys(existing.premiumFiles || {}).length;
     const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
-    if (packagesMissing || refreshLegacyStarter || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl) {
+    const projectMetadataNeedsSync = existing.name !== STARTER.name || existing.author !== STARTER.author || existing.shortDescription !== STARTER.shortDescription || existing.description !== STARTER.description || existing.seoTitle !== STARTER.seoTitle || existing.seoDescription !== STARTER.seoDescription || existing.seoKeywords !== STARTER.seoKeywords;
+    if (packagesMissing || refreshLegacyStarter || existing.shopProductId !== shopProductId || licenseApiBaseUrl !== existing.licenseApiBaseUrl || projectMetadataNeedsSync) {
       await db.update(pluginStudioProjects).set({
         shopProductId,
         licenseApiBaseUrl,
         version: refreshLegacyStarter ? STARTER.version : existing.version,
-        shortDescription: refreshLegacyStarter ? STARTER.shortDescription : existing.shortDescription,
-        description: refreshLegacyStarter ? STARTER.description : existing.description,
+        name: STARTER.name,
+        author: STARTER.author,
+        shortDescription: STARTER.shortDescription,
+        description: STARTER.description,
+        seoTitle: STARTER.seoTitle,
+        seoDescription: STARTER.seoDescription,
+        seoKeywords: STARTER.seoKeywords,
         sourcePrompt: refreshLegacyStarter ? STARTER.description : existing.sourcePrompt || STARTER.description,
-        coreShortDescription: editions.core.shortDescription,
-        coreDescription: editions.core.description,
-        coreFiles: editions.core.files,
-        premiumFiles: editions.premium.files,
+        coreShortDescription: "",
+        coreDescription: "",
+        coreFiles: {},
+        premiumFiles: paidEdition.files,
         updatedAt: /* @__PURE__ */ new Date()
       }).where(eq11(pluginStudioProjects.id, existing.id));
     }
-    if (refreshLegacyStarter) {
+    const [existingProduct] = await db.select().from(shopProducts).where(eq11(shopProducts.id, shopProductId)).limit(1);
+    const productMetadataNeedsSync = existingProduct && (existingProduct.title !== STARTER.name || existingProduct.shortDescription !== STARTER.shortDescription || existingProduct.description !== STARTER.description || existingProduct.featuredImage !== STARTER.featuredImage || JSON.stringify(existingProduct.features || []) !== JSON.stringify(paidEdition.features) || JSON.stringify(existingProduct.requirements || []) !== JSON.stringify(Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10)) || JSON.stringify(existingProduct.tags || []) !== JSON.stringify(["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"]));
+    if (productMetadataNeedsSync) {
       await db.update(shopProducts).set({
+        title: STARTER.name,
         shortDescription: STARTER.shortDescription,
         description: STARTER.description,
+        featuredImage: STARTER.featuredImage,
+        features: paidEdition.features,
+        requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
+        tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         updatedAt: /* @__PURE__ */ new Date()
       }).where(eq11(shopProducts.id, shopProductId));
     }
@@ -17597,15 +17735,16 @@ async function ensureStarterProject(adminId) {
   try {
     await db.transaction(async (tx) => {
       const [product] = await tx.insert(shopProducts).values({
-        title: `${STARTER.name} Premium`,
+        title: STARTER.name,
         description: STARTER.description,
         shortDescription: STARTER.shortDescription,
+        featuredImage: STARTER.featuredImage,
         price: STARTER_MONTHLY_PRICE.toFixed(2),
         serviceAddons: PLAN_ADDONS(STARTER_MONTHLY_PRICE, STARTER_MONTHLY_PRICE * 12),
         category: "WordPress Plugins",
         type: "plugin",
-        features: editions.premium.features,
-        requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...editions.premium.requirements])).slice(0, 10),
+        features: paidEdition.features,
+        requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
         tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         isActive: false,
         isFeatured: false,
@@ -17616,10 +17755,10 @@ async function ensureStarterProject(adminId) {
         ...STARTER,
         licenseApiBaseUrl: defaultLicenseApiBaseUrl(),
         sourcePrompt: STARTER.description,
-        coreShortDescription: editions.core.shortDescription,
-        coreDescription: editions.core.description,
-        coreFiles: editions.core.files,
-        premiumFiles: editions.premium.files,
+        coreShortDescription: "",
+        coreDescription: "",
+        coreFiles: {},
+        premiumFiles: paidEdition.files,
         shopProductId: product.id,
         status: "draft",
         createdBy: adminId
@@ -17645,11 +17784,15 @@ function parseGeneratedPair(content) {
 async function getProjectFiles(id, edition) {
   const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
-  const sourceFiles = edition === "core" ? project.coreFiles : project.premiumFiles;
+  const singlePaid = project.templateKey === STARTER.templateKey;
+  if (singlePaid && edition === "core" || !singlePaid && edition === "paid") return null;
+  const packageEdition = singlePaid ? "paid" : edition;
+  const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const release = buildPluginReleaseFiles(project, edition, sourceFiles);
+    const release = buildPluginReleaseFiles(project, packageEdition, sourceFiles);
     return { project, ...release };
   }
+  if (packageEdition === "paid") return null;
   return {
     project,
     folderSlug: project.slug,
@@ -17960,7 +18103,7 @@ ${description}`
   app2.get("/api/admin/plugin-studio/projects/:id/download", isAuthenticated, async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const edition = req.query.edition === "core" ? "core" : "premium";
+      const edition = req.query.edition === "core" ? "core" : req.query.edition === "paid" ? "paid" : "premium";
       const result = await getProjectFiles(req.params.id, edition);
       if (!result) return res.status(404).json({ message: "Plugin project not found." });
       const archive = archiveFor(result.folderSlug, result.files);
@@ -17975,6 +18118,7 @@ ${description}`
   });
   app2.get("/api/shop/plugin-seo/:productId", async (req, res) => {
     try {
+      const key = String(req.params.productId);
       const [project] = await db.select({
         id: pluginStudioProjects.id,
         slug: pluginStudioProjects.slug,
@@ -17984,10 +18128,11 @@ ${description}`
         seoDescription: pluginStudioProjects.seoDescription,
         seoKeywords: pluginStudioProjects.seoKeywords,
         productId: shopProducts.id,
+        featuredImage: shopProducts.featuredImage,
         price: shopProducts.price,
         isActive: shopProducts.isActive
       }).from(pluginStudioProjects).innerJoin(shopProducts, eq11(pluginStudioProjects.shopProductId, shopProducts.id)).where(and8(
-        eq11(pluginStudioProjects.shopProductId, req.params.productId),
+        or(eq11(pluginStudioProjects.shopProductId, key), eq11(pluginStudioProjects.slug, key)),
         eq11(pluginStudioProjects.status, "published"),
         eq11(shopProducts.isActive, true)
       )).limit(1);
@@ -18420,6 +18565,44 @@ function getSubscriptionTier(user) {
   return "monthly";
 }
 var POST_LIMITS = { free: 3, monthly: 12, yearly: Infinity };
+async function addPluginSlugs(products) {
+  if (!products.length) return [];
+  const productIds = products.map((product) => product.id);
+  const projects = await db.select({
+    productId: pluginStudioProjects.shopProductId,
+    slug: pluginStudioProjects.slug,
+    status: pluginStudioProjects.status
+  }).from(pluginStudioProjects).where(inArray11(pluginStudioProjects.shopProductId, productIds));
+  const slugByProductId = new Map(projects.flatMap((project) => project.productId && project.status === "published" ? [[project.productId, project.slug]] : []));
+  return products.map((product) => ({
+    ...product,
+    ...slugByProductId.has(product.id) ? { pluginSlug: slugByProductId.get(product.id) } : {}
+  }));
+}
+async function getShopProductByPublicKey(key) {
+  const productById = await storage.getShopProductById(key);
+  if (productById) {
+    const [project2] = await db.select({
+      slug: pluginStudioProjects.slug,
+      status: pluginStudioProjects.status
+    }).from(pluginStudioProjects).where(eq15(pluginStudioProjects.shopProductId, productById.id)).limit(1);
+    return {
+      ...productById,
+      ...project2?.status === "published" && productById.isActive ? { pluginSlug: project2.slug } : {}
+    };
+  }
+  const [project] = await db.select({
+    slug: pluginStudioProjects.slug,
+    shopProductId: pluginStudioProjects.shopProductId
+  }).from(pluginStudioProjects).where(and11(
+    eq15(pluginStudioProjects.slug, key),
+    eq15(pluginStudioProjects.status, "published")
+  )).limit(1);
+  if (!project?.shopProductId) return void 0;
+  const product = await storage.getShopProductById(project.shopProductId);
+  if (!product?.isActive) return void 0;
+  return { ...product, pluginSlug: project.slug };
+}
 var CAMPAIGN_LIMITS = { free: 3, monthly: Infinity, yearly: Infinity };
 function makeTtlCache(fn, maxAge) {
   let cached = null;
@@ -22311,7 +22494,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/shop/products/featured", async (req, res) => {
     try {
       const products = await storage.getFeaturedProducts();
-      res.json(products);
+      res.json(await addPluginSlugs(products));
     } catch (error) {
       console.error("Error fetching featured products:", error);
       res.status(500).json({ message: "Failed to fetch featured products" });
@@ -22320,7 +22503,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/shop/products/category/:category", async (req, res) => {
     try {
       const products = await storage.getProductsByCategory(req.params.category);
-      res.json(products);
+      res.json(await addPluginSlugs(products));
     } catch (error) {
       console.error("Error fetching products by category:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -22329,7 +22512,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/shop/products", async (req, res) => {
     try {
       const products = await storage.getAllShopProducts();
-      res.json(products);
+      res.json(await addPluginSlugs(products));
     } catch (error) {
       console.error("Error fetching shop products:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -22337,7 +22520,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/shop/products/:id", async (req, res) => {
     try {
-      const product = await storage.getShopProductById(req.params.id);
+      const product = await getShopProductByPublicKey(req.params.id);
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
@@ -25941,8 +26124,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, and: and13 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and13(eq21(productLikes2.productId, req.params.id), eq21(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq21, and: and14 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and14(eq21(productLikes2.productId, req.params.id), eq21(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -25952,12 +26135,12 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, and: and13, sql: sql17 } = await import("drizzle-orm");
+      const { eq: eq21, and: and14, sql: sql17 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and13(eq21(productLikes2.productId, req.params.id), eq21(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and14(eq21(productLikes2.productId, req.params.id), eq21(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
@@ -28764,7 +28947,7 @@ ${body}`,
       if (status && status !== "all") conditions.push(eq15(activityLogs.status, status));
       if (search) {
         const pattern = `%${search.slice(0, 100)}%`;
-        conditions.push(or(
+        conditions.push(or2(
           ilike2(activityLogs.action, pattern),
           ilike2(activityLogs.description, pattern),
           ilike2(activityLogs.actorName, pattern),
@@ -29675,8 +29858,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, and: and13 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and13(eq21(pageHeroBackgrounds2.page, req.params.page), eq21(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq21, and: and14 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and14(eq21(pageHeroBackgrounds2.page, req.params.page), eq21(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -30433,9 +30616,15 @@ ${body}`,
       } catch {
       }
       try {
-        const productList = await db.select({ id: shopProducts.id }).from(shopProducts).limit(500);
+        const productList = await db.select({
+          id: shopProducts.id,
+          pluginSlug: pluginStudioProjects.slug
+        }).from(shopProducts).leftJoin(pluginStudioProjects, eq15(pluginStudioProjects.shopProductId, shopProducts.id)).where(and11(
+          eq15(shopProducts.isActive, true),
+          or2(isNull2(pluginStudioProjects.id), eq15(pluginStudioProjects.status, "published"))
+        )).limit(500);
         for (const p of productList) {
-          xml += `  <url><loc>${domain}/shop/product/${p.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+          xml += `  <url><loc>${domain}/shop/product/${encodeURIComponent(p.pluginSlug || p.id)}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 `;
         }
       } catch {
@@ -31252,7 +31441,7 @@ import path4 from "path";
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { eq as eq16 } from "drizzle-orm";
+import { and as and12, eq as eq16, or as or3 } from "drizzle-orm";
 var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
@@ -31415,6 +31604,25 @@ async function lookupRoute(origin, pathname) {
   const shopMatch = pathname.match(/^\/shop\/product\/([^/?#]+)/);
   if (shopMatch) {
     const key = decodeURIComponent(shopMatch[1]);
+    const [pluginListing] = await db.select({
+      project: pluginStudioProjects,
+      product: shopProducts
+    }).from(pluginStudioProjects).innerJoin(shopProducts, eq16(pluginStudioProjects.shopProductId, shopProducts.id)).where(and12(
+      or3(eq16(pluginStudioProjects.slug, key), eq16(pluginStudioProjects.shopProductId, key)),
+      eq16(pluginStudioProjects.status, "published"),
+      eq16(shopProducts.isActive, true)
+    )).limit(1);
+    if (pluginListing) {
+      const canonicalUrl = `${origin}/shop/product/${encodeURIComponent(pluginListing.project.slug)}`;
+      return {
+        title: pluginListing.project.seoTitle || `${pluginListing.project.name} | Taskdrip Shop`,
+        description: trimText(pluginListing.project.seoDescription || pluginListing.project.shortDescription || pluginListing.product.description || ""),
+        image: absolutize(origin, pluginListing.product.featuredImage),
+        keywords: pluginListing.project.seoKeywords || void 0,
+        url: canonicalUrl,
+        canonicalUrl
+      };
+    }
     const [p] = await db.select().from(shopProducts).where(eq16(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
@@ -33228,7 +33436,7 @@ init_seed_breedskool_courses();
 // server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq19, sql as sql15, and as and12 } from "drizzle-orm";
+import { eq as eq19, sql as sql15, and as and13 } from "drizzle-orm";
 import bcrypt5 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
@@ -33335,7 +33543,7 @@ async function seedSaasCourseDemo() {
           userId = newUser.id;
           studentsCreated++;
         }
-        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and12(
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and13(
           eq19(courseEnrollments.courseId, courseId),
           eq19(courseEnrollments.userId, userId)
         )).limit(1);
@@ -33358,7 +33566,7 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
     }
-    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and12(
+    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and13(
       eq19(courseEnrollments.courseId, courseId),
       eq19(courseEnrollments.isPaid, true),
       eq19(courseEnrollments.status, "active")
@@ -33368,7 +33576,7 @@ async function seedSaasCourseDemo() {
       try {
         const [userRow] = await db.select({ id: users.id }).from(users).where(eq19(users.email, rev.email)).limit(1);
         if (!userRow) continue;
-        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and12(
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and13(
           eq19(courseReviews.courseId, courseId),
           eq19(courseReviews.userId, userRow.id)
         )).limit(1);

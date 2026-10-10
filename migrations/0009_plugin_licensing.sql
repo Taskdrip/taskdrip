@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS plugin_licenses (
   user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   project_id VARCHAR NOT NULL REFERENCES plugin_studio_projects(id) ON DELETE CASCADE,
   product_id VARCHAR NOT NULL REFERENCES shop_products(id) ON DELETE CASCADE,
-  purchase_id VARCHAR NOT NULL UNIQUE REFERENCES purchases(id) ON DELETE CASCADE,
+  purchase_id VARCHAR UNIQUE REFERENCES purchases(id) ON DELETE CASCADE,
   key_hash VARCHAR NOT NULL UNIQUE,
   key_encrypted TEXT NOT NULL,
   key_prefix VARCHAR NOT NULL,

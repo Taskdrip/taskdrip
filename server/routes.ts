@@ -13,7 +13,7 @@ import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
-import { desc, sql, eq, and, count, gte, inArray, ilike, or } from "drizzle-orm";
+import { desc, sql, eq, and, count, gte, inArray, ilike, or, isNull } from "drizzle-orm";
 import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./creator-publishing";
 import { registerPluginStudioRoutes } from "./plugin-studio";
 import { activatePluginLicenseForPurchase, getPluginLicenseSummaryForPurchase } from "./plugin-licensing";
@@ -28,6 +28,51 @@ function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
 
 // Post limits per subscription tier
 const POST_LIMITS: Record<string, number> = { free: 3, monthly: 12, yearly: Infinity };
+
+async function addPluginSlugs<T extends { id: string }>(products: T[]): Promise<(T & { pluginSlug?: string })[]> {
+  if (!products.length) return [];
+  const productIds = products.map((product) => product.id);
+  const projects = await db.select({
+    productId: pluginStudioProjects.shopProductId,
+    slug: pluginStudioProjects.slug,
+    status: pluginStudioProjects.status,
+  }).from(pluginStudioProjects).where(inArray(pluginStudioProjects.shopProductId, productIds));
+  const slugByProductId = new Map(projects.flatMap((project) =>
+    project.productId && project.status === "published"
+      ? [[project.productId, project.slug] as const]
+      : []));
+  return products.map((product) => ({
+    ...product,
+    ...(slugByProductId.has(product.id) ? { pluginSlug: slugByProductId.get(product.id) } : {}),
+  }));
+}
+
+async function getShopProductByPublicKey(key: string) {
+  const productById = await storage.getShopProductById(key);
+  if (productById) {
+    const [project] = await db.select({
+      slug: pluginStudioProjects.slug,
+      status: pluginStudioProjects.status,
+    })
+      .from(pluginStudioProjects).where(eq(pluginStudioProjects.shopProductId, productById.id)).limit(1);
+    return {
+      ...productById,
+      ...(project?.status === "published" && productById.isActive ? { pluginSlug: project.slug } : {}),
+    };
+  }
+
+  const [project] = await db.select({
+    slug: pluginStudioProjects.slug,
+    shopProductId: pluginStudioProjects.shopProductId,
+  }).from(pluginStudioProjects).where(and(
+    eq(pluginStudioProjects.slug, key),
+    eq(pluginStudioProjects.status, "published"),
+  )).limit(1);
+  if (!project?.shopProductId) return undefined;
+  const product = await storage.getShopProductById(project.shopProductId);
+  if (!product?.isActive) return undefined;
+  return { ...product, pluginSlug: project.slug };
+}
 // Campaign limits per subscription tier for brands
 const CAMPAIGN_LIMITS: Record<string, number> = { free: 3, monthly: Infinity, yearly: Infinity };
 import { z } from "zod";
@@ -4466,7 +4511,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.get('/api/shop/products/featured', async (req, res) => {
     try {
       const products = await storage.getFeaturedProducts();
-      res.json(products);
+      res.json(await addPluginSlugs(products));
     } catch (error) {
       console.error("Error fetching featured products:", error);
       res.status(500).json({ message: "Failed to fetch featured products" });
@@ -4476,7 +4521,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.get('/api/shop/products/category/:category', async (req, res) => {
     try {
       const products = await storage.getProductsByCategory(req.params.category);
-      res.json(products);
+      res.json(await addPluginSlugs(products));
     } catch (error) {
       console.error("Error fetching products by category:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -4487,7 +4532,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.get('/api/shop/products', async (req, res) => {
     try {
       const products = await storage.getAllShopProducts();
-      res.json(products);
+      res.json(await addPluginSlugs(products));
     } catch (error) {
       console.error("Error fetching shop products:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -4497,7 +4542,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // Parameterized routes last (least specific)
   app.get('/api/shop/products/:id', async (req, res) => {
     try {
-      const product = await storage.getShopProductById(req.params.id);
+      const product = await getShopProductByPublicKey(req.params.id);
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
@@ -13364,9 +13409,18 @@ Instructions:
         }
       } catch {}
       try {
-        const productList = await db.select({ id: shopProducts.id }).from(shopProducts).limit(500);
+        const productList = await db.select({
+          id: shopProducts.id,
+          pluginSlug: pluginStudioProjects.slug,
+        }).from(shopProducts)
+          .leftJoin(pluginStudioProjects, eq(pluginStudioProjects.shopProductId, shopProducts.id))
+          .where(and(
+            eq(shopProducts.isActive, true),
+            or(isNull(pluginStudioProjects.id), eq(pluginStudioProjects.status, "published")),
+          ))
+          .limit(500);
         for (const p of productList) {
-          xml += `  <url><loc>${domain}/shop/product/${p.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+          xml += `  <url><loc>${domain}/shop/product/${encodeURIComponent(p.pluginSlug || p.id)}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
         }
       } catch {}
       try {

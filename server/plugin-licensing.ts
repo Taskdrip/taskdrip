@@ -615,6 +615,96 @@ export function registerPluginLicenseRoutes(
     }
   });
 
+  app.post("/api/admin/plugin-studio/licenses", isAuthenticated, async (req: any, res) => {
+    if (!isAdmin(req.user)) return res.status(403).json({ message: "Admin access required." });
+    try {
+      const projectId = String(req.body?.projectId || "").trim().slice(0, 120);
+      const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 254);
+      const cadence = req.body?.cadence;
+      if (!projectId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !validCadence(cadence)) {
+        return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly or yearly license." });
+      }
+
+      const [project] = await db.select().from(pluginStudioProjects)
+        .where(eq(pluginStudioProjects.id, projectId)).limit(1);
+      if (!project) return res.status(404).json({ message: "Plugin not found." });
+      let licenseServer: URL | null = null;
+      try { licenseServer = project.licenseApiBaseUrl ? new URL(project.licenseApiBaseUrl) : null; } catch { /* reject below */ }
+      if (!licenseServer || licenseServer.protocol !== "https:" || licenseServer.username || licenseServer.password || licenseServer.search || licenseServer.hash) {
+        return res.status(409).json({ message: "Set a public HTTPS Taskdrip license server URL in this plugin's settings before issuing a WordPress key." });
+      }
+      if (!project.shopProductId) return res.status(409).json({ message: "This plugin has no linked shop product and cannot receive a license yet." });
+      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts)
+        .where(eq(shopProducts.id, project.shopProductId)).limit(1);
+      if (!product) return res.status(409).json({ message: "The plugin's shop product is missing. Repair the listing before issuing a license." });
+      const [recipient] = await db.select({ id: users.id, email: users.email }).from(users)
+        .where(sql`lower(${users.email}) = ${email}`).limit(1);
+      if (!recipient) return res.status(404).json({ message: "No Taskdrip account uses that email. The customer must create an account before a license can be assigned." });
+
+      const key = makeLicenseKey(project.slug);
+      const startsAt = new Date();
+      const expiresAt = addPeriod(startsAt, cadence);
+      const license = await db.transaction(async (tx) => {
+        const [created] = await tx.insert(pluginLicenses).values({
+          userId: recipient.id,
+          projectId: project.id,
+          productId: product.id,
+          purchaseId: null,
+          keyHash: hashLicenseKey(key),
+          keyEncrypted: encryptLicenseKey(key),
+          keyPrefix: key.slice(0, 12),
+          cadence,
+          status: "active",
+          startsAt,
+          expiresAt,
+          maxActivations: project.maxActivations || 3,
+        }).returning({
+          id: pluginLicenses.id,
+          status: pluginLicenses.status,
+          cadence: pluginLicenses.cadence,
+          keyPrefix: pluginLicenses.keyPrefix,
+          expiresAt: pluginLicenses.expiresAt,
+          maxActivations: pluginLicenses.maxActivations,
+        });
+        await tx.insert(pluginLicenseEvents).values({
+          licenseId: created.id,
+          projectId: project.id,
+          eventType: "license_issued",
+          details: {
+            source: "admin",
+            issuedByAdminId: String(req.user.id),
+            cadence,
+            expiresAt: expiresAt.toISOString(),
+          },
+        });
+        return created;
+      });
+
+      res.status(201).json({
+        ...license,
+        projectName: project.name,
+        buyerEmail: recipient.email,
+        licenseKey: key,
+      });
+    } catch (error: any) {
+      console.error("[plugin-license] Could not issue admin license:", error.message);
+      res.status(500).json({ message: "Could not issue this plugin license." });
+    }
+  });
+
+  app.post("/api/admin/plugin-studio/licenses/:id/reveal", isAuthenticated, async (req: any, res) => {
+    if (!isAdmin(req.user)) return res.status(403).json({ message: "Admin access required." });
+    try {
+      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted })
+        .from(pluginLicenses).where(eq(pluginLicenses.id, req.params.id)).limit(1);
+      if (!license) return res.status(404).json({ message: "License not found." });
+      res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
+    } catch (error: any) {
+      console.error("[plugin-license] Could not reveal admin license:", error.message);
+      res.status(500).json({ message: "Could not retrieve this license key." });
+    }
+  });
+
   app.get("/api/admin/plugin-studio/support", isAuthenticated, async (req: any, res) => {
     if (!isAdmin(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {

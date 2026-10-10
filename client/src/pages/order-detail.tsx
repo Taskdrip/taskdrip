@@ -587,7 +587,7 @@ export default function OrderDetailPage() {
                     </Button>
                     {product.id && (
                       <Button asChild variant="outline">
-                        <a href={`/shop/product/${product.id}?plan=${pluginLicense.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
+                        <a href={`/shop/product/${pluginLicense.project?.slug || product.id}?plan=${pluginLicense.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
                           <RefreshCw className="mr-2 h-4 w-4" />Renew {pluginLicense.cadence} plan
                         </a>
                       </Button>
