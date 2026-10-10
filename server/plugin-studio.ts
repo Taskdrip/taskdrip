@@ -100,14 +100,14 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.0.0",
+  version: "2.1.0",
   author: "Taskdrip",
-  shortDescription: "One licensed plugin to map WooCommerce products to LearnPress courses, enroll users, manage buyers, and send consent-based campaigns.",
+  shortDescription: "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and list their courses in My Account.",
   description:
-    "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls buyers after confirmed payment, and lets site administrators assign courses directly to users. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
+    "CourseBridge Pro is one paid plugin that connects WooCommerce products to LearnPress courses, automatically enrolls account holders after confirmed payment, and lets site administrators assign courses directly to users. Course buyers and manually assigned students can open their courses from WooCommerce My Account and LearnPress profiles. It includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
   seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
   seoDescription:
-    "Connect WooCommerce products to LearnPress courses, automatically enroll paying customers, manage course buyers, and send consent-based email campaigns with CourseBridge Pro.",
+    "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",
   seoKeywords:
     "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
   featuredImage: "/coursebridge-pro-featured.svg",

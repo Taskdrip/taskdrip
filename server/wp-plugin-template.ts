@@ -264,6 +264,9 @@ final class TDLPW_Bridge {
         add_action('woocommerce_product_options_general_product_data', array($this, 'product_course_field'));
         add_action('woocommerce_admin_process_product_object', array($this, 'save_product_courses'));
         add_action('tdlpw_sync_mapped_product', array($this, 'sync_historical_product_orders'), 10, 2);
+        add_filter('woocommerce_checkout_registration_enabled', array($this, 'enable_course_buyer_registration'));
+        add_filter('woocommerce_checkout_registration_required', array($this, 'require_course_buyer_account'));
+        add_action('woocommerce_account_dashboard', array($this, 'render_student_courses'));
         add_action('woocommerce_checkout_after_customer_details', array($this, 'checkout_optin'));
         add_action('woocommerce_checkout_create_order', array($this, 'save_checkout_optin'), 10, 2);
         add_action('woocommerce_order_status_processing', array($this, 'sync_paid_order'));
@@ -280,6 +283,53 @@ final class TDLPW_Bridge {
             'orderby' => 'title',
             'order' => 'ASC',
         ));
+    }
+
+    private function cart_contains_mapped_course_product() {
+        if (!function_exists('WC') || !WC() || !WC()->cart) { return false; }
+        foreach (WC()->cart->get_cart() as $item) {
+            $product_id = absint($item['product_id'] ?? 0);
+            if ($product_id && array_filter((array) get_post_meta($product_id, '_tdlpw_course_ids', true))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function enable_course_buyer_registration($enabled) {
+        return $this->cart_contains_mapped_course_product() ? true : $enabled;
+    }
+
+    public function require_course_buyer_account($required) {
+        return $this->cart_contains_mapped_course_product() ? true : $required;
+    }
+
+    public function render_student_courses() {
+        if (!is_user_logged_in()) { return; }
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists !== $table) { return; }
+        $course_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT item_id FROM " . $table . " WHERE user_id = %d AND item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC",
+            get_current_user_id()
+        ));
+        $course_ids = array_values(array_unique(array_filter(array_map('absint', (array) $course_ids))));
+        echo '<section class="woocommerce-MyAccount-content tdlpw-my-courses"><h2>' .
+            esc_html__('My LearnPress courses', '{{SLUG}}') . '</h2>';
+        if (!$course_ids) {
+            echo '<p>' . esc_html__('Courses assigned to your account or unlocked by a paid order will appear here.', '{{SLUG}}') . '</p></section>';
+            return;
+        }
+        echo '<ul class="tdlpw-my-course-list">';
+        foreach ($course_ids as $course_id) {
+            if (!in_array(get_post_status($course_id), array('publish', 'private'), true)) { continue; }
+            $url = get_permalink($course_id);
+            if (!$url) { continue; }
+            echo '<li><strong>' . esc_html(get_the_title($course_id)) . '</strong> <a href="' .
+                esc_url($url) . '">' . esc_html__('Start / continue course', '{{SLUG}}') . '</a></li>';
+        }
+        echo '</ul></section>';
     }
 
     public function product_course_field() {
@@ -360,8 +410,13 @@ final class TDLPW_Bridge {
         $order = wc_get_order($order_id);
         if (!$order || !$order->is_paid()) { return; }
         $user_id = absint($order->get_customer_id());
+        if (!$user_id) {
+            $buyer = get_user_by('email', sanitize_email($order->get_billing_email()));
+            $user_id = $buyer ? absint($buyer->ID) : 0;
+        }
         $product_ids = array();
         $course_ids = array();
+        $done = array_map('absint', (array) $order->get_meta('_tdlpw_enrolled_courses', true));
         foreach ($order->get_items() as $item) {
             $product_id = absint($item->get_product_id());
             if (!$product_id) { continue; }
@@ -370,7 +425,6 @@ final class TDLPW_Bridge {
             foreach ($mapped as $course_id) {
                 if (!$course_id || get_post_type($course_id) !== 'lp_course') { continue; }
                 $course_ids[] = $course_id;
-                $done = array_map('absint', (array) $order->get_meta('_tdlpw_enrolled_courses', true));
                 if ($user_id && !in_array($course_id, $done, true)) {
                     $result = self::enroll_user_in_course($user_id, $course_id);
                     if (!is_wp_error($result)) {
@@ -395,17 +449,25 @@ final class TDLPW_Bridge {
         if (!$user_id || !get_user_by('id', $user_id) || get_post_type($course_id) !== 'lp_course') {
             return new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '{{SLUG}}'));
         }
-        if (function_exists('learn_press_user_enroll_course')) {
-            $result = learn_press_user_enroll_course($user_id, $course_id);
-        } elseif (function_exists('learn_press_get_user')) {
-            $lp_user = learn_press_get_user($user_id);
-            if (!is_object($lp_user) || !method_exists($lp_user, 'enroll')) {
-                return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}'));
-            }
-            $result = $lp_user->enroll($course_id);
-        } else {
+        global $wpdb;
+        $table = $wpdb->prefix . 'learnpress_user_items';
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        if ($exists === $table) {
+            $status = $wpdb->get_var($wpdb->prepare(
+                "SELECT status FROM " . $table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' AND status IN ('enrolled','finished') LIMIT 1",
+                $user_id,
+                $course_id
+            ));
+            if ($status) { return true; }
+        }
+        if (!function_exists('learn_press_get_user')) {
             return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment is not available. Confirm LearnPress is installed and active.', '{{SLUG}}'));
         }
+        $lp_user = learn_press_get_user($user_id);
+        if (!is_object($lp_user) || !method_exists($lp_user, 'enroll')) {
+            return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}'));
+        }
+        $result = $lp_user->enroll($course_id);
         if (is_wp_error($result)) { return $result; }
         if ($result === false) {
             return new WP_Error('tdlpw_enrollment_failed', __('LearnPress could not enroll this user. Check the course and user status.', '{{SLUG}}'));
@@ -774,8 +836,9 @@ final class TDLPW_Admin {
         $products = $this->product_choices();
         $courses = $this->course_choices();
         echo '<div class="tdlpw-grid"><section class="tdlpw-card"><h2>' . esc_html__('How course mapping works', '{{SLUG}}') . '</h2>';
-        echo '<ol><li>' . esc_html__('Edit a WooCommerce product and choose one or more LearnPress courses in Product data → General.', '{{SLUG}}') . '</li>';
-        echo '<li>' . esc_html__('When WooCommerce confirms payment, each mapped course is enrolled automatically once.', '{{SLUG}}') . '</li>';
+        echo '<ol><li>' . esc_html__('Open Course Assignments to select a WooCommerce product and link one or more LearnPress courses. You can also edit the mapping in Product data → General.', '{{SLUG}}') . '</li>';
+        echo '<li>' . esc_html__('When WooCommerce confirms payment, the buyer account is enrolled in each mapped course.', '{{SLUG}}') . '</li>';
+        echo '<li>' . esc_html__('Buyers and users assigned by an administrator can start their courses from WooCommerce My Account or their LearnPress profile.', '{{SLUG}}') . '</li>';
         echo '<li>' . esc_html__('Review paid product and course purchases under Customers & Campaigns.', '{{SLUG}}') . '</li></ol>';
         echo '<p><strong>' . esc_html(sprintf(__('%1$d published products · %2$d LearnPress courses', '{{SLUG}}'), count($products), count($courses))) . '</strong></p>';
         if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
@@ -788,7 +851,11 @@ final class TDLPW_Admin {
             foreach (array_slice($products, 0, 100) as $product) {
                 $ids = array_map('absint', (array) get_post_meta($product->get_id(), '_tdlpw_course_ids', true));
                 $names = array_filter(array_map('get_the_title', $ids));
-                echo '<tr><td>' . esc_html($product->get_name()) . '</td><td>' . esc_html($names ? implode(', ', $names) : __('No course linked', '{{SLUG}}')) . '</td><td><a href="' . esc_url(get_edit_post_link($product->get_id())) . '">' . esc_html__('Edit product', '{{SLUG}}') . '</a></td></tr>';
+                $edit_mapping = add_query_arg(array(
+                    'page' => 'tdlpw-course-assignments',
+                    'edit_product' => $product->get_id(),
+                ), admin_url('admin.php')) . '#tdlpw-map-product';
+                echo '<tr><td>' . esc_html($product->get_name()) . '</td><td>' . esc_html($names ? implode(', ', $names) : __('No course linked', '{{SLUG}}')) . '</td><td><a href="' . esc_url($edit_mapping) . '">' . esc_html__('Edit mapping', '{{SLUG}}') . '</a></td></tr>';
             }
             echo '</tbody></table>';
         }
@@ -922,7 +989,10 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 == Features ==
 
 * Map one WooCommerce product to one or multiple LearnPress courses.
-* Enroll customers when WooCommerce confirms payment; order metadata prevents duplicate enrollment.
+* Enroll account holders when WooCommerce confirms payment; mapped-course checkout requires or creates an account.
+* Show purchased and administrator-assigned courses in WooCommerce My Account with direct start links.
+* Reconcile existing paid orders after an administrator saves a product-to-course mapping.
+* Assign WordPress users directly to courses from CourseBridge Course Assignments.
 * View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
 * Filter the audience by product, course, role, and marketing consent.
 * Send individual or selected-group email campaigns through Resend.
@@ -933,9 +1003,10 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 
 1. Upload the plugin ZIP in Plugins > Add New Plugin > Upload Plugin, or copy the unzipped folder to \`/wp-content/plugins/\`.
 2. Activate WooCommerce and LearnPress, then activate this plugin.
-3. Edit a WooCommerce product. Under Product data > General, map it to one or more LearnPress courses.
-4. Go to Course Bridge > Email Settings and enter a Resend API key and verified sender email.
-5. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
+3. Open CourseBridge Pro > Course Assignments and link a WooCommerce product to one or more LearnPress courses, or use Product data > General.
+4. Course buyers must use or create a WordPress account; their enrolled courses appear in WooCommerce My Account and the LearnPress profile.
+5. Go to CourseBridge Pro > Settings and enter a Resend API key and verified sender email if you plan to send campaigns.
+6. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
 
 == Privacy and email consent ==
 
@@ -951,6 +1022,10 @@ No. Enrollment happens only after WooCommerce reports that the order is paid and
 
 Yes. Select multiple LearnPress courses in that product's settings.
 
+= Where do purchased or assigned courses appear? =
+
+Enrolled users can open their courses from the WooCommerce My Account dashboard and the LearnPress profile. CourseBridge requires an account for checkout when a mapped course product is in the cart.
+
 = Does email require a Resend API key? =
 
 Yes. Add a Resend API key and use a verified sender domain. You can use the plugin settings or define TDLPW_RESEND_API_KEY in wp-config.php.
@@ -958,7 +1033,9 @@ Yes. Add a Resend API key and use a verified sender domain. You can use the plug
 == Changelog ==
 
 = {{VERSION}} =
-* Initial release: LearnPress course mapping, paid-order enrollment, buyer reporting, consent-based Resend campaigns, and SEO-ready repository metadata.
+* Add direct product-to-course mapping in Course Assignments, required course-buyer accounts, purchase backfill, and course start links in WooCommerce My Account.
+* Make user enrollment idempotent and use the LearnPress user enrollment API.
+* Fix direct admin license issuance on databases where purchase_id was still NOT NULL.
 `;
 
 const deployment = `# {{NAME}} — release and repository notes

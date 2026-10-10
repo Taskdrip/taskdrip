@@ -300,8 +300,9 @@ The generated package is not a substitute for a human security or compatibility 
 2. Deactivate and remove any old CourseBridge Premium add-on copies before installing this release.
 3. Upload this single ZIP from WordPress Admin → Plugins → Add New Plugin → Upload Plugin and activate it.
 4. Open CourseBridge Pro → License to activate the purchased license. Then use Dashboard, Course Assignments, and Settings from the CourseBridge Pro menu.
-5. Map a WooCommerce product to LearnPress courses, assign a test user, and place a test paid order to verify both enrollment paths.
-6. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
+5. In Course Assignments, map a WooCommerce product to one or more LearnPress courses and assign a test user directly.
+6. Place a paid test order using a WordPress account; confirm both the assigned user and buyer can start the course from WooCommerce My Account and their LearnPress profile.
+7. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
 
 This licensed Taskdrip package is not a separate free Core plus Premium pair and is not a WordPress.org directory package.
 `
@@ -310,7 +311,7 @@ This licensed Taskdrip package is not a separate free Core plus Premium pair and
 1. Back up the site and use a staging WordPress site.
 2. In WordPress, open Plugins > Add New Plugin > Upload Plugin and upload this ZIP.
 3. Activate the plugin and check for PHP errors or unexpected database changes.
-4. In Course Assignments, search for a WordPress user, select a LearnPress course, and verify that the user is enrolled in their LearnPress dashboard.
+4. In Course Assignments, map a WooCommerce product to LearnPress courses and assign a test user; verify enrolled users can start courses from their account dashboard.
 5. Test every advertised core feature with representative data and both admin and non-admin accounts.
 6. Test activation, deactivation, upgrades, and uninstall cleanup with disposable site data.
 7. Run the current WordPress Plugin Check and test every currently supported WordPress/PHP version.

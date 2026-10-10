@@ -422,6 +422,7 @@ const REQUIRED_TABLES: string[] = [
     "created_at" timestamp DEFAULT now(),
     "updated_at" timestamp DEFAULT now()
   )`,
+  `ALTER TABLE IF EXISTS "plugin_licenses" ALTER COLUMN "purchase_id" DROP NOT NULL`,
   `CREATE INDEX IF NOT EXISTS "plugin_licenses_user_status_idx" ON "plugin_licenses" ("user_id", "status")`,
   `CREATE INDEX IF NOT EXISTS "plugin_licenses_project_status_idx" ON "plugin_licenses" ("project_id", "status")`,
   `CREATE INDEX IF NOT EXISTS "plugin_licenses_expiry_idx" ON "plugin_licenses" ("status", "expires_at")`,

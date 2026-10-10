@@ -145,6 +145,7 @@ final class TDLPW_Course_Admin {
     public function run() {
         add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
+        add_action('admin_post_tdlpw_save_product_courses', array($this, 'save_product_courses'));
     }
 
     public function menu() {
@@ -210,13 +211,91 @@ final class TDLPW_Course_Admin {
         ));
     }
 
+    private function products() {
+        return function_exists('wc_get_products') ? wc_get_products(array(
+            'limit' => 500,
+            'status' => 'publish',
+            'orderby' => 'name',
+            'order' => 'ASC',
+        )) : array();
+    }
+
+    public function save_product_courses() {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        check_admin_referer('tdlpw_save_product_courses');
+        $product_id = absint(wp_unslash($_POST['product_id'] ?? 0));
+        $product = function_exists('wc_get_product') ? wc_get_product($product_id) : false;
+        if (!$product || !current_user_can('edit_product', $product_id)) {
+            wp_die(esc_html__('Choose a WooCommerce product you are allowed to edit.', '${project.slug}'), '', array('response' => 400));
+        }
+        $ids = array_map('absint', (array) wp_unslash($_POST['course_ids'] ?? array()));
+        $valid = array();
+        foreach (array_unique($ids) as $course_id) {
+            if (get_post_type($course_id) === 'lp_course' && in_array(get_post_status($course_id), array('publish', 'private'), true)) {
+                $valid[] = $course_id;
+            }
+        }
+        update_post_meta($product_id, '_tdlpw_course_ids', $valid);
+        if (!wp_next_scheduled('tdlpw_sync_mapped_product', array($product_id, 1))) {
+            wp_schedule_single_event(time() + 10, 'tdlpw_sync_mapped_product', array($product_id, 1));
+        }
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'tdlpw-course-assignments',
+            'edit_product' => $product_id,
+            'mapping_notice' => 'saved',
+        ), admin_url('admin.php')) . '#tdlpw-map-product');
+        exit;
+    }
+
+    private function render_product_mapping($courses, $products, $selected_product_id) {
+        $selected_courses = $selected_product_id
+            ? array_map('absint', (array) get_post_meta($selected_product_id, '_tdlpw_course_ids', true))
+            : array();
+        echo '<section id="tdlpw-map-product" style="max-width:900px;margin:20px 0;padding:20px;background:#fff;border:1px solid #dcdcde">';
+        echo '<h2>' . esc_html__('Link WooCommerce products to LearnPress courses', '${project.slug}') . '</h2>';
+        echo '<p>' . esc_html__('Choose a product and one or more courses. After a confirmed payment, the buyer is enrolled; existing paid orders for this product are also reconciled.', '${project.slug}') . '</p>';
+        if (!class_exists('WooCommerce')) {
+            echo '<p class="notice notice-warning inline">' . esc_html__('Activate WooCommerce to map products to courses.', '${project.slug}') . '</p></section>';
+            return;
+        }
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo '<input type="hidden" name="action" value="tdlpw_save_product_courses">';
+        wp_nonce_field('tdlpw_save_product_courses');
+        echo '<p><label for="tdlpw-map-product"><strong>' . esc_html__('WooCommerce product', '${project.slug}') . '</strong></label><br>';
+        echo '<select id="tdlpw-map-product" name="product_id" required style="min-width:360px;max-width:100%">';
+        echo '<option value="">' . esc_html__('Select a product', '${project.slug}') . '</option>';
+        foreach ($products as $product) {
+            echo '<option value="' . esc_attr((string) $product->get_id()) . '" ' .
+                selected((int) $selected_product_id, (int) $product->get_id(), false) . '>' .
+                esc_html($product->get_name()) . '</option>';
+        }
+        echo '</select></p><p><label for="tdlpw-map-courses"><strong>' .
+            esc_html__('LearnPress courses', '${project.slug}') . '</strong></label><br>';
+        echo '<select id="tdlpw-map-courses" name="course_ids[]" multiple required size="8" style="min-width:360px;max-width:100%">';
+        foreach ($courses as $course) {
+            echo '<option value="' . esc_attr((string) $course->ID) . '" ' .
+                selected(in_array((int) $course->ID, $selected_courses, true), true, false) . '>' .
+                esc_html($course->post_title) . '</option>';
+        }
+        echo '</select><br><span class="description">' . esc_html__('Use Ctrl (Windows) or Command (Mac) to select multiple courses.', '${project.slug}') . '</span></p>';
+        echo '<p><button type="submit" class="button button-primary" ' . ((!$products || !$courses) ? 'disabled' : '') . '>' .
+            esc_html__('Save course mapping', '${project.slug}') . '</button></p></form></section>';
+    }
+
     public function render() {
         if (!current_user_can('manage_options')) { return; }
 
         $search = sanitize_text_field(wp_unslash($_GET['user_search'] ?? ''));
         $notice = sanitize_key(wp_unslash($_GET['notice'] ?? ''));
+        $mapping_notice = sanitize_key(wp_unslash($_GET['mapping_notice'] ?? ''));
+        $edit_product = absint(wp_unslash($_GET['edit_product'] ?? 0));
         echo '<div class="wrap"><h1>' . esc_html__('Assign LearnPress Courses', '${project.slug}') . '</h1>';
         echo '<p>' . esc_html__('Choose a WordPress user and course to enroll them directly. This does not create or change a WooCommerce order.', '${project.slug}') . '</p>';
+        if ($mapping_notice === 'saved') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The product-to-course mapping was saved. Confirmed orders will be enrolled, and existing paid orders are being checked.', '${project.slug}') . '</p></div>';
+        }
         if ($notice === 'enrolled') {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The user was enrolled in the selected course.', '${project.slug}') . '</p></div>';
         } elseif ($notice === 'failed') {
@@ -225,9 +304,13 @@ final class TDLPW_Course_Admin {
                 esc_html($detail ?: __('The course assignment could not be completed.', '${project.slug}')) . '</p></div>';
         }
 
-        if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
-            echo '<div class="notice notice-warning"><p>' . esc_html__('Activate WooCommerce and LearnPress to use CourseBridge.', '${project.slug}') . '</p></div>';
+        if (!defined('LEARNPRESS_VERSION')) {
+            echo '<div class="notice notice-warning"><p>' . esc_html__('Activate LearnPress to assign users to courses.', '${project.slug}') . '</p></div>';
         }
+
+        $courses = $this->courses();
+        $products = $this->products();
+        $this->render_product_mapping($courses, $products, $edit_product);
 
         echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="margin:16px 0">';
         echo '<input type="hidden" name="page" value="tdlpw-course-assignments">';
@@ -236,7 +319,6 @@ final class TDLPW_Course_Admin {
         echo '<button class="button">' . esc_html__('Search users', '${project.slug}') . '</button></form>';
 
         $users = $this->users($search);
-        $courses = $this->courses();
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="max-width:760px;background:#fff;border:1px solid #dcdcde;padding:20px">';
         echo '<input type="hidden" name="action" value="tdlpw_assign_course">';
         echo '<input type="hidden" name="user_search" value="' . esc_attr($search) . '">';
@@ -313,8 +395,11 @@ export function buildCourseBridgePaidEdition(project: Project) {
     shortDescription: project.shortDescription,
     description: project.description,
     features: [
-      "Map WooCommerce products to multiple LearnPress courses and auto-enroll buyers after successful payment",
+      "Link WooCommerce products to multiple LearnPress courses from Course Assignments or product settings",
+      "Require or create a buyer account for mapped course purchases, then enroll on confirmed payment",
+      "Backfill existing paid orders after a product-to-course mapping is saved",
       "Assign users to LearnPress courses directly from the WordPress dashboard",
+      "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
       "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
       "Manage plugin settings, sender details, and license from one CourseBridge Pro menu",
