@@ -165,7 +165,8 @@ export function normalizeGeneratedEdition(
       throw new Error(`The generated ${edition} package contains an unsafe or unsupported file path.`);
     }
     if (typeof rawContent !== "string" || rawContent.length > MAX_FILE_CHARS) {
-      throw new Error(`A generated ${edition} source file is too large or invalid.`);
+      const size = typeof rawContent === "string" ? `${rawContent.length} characters` : "not text";
+      throw new Error(`Generated ${edition} source file "${filePath}" is too large or invalid (${size}).`);
     }
     files[filePath] = rawContent.replace(/\u0000/g, "");
     totalChars += rawContent.length;

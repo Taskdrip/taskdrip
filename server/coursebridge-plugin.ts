@@ -30,6 +30,7 @@ define('TDLPW_PATH', plugin_dir_path(__FILE__));
 define('TDLPW_URL', plugin_dir_url(__FILE__));
 require_once TDLPW_PATH . 'includes/class-activator.php';
 require_once TDLPW_PATH . 'includes/class-bridge.php';
+require_once TDLPW_PATH . 'includes/class-course-expiry.php';
 require_once TDLPW_PATH . 'includes/class-course-admin.php';
 require_once TDLPW_PATH . 'includes/class-core.php';
 require_once TDLPW_PATH . 'includes/class-audience.php';
@@ -138,6 +139,126 @@ final class TDLPW_Core {
 }
 `;
 
+const courseExpiry = (project: Project) => `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Course_Expiry {
+    public static function update() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
+        $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
+        check_admin_referer('tdlpw_update_course_expiry_' . $user_id . '_' . $course_id);
+
+        $expires_at = self::expiry_from_input(wp_unslash($_POST['expires_on'] ?? ''));
+        if (is_wp_error($expires_at)) {
+            $result = $expires_at;
+        } elseif (!$user_id || !get_user_by('id', $user_id) || get_post_type($course_id) !== 'lp_course') {
+            $result = new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
+        } else {
+            global $wpdb;
+            $lp_table = $wpdb->prefix . 'learnpress_user_items';
+            $lp_table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($lp_table)));
+            $enrollment = $lp_table_exists === $lp_table ? $wpdb->get_row($wpdb->prepare(
+                "SELECT status FROM " . $lp_table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                $user_id,
+                $course_id
+            )) : null;
+
+            if (!$enrollment) {
+                $result = new WP_Error('tdlpw_missing_enrollment', __('Assign this course to the user before editing its expiry date.', '${project.slug}'));
+            } else {
+                $result = true;
+                if (!in_array($enrollment->status, array('enrolled', 'finished'), true)) {
+                    $result = TDLPW_Bridge::set_course_enrollment_status($user_id, $course_id, 'enrolled');
+                }
+                if (!is_wp_error($result)) {
+                    $access_table = TDLPW_Course_Admin::access_table();
+                    $access_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT access_id FROM " . $access_table . " WHERE user_id = %d AND course_id = %d AND source = 'admin' AND source_id = 0 LIMIT 1",
+                        $user_id,
+                        $course_id
+                    ));
+                    if ($access_id) {
+                        $saved = $wpdb->update($access_table, array(
+                            'expires_at' => $expires_at,
+                            'status' => 'active',
+                            'updated_at' => current_time('mysql', true),
+                        ), array('access_id' => absint($access_id)), array('%s', '%s', '%s'), array('%d'));
+                        $result = $saved === false
+                            ? new WP_Error('tdlpw_expiry_update_failed', __('The course expiry date could not be saved. Please try again.', '${project.slug}'))
+                            : true;
+                    } else {
+                        $result = TDLPW_Course_Admin::record_access($user_id, $course_id, 'admin', 0, $expires_at);
+                    }
+                }
+            }
+        }
+
+        $args = array(
+            'page' => 'tdlpw-course-assignments',
+            'notice' => is_wp_error($result) ? 'failed' : 'expiry_updated',
+        );
+        if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    public static function expiry_from_input($value) {
+        if (!is_scalar($value)) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
+        }
+        $value = trim((string) $value);
+        if ($value === '') { return null; }
+        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
+        $site_format = (string) get_option('date_format', 'Y-m-d');
+        $month_position = strcspn($site_format, 'mMnF');
+        $day_position = strcspn($site_format, 'dj');
+        $month_first = $month_position < $day_position;
+        $localized_formats = $month_first
+            ? array('m/d/Y', 'm-d-Y', 'd/m/Y', 'd-m-Y')
+            : array('d/m/Y', 'd-m-Y', 'm/d/Y', 'm-d-Y');
+        $formats = array_unique(array_filter(array_merge(array('Y-m-d', $site_format), $localized_formats)));
+        $date = null;
+        foreach ($formats as $format) {
+            $candidate = DateTimeImmutable::createFromFormat('!' . $format, $value, $timezone);
+            $errors = DateTimeImmutable::getLastErrors();
+            if (
+                !$candidate ||
+                ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) ||
+                $candidate->format($format) !== $value
+            ) {
+                continue;
+            }
+            $date = $candidate;
+            break;
+        }
+        if (!$date) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
+        }
+        $today = new DateTimeImmutable('today', $timezone);
+        if ($date < $today) {
+            return new WP_Error('tdlpw_invalid_expiry', __('The expiry date must be today or later.', '${project.slug}'));
+        }
+        return $date->setTime(23, 59, 59)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    }
+
+    public static function render_input($user_id, $course_id, $raw_expiry) {
+        $expiry_input = $raw_expiry ? get_date_from_gmt($raw_expiry, 'Y-m-d') : '';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:6px">';
+        echo '<input type="hidden" name="action" value="tdlpw_update_course_expiry">';
+        echo '<input type="hidden" name="user_id" value="' . esc_attr((string) $user_id) . '">';
+        echo '<input type="hidden" name="course_id" value="' . esc_attr((string) $course_id) . '">';
+        wp_nonce_field('tdlpw_update_course_expiry_' . $user_id . '_' . $course_id);
+        echo '<label class="screen-reader-text" for="tdlpw-expiry-' . esc_attr((string) $user_id . '-' . (string) $course_id) . '">' . esc_html__('Update expiry date', '${project.slug}') . '</label>';
+        echo '<input type="date" id="tdlpw-expiry-' . esc_attr((string) $user_id . '-' . (string) $course_id) . '" name="expires_on" value="' . esc_attr($expiry_input) . '" min="' . esc_attr(wp_date('Y-m-d')) . '"> ';
+        echo '<button type="submit" class="button button-small">' . esc_html__('Update expiry', '${project.slug}') . '</button>';
+        echo '<p class="description">' . esc_html__('Leave blank for no expiry.', '${project.slug}') . '</p></form>';
+    }
+}
+`;
+
 const courseAdmin = (project: Project) => `<?php
 if (!defined('ABSPATH')) { exit; }
 
@@ -146,6 +267,7 @@ final class TDLPW_Course_Admin {
         self::ensure_access_table();
         add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
+        add_action('admin_post_tdlpw_update_course_expiry', array('TDLPW_Course_Expiry', 'update'));
         add_action('admin_post_tdlpw_cancel_course_access', array($this, 'cancel_course_access'));
         add_action('admin_post_tdlpw_save_product_courses', array($this, 'save_product_courses'));
         add_action('wp_ajax_tdlpw_search_users', array($this, 'search_users'));
@@ -406,9 +528,10 @@ final class TDLPW_Course_Admin {
         $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
         $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
         $search = sanitize_text_field(wp_unslash($_POST['user_search'] ?? ''));
-        $expires_on = sanitize_text_field(wp_unslash($_POST['expires_on'] ?? ''));
+        $raw_expires_on = wp_unslash($_POST['expires_on'] ?? '');
+        $expires_on = is_scalar($raw_expires_on) ? sanitize_text_field($raw_expires_on) : $raw_expires_on;
         $user = $user_id ? get_user_by('id', $user_id) : false;
-        $expires_at = $this->expiry_from_input($expires_on);
+        $expires_at = TDLPW_Course_Expiry::expiry_from_input($expires_on);
         if (is_wp_error($expires_at)) {
             $result = $expires_at;
         } elseif (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
@@ -425,23 +548,6 @@ final class TDLPW_Course_Admin {
         if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
         wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
         exit;
-    }
-
-    private function expiry_from_input($value) {
-        if ($value === '') { return null; }
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
-        }
-        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, $timezone);
-        if (!$date || $date->format('Y-m-d') !== $value) {
-            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
-        }
-        $expiry = $date->setTime(23, 59, 59);
-        if ($expiry->getTimestamp() <= time()) {
-            return new WP_Error('tdlpw_invalid_expiry', __('The expiry date must be today or later.', '${project.slug}'));
-        }
-        return gmdate('Y-m-d H:i:s', $expiry->getTimestamp());
     }
 
     private function courses() {
@@ -541,6 +647,8 @@ final class TDLPW_Course_Admin {
         }
         if ($notice === 'enrolled') {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The user was enrolled in the selected course.', '${project.slug}') . '</p></div>';
+        } elseif ($notice === 'expiry_updated') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The course access expiry date was updated.', '${project.slug}') . '</p></div>';
         } elseif ($notice === 'failed') {
             $detail = sanitize_text_field(wp_unslash($_GET['detail'] ?? ''));
             echo '<div class="notice notice-error is-dismissible"><p>' .
@@ -609,14 +717,16 @@ final class TDLPW_Course_Admin {
                     : ($row['purchase_access_status'] === 'active' ? __('WooCommerce purchase', '${project.slug}') : __('LearnPress enrollment', '${project.slug}'));
                 $started = $row['access_start'] ?: $row['lp_start_time'];
                 $expires = $row['access_expiry']
-                    ? $row['access_expiry']
+                    ? get_date_from_gmt($row['access_expiry'], get_option('date_format'))
                     : __('No expiry recorded', '${project.slug}');
                 $status = $row['admin_access_status'] === 'expired'
                     ? __('Expired', '${project.slug}')
                     : ($row['admin_access_status'] === 'cancelled' ? __('Cancelled', '${project.slug}') : ucfirst(sanitize_key($row['lp_status'])));
                 echo '<tr><td>' . esc_html($row['display_name']) . '<br><small>@' . esc_html($row['user_login']) . ' · ' . esc_html($row['user_email']) . '</small></td>';
                 echo '<td>' . esc_html($row['post_title']) . '</td><td>' . esc_html($source) . '</td><td>' .
-                    esc_html($started ?: '—') . '</td><td>' . esc_html($expires) . '</td><td>' . esc_html($status) . '</td><td>';
+                    esc_html($started ?: '—') . '</td><td>' . esc_html($expires);
+                TDLPW_Course_Expiry::render_input($user_id, $course_id, $row['access_expiry']);
+                echo '</td><td>' . esc_html($status) . '</td><td>';
                 if (in_array($row['lp_status'], array('enrolled', 'finished'), true)) {
                     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
                     echo '<input type="hidden" name="action" value="tdlpw_cancel_course_access">';
@@ -667,6 +777,7 @@ export function buildCourseBridgePaidEdition(project: Project) {
     [`${project.slug}.php`]: paidMain(project),
     "includes/class-activator.php": legacy["includes/class-activator.php"],
     "includes/class-core.php": coreClass,
+    "includes/class-course-expiry.php": courseExpiry(project),
     "includes/class-course-admin.php": courseAdmin(project),
     "includes/class-bridge.php": bridge,
     "includes/class-audience.php": legacy["includes/class-audience.php"],
@@ -684,13 +795,13 @@ export function buildCourseBridgePaidEdition(project: Project) {
       "Require or create a buyer account for mapped course purchases, then enroll on confirmed payment",
       "Reconcile existing paid WooCommerce orders after plugin updates and mapping changes",
       "Search users by display name, username, or email before assigning LearnPress courses",
-      "Set optional course access expiry dates, review student access, and cancel assignments",
+      "Set or edit optional course access expiry dates, review student access, and cancel assignments",
       "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
-      "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
+      "Filter contacts by purchased product or enrolled course and send consent-based campaigns through WordPress email or Resend",
       "Manage plugin settings, sender details, and license from one CourseBridge Pro menu",
     ],
-    requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license", "Resend API key for email campaigns"],
+    requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license"],
     files: paidFiles,
   }, common, "paid");
 }

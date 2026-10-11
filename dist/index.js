@@ -14980,7 +14980,8 @@ function normalizeGeneratedEdition(input, project, edition) {
       throw new Error(`The generated ${edition} package contains an unsafe or unsupported file path.`);
     }
     if (typeof rawContent !== "string" || rawContent.length > MAX_FILE_CHARS) {
-      throw new Error(`A generated ${edition} source file is too large or invalid.`);
+      const size = typeof rawContent === "string" ? `${rawContent.length} characters` : "not text";
+      throw new Error(`Generated ${edition} source file "${filePath}" is too large or invalid (${size}).`);
     }
     files[filePath] = rawContent.replace(/\u0000/g, "");
     totalChars += rawContent.length;
@@ -16214,10 +16215,14 @@ if (!defined('ABSPATH')) { exit; }
 final class TDLPW_Resend {
     public static function send_campaign($recipient_ids, $subject, $html) {
         $settings = get_option('tdlpw_settings', array());
+        $provider = sanitize_key($settings['email_provider'] ?? 'resend');
+        if (!in_array($provider, array('wordpress', 'resend'), true)) {
+            return new WP_Error('tdlpw_invalid_email_provider', __('Choose WordPress email or Resend in the plugin settings.', '{{SLUG}}'));
+        }
         $api_key = defined('TDLPW_RESEND_API_KEY') ? constant('TDLPW_RESEND_API_KEY') : ($settings['resend_api_key'] ?? '');
-        $from_email = sanitize_email($settings['from_email'] ?? '');
+        $from_email = sanitize_email($settings['from_email'] ?? get_option('admin_email'));
         $from_name = sanitize_text_field($settings['from_name'] ?? get_bloginfo('name'));
-        if (!$api_key || !preg_match('/^re_[A-Za-z0-9_-]+$/', $api_key)) {
+        if ($provider === 'resend' && (!$api_key || !preg_match('/^re_[A-Za-z0-9_-]+$/', $api_key))) {
             return new WP_Error('tdlpw_missing_resend_key', __('Add a valid Resend API key in plugin settings or wp-config.php.', '{{SLUG}}'));
         }
         if (!$from_email || !is_email($from_email)) {
@@ -16228,14 +16233,28 @@ final class TDLPW_Resend {
         }
         $emails = array();
         $recipients = array();
+        $sent = 0;
+        $failed = 0;
         foreach (array_unique(array_map('absint', $recipient_ids)) as $user_id) {
             $user = get_user_by('id', $user_id);
-            if (!$user || get_user_meta($user_id, 'tdlpw_email_marketing_optin', true) !== '1') { continue; }
+            if (!$user || !is_email($user->user_email) || get_user_meta($user_id, 'tdlpw_email_marketing_optin', true) !== '1') { continue; }
             $token = hash_hmac('sha256', (string) $user_id, wp_salt('auth'));
             $unsubscribe = add_query_arg(array('tdlpw_unsubscribe' => $user_id, 'token' => $token), home_url('/'));
             $body = wpautop(wp_kses_post($html)) .
                 '<p style="font-size:12px;color:#6b7280">You received this because you opted in to course updates. ' .
                 '<a href="' . esc_url($unsubscribe) . '">Unsubscribe</a></p>';
+            if ($provider === 'wordpress') {
+                $headers = array(
+                    'Content-Type: text/html; charset=UTF-8',
+                    'From: ' . $from_name . ' <' . $from_email . '>',
+                    'List-Unsubscribe: <' . $unsubscribe . '>',
+                    'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+                );
+                $sent_ok = wp_mail(sanitize_email($user->user_email), sanitize_text_field($subject), $body, $headers);
+                self::log($subject, $user->user_email, $sent_ok ? 'sent' : 'failed', $sent_ok ? 'WordPress wp_mail' : 'WordPress wp_mail returned false.');
+                $sent_ok ? $sent++ : $failed++;
+                continue;
+            }
             $recipients[] = $user->user_email;
             $emails[] = array(
                 'from' => $from_name . ' <' . $from_email . '>',
@@ -16247,6 +16266,9 @@ final class TDLPW_Resend {
                     'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
                 ),
             );
+        }
+        if ($provider === 'wordpress') {
+            return array('sent' => $sent, 'failed' => $failed, 'errors' => array());
         }
         if (!$emails) { return array('sent' => 0, 'failed' => 0, 'errors' => array()); }
         $response = wp_remote_post('https://api.resend.com/emails/batch', array(
@@ -16330,6 +16352,8 @@ final class TDLPW_Admin {
         $settings = get_option('tdlpw_settings', array());
         $settings['from_name'] = sanitize_text_field(wp_unslash($_POST['from_name'] ?? ''));
         $settings['from_email'] = sanitize_email(wp_unslash($_POST['from_email'] ?? ''));
+        $provider = sanitize_key(wp_unslash($_POST['email_provider'] ?? $settings['email_provider'] ?? 'resend'));
+        $settings['email_provider'] = in_array($provider, array('wordpress', 'resend'), true) ? $provider : 'resend';
         $key = trim(sanitize_text_field(wp_unslash($_POST['resend_api_key'] ?? '')));
         if ($key !== '') { $settings['resend_api_key'] = $key; }
         if (isset($_POST['remove_resend_api_key'])) { unset($settings['resend_api_key']); }
@@ -16345,8 +16369,24 @@ final class TDLPW_Admin {
         $html = wp_kses_post(wp_unslash($_POST['message'] ?? ''));
         $selected = array_map('absint', (array) wp_unslash($_POST['recipient_ids'] ?? array()));
         $selected = array_slice(array_values(array_unique(array_filter($selected))), 0, 100);
+        $filters = array(
+            'product' => absint(wp_unslash($_POST['product'] ?? 0)),
+            'course' => absint(wp_unslash($_POST['course'] ?? 0)),
+            'role' => sanitize_key(wp_unslash($_POST['role'] ?? '')),
+            'opted_in' => !empty($_POST['opted_in']),
+        );
+        $eligible_ids = array_map('absint', wp_list_pluck(TDLPW_Audience::rows($filters), 'id'));
+        $selected = array_values(array_intersect($selected, $eligible_ids));
+        $redirect_args = array(
+            'page' => 'tdlpw-dashboard',
+            'tab' => 'customers',
+            'product' => $filters['product'],
+            'course' => $filters['course'],
+            'role' => $filters['role'],
+            'opted_in' => $filters['opted_in'] ? '1' : '',
+        );
         if (!$subject || !$html || !$selected) {
-            wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'customers', 'notice' => 'select'), admin_url('admin.php')));
+            wp_safe_redirect(add_query_arg(array_merge($redirect_args, array('notice' => 'select')), admin_url('admin.php')));
             exit;
         }
         $result = TDLPW_Resend::send_campaign($selected, $subject, $html);
@@ -16355,7 +16395,7 @@ final class TDLPW_Admin {
         } else {
             $notice = rawurlencode(sprintf(__('Campaign complete: %1$d sent, %2$d failed.', '{{SLUG}}'), $result['sent'], $result['failed']));
         }
-        wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'customers', 'notice' => $notice), admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(array_merge($redirect_args, array('notice' => $notice)), admin_url('admin.php')));
         exit;
     }
 
@@ -16374,7 +16414,7 @@ final class TDLPW_Admin {
         $settings = get_option('tdlpw_settings', array());
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
         echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
-        echo '<p>' . esc_html__('Link course products, assign users to courses, verify paid orders, review buyers, and send consent-based course updates through Resend.', '{{SLUG}}') . '</p>';
+        echo '<p>' . esc_html__('Link course products, assign users to courses, verify paid orders, review buyers, and send consent-based course updates through WordPress email or Resend.', '{{SLUG}}') . '</p>';
         if (!empty($_GET['notice'])) {
             echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
         }
@@ -16423,6 +16463,12 @@ final class TDLPW_Admin {
 
     private function render_customers() {
         global $wpdb;
+        $settings = get_option('tdlpw_settings', array());
+        $active_provider = sanitize_key($settings['email_provider'] ?? 'resend');
+        if (!in_array($active_provider, array('wordpress', 'resend'), true)) { $active_provider = 'resend'; }
+        $provider_label = $active_provider === 'wordpress'
+            ? __('WordPress email', '{{SLUG}}')
+            : __('Resend', '{{SLUG}}');
         $filters = array(
             'product' => absint($_GET['product'] ?? 0),
             'course' => absint($_GET['course'] ?? 0),
@@ -16454,9 +16500,13 @@ final class TDLPW_Admin {
         echo '<p>' . esc_html(sprintf(__('%d buyer/student records. Campaigns can be sent only to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
         wp_nonce_field('tdlpw_send_campaign');
+        echo '<input type="hidden" name="product" value="' . esc_attr((string) $filters['product']) . '">';
+        echo '<input type="hidden" name="course" value="' . esc_attr((string) $filters['course']) . '">';
+        echo '<input type="hidden" name="role" value="' . esc_attr($filters['role']) . '">';
+        echo '<input type="hidden" name="opted_in" value="' . ($filters['opted_in'] ? '1' : '0') . '">';
         echo '<div class="tdlpw-campaign"><label>' . esc_html__('Email subject', '{{SLUG}}') . '<input class="regular-text" name="subject" required maxlength="180"></label>';
         echo '<label>' . esc_html__('Message (HTML allowed: links, headings, paragraphs)', '{{SLUG}}') . '<textarea name="message" rows="5" class="large-text" required></textarea></label>';
-        echo '<button class="button button-primary" type="submit">' . esc_html__('Send to selected opted-in users', '{{SLUG}}') . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send.', '{{SLUG}}') . '</span></div>';
+        echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
         echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select marketing opt-ins', '{{SLUG}}') . '"></th><th>' . esc_html__('Customer', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching buyer or enrolled-student records found yet.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
@@ -16493,11 +16543,11 @@ final class TDLPW_Admin {
         }
         $table = TDLPW_Audience::table();
         $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
-        echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; Resend sends up to 100 selected recipients per request.', '{{SLUG}}'), $count)) . '</p>';
+        echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; each campaign sends up to 100 selected recipients.', '{{SLUG}}'), $count)) . '</p>';
         echo '<script>document.addEventListener("change",function(e){if(e.target.matches("[data-tdlpw-select-all]"))document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(c){if(!c.disabled)c.checked=e.target.checked})});</script>';
 
         $logs = $wpdb->get_results('SELECT subject, email, status, detail, sent_at FROM ' . $wpdb->prefix . 'tdlpw_campaign_log ORDER BY id DESC LIMIT 30', ARRAY_A);
-        echo '<h2>' . esc_html__('Recent Resend activity', '{{SLUG}}') . '</h2><table class="widefat striped"><thead><tr><th>' . esc_html__('Subject', '{{SLUG}}') . '</th><th>' . esc_html__('Recipient', '{{SLUG}}') . '</th><th>' . esc_html__('Status', '{{SLUG}}') . '</th><th>' . esc_html__('Provider response', '{{SLUG}}') . '</th><th>' . esc_html__('Sent at (UTC)', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        echo '<h2>' . esc_html__('Recent email activity', '{{SLUG}}') . '</h2><table class="widefat striped"><thead><tr><th>' . esc_html__('Subject', '{{SLUG}}') . '</th><th>' . esc_html__('Recipient', '{{SLUG}}') . '</th><th>' . esc_html__('Status', '{{SLUG}}') . '</th><th>' . esc_html__('Provider response', '{{SLUG}}') . '</th><th>' . esc_html__('Sent at (UTC)', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$logs) { echo '<tr><td colspan="5">' . esc_html__('No email campaigns have been sent yet.', '{{SLUG}}') . '</td></tr>'; }
         foreach ((array) $logs as $log) {
             echo '<tr><td>' . esc_html($log['subject']) . '</td><td>' . esc_html($log['email']) . '</td><td>' . esc_html($log['status']) . '</td><td>' . esc_html($log['detail'] ?: '\u2014') . '</td><td>' . esc_html($log['sent_at']) . '</td></tr>';
@@ -16509,14 +16559,19 @@ final class TDLPW_Admin {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-settings">';
         echo '<input type="hidden" name="action" value="tdlpw_save_settings">';
         wp_nonce_field('tdlpw_save_settings');
-        echo '<h2>' . esc_html__('Resend sender settings', '{{SLUG}}') . '</h2>';
-        echo '<p>' . esc_html__('A verified sending domain is required in Resend. Campaigns are restricted to users who checked the optional marketing consent at WooCommerce checkout.', '{{SLUG}}') . '</p>';
+        echo '<h2>' . esc_html__('Email sender settings', '{{SLUG}}') . '</h2>';
+        echo '<p>' . esc_html__('Choose the WordPress wp_mail transport configured on this site or Resend. Campaigns are restricted to users who checked the optional marketing consent at WooCommerce checkout.', '{{SLUG}}') . '</p>';
+        echo '<label>' . esc_html__('Email delivery method', '{{SLUG}}') . '<select name="email_provider">';
+        echo '<option value="wordpress" ' . selected($settings['email_provider'] ?? 'resend', 'wordpress', false) . '>' . esc_html__('WordPress email (wp_mail)', '{{SLUG}}') . '</option>';
+        echo '<option value="resend" ' . selected($settings['email_provider'] ?? 'resend', 'resend', false) . '>' . esc_html__('Resend', '{{SLUG}}') . '</option>';
+        echo '</select></label>';
         echo '<label>' . esc_html__('Sender name', '{{SLUG}}') . '<input class="regular-text" name="from_name" value="' . esc_attr($settings['from_name'] ?? get_bloginfo('name')) . '" required></label>';
-        echo '<label>' . esc_html__('Verified sender email', '{{SLUG}}') . '<input class="regular-text" type="email" name="from_email" value="' . esc_attr($settings['from_email'] ?? get_option('admin_email')) . '" required></label>';
+        echo '<label>' . esc_html__('Sender email', '{{SLUG}}') . '<input class="regular-text" type="email" name="from_email" value="' . esc_attr($settings['from_email'] ?? get_option('admin_email')) . '" required></label>';
+        echo '<p class="description">' . esc_html__('Resend requires this address to use a verified sending domain. WordPress email uses the mail transport configured on this site.', '{{SLUG}}') . '</p>';
         if ($is_constant_key) {
             echo '<p class="notice notice-success inline">' . esc_html__('Resend API key is supplied by wp-config.php and is not editable here.', '{{SLUG}}') . '</p>';
         } else {
-            echo '<label>' . esc_html__('Resend API key', '{{SLUG}}') . '<input class="regular-text" type="password" name="resend_api_key" value="" autocomplete="new-password" placeholder="' . esc_attr(!empty($settings['resend_api_key']) ? __('Saved \u2014 leave blank to keep current key', '{{SLUG}}') : 're_\u2026') . '"></label>';
+            echo '<label>' . esc_html__('Resend API key (only needed for Resend delivery)', '{{SLUG}}') . '<input class="regular-text" type="password" name="resend_api_key" value="" autocomplete="new-password" placeholder="' . esc_attr(!empty($settings['resend_api_key']) ? __('Saved \u2014 leave blank to keep current key', '{{SLUG}}') : 're_\u2026') . '"></label>';
             echo '<p class="description">' . esc_html__('The key is stored in this WordPress site. For stronger protection, define TDLPW_RESEND_API_KEY in wp-config.php instead.', '{{SLUG}}') . '</p>';
             if (!empty($settings['resend_api_key'])) {
                 echo '<label><input type="checkbox" name="remove_resend_api_key" value="1"> ' . esc_html__('Remove the saved Resend API key', '{{SLUG}}') . '</label>';
@@ -16541,7 +16596,7 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 {{DESCRIPTION}}
 
-Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders enroll their customer in the courses mapped to purchased products. Review buyer roles, product and course purchases, and order totals from one WordPress admin screen. Send Resend email campaigns to customer segments only after the customer has opted in.
+Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders enroll their customer in the courses mapped to purchased products. Review buyer roles, product and course purchases, and order totals from one WordPress admin screen. Edit student access expiry dates and send consent-based email campaigns through WordPress email or Resend.
 
 == Features ==
 
@@ -16549,10 +16604,11 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 * Enroll account holders when WooCommerce confirms payment; mapped-course checkout requires or creates an account.
 * Show purchased and administrator-assigned courses in WooCommerce My Account with direct start links.
 * Reconcile existing paid orders after an administrator saves a product-to-course mapping.
-* Assign WordPress users directly to courses from CourseBridge Course Assignments.
+* Assign WordPress users directly to courses from CourseBridge Course Assignments and edit existing access expiry dates.
 * View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
 * Filter the audience by product, course, role, and marketing consent.
-* Send individual or selected-group email campaigns through Resend.
+* Filter email recipients by purchased product, enrolled course, WordPress role, and marketing consent.
+* Send individual or selected-group email campaigns through WordPress wp_mail or Resend.
 * Respect consent, add unsubscribe links, and log each email send result.
 * Keep order history and course mappings when the plugin is deactivated.
 
@@ -16562,7 +16618,7 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 2. Activate WooCommerce and LearnPress, then activate this plugin.
 3. Open CourseBridge Pro > Course Assignments and link a WooCommerce product to one or more LearnPress courses, or use Product data > General.
 4. Course buyers must use or create a WordPress account; their enrolled courses appear in WooCommerce My Account and the LearnPress profile.
-5. Go to CourseBridge Pro > Settings and enter a Resend API key and verified sender email if you plan to send campaigns.
+5. Go to CourseBridge Pro > Settings and choose WordPress email or Resend. Resend requires an API key and verified sender email.
 6. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
 
 == Privacy and email consent ==
@@ -16583,16 +16639,15 @@ Yes. Select multiple LearnPress courses in that product's settings.
 
 Enrolled users can open their courses from the WooCommerce My Account dashboard and the LearnPress profile. CourseBridge requires an account for checkout when a mapped course product is in the cart.
 
-= Does email require a Resend API key? =
+= Can campaigns use the site's WordPress email settings? =
 
-Yes. Add a Resend API key and use a verified sender domain. You can use the plugin settings or define TDLPW_RESEND_API_KEY in wp-config.php.
+Yes. Choose WordPress email (wp_mail) in CourseBridge Pro > Settings to use the site's configured mail transport. To send through Resend instead, add an API key and use a verified sender domain; the key can be entered in settings or defined as TDLPW_RESEND_API_KEY in wp-config.php.
 
 == Changelog ==
 
 = {{VERSION}} =
-* Add direct product-to-course mapping in Course Assignments, required course-buyer accounts, purchase backfill, and course start links in WooCommerce My Account.
-* Make user enrollment idempotent and use the LearnPress user enrollment API.
-* Fix direct admin license issuance on databases where purchase_id was still NOT NULL.
+* Accept canonical and site-local date formats, edit existing student expiry dates, and keep expiry comparisons in the WordPress site timezone.
+* Filter campaign recipients by purchased product or enrolled course and support WordPress wp_mail or Resend delivery.
 `;
 var deployment = `# {{NAME}} \u2014 release and repository notes
 
@@ -16673,6 +16728,7 @@ define('TDLPW_PATH', plugin_dir_path(__FILE__));
 define('TDLPW_URL', plugin_dir_url(__FILE__));
 require_once TDLPW_PATH . 'includes/class-activator.php';
 require_once TDLPW_PATH . 'includes/class-bridge.php';
+require_once TDLPW_PATH . 'includes/class-course-expiry.php';
 require_once TDLPW_PATH . 'includes/class-course-admin.php';
 require_once TDLPW_PATH . 'includes/class-core.php';
 require_once TDLPW_PATH . 'includes/class-audience.php';
@@ -16779,6 +16835,125 @@ final class TDLPW_Core {
     }
 }
 `;
+var courseExpiry = (project) => `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Course_Expiry {
+    public static function update() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Access denied.', '${project.slug}'), '', array('response' => 403));
+        }
+        $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
+        $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
+        check_admin_referer('tdlpw_update_course_expiry_' . $user_id . '_' . $course_id);
+
+        $expires_at = self::expiry_from_input(wp_unslash($_POST['expires_on'] ?? ''));
+        if (is_wp_error($expires_at)) {
+            $result = $expires_at;
+        } elseif (!$user_id || !get_user_by('id', $user_id) || get_post_type($course_id) !== 'lp_course') {
+            $result = new WP_Error('tdlpw_invalid_assignment', __('Choose a valid WordPress user and LearnPress course.', '${project.slug}'));
+        } else {
+            global $wpdb;
+            $lp_table = $wpdb->prefix . 'learnpress_user_items';
+            $lp_table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($lp_table)));
+            $enrollment = $lp_table_exists === $lp_table ? $wpdb->get_row($wpdb->prepare(
+                "SELECT status FROM " . $lp_table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                $user_id,
+                $course_id
+            )) : null;
+
+            if (!$enrollment) {
+                $result = new WP_Error('tdlpw_missing_enrollment', __('Assign this course to the user before editing its expiry date.', '${project.slug}'));
+            } else {
+                $result = true;
+                if (!in_array($enrollment->status, array('enrolled', 'finished'), true)) {
+                    $result = TDLPW_Bridge::set_course_enrollment_status($user_id, $course_id, 'enrolled');
+                }
+                if (!is_wp_error($result)) {
+                    $access_table = TDLPW_Course_Admin::access_table();
+                    $access_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT access_id FROM " . $access_table . " WHERE user_id = %d AND course_id = %d AND source = 'admin' AND source_id = 0 LIMIT 1",
+                        $user_id,
+                        $course_id
+                    ));
+                    if ($access_id) {
+                        $saved = $wpdb->update($access_table, array(
+                            'expires_at' => $expires_at,
+                            'status' => 'active',
+                            'updated_at' => current_time('mysql', true),
+                        ), array('access_id' => absint($access_id)), array('%s', '%s', '%s'), array('%d'));
+                        $result = $saved === false
+                            ? new WP_Error('tdlpw_expiry_update_failed', __('The course expiry date could not be saved. Please try again.', '${project.slug}'))
+                            : true;
+                    } else {
+                        $result = TDLPW_Course_Admin::record_access($user_id, $course_id, 'admin', 0, $expires_at);
+                    }
+                }
+            }
+        }
+
+        $args = array(
+            'page' => 'tdlpw-course-assignments',
+            'notice' => is_wp_error($result) ? 'failed' : 'expiry_updated',
+        );
+        if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
+        exit;
+    }
+
+    public static function expiry_from_input($value) {
+        if (!is_scalar($value)) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
+        }
+        $value = trim((string) $value);
+        if ($value === '') { return null; }
+        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
+        $site_format = (string) get_option('date_format', 'Y-m-d');
+        $month_position = strcspn($site_format, 'mMnF');
+        $day_position = strcspn($site_format, 'dj');
+        $month_first = $month_position < $day_position;
+        $localized_formats = $month_first
+            ? array('m/d/Y', 'm-d-Y', 'd/m/Y', 'd-m-Y')
+            : array('d/m/Y', 'd-m-Y', 'm/d/Y', 'm-d-Y');
+        $formats = array_unique(array_filter(array_merge(array('Y-m-d', $site_format), $localized_formats)));
+        $date = null;
+        foreach ($formats as $format) {
+            $candidate = DateTimeImmutable::createFromFormat('!' . $format, $value, $timezone);
+            $errors = DateTimeImmutable::getLastErrors();
+            if (
+                !$candidate ||
+                ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) ||
+                $candidate->format($format) !== $value
+            ) {
+                continue;
+            }
+            $date = $candidate;
+            break;
+        }
+        if (!$date) {
+            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
+        }
+        $today = new DateTimeImmutable('today', $timezone);
+        if ($date < $today) {
+            return new WP_Error('tdlpw_invalid_expiry', __('The expiry date must be today or later.', '${project.slug}'));
+        }
+        return $date->setTime(23, 59, 59)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    }
+
+    public static function render_input($user_id, $course_id, $raw_expiry) {
+        $expiry_input = $raw_expiry ? get_date_from_gmt($raw_expiry, 'Y-m-d') : '';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:6px">';
+        echo '<input type="hidden" name="action" value="tdlpw_update_course_expiry">';
+        echo '<input type="hidden" name="user_id" value="' . esc_attr((string) $user_id) . '">';
+        echo '<input type="hidden" name="course_id" value="' . esc_attr((string) $course_id) . '">';
+        wp_nonce_field('tdlpw_update_course_expiry_' . $user_id . '_' . $course_id);
+        echo '<label class="screen-reader-text" for="tdlpw-expiry-' . esc_attr((string) $user_id . '-' . (string) $course_id) . '">' . esc_html__('Update expiry date', '${project.slug}') . '</label>';
+        echo '<input type="date" id="tdlpw-expiry-' . esc_attr((string) $user_id . '-' . (string) $course_id) . '" name="expires_on" value="' . esc_attr($expiry_input) . '" min="' . esc_attr(wp_date('Y-m-d')) . '"> ';
+        echo '<button type="submit" class="button button-small">' . esc_html__('Update expiry', '${project.slug}') . '</button>';
+        echo '<p class="description">' . esc_html__('Leave blank for no expiry.', '${project.slug}') . '</p></form>';
+    }
+}
+`;
 var courseAdmin = (project) => `<?php
 if (!defined('ABSPATH')) { exit; }
 
@@ -16787,6 +16962,7 @@ final class TDLPW_Course_Admin {
         self::ensure_access_table();
         add_action('admin_menu', array($this, 'menu'), 20);
         add_action('admin_post_tdlpw_assign_course', array($this, 'assign_course'));
+        add_action('admin_post_tdlpw_update_course_expiry', array('TDLPW_Course_Expiry', 'update'));
         add_action('admin_post_tdlpw_cancel_course_access', array($this, 'cancel_course_access'));
         add_action('admin_post_tdlpw_save_product_courses', array($this, 'save_product_courses'));
         add_action('wp_ajax_tdlpw_search_users', array($this, 'search_users'));
@@ -17047,9 +17223,10 @@ final class TDLPW_Course_Admin {
         $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
         $course_id = absint(wp_unslash($_POST['course_id'] ?? 0));
         $search = sanitize_text_field(wp_unslash($_POST['user_search'] ?? ''));
-        $expires_on = sanitize_text_field(wp_unslash($_POST['expires_on'] ?? ''));
+        $raw_expires_on = wp_unslash($_POST['expires_on'] ?? '');
+        $expires_on = is_scalar($raw_expires_on) ? sanitize_text_field($raw_expires_on) : $raw_expires_on;
         $user = $user_id ? get_user_by('id', $user_id) : false;
-        $expires_at = $this->expiry_from_input($expires_on);
+        $expires_at = TDLPW_Course_Expiry::expiry_from_input($expires_on);
         if (is_wp_error($expires_at)) {
             $result = $expires_at;
         } elseif (!$user || !$course_id || get_post_type($course_id) !== 'lp_course') {
@@ -17066,23 +17243,6 @@ final class TDLPW_Course_Admin {
         if (is_wp_error($result)) { $args['detail'] = $result->get_error_message(); }
         wp_safe_redirect(add_query_arg($args, admin_url('admin.php')));
         exit;
-    }
-
-    private function expiry_from_input($value) {
-        if ($value === '') { return null; }
-        if (!preg_match('/^d{4}-d{2}-d{2}$/', $value)) {
-            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
-        }
-        $timezone = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, $timezone);
-        if (!$date || $date->format('Y-m-d') !== $value) {
-            return new WP_Error('tdlpw_invalid_expiry', __('Enter a valid course access expiry date.', '${project.slug}'));
-        }
-        $expiry = $date->setTime(23, 59, 59);
-        if ($expiry->getTimestamp() <= time()) {
-            return new WP_Error('tdlpw_invalid_expiry', __('The expiry date must be today or later.', '${project.slug}'));
-        }
-        return gmdate('Y-m-d H:i:s', $expiry->getTimestamp());
     }
 
     private function courses() {
@@ -17182,6 +17342,8 @@ final class TDLPW_Course_Admin {
         }
         if ($notice === 'enrolled') {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The user was enrolled in the selected course.', '${project.slug}') . '</p></div>';
+        } elseif ($notice === 'expiry_updated') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('The course access expiry date was updated.', '${project.slug}') . '</p></div>';
         } elseif ($notice === 'failed') {
             $detail = sanitize_text_field(wp_unslash($_GET['detail'] ?? ''));
             echo '<div class="notice notice-error is-dismissible"><p>' .
@@ -17250,14 +17412,16 @@ final class TDLPW_Course_Admin {
                     : ($row['purchase_access_status'] === 'active' ? __('WooCommerce purchase', '${project.slug}') : __('LearnPress enrollment', '${project.slug}'));
                 $started = $row['access_start'] ?: $row['lp_start_time'];
                 $expires = $row['access_expiry']
-                    ? $row['access_expiry']
+                    ? get_date_from_gmt($row['access_expiry'], get_option('date_format'))
                     : __('No expiry recorded', '${project.slug}');
                 $status = $row['admin_access_status'] === 'expired'
                     ? __('Expired', '${project.slug}')
                     : ($row['admin_access_status'] === 'cancelled' ? __('Cancelled', '${project.slug}') : ucfirst(sanitize_key($row['lp_status'])));
                 echo '<tr><td>' . esc_html($row['display_name']) . '<br><small>@' . esc_html($row['user_login']) . ' \xB7 ' . esc_html($row['user_email']) . '</small></td>';
                 echo '<td>' . esc_html($row['post_title']) . '</td><td>' . esc_html($source) . '</td><td>' .
-                    esc_html($started ?: '\u2014') . '</td><td>' . esc_html($expires) . '</td><td>' . esc_html($status) . '</td><td>';
+                    esc_html($started ?: '\u2014') . '</td><td>' . esc_html($expires);
+                TDLPW_Course_Expiry::render_input($user_id, $course_id, $row['access_expiry']);
+                echo '</td><td>' . esc_html($status) . '</td><td>';
                 if (in_array($row['lp_status'], array('enrolled', 'finished'), true)) {
                     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
                     echo '<input type="hidden" name="action" value="tdlpw_cancel_course_access">';
@@ -17302,6 +17466,7 @@ function buildCourseBridgePaidEdition(project) {
     [`${project.slug}.php`]: paidMain(project),
     "includes/class-activator.php": legacy["includes/class-activator.php"],
     "includes/class-core.php": coreClass,
+    "includes/class-course-expiry.php": courseExpiry(project),
     "includes/class-course-admin.php": courseAdmin(project),
     "includes/class-bridge.php": bridge2,
     "includes/class-audience.php": legacy["includes/class-audience.php"],
@@ -17319,13 +17484,13 @@ function buildCourseBridgePaidEdition(project) {
       "Require or create a buyer account for mapped course purchases, then enroll on confirmed payment",
       "Reconcile existing paid WooCommerce orders after plugin updates and mapping changes",
       "Search users by display name, username, or email before assigning LearnPress courses",
-      "Set optional course access expiry dates, review student access, and cancel assignments",
+      "Set or edit optional course access expiry dates, review student access, and cancel assignments",
       "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Searchable buyer and enrolled-student dashboard with product, course, role, order, and spend filters",
-      "Send individual or segmented campaigns to explicitly opted-in WordPress users through Resend",
+      "Filter contacts by purchased product or enrolled course and send consent-based campaigns through WordPress email or Resend",
       "Manage plugin settings, sender details, and license from one CourseBridge Pro menu"
     ],
-    requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license", "Resend API key for email campaigns"],
+    requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license"],
     files: paidFiles
   }, common, "paid");
 }
@@ -18215,10 +18380,10 @@ var STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.2",
+  version: "2.1.3",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
-  description: "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The plugin also includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based Resend campaigns, unsubscribe links, a license page, and plugin settings.",
+  description: "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set or edit an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The plugin also includes buyer and enrollment reporting, product and course filters, WordPress-role and order summaries, consent-based campaigns sent through WordPress email or Resend, unsubscribe links, a license page, and plugin settings.",
   seoTitle: "CourseBridge Pro \u2013 LearnPress & WooCommerce Plugin",
   seoDescription: "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",
   seoKeywords: "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
