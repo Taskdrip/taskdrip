@@ -759,6 +759,38 @@ final class TDLPW_Audience {
             }
         }
 
+        // Include every WordPress account, even when it has no purchase or course history.
+        $user_offset = 0;
+        $user_batch_size = 500;
+        do {
+            $users = get_users(array(
+                'number' => $user_batch_size,
+                'offset' => $user_offset,
+                'orderby' => 'ID',
+                'order' => 'ASC',
+                'fields' => 'all',
+            ));
+            foreach ((array) $users as $user) {
+                $id = absint($user->ID ?? 0);
+                if (!$id || isset($audience[$id])) { continue; }
+                $audience[$id] = array(
+                    'id' => $id,
+                    'name' => sanitize_text_field($user->display_name ?? ''),
+                    'email' => sanitize_email($user->user_email ?? ''),
+                    'role' => implode(', ', array_map('sanitize_key', (array) ($user->roles ?? array()))),
+                    'products' => array(),
+                    'courses' => array(),
+                    'orders' => 0,
+                    'spend_by_currency' => array(),
+                    'latest_order_id' => 0,
+                    'last_purchase' => '',
+                    'optin' => get_user_meta($id, 'tdlpw_email_marketing_optin', true) === '1',
+                );
+            }
+            $batch_count = count((array) $users);
+            $user_offset += $batch_count;
+        } while ($batch_count === $user_batch_size);
+
         $product_filter = absint($filters['product'] ?? 0);
         $course_filter = absint($filters['course'] ?? 0);
         $role_filter = sanitize_key($filters['role'] ?? '');
@@ -982,12 +1014,12 @@ final class TDLPW_Admin {
         $settings = get_option('tdlpw_settings', array());
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
         echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
-        echo '<p>' . esc_html__('Link course products, assign users to courses, verify paid orders, review buyers, and send consent-based course updates through WordPress email or Resend.', '{{SLUG}}') . '</p>';
+        echo '<p>' . esc_html__('Link course products, assign users to courses, review every WordPress contact with purchase and enrollment history, and send consent-based course updates through WordPress email or Resend.', '{{SLUG}}') . '</p>';
         if (!empty($_GET['notice'])) {
             echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
         }
         echo '<nav class="nav-tab-wrapper">';
-        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Customers & Campaigns', '{{SLUG}}'), 'settings' => __('Settings', '{{SLUG}}')) as $key => $label) {
+        foreach (array('overview' => __('Overview', '{{SLUG}}'), 'customers' => __('Contacts & Campaigns', '{{SLUG}}'), 'settings' => __('Settings', '{{SLUG}}')) as $key => $label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' .
                 esc_url(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => $key), admin_url('admin.php'))) . '">' . esc_html($label) . '</a>';
         }
@@ -1005,7 +1037,7 @@ final class TDLPW_Admin {
         echo '<ol><li>' . esc_html__('Open Course Assignments to select a WooCommerce product and link one or more LearnPress courses. You can also edit the mapping in Product data → General.', '{{SLUG}}') . '</li>';
         echo '<li>' . esc_html__('When WooCommerce confirms payment, the buyer account is enrolled in each mapped course.', '{{SLUG}}') . '</li>';
         echo '<li>' . esc_html__('Buyers and users assigned by an administrator can start their courses from WooCommerce My Account or their LearnPress profile.', '{{SLUG}}') . '</li>';
-        echo '<li>' . esc_html__('Review paid product and course purchases under Customers & Campaigns.', '{{SLUG}}') . '</li></ol>';
+        echo '<li>' . esc_html__('Review all WordPress users and their paid products or LearnPress courses under Contacts & Campaigns.', '{{SLUG}}') . '</li></ol>';
         echo '<p><strong>' . esc_html(sprintf(__('%1$d published products · %2$d LearnPress courses', '{{SLUG}}'), count($products), count($courses))) . '</strong></p>';
         if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
             echo '<p class="notice notice-warning inline">' . esc_html__('Activate WooCommerce and LearnPress to enable course mapping.', '{{SLUG}}') . '</p>';
@@ -1065,7 +1097,7 @@ final class TDLPW_Admin {
             echo '<option value="' . esc_attr($key) . '" ' . selected($filters['role'], $key, false) . '>' . esc_html(translate_user_role($role['name'])) . '</option>';
         }
         echo '</select><label><input type="checkbox" name="opted_in" value="1" ' . checked($filters['opted_in'], true, false) . '> ' . esc_html__('Marketing opt-ins only', '{{SLUG}}') . '</label><button class="button">' . esc_html__('Filter', '{{SLUG}}') . '</button></form>';
-        echo '<p>' . esc_html(sprintf(__('%d buyer/student records. Campaigns can be sent only to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
+        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. All accounts are listed; product and course columns show recorded history. Campaigns can be sent only to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
         wp_nonce_field('tdlpw_send_campaign');
         echo '<input type="hidden" name="product" value="' . esc_attr((string) $filters['product']) . '">';
@@ -1075,8 +1107,8 @@ final class TDLPW_Admin {
         echo '<div class="tdlpw-campaign"><label>' . esc_html__('Email subject', '{{SLUG}}') . '<input class="regular-text" name="subject" required maxlength="180"></label>';
         echo '<label>' . esc_html__('Message (HTML allowed: links, headings, paragraphs)', '{{SLUG}}') . '<textarea name="message" rows="5" class="large-text" required></textarea></label>';
         echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
-        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select marketing opt-ins', '{{SLUG}}') . '"></th><th>' . esc_html__('Customer', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
-        if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching buyer or enrolled-student records found yet.', '{{SLUG}}') . '</td></tr>'; }
+        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select opted-in contacts', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
             $spend = array();
             foreach ($row['spend_by_currency'] as $currency => $amount) {
@@ -1212,11 +1244,16 @@ Enrolled users can open their courses from the WooCommerce My Account dashboard 
 
 Yes. Choose WordPress email (wp_mail) in CourseBridge Pro > Settings to use the site's configured mail transport. To send through Resend instead, add an API key and use a verified sender domain; the key can be entered in settings or defined as TDLPW_RESEND_API_KEY in wp-config.php.
 
+= Who appears under Contacts & Campaigns? =
+
+Every WordPress user account appears, including accounts without purchase history. Product and LearnPress course filters match recorded purchases or enrollments. Email consent is shown separately, and campaigns are sent only to opted-in users.
+
 == Changelog ==
 
 = {{VERSION}} =
 * Accept canonical and site-local date formats, edit existing student expiry dates, and keep expiry comparisons in the WordPress site timezone.
 * Filter campaign recipients by purchased product or enrolled course and support WordPress wp_mail or Resend delivery.
+* Include all WordPress accounts in Contacts & Campaigns and group them by recorded product purchases and LearnPress enrollments without changing consent.
 `;
 
 const deployment = `# {{NAME}} — release and repository notes

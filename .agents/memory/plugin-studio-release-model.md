@@ -20,3 +20,9 @@ When an internal plugin feature grows beyond the shared generated-file size limi
 **Why:** the shared limit protects all generated plugin releases; CourseBridge can grow without weakening that release guard.
 
 **How to apply:** keep the root bootstrap explicit, include new module files in the paid package map, and assert the include and module behavior in release tests.
+
+CourseBridge Contacts & Campaigns should list every WordPress account and group its recorded product purchases and LearnPress enrollments. Keep marketing consent separate; only explicitly opted-in accounts may be selected or sent campaigns.
+
+**Why:** the user selected an all-contacts audience while preserving existing consent status.
+
+**How to apply:** include users without purchase history with empty product/course groupings, retain the opt-in status in the UI, and enforce consent again when sending.

@@ -7,7 +7,7 @@ import { buildPluginReleaseFiles } from "../server/wp-plugin-release";
 const project = {
   slug: "coursebridge-learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.3",
+  version: "2.1.4",
   author: "Taskdrip",
   shortDescription: "Connect WooCommerce purchases and LearnPress courses.",
   description: "Connect WooCommerce products to LearnPress courses and manage student enrollments.",
@@ -17,6 +17,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   const paid = buildCourseBridgePaidEdition(project);
   const admin = paid.files["includes/class-course-admin.php"];
   const expiry = paid.files["includes/class-course-expiry.php"];
+  const audience = paid.files["includes/class-audience.php"];
   const bridge = paid.files["includes/class-bridge.php"];
   const campaigns = paid.files["includes/class-admin.php"];
   const mailer = paid.files["includes/class-resend.php"];
@@ -24,6 +25,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
 
   assert.ok(admin, "course assignment admin module is included");
   assert.ok(expiry, "expiry editing is packaged as a separate module");
+  assert.ok(audience, "all-user contact audience is packaged");
   assert.match(main, /class-course-admin\.php/);
   assert.match(main, /class-course-expiry\.php/);
   assert.match(admin, /admin_post_tdlpw_assign_course/);
@@ -68,6 +70,14 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(campaigns, /TDLPW_Audience::rows\(\$filters\)/);
   assert.match(campaigns, /array_intersect\(\$selected, \$eligible_ids\)/);
   assert.match(campaigns, /WordPress email \(wp_mail\)/);
+  assert.match(campaigns, /Contacts & Campaigns/);
+  assert.match(campaigns, /All accounts are listed/);
+  assert.match(campaigns, /\$row\['optin'\] \? '<input type="checkbox"/);
+  assert.match(audience, /get_users\(array\(/);
+  assert.match(audience, /'number' => \$user_batch_size/);
+  assert.match(audience, /'fields' => 'all'/);
+  assert.match(audience, /get_user_meta\(\$id, 'tdlpw_email_marketing_optin', true\) === '1'/);
+  assert.match(mailer, /get_user_meta\(\$user_id, 'tdlpw_email_marketing_optin', true\) !== '1'/);
   assert.match(campaigns, /Product and course filters above limit the recipients/);
   assert.match(mailer, /wp_mail\(/);
   assert.match(mailer, /api\.resend\.com\/emails\/batch/);
@@ -75,7 +85,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(mailer, /List-Unsubscribe/);
 
   const studio = readFileSync(new URL("../server/plugin-studio.ts", import.meta.url), "utf8");
-  assert.match(studio, /version: "2\.1\.3"/);
+  assert.match(studio, /version: "2\.1\.4"/);
 });
 
 test("Paid CourseBridge ZIP contains one WordPress plugin entry", () => {
