@@ -37,6 +37,25 @@ const GRADIENT_PATTERNS = [
   "from-teal-500 via-cyan-500 to-blue-500",
 ];
 
+const REALTRAINAI_GUIDE_POST = {
+  id: "static-realtrainai-ai-training-guide",
+  slug: "realtrainai-ai-training-guide",
+  href: "/realtrainai-ai-training-guide",
+  title: "RealTrainAI AI Trainer Jobs: Pay, Application & Referral Guide",
+  excerpt: "An independent guide to AI trainer work, application steps, reported pay, matching expectations, location caveats, and the invite code.",
+  category: "education",
+  publishedAt: "2026-10-13T00:00:00+01:00",
+  readingTime: 22,
+  viewCount: 0,
+  likesCount: 0,
+  featuredImage: "/realtrainai-guide-cover.svg",
+  isFeatured: true,
+};
+
+function getBlogPostHref(post: any) {
+  return post.href || `/blog/${post.slug}`;
+}
+
 const SORT_OPTIONS = [
   { value: "newest",   label: "Newest First",    icon: "🕐" },
   { value: "oldest",   label: "Oldest First",    icon: "📅" },
@@ -199,7 +218,7 @@ function SpotlightSlide({ post, onClick }: { post: any; onClick: () => void }) {
   );
 }
 
-function BlogSpotlightCarousel({ posts, onNavigate }: { posts: any[]; onNavigate: (slug: string) => void }) {
+function BlogSpotlightCarousel({ posts, onNavigate }: { posts: any[]; onNavigate: (href: string) => void }) {
   const [current, setCurrent] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const total = posts.length;
@@ -225,7 +244,7 @@ function BlogSpotlightCarousel({ posts, onNavigate }: { posts: any[]; onNavigate
   return (
     <div className="mb-10">
       <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
-        <SpotlightSlide post={post} onClick={() => onNavigate(post.slug)} />
+        <SpotlightSlide post={post} onClick={() => onNavigate(getBlogPostHref(post))} />
       </div>
 
       {total > 1 && (
@@ -411,11 +430,23 @@ export default function Blog() {
 
   const { data: user } = useQuery<any>({ queryKey: ["/api/user"] });
 
-  const { data: posts = [], isLoading } = useQuery<any[]>({
+  const { data: apiPosts = [], isLoading, isError: hasBlogFeedError } = useQuery<any[]>({
     queryKey: ["/api/blog", activeCategory],
-    queryFn: () => fetch(`/api/blog${activeCategory ? `?category=${encodeURIComponent(activeCategory)}` : ''}`).then(r => r.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/blog${activeCategory ? `?category=${encodeURIComponent(activeCategory)}` : ''}`);
+      if (!response.ok) throw new Error("Blog feed request failed");
+      const result = await response.json();
+      if (!Array.isArray(result)) throw new Error("Blog feed returned an invalid response");
+      return result;
+    },
+    retry: false,
   });
 
+  const validApiPosts = Array.isArray(apiPosts) ? apiPosts : [];
+  const posts = [
+    ...(!activeCategory || activeCategory === REALTRAINAI_GUIDE_POST.category ? [REALTRAINAI_GUIDE_POST] : []),
+    ...validApiPosts.filter((post: any) => post.slug !== REALTRAINAI_GUIDE_POST.slug),
+  ];
   const allCategories = Array.from(new Set(posts.map((p: any) => p.category).filter(Boolean)));
 
   const searchFiltered = posts.filter((p: any) => {
@@ -509,11 +540,17 @@ export default function Blog() {
           {/* Main Content */}
           <div className="lg:col-span-3">
 
+            {hasBlogFeedError && (
+              <p role="status" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Some blog posts could not be loaded right now. This guide is still available below.
+              </p>
+            )}
+
             {/* Spotlight Carousel */}
             {!isLoading && spotlightPosts.length > 0 && (
               <BlogSpotlightCarousel
                 posts={spotlightPosts}
-                onNavigate={(slug) => setLocation(`/blog/${slug}`)}
+                onNavigate={(href) => setLocation(href)}
               />
             )}
 
@@ -633,7 +670,7 @@ export default function Blog() {
                           key={post.id}
                           post={post}
                           index={i}
-                          onClick={() => setLocation(`/blog/${post.slug}`)}
+                          onClick={() => setLocation(getBlogPostHref(post))}
                         />
                       ))}
                     </div>
@@ -648,7 +685,7 @@ export default function Blog() {
                         key={post.id}
                         post={post}
                         index={i}
-                        onClick={() => setLocation(`/blog/${post.slug}`)}
+                        onClick={() => setLocation(getBlogPostHref(post))}
                       />
                     ))}
                   </div>
@@ -711,7 +748,7 @@ export default function Blog() {
                     <div
                       key={post.id}
                       className="flex gap-3 cursor-pointer group"
-                      onClick={() => setLocation(`/blog/${post.slug}`)}
+                      onClick={() => setLocation(getBlogPostHref(post))}
                       data-testid={`trending-post-${post.id}`}
                     >
                       <div className="text-2xl font-black text-gray-100 w-6 flex-shrink-0 leading-none mt-0.5">
