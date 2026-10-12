@@ -13382,6 +13382,7 @@ Instructions:
         { path: '/brands', priority: '0.9', changefreq: 'daily' },
         { path: '/feed', priority: '0.8', changefreq: 'hourly' },
         { path: '/blog', priority: '0.8', changefreq: 'daily' },
+        { path: '/realtrainai-ai-training-guide', priority: '0.7', changefreq: 'monthly' },
         { path: '/breedskool', priority: '0.8', changefreq: 'weekly' },
         { path: '/leaderboard', priority: '0.7', changefreq: 'daily' },
         { path: '/advertise', priority: '0.7', changefreq: 'monthly' },

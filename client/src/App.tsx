@@ -23,6 +23,7 @@ const Messages = lazy(() => import("@/pages/messages"));
 const Chat = lazy(() => import("@/pages/chat"));
 const Blog = lazy(() => import("@/pages/blog"));
 const BlogPost = lazy(() => import("@/pages/blog-post"));
+const RealTrainAIGuide = lazy(() => import("@/pages/realtrainai-guide"));
 const Shop = lazy(() => import("@/pages/shop"));
 const ProductDetail = lazy(() => import("@/pages/product-detail"));
 const ShopCheckout = lazy(() => import("@/pages/shop-checkout"));
@@ -192,6 +193,7 @@ function Router() {
         <Route path="/breedskool/onsite" component={BreedSkoolOnsite} />
         <Route path="/breedskool/:id" component={BreedSkoolCourse} />
         <Route path="/certificates/:code" component={CertificateVerify} />
+        <Route path="/realtrainai-ai-training-guide" component={RealTrainAIGuide} />
         <Route path="/blog" component={Blog} />
         <Route path="/blog/:slug" component={BlogPost} />
         <Route path="/shop" component={Shop} />
