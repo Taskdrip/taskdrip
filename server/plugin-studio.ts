@@ -100,11 +100,11 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.4",
+  version: "2.1.5",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:
-    "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set or edit an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The Contacts & Campaigns audience includes every WordPress user, grouped by recorded product purchases and LearnPress enrollments; consent status stays separate and only opted-in users can receive campaigns through WordPress email or Resend. The plugin also includes buyer and enrollment reporting, role and order summaries, unsubscribe links, a license page, and plugin settings.",
+    "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set or edit an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The Contacts & Campaigns audience includes every WordPress user, grouped by recorded product purchases and LearnPress enrollments; consent status stays separate and only opted-in users can receive campaigns through WordPress email or Resend. Campaigns include a visual and HTML editor, media, personalization tags, and an admin-triggered delivery test. The plugin also includes buyer and enrollment reporting, role and order summaries, unsubscribe links, a license page, and plugin settings.",
   seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
   seoDescription:
     "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",

@@ -24,8 +24,8 @@ type ReleaseProject = {
 };
 
 const MAX_FILES = 12;
-const MAX_FILE_CHARS = 32_000;
-const MAX_EDITION_CHARS = 120_000;
+const MAX_FILE_CHARS = 36_000;
+const MAX_EDITION_CHARS = 132_000;
 const SAFE_SOURCE_EXTENSIONS = new Set([".php", ".js", ".css"]);
 
 function cleanHeaderValue(value: string, maxLength: number): string {

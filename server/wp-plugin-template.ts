@@ -21,7 +21,7 @@ function headerValue(value: string, maxLength: number): string {
     .slice(0, maxLength);
 }
 
-function replaceTokens(source: string, info: PluginTemplateInfo): string {
+function replaceTokens(source: string, info: PluginTemplateInfo, campaignHeaderDataUri: string): string {
   const description = info.description
     .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -40,6 +40,7 @@ function replaceTokens(source: string, info: PluginTemplateInfo): string {
     "{{AUTHOR}}": safeAuthor,
     "{{SHORT_DESCRIPTION}}": safeShortDescription,
     "{{DESCRIPTION}}": description,
+    "{{CAMPAIGN_HEADER_DATA_URI}}": campaignHeaderDataUri,
   };
   return source.replace(/\{\{[A-Z_]+\}\}/g, (token) => values[token] ?? token);
 }
@@ -795,11 +796,13 @@ final class TDLPW_Audience {
         $course_filter = absint($filters['course'] ?? 0);
         $role_filter = sanitize_key($filters['role'] ?? '');
         $opted_in = !empty($filters['opted_in']);
-        $rows = array_values(array_filter($audience, function ($row) use ($product_filter, $course_filter, $role_filter, $opted_in) {
+        $search = sanitize_text_field($filters['search'] ?? '');
+        $rows = array_values(array_filter($audience, function ($row) use ($product_filter, $course_filter, $role_filter, $opted_in, $search) {
             if ($product_filter && !isset($row['products'][$product_filter])) { return false; }
             if ($course_filter && !isset($row['courses'][$course_filter])) { return false; }
             if ($role_filter && !in_array($role_filter, array_map('trim', explode(',', $row['role'])), true)) { return false; }
             if ($opted_in && !$row['optin']) { return false; }
+            if ($search !== '' && stripos($row['email'], $search) === false && stripos($row['name'], $search) === false) { return false; }
             return true;
         }));
         usort($rows, function ($a, $b) { return strcasecmp($a['name'], $b['name']); });
@@ -812,6 +815,39 @@ const resend = `<?php
 if (!defined('ABSPATH')) { exit; }
 
 final class TDLPW_Resend {
+    private static function personalize($text, $user_id, $unsubscribe, $for_html = false) {
+        $user = get_user_by('id', absint($user_id));
+        if (!$user) { return $text; }
+        $display_name = (string) $user->display_name;
+        $first_name = (string) get_user_meta($user_id, 'first_name', true);
+        $last_name = (string) get_user_meta($user_id, 'last_name', true);
+        if ($first_name === '') {
+            $name_parts = preg_split('/\s+/', trim($display_name));
+            $first_name = (string) ($name_parts[0] ?? '');
+        }
+        if ($last_name === '' && strpos($display_name, ' ') !== false) {
+            $name_parts = preg_split('/\s+/', trim($display_name));
+            $last_name = (string) end($name_parts);
+        }
+        $values = array(
+            '{{first_name}}' => $first_name,
+            '{{last_name}}' => $last_name,
+            '{{display_name}}' => $display_name,
+            '{{email}}' => (string) $user->user_email,
+            '{{site_name}}' => (string) get_bloginfo('name'),
+            '{{site_url}}' => (string) home_url('/'),
+            '{{unsubscribe_url}}' => (string) $unsubscribe,
+        );
+        if ($for_html) {
+            foreach ($values as $token => $value) {
+                $values[$token] = $token === '{{unsubscribe_url}}' || $token === '{{site_url}}'
+                    ? esc_url($value)
+                    : esc_html($value);
+            }
+        }
+        return strtr((string) $text, $values);
+    }
+
     public static function send_campaign($recipient_ids, $subject, $html) {
         $settings = get_option('tdlpw_settings', array());
         $provider = sanitize_key($settings['email_provider'] ?? 'resend');
@@ -834,14 +870,16 @@ final class TDLPW_Resend {
         $recipients = array();
         $sent = 0;
         $failed = 0;
+        $safe_html = wp_kses_post($html);
         foreach (array_unique(array_map('absint', $recipient_ids)) as $user_id) {
             $user = get_user_by('id', $user_id);
             if (!$user || !is_email($user->user_email) || get_user_meta($user_id, 'tdlpw_email_marketing_optin', true) !== '1') { continue; }
             $token = hash_hmac('sha256', (string) $user_id, wp_salt('auth'));
             $unsubscribe = add_query_arg(array('tdlpw_unsubscribe' => $user_id, 'token' => $token), home_url('/'));
-            $body = wpautop(wp_kses_post($html)) .
+            $body = self::personalize($safe_html, $user_id, $unsubscribe, true) .
                 '<p style="font-size:12px;color:#6b7280">You received this because you opted in to course updates. ' .
                 '<a href="' . esc_url($unsubscribe) . '">Unsubscribe</a></p>';
+            $recipient_subject = sanitize_text_field(self::personalize($subject, $user_id, $unsubscribe));
             if ($provider === 'wordpress') {
                 $headers = array(
                     'Content-Type: text/html; charset=UTF-8',
@@ -849,8 +887,8 @@ final class TDLPW_Resend {
                     'List-Unsubscribe: <' . $unsubscribe . '>',
                     'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
                 );
-                $sent_ok = wp_mail(sanitize_email($user->user_email), sanitize_text_field($subject), $body, $headers);
-                self::log($subject, $user->user_email, $sent_ok ? 'sent' : 'failed', $sent_ok ? 'WordPress wp_mail' : 'WordPress wp_mail returned false.');
+                $sent_ok = wp_mail(sanitize_email($user->user_email), $recipient_subject, $body, $headers);
+                self::log($recipient_subject, $user->user_email, $sent_ok ? 'sent' : 'failed', $sent_ok ? 'WordPress wp_mail' : 'WordPress wp_mail returned false.');
                 $sent_ok ? $sent++ : $failed++;
                 continue;
             }
@@ -858,7 +896,7 @@ final class TDLPW_Resend {
             $emails[] = array(
                 'from' => $from_name . ' <' . $from_email . '>',
                 'to' => array(sanitize_email($user->user_email)),
-                'subject' => sanitize_text_field($subject),
+                'subject' => $recipient_subject,
                 'html' => $body,
                 'headers' => array(
                     'List-Unsubscribe' => '<' . $unsubscribe . '>',
@@ -893,6 +931,80 @@ final class TDLPW_Resend {
         return array('sent' => $sent, 'failed' => 0, 'errors' => array());
     }
 
+    public static function send_test_email($to) {
+        $settings = get_option('tdlpw_settings', array());
+        $provider = sanitize_key($settings['email_provider'] ?? 'resend');
+        if (!in_array($provider, array('wordpress', 'resend'), true)) {
+            return new WP_Error('tdlpw_invalid_email_provider', __('Choose WordPress email or Resend in the plugin settings.', '{{SLUG}}'));
+        }
+        $api_key = defined('TDLPW_RESEND_API_KEY') ? constant('TDLPW_RESEND_API_KEY') : ($settings['resend_api_key'] ?? '');
+        $from_email = sanitize_email($settings['from_email'] ?? get_option('admin_email'));
+        $from_name = sanitize_text_field($settings['from_name'] ?? get_bloginfo('name'));
+        $to = sanitize_email($to);
+        if (!$to || !is_email($to)) {
+            return new WP_Error('tdlpw_invalid_test_email', __('Enter a valid test recipient email address.', '{{SLUG}}'));
+        }
+        if (!$from_email || !is_email($from_email)) {
+            return new WP_Error('tdlpw_missing_from_email', __('Set a valid sender address in the plugin settings.', '{{SLUG}}'));
+        }
+        $subject = __('CourseBridge email delivery test', '{{SLUG}}');
+        $body = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:24px auto;padding:28px;border:1px solid #e2e8f0;border-radius:16px">' .
+            '<p style="color:#2563eb;font-weight:700">' . esc_html(get_bloginfo('name')) . '</p>' .
+            '<h1 style="font-size:24px">' . esc_html__('Email delivery is working', '{{SLUG}}') . '</h1>' .
+            '<p>' . esc_html__('This test confirms the CourseBridge email provider can deliver messages from this site. No marketing list was contacted.', '{{SLUG}}') . '</p></div>';
+
+        if ($provider === 'wordpress') {
+            $sent_ok = wp_mail($to, $subject, $body, array(
+                'Content-Type: text/html; charset=UTF-8',
+                'From: ' . $from_name . ' <' . $from_email . '>',
+            ));
+            self::log($subject, $to, $sent_ok ? 'sent' : 'failed', $sent_ok ? 'WordPress wp_mail test' : 'WordPress wp_mail returned false.');
+            return array('sent' => $sent_ok ? 1 : 0, 'failed' => $sent_ok ? 0 : 1, 'errors' => $sent_ok ? array() : array(__('WordPress email could not send the test message.', '{{SLUG}}')));
+        }
+        if (!$api_key || !preg_match('/^re_[A-Za-z0-9_-]+$/', $api_key)) {
+            return new WP_Error('tdlpw_missing_resend_key', __('Add a valid Resend API key in plugin settings or wp-config.php.', '{{SLUG}}'));
+        }
+        $response = wp_remote_post('https://api.resend.com/emails', array(
+            'timeout' => 25,
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $api_key,
+                'Content-Type' => 'application/json',
+            ),
+            'body' => wp_json_encode(array(
+                'from' => $from_name . ' <' . $from_email . '>',
+                'to' => array($to),
+                'subject' => $subject,
+                'html' => $body,
+            )),
+        ));
+        $response_code = is_wp_error($response) ? 0 : wp_remote_retrieve_response_code($response);
+        if (is_wp_error($response) || $response_code < 200 || $response_code >= 300) {
+            $error = is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response);
+            $error = substr(sanitize_textarea_field($error), 0, 500);
+            self::log($subject, $to, 'failed', $error);
+            return array('sent' => 0, 'failed' => 1, 'errors' => array($error ?: __('Resend rejected the test email.', '{{SLUG}}')));
+        }
+        $result = json_decode(wp_remote_retrieve_body($response), true);
+        self::log($subject, $to, 'sent', !empty($result['id']) ? 'Resend ID: ' . sanitize_text_field($result['id']) : 'Resend test email accepted.');
+        return array('sent' => 1, 'failed' => 0, 'errors' => array());
+    }
+
+    public static function handle_test_email() {
+        if (!current_user_can('manage_options')) { wp_die(esc_html__('Access denied.', '{{SLUG}}'), '', array('response' => 403)); }
+        check_admin_referer('tdlpw_send_test_email');
+        $posted = wp_unslash($_POST['test_email'] ?? '');
+        $result = self::send_test_email(is_string($posted) ? sanitize_email($posted) : '');
+        $notice = is_wp_error($result)
+            ? $result->get_error_message()
+            : ($result['sent'] ? __('Test email sent. Check the recipient inbox and spam folder.', '{{SLUG}}') : implode(' ', $result['errors']));
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'tdlpw-settings',
+            'tab' => 'settings',
+            'notice' => $notice,
+        ), admin_url('admin.php')));
+        exit;
+    }
+
     private static function log($subject, $email, $status, $detail) {
         global $wpdb;
         $table = $wpdb->prefix . 'tdlpw_campaign_log';
@@ -916,11 +1028,14 @@ final class TDLPW_Admin {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('admin_post_tdlpw_save_settings', array($this, 'save_settings'));
         add_action('admin_post_tdlpw_send_campaign', array($this, 'send_campaign'));
+        add_action('admin_post_tdlpw_send_test_email', array('TDLPW_Resend', 'handle_test_email'));
     }
 
     public function enqueue_assets($hook) {
         if ($hook !== 'toplevel_page_tdlpw-dashboard') { return; }
         wp_enqueue_style('{{SLUG}}-admin', TDLPW_URL . 'assets/css/admin.css', array(), TDLPW_VERSION);
+        wp_enqueue_editor();
+        if (current_user_can('upload_files')) { wp_enqueue_media(); }
     }
 
     public function menu() {
@@ -974,6 +1089,7 @@ final class TDLPW_Admin {
             'course' => absint(wp_unslash($_POST['course'] ?? 0)),
             'role' => sanitize_key(wp_unslash($_POST['role'] ?? '')),
             'opted_in' => !empty($_POST['opted_in']),
+            'search' => sanitize_text_field(wp_unslash($_POST['search'] ?? '')),
         );
         $eligible_ids = array_map('absint', wp_list_pluck(TDLPW_Audience::rows($filters), 'id'));
         $selected = array_values(array_intersect($selected, $eligible_ids));
@@ -984,16 +1100,22 @@ final class TDLPW_Admin {
             'course' => $filters['course'],
             'role' => $filters['role'],
             'opted_in' => $filters['opted_in'] ? '1' : '',
+            'search' => $filters['search'],
         );
         if (!$subject || !$html || !$selected) {
-            wp_safe_redirect(add_query_arg(array_merge($redirect_args, array('notice' => 'select')), admin_url('admin.php')));
+            $notice = !$subject
+                ? __('Enter an email subject before sending.', '{{SLUG}}')
+                : (!$html
+                    ? __('Add email content before sending. In the Visual editor, confirm the message appears before sending.', '{{SLUG}}')
+                    : __('Select at least one opted-in contact before sending.', '{{SLUG}}'));
+            wp_safe_redirect(add_query_arg(array_merge($redirect_args, array('notice' => $notice)), admin_url('admin.php')));
             exit;
         }
         $result = TDLPW_Resend::send_campaign($selected, $subject, $html);
         if (is_wp_error($result)) {
-            $notice = rawurlencode($result->get_error_message());
+            $notice = $result->get_error_message();
         } else {
-            $notice = rawurlencode(sprintf(__('Campaign complete: %1$d sent, %2$d failed.', '{{SLUG}}'), $result['sent'], $result['failed']));
+            $notice = sprintf(__('Campaign complete: %1$d sent, %2$d failed.', '{{SLUG}}'), $result['sent'], $result['failed']);
         }
         wp_safe_redirect(add_query_arg(array_merge($redirect_args, array('notice' => $notice)), admin_url('admin.php')));
         exit;
@@ -1024,6 +1146,9 @@ final class TDLPW_Admin {
                 esc_url(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => $key), admin_url('admin.php'))) . '">' . esc_html($label) . '</a>';
         }
         echo '</nav>';
+        if ($tab === 'customers') {
+            echo '<img class="tdlpw-campaign-banner" src="{{CAMPAIGN_HEADER_DATA_URI}}" alt="' . esc_attr__('CourseBridge email campaigns', '{{SLUG}}') . '">';
+        }
         if ($tab === 'settings') { $this->render_settings($settings, $is_constant_key); }
         elseif ($tab === 'customers') { $this->render_customers(); }
         else { $this->render_overview(); }
@@ -1074,8 +1199,14 @@ final class TDLPW_Admin {
             'course' => absint($_GET['course'] ?? 0),
             'role' => sanitize_key($_GET['role'] ?? ''),
             'opted_in' => !empty($_GET['opted_in']),
+            'search' => sanitize_text_field(wp_unslash($_GET['search'] ?? '')),
         );
         $rows = TDLPW_Audience::rows($filters);
+        $host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
+        $host = preg_replace('/^www\./', '', $host);
+        if ($host === 'theindustryminer.com') {
+            echo '<section class="tdlpw-subscription" aria-label="' . esc_attr__('Site subscription information', '{{SLUG}}') . '"><div><span class="tdlpw-eyebrow">' . esc_html__('SITE SUBSCRIPTION', '{{SLUG}}') . '</span><h2>' . esc_html__('The Industry Miner', '{{SLUG}}') . '</h2><a href="' . esc_url('https://theindustryminer.com/') . '">' . esc_html__('theindustryminer.com', '{{SLUG}}') . '</a><p>' . esc_html__('Plan period: October 12, 2026 – November 12, 2026', '{{SLUG}}') . '</p><small>' . esc_html__('Displayed for reference only; this page does not charge or verify payment.', '{{SLUG}}') . '</small></div><strong class="tdlpw-plan-price">$15 <span>' . esc_html__('/ month', '{{SLUG}}') . '</span></strong></section>';
+        }
         $current_page = max(1, absint($_GET['customers_page'] ?? 1));
         $page_size = 100;
         $page_rows = array_slice($rows, ($current_page - 1) * $page_size, $page_size);
@@ -1084,6 +1215,7 @@ final class TDLPW_Admin {
         $courses = $this->course_choices();
         $products = $this->product_choices();
         echo '<form method="get" class="tdlpw-filters"><input type="hidden" name="page" value="tdlpw-dashboard"><input type="hidden" name="tab" value="customers">';
+        echo '<input type="search" name="search" value="' . esc_attr($filters['search']) . '" placeholder="' . esc_attr__('Search name or email', '{{SLUG}}') . '" aria-label="' . esc_attr__('Search WordPress users by name or email', '{{SLUG}}') . '">';
         echo '<select name="product"><option value="0">' . esc_html__('All products', '{{SLUG}}') . '</option>';
         foreach ($products as $product) {
             echo '<option value="' . esc_attr((string) $product->get_id()) . '" ' . selected($filters['product'], $product->get_id(), false) . '>' . esc_html($product->get_name()) . '</option>';
@@ -1096,18 +1228,44 @@ final class TDLPW_Admin {
         foreach ($roles as $key => $role) {
             echo '<option value="' . esc_attr($key) . '" ' . selected($filters['role'], $key, false) . '>' . esc_html(translate_user_role($role['name'])) . '</option>';
         }
-        echo '</select><label><input type="checkbox" name="opted_in" value="1" ' . checked($filters['opted_in'], true, false) . '> ' . esc_html__('Marketing opt-ins only', '{{SLUG}}') . '</label><button class="button">' . esc_html__('Filter', '{{SLUG}}') . '</button></form>';
-        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. All accounts are listed; product and course columns show recorded history. Campaigns can be sent only to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
+        echo '</select><label><input type="checkbox" name="opted_in" value="1" ' . checked($filters['opted_in'], true, false) . '> ' . esc_html__('Marketing opt-ins only', '{{SLUG}}') . '</label><button class="button">' . esc_html__('Filter contacts', '{{SLUG}}') . '</button></form>';
+        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. Search by email or name, then select one opted-in person or several visible contacts. Product, course, and role filters can narrow a group. Campaigns only send to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
+        echo '<form id="tdlpw-campaign-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
         wp_nonce_field('tdlpw_send_campaign');
         echo '<input type="hidden" name="product" value="' . esc_attr((string) $filters['product']) . '">';
         echo '<input type="hidden" name="course" value="' . esc_attr((string) $filters['course']) . '">';
         echo '<input type="hidden" name="role" value="' . esc_attr($filters['role']) . '">';
         echo '<input type="hidden" name="opted_in" value="' . ($filters['opted_in'] ? '1' : '0') . '">';
-        echo '<div class="tdlpw-campaign"><label>' . esc_html__('Email subject', '{{SLUG}}') . '<input class="regular-text" name="subject" required maxlength="180"></label>';
-        echo '<label>' . esc_html__('Message (HTML allowed: links, headings, paragraphs)', '{{SLUG}}') . '<textarea name="message" rows="5" class="large-text" required></textarea></label>';
+        echo '<input type="hidden" name="search" value="' . esc_attr($filters['search']) . '">';
+        echo '<div class="tdlpw-campaign"><label>' . esc_html__('Email subject (personalization tags supported)', '{{SLUG}}') . '<input class="regular-text" name="subject" required maxlength="180" placeholder="' . esc_attr__('e.g. A course update for {{first_name}}', '{{SLUG}}') . '"></label>';
+        echo '<div><strong>' . esc_html__('Email content', '{{SLUG}}') . '</strong><p class="description">' . esc_html__('Use Visual to format content or Text to edit HTML. Add links, images, and personalization tags.', '{{SLUG}}') . '</p>';
+        wp_editor('', 'tdlpw_email_message', array(
+            'textarea_name' => 'message',
+            'textarea_rows' => 12,
+            'media_buttons' => current_user_can('upload_files'),
+            'teeny' => false,
+            'quicktags' => true,
+            'tinymce' => array(
+                'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,undo,redo',
+                'toolbar2' => 'forecolor,backcolor,pastetext,removeformat,charmap,outdent,indent,wp_adv',
+                'block_formats' => 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
+            ),
+        ));
+        echo '</div><div class="tdlpw-personalization"><label for="tdlpw-token-picker">' . esc_html__('Personalize your email', '{{SLUG}}') . '</label><select id="tdlpw-token-picker">';
+        foreach (array(
+            '{{first_name}}' => __('First name', '{{SLUG}}'),
+            '{{last_name}}' => __('Last name', '{{SLUG}}'),
+            '{{display_name}}' => __('Display name', '{{SLUG}}'),
+            '{{email}}' => __('Email address', '{{SLUG}}'),
+            '{{site_name}}' => __('Site name', '{{SLUG}}'),
+            '{{site_url}}' => __('Site link', '{{SLUG}}'),
+            '{{unsubscribe_url}}' => __('Unsubscribe link', '{{SLUG}}'),
+        ) as $token => $label) {
+            echo '<option value="' . esc_attr($token) . '">' . esc_html($label) . '</option>';
+        }
+        echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
         echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
-        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select opted-in contacts', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
             $spend = array();
@@ -1118,7 +1276,7 @@ final class TDLPW_Admin {
                 ? ' <a href="' . esc_url(add_query_arg(array('page' => 'wc-orders', 'action' => 'edit', 'id' => $row['latest_order_id']), admin_url('admin.php'))) . '">#' . esc_html((string) $row['latest_order_id']) . '</a>' .
                     ($row['last_purchase'] ? '<br><small>' . esc_html($row['last_purchase']) . ' UTC</small>' : '')
                 : '';
-            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '">' : '—') .
+            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '" aria-label="' . esc_attr(sprintf(__('Select %s', '{{SLUG}}'), $row['email'])) . '">' : '—') .
                 '</td><td>' . esc_html($row['name']) . '<br><a href="mailto:' . esc_attr($row['email']) . '">' . esc_html($row['email']) . '</a></td>' .
                 '<td>' . esc_html($row['role'] ?: '—') . '</td><td>' . esc_html(implode(', ', array_filter($row['products'])) ?: '—') . '</td>' .
                 '<td>' . esc_html(implode(', ', array_filter($row['courses'])) ?: '—') . '</td>' .
@@ -1130,7 +1288,7 @@ final class TDLPW_Admin {
             $pagination = array(
                 'page' => 'tdlpw-dashboard', 'tab' => 'customers',
                 'product' => $filters['product'], 'course' => $filters['course'],
-                'role' => $filters['role'], 'opted_in' => $filters['opted_in'] ? 1 : '',
+                'role' => $filters['role'], 'opted_in' => $filters['opted_in'] ? 1 : '', 'search' => $filters['search'],
             );
             echo '<p class="tablenav"><span>' . esc_html(sprintf(__('Page %1$d of %2$d · %3$d contacts', '{{SLUG}}'), $current_page, $total_pages, count($rows))) . '</span> ';
             if ($current_page > 1) {
@@ -1144,7 +1302,21 @@ final class TDLPW_Admin {
         $table = TDLPW_Audience::table();
         $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
         echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; each campaign sends up to 100 selected recipients.', '{{SLUG}}'), $count)) . '</p>';
-        echo '<script>document.addEventListener("change",function(e){if(e.target.matches("[data-tdlpw-select-all]"))document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(c){if(!c.disabled)c.checked=e.target.checked})});</script>';
+        echo '<script>
+        document.addEventListener("change",function(e){if(e.target.matches("[data-tdlpw-select-all]"))document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(c){if(!c.disabled)c.checked=e.target.checked})});
+        document.addEventListener("submit",function(e){if(e.target&&e.target.id==="tdlpw-campaign-form"&&window.tinymce){window.tinymce.triggerSave();}},true);
+        document.addEventListener("click",function(e){
+            var button=e.target.closest("[data-tdlpw-insert-token]");
+            if(!button)return;
+            e.preventDefault();
+            var picker=document.getElementById("tdlpw-token-picker");
+            var token=picker?picker.value:"";
+            var editor=window.tinymce&&tinymce.get("tdlpw_email_message");
+            if(editor&&!editor.isHidden()){editor.execCommand("mceInsertContent",false,token);editor.focus();return;}
+            var textarea=document.getElementById("tdlpw_email_message");
+            if(textarea){var start=textarea.selectionStart;var end=textarea.selectionEnd;textarea.setRangeText(token,start,end,"end");textarea.focus();}
+        });
+        </script>';
 
         $logs = $wpdb->get_results('SELECT subject, email, status, detail, sent_at FROM ' . $wpdb->prefix . 'tdlpw_campaign_log ORDER BY id DESC LIMIT 30', ARRAY_A);
         echo '<h2>' . esc_html__('Recent email activity', '{{SLUG}}') . '</h2><table class="widefat striped"><thead><tr><th>' . esc_html__('Subject', '{{SLUG}}') . '</th><th>' . esc_html__('Recipient', '{{SLUG}}') . '</th><th>' . esc_html__('Status', '{{SLUG}}') . '</th><th>' . esc_html__('Provider response', '{{SLUG}}') . '</th><th>' . esc_html__('Sent at (UTC)', '{{SLUG}}') . '</th></tr></thead><tbody>';
@@ -1178,6 +1350,11 @@ final class TDLPW_Admin {
             }
         }
         echo '<p><button class="button button-primary">' . esc_html__('Save email settings', '{{SLUG}}') . '</button></p></form>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-test-email"><input type="hidden" name="action" value="tdlpw_send_test_email">';
+        wp_nonce_field('tdlpw_send_test_email');
+        echo '<h2>' . esc_html__('Test email delivery', '{{SLUG}}') . '</h2><p>' . esc_html__('Send one operational test email through the selected provider. This does not contact the marketing list.', '{{SLUG}}') . '</p>';
+        echo '<label>' . esc_html__('Test recipient email', '{{SLUG}}') . '<input class="regular-text" type="email" name="test_email" value="' . esc_attr(get_option('admin_email')) . '" required></label>';
+        echo '<p><button class="button">' . esc_html__('Send test email', '{{SLUG}}') . '</button></p></form>';
     }
 }
 `;
@@ -1209,7 +1386,9 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 * View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
 * Filter the audience by product, course, role, and marketing consent.
 * Filter email recipients by purchased product, enrolled course, WordPress role, and marketing consent.
+* Compose with the WordPress visual or HTML editor; add media-library images, links, and recipient-specific personalization.
 * Send individual or selected-group email campaigns through WordPress wp_mail or Resend.
+* Send an administrator-triggered provider test email without contacting the marketing audience.
 * Respect consent, add unsubscribe links, and log each email send result.
 * Keep order history and course mappings when the plugin is deactivated.
 
@@ -1294,8 +1473,20 @@ if (defined('TDLPW_REMOVE_DATA_ON_UNINSTALL') && TDLPW_REMOVE_DATA_ON_UNINSTALL)
 }
 `;
 
-const css = `.tdlpw-wrap{max-width:1320px}.tdlpw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:22px 0}.tdlpw-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:20px;margin:22px 0}.tdlpw-card h2{margin-top:0}.tdlpw-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.tdlpw-filters select{min-width:180px}.tdlpw-campaign{display:grid;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}.tdlpw-campaign label,.tdlpw-settings label{display:grid;gap:6px;font-weight:600}.tdlpw-settings{max-width:760px}.tdlpw-settings label{margin:14px 0}.tdlpw-status{display:inline-block;border-radius:999px;padding:3px 8px;background:#f1f1f1}.tdlpw-opted{background:#e7f8ee;color:#146b37}.tdlpw-wrap table td{vertical-align:top}.tdlpw-wrap .notice.inline{padding:8px 12px}.tdlpw-marketing-optin{margin:8px 0}
+const css = `.tdlpw-wrap{max-width:1320px}.tdlpw-campaign-banner{display:block;width:100%;height:auto;max-height:230px;object-fit:cover;border-radius:12px;margin:20px 0}.tdlpw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:22px 0}.tdlpw-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:20px;margin:22px 0}.tdlpw-card h2{margin-top:0}.tdlpw-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.tdlpw-filters select{min-width:180px}.tdlpw-campaign{display:grid;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}.tdlpw-campaign label,.tdlpw-settings label,.tdlpw-test-email label{display:grid;gap:6px;font-weight:600}.tdlpw-campaign .wp-editor-wrap{font-weight:400}.tdlpw-personalization{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.tdlpw-personalization label{display:inline}.tdlpw-settings{max-width:760px}.tdlpw-settings label,.tdlpw-test-email label{margin:14px 0}.tdlpw-test-email{max-width:760px}.tdlpw-status{display:inline-block;border-radius:999px;padding:3px 8px;background:#f1f1f1}.tdlpw-opted{background:#e7f8ee;color:#146b37}.tdlpw-wrap table td{vertical-align:top}.tdlpw-wrap .notice.inline{padding:8px 12px}.tdlpw-marketing-optin{margin:8px 0}.tdlpw-subscription{display:flex;justify-content:space-between;align-items:center;gap:24px;max-width:820px;padding:20px 24px;margin:22px 0;border:1px solid #bfdbfe;border-radius:14px;background:linear-gradient(120deg,#eff6ff,#fff 65%,#ecfeff);box-shadow:0 4px 18px rgba(15,23,42,.06)}.tdlpw-subscription h2{margin:4px 0}.tdlpw-subscription p{margin:10px 0 4px}.tdlpw-subscription small{color:#64748b}.tdlpw-eyebrow{font-size:11px;letter-spacing:.12em;font-weight:700;color:#2563eb}.tdlpw-plan-price{white-space:nowrap;color:#0f172a;font-size:28px}.tdlpw-plan-price span{font-size:14px;font-weight:500;color:#475569}@media(max-width:600px){.tdlpw-subscription{align-items:flex-start;flex-direction:column}.tdlpw-plan-price{font-size:24px}}
 `;
+
+const campaignHeader = `<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="230" viewBox="0 0 1320 230" role="img" aria-labelledby="title desc">
+<title id="title">CourseBridge email campaigns</title><desc id="desc">A modern blue banner for course updates and email campaigns.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101b3c"/><stop offset=".6" stop-color="#1749a2"/><stop offset="1" stop-color="#0891b2"/></linearGradient><linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dbeafe"/></linearGradient></defs>
+<rect width="1320" height="230" rx="20" fill="url(#bg)"/><circle cx="1150" cy="42" r="142" fill="#60a5fa" opacity=".13"/><circle cx="1240" cy="210" r="120" fill="#67e8f9" opacity=".16"/>
+<path d="M760 0h560v230H690c112-51 165-124 70-230z" fill="#fff" opacity=".045"/>
+<g transform="translate(955 51) rotate(-4 116 66)"><rect width="236" height="132" rx="16" fill="url(#card)"/><path d="m13 22 105 78L223 22" fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 112 82 60m140 52-67-52" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/></g>
+<g fill="#bfdbfe" opacity=".8"><circle cx="864" cy="54" r="4"/><circle cx="1235" cy="54" r="4"/><circle cx="1267" cy="94" r="3"/></g>
+<text x="72" y="86" fill="#bae6fd" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="3">COURSEBRIDGE PRO</text>
+<text x="72" y="143" fill="#fff" font-family="Arial,sans-serif" font-size="38" font-weight="700">Course updates, delivered.</text>
+<text x="74" y="181" fill="#dbeafe" font-family="Arial,sans-serif" font-size="17">Create polished emails for your opted-in learners.</text>
+</svg>`;
 
 export function buildWordPressPluginFiles(info: PluginTemplateInfo): Record<string, string> {
   const tokenized: Record<string, string> = {
@@ -1314,5 +1505,6 @@ export function buildWordPressPluginFiles(info: PluginTemplateInfo): Record<stri
     "includes/index.php": "<?php\n// Silence is golden.\n",
     "assets/index.php": "<?php\n// Silence is golden.\n",
   };
-  return Object.fromEntries(Object.entries(tokenized).map(([file, source]) => [file, replaceTokens(source, info)]));
+  const campaignHeaderDataUri = "data:image/svg+xml;base64," + Buffer.from(campaignHeader, "utf8").toString("base64");
+  return Object.fromEntries(Object.entries(tokenized).map(([file, source]) => [file, replaceTokens(source, info, campaignHeaderDataUri)]));
 }
