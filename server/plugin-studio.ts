@@ -100,16 +100,18 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.5",
+  version: "2.1.6",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:
-    "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set or edit an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The Contacts & Campaigns audience includes every WordPress user, grouped by recorded product purchases and LearnPress enrollments; consent status stays separate and only opted-in users can receive campaigns through WordPress email or Resend. Campaigns include a visual and HTML editor, media, personalization tags, and an admin-triggered delivery test. The plugin also includes buyer and enrollment reporting, role and order summaries, unsubscribe links, a license page, and plugin settings.",
+    "CourseBridge Pro for LearnPress and WooCommerce connects WooCommerce products to LearnPress courses and automatically enrolls account-holding buyers after confirmed payment. Administrators can assign courses to WordPress users, search by name, username, or email, set or edit optional access expiry dates, review enrollment history, and cancel access.\n\nStudents can open purchased or assigned courses from WooCommerce My Account. Contacts & Campaigns provides a searchable directory of every WordPress account, grouped by recorded WooCommerce product purchases and LearnPress enrollments, with product, course, role, order, and spend filters.\n\nSend consent-based course marketing through Resend or WordPress email using the visual editor or HTML text editor, media-library images, links, personalization tags, unsubscribe links, a delivery test, and per-recipient send logs. Existing accounts and purchasers are not subscribed without recorded consent.",
+  releaseNotes:
+    "CourseBridge Pro 2.1.6 improves campaign recipient selection across contact pages, automatically selects Resend after a new API key is saved, and adds actionable settings feedback. WordPress updates now refresh short-lived download links at install time and remove stale update notices after a successful upgrade. The plugin details modal and readme include a fuller feature description and changelog. Existing purchaser consent is unchanged; campaigns remain limited to contacts with recorded opt-in.",
   seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
   seoDescription:
     "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",
   seoKeywords:
-    "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
+    "CourseBridge Pro, LearnPress WooCommerce, WooCommerce course enrollment, LearnPress courses, WordPress LMS plugin, course customer management, WooCommerce LMS",
   featuredImage: "/coursebridge-pro-featured.svg",
 };
 
@@ -192,6 +194,7 @@ async function ensureStarterProject(adminId: string) {
         seoDescription: STARTER.seoDescription,
         seoKeywords: STARTER.seoKeywords,
         sourcePrompt: refreshLegacyStarter ? STARTER.description : (existing.sourcePrompt || STARTER.description),
+        releaseNotes: refreshLegacyStarter ? STARTER.releaseNotes : existing.releaseNotes,
         coreShortDescription: "",
         coreDescription: "",
         coreFiles: {},
@@ -287,7 +290,15 @@ async function getProjectFiles(id: string, edition: PluginEdition) {
   const packageEdition: PluginEdition = singlePaid ? "paid" : edition;
   const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const release = buildPluginReleaseFiles(project, packageEdition, sourceFiles);
+    const [product] = project.shopProductId
+      ? await db.select({ features: shopProducts.features })
+        .from(shopProducts).where(eq(shopProducts.id, project.shopProductId)).limit(1)
+      : [];
+    const release = buildPluginReleaseFiles(
+      { ...project, features: product?.features || [] },
+      packageEdition,
+      sourceFiles,
+    );
     return { project, ...release };
   }
   if (packageEdition === "paid") return null;

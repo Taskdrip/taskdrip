@@ -14877,7 +14877,7 @@ init_schema();
 
 // server/wp-plugin-release.ts
 var MAX_FILES = 12;
-var MAX_FILE_CHARS = 36e3;
+var MAX_FILE_CHARS = 37e3;
 var MAX_EDITION_CHARS = 132e3;
 var SAFE_SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".php", ".js", ".css"]);
 function cleanHeaderValue(value, maxLength) {
@@ -15033,6 +15033,9 @@ function buildPluginReleaseFiles(project, edition, sourceFiles) {
   const shortDescription = edition === "core" ? project.coreShortDescription || `${project.name} free core plugin` : project.shortDescription || `${project.name} paid plugin`;
   const description = edition === "core" ? project.coreDescription || project.description : project.description;
   const tags = (project.seoKeywords || "").split(",").map((tag) => tag.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/\s+/g, "-")).filter((tag) => tag.length > 1 && tag.length <= 30).slice(0, 5);
+  const featureList = Array.isArray(project.features) ? project.features.map((feature) => cleanReadmeText(String(feature))).filter(Boolean).slice(0, 12) : [];
+  const releaseNotes = cleanReadmeText(project.releaseNotes || "Initial release.");
+  const changelogItems = releaseNotes.split(/\n+|(?<=\.)\s+/).map((item) => item.replace(/^[*-]\s*/, "").trim()).filter(Boolean);
   const readme2 = `=== ${cleanReadmeText(pluginName)} ===
 Contributors: taskdrip
 ${tags.length ? `Tags: ${tags.join(", ")}` : "Tags: wordpress, productivity"}
@@ -15048,7 +15051,21 @@ ${cleanReadmeText(shortDescription)}
 
 ${cleanReadmeText(description)}
 
-${edition === "premium" ? `== Requirements ==
+${featureList.length ? `== Features ==
+
+${featureList.map((feature) => `* ${feature}`).join("\n")}
+
+` : ""}${edition === "paid" && project.slug === "coursebridge-learnpress-woocommerce" ? `== How it works ==
+
+Map each WooCommerce product to one or more LearnPress courses. When WooCommerce confirms an eligible order, CourseBridge enrolls the account-holding buyer. Administrators can also assign existing WordPress users, set optional access expiry, and review purchase and enrollment history. Students open courses from WooCommerce My Account.
+
+Contacts & Campaigns lists WordPress accounts and filters them by recorded purchases, LearnPress courses, or role. Marketing consent is tracked separately: only contacts with recorded opt-in can receive campaigns. Compose with the WordPress visual or HTML editor, add media-library images and links, personalize messages, and send through Resend or WordPress email. Test delivery before sending and review per-recipient logs.
+
+` : ""}${edition === "paid" ? `== Email marketing and consent ==
+
+Purchases do not silently subscribe customers. The optional checkout consent checkbox records marketing opt-in, and campaign delivery checks that consent again before sending. Each campaign includes an unsubscribe link.
+
+` : ""}${edition === "premium" ? `== Requirements ==
 
 Install and activate the free ${cleanReadmeText(project.name)} Core plugin first (slug: ${project.slug}).
 
@@ -15067,7 +15084,7 @@ ${edition === "paid" ? "4. Open CourseBridge Pro \u2192 License to activate the 
 == Changelog ==
 
 = ${cleanHeaderValue(project.version, 30)} =
-* Initial generated release. Review the source and complete the included test checklist before production use.
+${changelogItems.map((item) => `* ${item}`).join("\n")}
 `;
   const installation = edition === "premium" ? `# Install and test ${pluginName}
 
@@ -15158,7 +15175,9 @@ Review licensing, generated source, WordPress compatibility, security, and the i
       standalonePaid ? `${project.name} is locked. Open CourseBridge Pro \u2192 License to activate or renew a valid key.` : `${project.name} Premium is locked. Open Settings \u2192 Plugin License to activate or renew a valid key.`
     );
     const pluginDescriptionPhp = phpSingleQuoted(
-      standalonePaid ? `Licensed standalone plugin: ${project.name}.` : `Licensed premium add-on for ${project.name}.`
+      standalonePaid ? String(project.description || `Licensed standalone plugin: ${project.name}.`) : `Licensed premium add-on for ${project.name}.
+
+${project.description || ""}`
     );
     const updateSlugPhp = phpSingleQuoted(folderSlug);
     const classPhp = `<?php
@@ -15182,6 +15201,8 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'inject_update' ) );
       add_filter( 'plugins_api', array( __CLASS__, 'plugin_info' ), 20, 3 );
       add_filter( 'auto_update_plugin', array( __CLASS__, 'allow_auto_update' ), 10, 2 );
+      add_filter( 'upgrader_pre_download', array( __CLASS__, 'fresh_update_package' ), 10, 4 );
+      add_action( 'upgrader_process_complete', array( __CLASS__, 'clear_update_state' ), 10, 2 );
       add_action( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'refresh' ) );
       if ( ! wp_next_scheduled( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' ) ) {
         wp_schedule_event( time() + 300, 'twicedaily', 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' );
@@ -15352,22 +15373,43 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       echo '<div class="notice notice-warning"><p>' . esc_html( ${lockedNoticePhp} ) . '</p></div>';
     }
 
-    private static function get_update() {
+    private static function get_update( $force_refresh = false ) {
       if ( ! self::is_licensed() ) { return false; }
-      $cached = get_transient( self::update_transient() );
-      if ( is_array( $cached ) ) { return $cached; }
+      if ( ! $force_refresh ) {
+        $cached = get_transient( self::update_transient() );
+        if ( is_array( $cached ) ) { return $cached; }
+      }
       $response = self::request( 'check-update' );
       if ( ! is_array( $response ) || empty( $response['valid'] ) ) { return false; }
       $update = ! empty( $response['update'] ) && is_array( $response['update'] ) ? $response['update'] : array();
-      set_transient( self::update_transient(), $update, 6 * HOUR_IN_SECONDS );
+      // Update download URLs are short-lived, so only cache version metadata
+      // through a normal check. Downloads request a fresh package URL below.
+      if ( ! $force_refresh ) {
+        set_transient( self::update_transient(), $update, 6 * HOUR_IN_SECONDS );
+      }
       return $update;
     }
 
     public static function inject_update( $transient ) {
-      if ( ! is_object( $transient ) || ! self::is_licensed() ) { return $transient; }
-      $update = self::get_update();
-      if ( empty( $update['version'] ) || empty( $update['package'] ) ) { return $transient; }
+      if ( ! is_object( $transient ) ) { return $transient; }
       if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) { $transient->response = array(); }
+      if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) { $transient->no_update = array(); }
+      if ( ! self::is_licensed() ) {
+        unset( $transient->response[self::$plugin_file], $transient->no_update[self::$plugin_file] );
+        return $transient;
+      }
+      $update = self::get_update();
+      if (
+        empty( $update['version'] ) ||
+        empty( $update['package'] ) ||
+        version_compare( sanitize_text_field( $update['version'] ), self::$version, '<=' )
+      ) {
+        // WordPress can retain an old response entry after an install. Remove
+        // it when this release is already current so the update notice clears.
+        unset( $transient->response[self::$plugin_file], $transient->no_update[self::$plugin_file] );
+        return $transient;
+      }
+      unset( $transient->no_update[self::$plugin_file] );
       $transient->response[self::$plugin_file] = (object) array(
         'slug' => self::$plugin_slug,
         'plugin' => self::$plugin_file,
@@ -15376,6 +15418,38 @@ if ( ! class_exists( '${clientClass}', false ) ) {
         'package' => esc_url_raw( $update['package'] ),
       );
       return $transient;
+    }
+
+    public static function fresh_update_package( $reply, $package, $upgrader, $hook_extra ) {
+      if ( $reply !== false || ! is_array( $hook_extra ) ) { return $reply; }
+      $plugins = array_filter( array_merge(
+        array( $hook_extra['plugin'] ?? '' ),
+        (array) ( $hook_extra['plugins'] ?? array() )
+      ) );
+      if ( ! in_array( self::$plugin_file, $plugins, true ) ) { return $reply; }
+      if ( ! self::is_licensed() ) {
+        return new WP_Error( 'taskdrip_license_invalid', __( 'Activate a valid CourseBridge license before installing plugin updates.', 'taskdrip' ) );
+      }
+      if ( ! function_exists( 'download_url' ) ) {
+        return new WP_Error( 'taskdrip_download_unavailable', __( 'WordPress could not prepare the plugin update download. Try again from Plugins \u2192 Updates.', 'taskdrip' ) );
+      }
+      $update = self::get_update( true );
+      if ( empty( $update['version'] ) || empty( $update['package'] ) || version_compare( sanitize_text_field( $update['version'] ), self::$version, '<=' ) ) {
+        return new WP_Error( 'taskdrip_update_unavailable', __( 'No newer CourseBridge update is available for this license.', 'taskdrip' ) );
+      }
+      return download_url( esc_url_raw( $update['package'] ) );
+    }
+
+    public static function clear_update_state( $upgrader, $options ) {
+      if ( ! is_array( $options ) || ( $options['action'] ?? '' ) !== 'update' || ( $options['type'] ?? '' ) !== 'plugin' ) { return; }
+      $plugins = array_filter( array_merge(
+        array( $options['plugin'] ?? '' ),
+        (array) ( $options['plugins'] ?? array() )
+      ) );
+      if ( ! in_array( self::$plugin_file, $plugins, true ) ) { return; }
+      delete_transient( self::update_transient() );
+      delete_site_transient( 'update_plugins' );
+      if ( function_exists( 'wp_clean_plugins_cache' ) ) { wp_clean_plugins_cache( true ); }
     }
 
     public static function plugin_info( $result, $action, $args ) {
@@ -15389,7 +15463,14 @@ if ( ! class_exists( '${clientClass}', false ) ) {
         'version' => ! empty( $update['version'] ) ? sanitize_text_field( $update['version'] ) : self::$version,
         'author' => 'Taskdrip',
         'homepage' => self::$api_base . '/my-plugins',
-        'sections' => array( 'description' => esc_html( ${pluginDescriptionPhp} ), 'changelog' => nl2br( esc_html( $update['changelog'] ?? '' ) ) ),
+        'requires' => '6.2',
+        'requires_php' => '7.4',
+        'sections' => array(
+          'description' => wpautop( esc_html( ${pluginDescriptionPhp} ) ),
+          'features' => wpautop( esc_html__( 'Connect WooCommerce products with LearnPress courses; enroll buyers after confirmed payment; manage student access and expiry; search buyers and WordPress contacts; and create consent-based campaigns with the visual or HTML editor, media, links, personalization, Resend or WordPress email, unsubscribe links, delivery tests, and send logs.', 'taskdrip' ) ),
+          'installation' => wpautop( esc_html__( 'Install the ZIP from WordPress Admin \u2192 Plugins \u2192 Add New Plugin \u2192 Upload Plugin. Activate WooCommerce and LearnPress, activate CourseBridge Pro, enter your Taskdrip license, map products to courses, and configure and test the email provider before sending a campaign.', 'taskdrip' ) ),
+          'changelog' => nl2br( esc_html( $update['changelog'] ?? '' ) ),
+        ),
         'download_link' => ! empty( $update['package'] ) ? esc_url_raw( $update['package'] ) : '',
       );
     }
@@ -16502,10 +16583,21 @@ final class TDLPW_Admin {
         $provider = sanitize_key(wp_unslash($_POST['email_provider'] ?? $settings['email_provider'] ?? 'resend'));
         $settings['email_provider'] = in_array($provider, array('wordpress', 'resend'), true) ? $provider : 'resend';
         $key = trim(sanitize_text_field(wp_unslash($_POST['resend_api_key'] ?? '')));
-        if ($key !== '') { $settings['resend_api_key'] = $key; }
         if (isset($_POST['remove_resend_api_key'])) { unset($settings['resend_api_key']); }
+        $resend_key_saved = $key !== '';
+        if ($resend_key_saved) {
+            $settings['resend_api_key'] = $key;
+            // A newly saved Resend key becomes active immediately. Admins can
+            // choose WordPress email again from this settings page.
+            $settings['email_provider'] = 'resend';
+        }
         update_option('tdlpw_settings', $settings, false);
-        wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'settings', 'updated' => '1'), admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'tdlpw-dashboard',
+            'tab' => 'settings',
+            'updated' => '1',
+            'resend_key_saved' => $resend_key_saved ? '1' : '0',
+        ), admin_url('admin.php')));
         exit;
     }
 
@@ -16569,6 +16661,12 @@ final class TDLPW_Admin {
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
         echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
         echo '<p>' . esc_html__('Link course products, assign users to courses, review every WordPress contact with purchase and enrollment history, and send consent-based course updates through WordPress email or Resend.', '{{SLUG}}') . '</p>';
+        if (!empty($_GET['updated'])) {
+            $settings_notice = !empty($_GET['resend_key_saved'])
+                ? __('Settings saved. Resend is now selected; send a test email to confirm your key and verified sender before launching a campaign.', '{{SLUG}}')
+                : __('Email settings saved.', '{{SLUG}}');
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($settings_notice) . '</p></div>';
+        }
         if (!empty($_GET['notice'])) {
             echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
         }
@@ -16697,6 +16795,7 @@ final class TDLPW_Admin {
         }
         echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
         echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
+        echo '<p id="tdlpw-campaign-selection-summary" class="description">' . esc_html__('No recipients selected. Checked recipients stay selected as you move between contact pages.', '{{SLUG}}') . '</p>';
         echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
@@ -16724,10 +16823,10 @@ final class TDLPW_Admin {
             );
             echo '<p class="tablenav"><span>' . esc_html(sprintf(__('Page %1$d of %2$d \xB7 %3$d contacts', '{{SLUG}}'), $current_page, $total_pages, count($rows))) . '</span> ';
             if ($current_page > 1) {
-                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page - 1)), admin_url('admin.php'))) . '">' . esc_html__('Previous', '{{SLUG}}') . '</a> ';
+                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page - 1)), admin_url('admin.php'))) . '">' . esc_html__('Previous contacts', '{{SLUG}}') . '</a> ';
             }
             if ($current_page < $total_pages) {
-                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page + 1)), admin_url('admin.php'))) . '">' . esc_html__('Next', '{{SLUG}}') . '</a>';
+                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page + 1)), admin_url('admin.php'))) . '">' . esc_html__('Next contacts', '{{SLUG}}') . '</a>';
             }
             echo '</p>';
         }
@@ -16735,8 +16834,49 @@ final class TDLPW_Admin {
         $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
         echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; each campaign sends up to 100 selected recipients.', '{{SLUG}}'), $count)) . '</p>';
         echo '<script>
-        document.addEventListener("change",function(e){if(e.target.matches("[data-tdlpw-select-all]"))document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(c){if(!c.disabled)c.checked=e.target.checked})});
-        document.addEventListener("submit",function(e){if(e.target&&e.target.id==="tdlpw-campaign-form"&&window.tinymce){window.tinymce.triggerSave();}},true);
+        (function(){
+          var form=document.getElementById("tdlpw-campaign-form");
+          if(!form)return;
+          var summary=document.getElementById("tdlpw-campaign-selection-summary");
+          var filterKey=["product","course","role","opted_in","search"].map(function(name){
+            var field=form.querySelector("[name=\\""+name+"\\"]");
+            return field?field.value:"";
+          }).join("|");
+          var storageKey="tdlpw-campaign-recipients:"+filterKey;
+          var selected=[];
+          try{selected=JSON.parse(sessionStorage.getItem(storageKey)||"[]");if(!Array.isArray(selected))selected=[];}catch(ignore){selected=[];}
+          selected=selected.map(String);
+          document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(box){box.checked=selected.indexOf(box.value)!==-1;});
+          function updateSummary(){if(summary)summary.textContent=selected.length+" selected across contact pages. Only contacts with recorded opt-in can be sent email.";}
+          updateSummary();
+          function persist(){
+            var ids=new Set(selected);
+            document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(box){
+              if(box.checked)ids.add(box.value);else ids.delete(box.value);
+            });
+            selected=Array.from(ids);
+            try{sessionStorage.setItem(storageKey,JSON.stringify(selected));}catch(ignore){}
+            updateSummary();
+          }
+          document.addEventListener("change",function(e){
+            if(e.target.matches("[data-tdlpw-select-all]")){
+              document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(box){if(!box.disabled)box.checked=e.target.checked;});
+              persist();
+            }else if(e.target.matches("input[name=\\"recipient_ids[]\\"]")){persist();}
+          });
+          form.addEventListener("submit",function(){
+            if(window.tinymce){window.tinymce.triggerSave();}
+            var present=Array.from(form.querySelectorAll("input[name=\\"recipient_ids[]\\"]")).map(function(box){return box.value;});
+            selected.forEach(function(id){
+              if(present.indexOf(id)===-1){
+                var hidden=document.createElement("input");
+                hidden.type="hidden";hidden.name="recipient_ids[]";hidden.value=id;
+                form.appendChild(hidden);
+              }
+            });
+            try{sessionStorage.removeItem(storageKey);}catch(ignore){}
+          },true);
+        })();
         document.addEventListener("click",function(e){
             var button=e.target.closest("[data-tdlpw-insert-token]");
             if(!button)return;
@@ -16861,6 +17001,12 @@ Every WordPress user account appears, including accounts without purchase histor
 == Changelog ==
 
 = {{VERSION}} =
+* Keep selected campaign recipients checked while moving between contact pages and report send outcomes after submission.
+* Select Resend automatically after a new API key is saved and guide administrators to send a provider test email before a campaign.
+* Refresh short-lived license download links during plugin installation and clear stale WordPress update notices after an upgrade.
+* Expand the WordPress plugin details description, installation guidance, and feature list; preserve the recorded consent requirement for every campaign.
+
+= 2.1.5 =
 * Accept canonical and site-local date formats, edit existing student expiry dates, and keep expiry comparisons in the WordPress site timezone.
 * Filter campaign recipients by purchased product or enrolled course and support WordPress wp_mail or Resend delivery.
 * Include all WordPress accounts in Contacts & Campaigns and group them by recorded product purchases and LearnPress enrollments without changing consent.
@@ -18612,13 +18758,14 @@ var STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.5",
+  version: "2.1.6",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
-  description: "CourseBridge Pro connects WooCommerce products to LearnPress courses, enrolls buyers after confirmed payment, and lets administrators search WordPress users by name, username, or email before assigning courses. Admins can set or edit an optional expiry date, review each user's course access and dates, and cancel access. Buyers and assigned students can open their courses from WooCommerce My Account and LearnPress profiles. The Contacts & Campaigns audience includes every WordPress user, grouped by recorded product purchases and LearnPress enrollments; consent status stays separate and only opted-in users can receive campaigns through WordPress email or Resend. Campaigns include a visual and HTML editor, media, personalization tags, and an admin-triggered delivery test. The plugin also includes buyer and enrollment reporting, role and order summaries, unsubscribe links, a license page, and plugin settings.",
+  description: "CourseBridge Pro for LearnPress and WooCommerce connects WooCommerce products to LearnPress courses and automatically enrolls account-holding buyers after confirmed payment. Administrators can assign courses to WordPress users, search by name, username, or email, set or edit optional access expiry dates, review enrollment history, and cancel access.\n\nStudents can open purchased or assigned courses from WooCommerce My Account. Contacts & Campaigns provides a searchable directory of every WordPress account, grouped by recorded WooCommerce product purchases and LearnPress enrollments, with product, course, role, order, and spend filters.\n\nSend consent-based course marketing through Resend or WordPress email using the visual editor or HTML text editor, media-library images, links, personalization tags, unsubscribe links, a delivery test, and per-recipient send logs. Existing accounts and purchasers are not subscribed without recorded consent.",
+  releaseNotes: "CourseBridge Pro 2.1.6 improves campaign recipient selection across contact pages, automatically selects Resend after a new API key is saved, and adds actionable settings feedback. WordPress updates now refresh short-lived download links at install time and remove stale update notices after a successful upgrade. The plugin details modal and readme include a fuller feature description and changelog. Existing purchaser consent is unchanged; campaigns remain limited to contacts with recorded opt-in.",
   seoTitle: "CourseBridge Pro \u2013 LearnPress & WooCommerce Plugin",
   seoDescription: "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",
-  seoKeywords: "CourseBridge Pro, LearnPress WooCommerce integration, WooCommerce course enrollment, LearnPress course sales, WordPress LMS plugin, course customer management, WooCommerce LMS",
+  seoKeywords: "CourseBridge Pro, LearnPress WooCommerce, WooCommerce course enrollment, LearnPress courses, WordPress LMS plugin, course customer management, WooCommerce LMS",
   featuredImage: "/coursebridge-pro-featured.svg"
 };
 function slugify2(value) {
@@ -18682,6 +18829,7 @@ async function ensureStarterProject(adminId) {
         seoDescription: STARTER.seoDescription,
         seoKeywords: STARTER.seoKeywords,
         sourcePrompt: refreshLegacyStarter ? STARTER.description : existing.sourcePrompt || STARTER.description,
+        releaseNotes: refreshLegacyStarter ? STARTER.releaseNotes : existing.releaseNotes,
         coreShortDescription: "",
         coreDescription: "",
         coreFiles: {},
@@ -18762,7 +18910,12 @@ async function getProjectFiles(id, edition) {
   const packageEdition = singlePaid ? "paid" : edition;
   const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const release = buildPluginReleaseFiles(project, packageEdition, sourceFiles);
+    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq11(shopProducts.id, project.shopProductId)).limit(1) : [];
+    const release = buildPluginReleaseFiles(
+      { ...project, features: product?.features || [] },
+      packageEdition,
+      sourceFiles
+    );
     return { project, ...release };
   }
   if (packageEdition === "paid") return null;

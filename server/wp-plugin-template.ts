@@ -1070,10 +1070,21 @@ final class TDLPW_Admin {
         $provider = sanitize_key(wp_unslash($_POST['email_provider'] ?? $settings['email_provider'] ?? 'resend'));
         $settings['email_provider'] = in_array($provider, array('wordpress', 'resend'), true) ? $provider : 'resend';
         $key = trim(sanitize_text_field(wp_unslash($_POST['resend_api_key'] ?? '')));
-        if ($key !== '') { $settings['resend_api_key'] = $key; }
         if (isset($_POST['remove_resend_api_key'])) { unset($settings['resend_api_key']); }
+        $resend_key_saved = $key !== '';
+        if ($resend_key_saved) {
+            $settings['resend_api_key'] = $key;
+            // A newly saved Resend key becomes active immediately. Admins can
+            // choose WordPress email again from this settings page.
+            $settings['email_provider'] = 'resend';
+        }
         update_option('tdlpw_settings', $settings, false);
-        wp_safe_redirect(add_query_arg(array('page' => 'tdlpw-dashboard', 'tab' => 'settings', 'updated' => '1'), admin_url('admin.php')));
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'tdlpw-dashboard',
+            'tab' => 'settings',
+            'updated' => '1',
+            'resend_key_saved' => $resend_key_saved ? '1' : '0',
+        ), admin_url('admin.php')));
         exit;
     }
 
@@ -1137,6 +1148,12 @@ final class TDLPW_Admin {
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
         echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
         echo '<p>' . esc_html__('Link course products, assign users to courses, review every WordPress contact with purchase and enrollment history, and send consent-based course updates through WordPress email or Resend.', '{{SLUG}}') . '</p>';
+        if (!empty($_GET['updated'])) {
+            $settings_notice = !empty($_GET['resend_key_saved'])
+                ? __('Settings saved. Resend is now selected; send a test email to confirm your key and verified sender before launching a campaign.', '{{SLUG}}')
+                : __('Email settings saved.', '{{SLUG}}');
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($settings_notice) . '</p></div>';
+        }
         if (!empty($_GET['notice'])) {
             echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['notice']))) . '</p></div>';
         }
@@ -1265,6 +1282,7 @@ final class TDLPW_Admin {
         }
         echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
         echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
+        echo '<p id="tdlpw-campaign-selection-summary" class="description">' . esc_html__('No recipients selected. Checked recipients stay selected as you move between contact pages.', '{{SLUG}}') . '</p>';
         echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
@@ -1292,10 +1310,10 @@ final class TDLPW_Admin {
             );
             echo '<p class="tablenav"><span>' . esc_html(sprintf(__('Page %1$d of %2$d · %3$d contacts', '{{SLUG}}'), $current_page, $total_pages, count($rows))) . '</span> ';
             if ($current_page > 1) {
-                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page - 1)), admin_url('admin.php'))) . '">' . esc_html__('Previous', '{{SLUG}}') . '</a> ';
+                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page - 1)), admin_url('admin.php'))) . '">' . esc_html__('Previous contacts', '{{SLUG}}') . '</a> ';
             }
             if ($current_page < $total_pages) {
-                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page + 1)), admin_url('admin.php'))) . '">' . esc_html__('Next', '{{SLUG}}') . '</a>';
+                echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page + 1)), admin_url('admin.php'))) . '">' . esc_html__('Next contacts', '{{SLUG}}') . '</a>';
             }
             echo '</p>';
         }
@@ -1303,8 +1321,49 @@ final class TDLPW_Admin {
         $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
         echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; each campaign sends up to 100 selected recipients.', '{{SLUG}}'), $count)) . '</p>';
         echo '<script>
-        document.addEventListener("change",function(e){if(e.target.matches("[data-tdlpw-select-all]"))document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(c){if(!c.disabled)c.checked=e.target.checked})});
-        document.addEventListener("submit",function(e){if(e.target&&e.target.id==="tdlpw-campaign-form"&&window.tinymce){window.tinymce.triggerSave();}},true);
+        (function(){
+          var form=document.getElementById("tdlpw-campaign-form");
+          if(!form)return;
+          var summary=document.getElementById("tdlpw-campaign-selection-summary");
+          var filterKey=["product","course","role","opted_in","search"].map(function(name){
+            var field=form.querySelector("[name=\\""+name+"\\"]");
+            return field?field.value:"";
+          }).join("|");
+          var storageKey="tdlpw-campaign-recipients:"+filterKey;
+          var selected=[];
+          try{selected=JSON.parse(sessionStorage.getItem(storageKey)||"[]");if(!Array.isArray(selected))selected=[];}catch(ignore){selected=[];}
+          selected=selected.map(String);
+          document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(box){box.checked=selected.indexOf(box.value)!==-1;});
+          function updateSummary(){if(summary)summary.textContent=selected.length+" selected across contact pages. Only contacts with recorded opt-in can be sent email.";}
+          updateSummary();
+          function persist(){
+            var ids=new Set(selected);
+            document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(box){
+              if(box.checked)ids.add(box.value);else ids.delete(box.value);
+            });
+            selected=Array.from(ids);
+            try{sessionStorage.setItem(storageKey,JSON.stringify(selected));}catch(ignore){}
+            updateSummary();
+          }
+          document.addEventListener("change",function(e){
+            if(e.target.matches("[data-tdlpw-select-all]")){
+              document.querySelectorAll("input[name=\\"recipient_ids[]\\"]").forEach(function(box){if(!box.disabled)box.checked=e.target.checked;});
+              persist();
+            }else if(e.target.matches("input[name=\\"recipient_ids[]\\"]")){persist();}
+          });
+          form.addEventListener("submit",function(){
+            if(window.tinymce){window.tinymce.triggerSave();}
+            var present=Array.from(form.querySelectorAll("input[name=\\"recipient_ids[]\\"]")).map(function(box){return box.value;});
+            selected.forEach(function(id){
+              if(present.indexOf(id)===-1){
+                var hidden=document.createElement("input");
+                hidden.type="hidden";hidden.name="recipient_ids[]";hidden.value=id;
+                form.appendChild(hidden);
+              }
+            });
+            try{sessionStorage.removeItem(storageKey);}catch(ignore){}
+          },true);
+        })();
         document.addEventListener("click",function(e){
             var button=e.target.closest("[data-tdlpw-insert-token]");
             if(!button)return;
@@ -1430,6 +1489,12 @@ Every WordPress user account appears, including accounts without purchase histor
 == Changelog ==
 
 = {{VERSION}} =
+* Keep selected campaign recipients checked while moving between contact pages and report send outcomes after submission.
+* Select Resend automatically after a new API key is saved and guide administrators to send a provider test email before a campaign.
+* Refresh short-lived license download links during plugin installation and clear stale WordPress update notices after an upgrade.
+* Expand the WordPress plugin details description, installation guidance, and feature list; preserve the recorded consent requirement for every campaign.
+
+= 2.1.5 =
 * Accept canonical and site-local date formats, edit existing student expiry dates, and keep expiry comparisons in the WordPress site timezone.
 * Filter campaign recipients by purchased product or enrolled course and support WordPress wp_mail or Resend delivery.
 * Include all WordPress accounts in Contacts & Campaigns and group them by recorded product purchases and LearnPress enrollments without changing consent.

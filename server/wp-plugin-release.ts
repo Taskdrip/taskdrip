@@ -21,10 +21,11 @@ type ReleaseProject = {
   seoKeywords?: string | null;
   licenseApiBaseUrl?: string | null;
   releaseNotes?: string | null;
+  features?: string[] | null;
 };
 
 const MAX_FILES = 12;
-const MAX_FILE_CHARS = 36_000;
+const MAX_FILE_CHARS = 37_000;
 const MAX_EDITION_CHARS = 132_000;
 const SAFE_SOURCE_EXTENSIONS = new Set([".php", ".js", ".css"]);
 
@@ -245,6 +246,14 @@ export function buildPluginReleaseFiles(
     .map((tag) => tag.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/\s+/g, "-"))
     .filter((tag) => tag.length > 1 && tag.length <= 30)
     .slice(0, 5);
+  const featureList = Array.isArray(project.features)
+    ? project.features.map((feature) => cleanReadmeText(String(feature))).filter(Boolean).slice(0, 12)
+    : [];
+  const releaseNotes = cleanReadmeText(project.releaseNotes || "Initial release.");
+  const changelogItems = releaseNotes
+    .split(/\n+|(?<=\.)\s+/)
+    .map((item) => item.replace(/^[*-]\s*/, "").trim())
+    .filter(Boolean);
   const readme = `=== ${cleanReadmeText(pluginName)} ===
 Contributors: taskdrip
 ${tags.length ? `Tags: ${tags.join(", ")}` : "Tags: wordpress, productivity"}
@@ -260,7 +269,21 @@ ${cleanReadmeText(shortDescription)}
 
 ${cleanReadmeText(description)}
 
-${edition === "premium" ? `== Requirements ==
+${featureList.length ? `== Features ==
+
+${featureList.map((feature) => `* ${feature}`).join("\n")}
+
+` : ""}${edition === "paid" && project.slug === "coursebridge-learnpress-woocommerce" ? `== How it works ==
+
+Map each WooCommerce product to one or more LearnPress courses. When WooCommerce confirms an eligible order, CourseBridge enrolls the account-holding buyer. Administrators can also assign existing WordPress users, set optional access expiry, and review purchase and enrollment history. Students open courses from WooCommerce My Account.
+
+Contacts & Campaigns lists WordPress accounts and filters them by recorded purchases, LearnPress courses, or role. Marketing consent is tracked separately: only contacts with recorded opt-in can receive campaigns. Compose with the WordPress visual or HTML editor, add media-library images and links, personalize messages, and send through Resend or WordPress email. Test delivery before sending and review per-recipient logs.
+
+` : ""}${edition === "paid" ? `== Email marketing and consent ==
+
+Purchases do not silently subscribe customers. The optional checkout consent checkbox records marketing opt-in, and campaign delivery checks that consent again before sending. Each campaign includes an unsubscribe link.
+
+` : ""}${edition === "premium" ? `== Requirements ==
 
 Install and activate the free ${cleanReadmeText(project.name)} Core plugin first (slug: ${project.slug}).
 
@@ -279,7 +302,7 @@ ${edition === "paid" ? "4. Open CourseBridge Pro → License to activate the pur
 == Changelog ==
 
 = ${cleanHeaderValue(project.version, 30)} =
-* Initial generated release. Review the source and complete the included test checklist before production use.
+${changelogItems.map((item) => `* ${item}`).join("\n")}
 `;
   const installation = edition === "premium"
     ? `# Install and test ${pluginName}
@@ -381,7 +404,9 @@ Review licensing, generated source, WordPress compatibility, security, and the i
         : `${project.name} Premium is locked. Open Settings → Plugin License to activate or renew a valid key.`,
     );
     const pluginDescriptionPhp = phpSingleQuoted(
-      standalonePaid ? `Licensed standalone plugin: ${project.name}.` : `Licensed premium add-on for ${project.name}.`,
+      standalonePaid
+        ? String(project.description || `Licensed standalone plugin: ${project.name}.`)
+        : `Licensed premium add-on for ${project.name}.\n\n${project.description || ""}`,
     );
     const updateSlugPhp = phpSingleQuoted(folderSlug);
     const classPhp = `<?php
@@ -405,6 +430,8 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'inject_update' ) );
       add_filter( 'plugins_api', array( __CLASS__, 'plugin_info' ), 20, 3 );
       add_filter( 'auto_update_plugin', array( __CLASS__, 'allow_auto_update' ), 10, 2 );
+      add_filter( 'upgrader_pre_download', array( __CLASS__, 'fresh_update_package' ), 10, 4 );
+      add_action( 'upgrader_process_complete', array( __CLASS__, 'clear_update_state' ), 10, 2 );
       add_action( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}', array( __CLASS__, 'refresh' ) );
       if ( ! wp_next_scheduled( 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' ) ) {
         wp_schedule_event( time() + 300, 'twicedaily', 'taskdrip_license_check_${project.slug.replace(/[^a-z0-9_]+/gi, "_")}' );
@@ -577,22 +604,43 @@ if ( ! class_exists( '${clientClass}', false ) ) {
       echo '<div class="notice notice-warning"><p>' . esc_html( ${lockedNoticePhp} ) . '</p></div>';
     }
 
-    private static function get_update() {
+    private static function get_update( $force_refresh = false ) {
       if ( ! self::is_licensed() ) { return false; }
-      $cached = get_transient( self::update_transient() );
-      if ( is_array( $cached ) ) { return $cached; }
+      if ( ! $force_refresh ) {
+        $cached = get_transient( self::update_transient() );
+        if ( is_array( $cached ) ) { return $cached; }
+      }
       $response = self::request( 'check-update' );
       if ( ! is_array( $response ) || empty( $response['valid'] ) ) { return false; }
       $update = ! empty( $response['update'] ) && is_array( $response['update'] ) ? $response['update'] : array();
-      set_transient( self::update_transient(), $update, 6 * HOUR_IN_SECONDS );
+      // Update download URLs are short-lived, so only cache version metadata
+      // through a normal check. Downloads request a fresh package URL below.
+      if ( ! $force_refresh ) {
+        set_transient( self::update_transient(), $update, 6 * HOUR_IN_SECONDS );
+      }
       return $update;
     }
 
     public static function inject_update( $transient ) {
-      if ( ! is_object( $transient ) || ! self::is_licensed() ) { return $transient; }
-      $update = self::get_update();
-      if ( empty( $update['version'] ) || empty( $update['package'] ) ) { return $transient; }
+      if ( ! is_object( $transient ) ) { return $transient; }
       if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) { $transient->response = array(); }
+      if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) { $transient->no_update = array(); }
+      if ( ! self::is_licensed() ) {
+        unset( $transient->response[self::$plugin_file], $transient->no_update[self::$plugin_file] );
+        return $transient;
+      }
+      $update = self::get_update();
+      if (
+        empty( $update['version'] ) ||
+        empty( $update['package'] ) ||
+        version_compare( sanitize_text_field( $update['version'] ), self::$version, '<=' )
+      ) {
+        // WordPress can retain an old response entry after an install. Remove
+        // it when this release is already current so the update notice clears.
+        unset( $transient->response[self::$plugin_file], $transient->no_update[self::$plugin_file] );
+        return $transient;
+      }
+      unset( $transient->no_update[self::$plugin_file] );
       $transient->response[self::$plugin_file] = (object) array(
         'slug' => self::$plugin_slug,
         'plugin' => self::$plugin_file,
@@ -601,6 +649,38 @@ if ( ! class_exists( '${clientClass}', false ) ) {
         'package' => esc_url_raw( $update['package'] ),
       );
       return $transient;
+    }
+
+    public static function fresh_update_package( $reply, $package, $upgrader, $hook_extra ) {
+      if ( $reply !== false || ! is_array( $hook_extra ) ) { return $reply; }
+      $plugins = array_filter( array_merge(
+        array( $hook_extra['plugin'] ?? '' ),
+        (array) ( $hook_extra['plugins'] ?? array() )
+      ) );
+      if ( ! in_array( self::$plugin_file, $plugins, true ) ) { return $reply; }
+      if ( ! self::is_licensed() ) {
+        return new WP_Error( 'taskdrip_license_invalid', __( 'Activate a valid CourseBridge license before installing plugin updates.', 'taskdrip' ) );
+      }
+      if ( ! function_exists( 'download_url' ) ) {
+        return new WP_Error( 'taskdrip_download_unavailable', __( 'WordPress could not prepare the plugin update download. Try again from Plugins → Updates.', 'taskdrip' ) );
+      }
+      $update = self::get_update( true );
+      if ( empty( $update['version'] ) || empty( $update['package'] ) || version_compare( sanitize_text_field( $update['version'] ), self::$version, '<=' ) ) {
+        return new WP_Error( 'taskdrip_update_unavailable', __( 'No newer CourseBridge update is available for this license.', 'taskdrip' ) );
+      }
+      return download_url( esc_url_raw( $update['package'] ) );
+    }
+
+    public static function clear_update_state( $upgrader, $options ) {
+      if ( ! is_array( $options ) || ( $options['action'] ?? '' ) !== 'update' || ( $options['type'] ?? '' ) !== 'plugin' ) { return; }
+      $plugins = array_filter( array_merge(
+        array( $options['plugin'] ?? '' ),
+        (array) ( $options['plugins'] ?? array() )
+      ) );
+      if ( ! in_array( self::$plugin_file, $plugins, true ) ) { return; }
+      delete_transient( self::update_transient() );
+      delete_site_transient( 'update_plugins' );
+      if ( function_exists( 'wp_clean_plugins_cache' ) ) { wp_clean_plugins_cache( true ); }
     }
 
     public static function plugin_info( $result, $action, $args ) {
@@ -614,7 +694,14 @@ if ( ! class_exists( '${clientClass}', false ) ) {
         'version' => ! empty( $update['version'] ) ? sanitize_text_field( $update['version'] ) : self::$version,
         'author' => 'Taskdrip',
         'homepage' => self::$api_base . '/my-plugins',
-        'sections' => array( 'description' => esc_html( ${pluginDescriptionPhp} ), 'changelog' => nl2br( esc_html( $update['changelog'] ?? '' ) ) ),
+        'requires' => '6.2',
+        'requires_php' => '7.4',
+        'sections' => array(
+          'description' => wpautop( esc_html( ${pluginDescriptionPhp} ) ),
+          'features' => wpautop( esc_html__( 'Connect WooCommerce products with LearnPress courses; enroll buyers after confirmed payment; manage student access and expiry; search buyers and WordPress contacts; and create consent-based campaigns with the visual or HTML editor, media, links, personalization, Resend or WordPress email, unsubscribe links, delivery tests, and send logs.', 'taskdrip' ) ),
+          'installation' => wpautop( esc_html__( 'Install the ZIP from WordPress Admin → Plugins → Add New Plugin → Upload Plugin. Activate WooCommerce and LearnPress, activate CourseBridge Pro, enter your Taskdrip license, map products to courses, and configure and test the email provider before sending a campaign.', 'taskdrip' ) ),
+          'changelog' => nl2br( esc_html( $update['changelog'] ?? '' ) ),
+        ),
         'download_link' => ! empty( $update['package'] ) ? esc_url_raw( $update['package'] ) : '',
       );
     }
