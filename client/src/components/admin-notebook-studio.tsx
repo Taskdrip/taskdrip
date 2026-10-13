@@ -1105,9 +1105,9 @@ export default function AdminNotebookStudio() {
       : Math.max(4, Number(String(draft?.settings.trimSize || "6x9").split("x")[0]) || 6);
     const spacingCss = `${(100 * spacing / trimWidth).toFixed(5)}cqw`;
     const strokeCss = `max(0.5px, ${(100 * stroke / (72 * trimWidth)).toFixed(5)}cqw)`;
-    const lineEndCss = `calc(${spacingCss} - ${strokeCss})`;
     const ruledBackgroundStyle = {
-      backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${lineEndCss}, ${lineColor} ${lineEndCss}, ${lineColor} ${spacingCss})`,
+      backgroundImage: `linear-gradient(to bottom, transparent calc(100% - ${strokeCss}), ${lineColor} calc(100% - ${strokeCss}))`,
+      backgroundSize: `100% ${spacingCss}`,
     };
     const backgroundStyle = isDiary
       ? ruledBackgroundStyle
@@ -1173,6 +1173,11 @@ export default function AdminNotebookStudio() {
       </article>
     );
   };
+
+  const lineSpacingSampleGap = Math.max(
+    10,
+    Math.min(30, normalizeNotebookLineSpacing(draft?.settings.lineSpacing) * 56),
+  );
 
   return (
     <main className="notebook-studio min-h-[100dvh] bg-[#f3efe5] text-[#30372f]" aria-label="Admin notebook studio">
@@ -1431,6 +1436,81 @@ export default function AdminNotebookStudio() {
                               </select>
                             </Field>
                           </div>
+                          <fieldset className="rounded-xl border border-[#d8d4c8] bg-[#fffdf8] p-3">
+                            <legend className="px-1 text-[11px] font-semibold text-[#4d5f50]">Writing line quality</legend>
+                            <p className="mb-3 text-[10px] leading-4 text-[#858477]">
+                              Set the same precise distance between every rule in the live proof and print PDF.
+                            </p>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <Field
+                                label="Even line spacing (in)"
+                                hint={`${normalizeNotebookLineSpacing(draft.settings.lineSpacing).toFixed(2)} inches between rules`}
+                              >
+                                <div className="space-y-2">
+                                  <input
+                                    aria-label="Exact even line spacing in inches"
+                                    type="number"
+                                    min=".16"
+                                    max=".75"
+                                    step=".01"
+                                    value={normalizeNotebookLineSpacing(draft.settings.lineSpacing).toFixed(2)}
+                                    onChange={(event) => updateSettings("lineSpacing", normalizeNotebookLineSpacing(event.target.value))}
+                                    className={inputClass}
+                                  />
+                                  <input
+                                    aria-label="Adjust even line spacing"
+                                    type="range"
+                                    min=".16"
+                                    max=".75"
+                                    step=".01"
+                                    value={normalizeNotebookLineSpacing(draft.settings.lineSpacing)}
+                                    onChange={(event) => updateSettings("lineSpacing", normalizeNotebookLineSpacing(event.target.value))}
+                                    className="h-5 w-full cursor-pointer accent-[#456e5a]"
+                                  />
+                                  <div className="grid grid-cols-2 gap-1" role="group" aria-label="Even line spacing presets">
+                                    {NOTEBOOK_LINE_SPACING_PRESETS.map((preset) => {
+                                      const selected = normalizeNotebookLineSpacing(draft.settings.lineSpacing) === preset.value;
+                                      return (
+                                        <button
+                                          key={preset.value}
+                                          type="button"
+                                          aria-pressed={selected}
+                                          aria-label={`Set ${preset.label.toLowerCase()} line spacing to ${preset.value.toFixed(2)} inches`}
+                                          onClick={() => updateSettings("lineSpacing", preset.value)}
+                                          className={`rounded-lg border px-2 py-1.5 text-[9px] font-semibold transition-colors ${selected ? "border-[#77927f] bg-[#e8eee6] text-[#3f644b]" : "border-[#e2dccf] bg-white text-[#77776b] hover:bg-[#f2efe7]"}`}
+                                        >
+                                          {preset.label} · {preset.value.toFixed(2)}″
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </Field>
+                              <div className="space-y-3">
+                                <Field label="Spacing preview">
+                                  <div
+                                    className="h-[58px] rounded-lg border border-[#e7e1d5] bg-[#fffefa]"
+                                    style={{
+                                      backgroundImage: `linear-gradient(to bottom, transparent calc(100% - 1px), ${draft.settings.lineColor} calc(100% - 1px))`,
+                                      backgroundSize: `100% ${lineSpacingSampleGap}px`,
+                                    }}
+                                    aria-hidden="true"
+                                  />
+                                </Field>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <Field label="Line thickness">
+                                    <input type="number" min=".2" max="3" step=".1" value={draft.settings.lineThickness} onChange={(event) => updateSettings("lineThickness", toSafeNumber(event.target.value, 0.6, 0.2, 3))} className={inputClass} />
+                                  </Field>
+                                  <Field label="Line color">
+                                    <div className="flex h-10 items-center gap-2 rounded-xl border border-[#d9d4c8] bg-[#fffdf8] px-2.5">
+                                      <input aria-label="Line color" type="color" value={draft.settings.lineColor} onChange={(event) => updateSettings("lineColor", event.target.value)} className="h-7 w-8 cursor-pointer rounded-md border-0 bg-transparent" />
+                                      <span className="text-[10px] uppercase text-[#77776b]">{draft.settings.lineColor}</span>
+                                    </div>
+                                  </Field>
+                                </div>
+                              </div>
+                            </div>
+                          </fieldset>
                           <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
                             <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Intro pages before the writing pages</legend>
                             <p className="mb-2 text-[10px] leading-4 text-[#858477]">
@@ -1520,52 +1600,9 @@ export default function AdminNotebookStudio() {
                             </fieldset>
                           )}
                           <p className="text-[10px] leading-4 text-[#858477]">
-                            Writing rules stay inside the writing area, clear of the header, date/subject fields, and footer. The page proof uses the same separated writing region.
+                            Writing rules stay inside the writing area, clear of the header, date/subject fields, and footer.
                           </p>
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <Field
-                              label="Even line spacing (in)"
-                              hint="Exact distance between every ruled line. The live proof and exported PDF use the same interval."
-                            >
-                              <div className="space-y-2">
-                                <input
-                                  aria-label="Exact even line spacing in inches"
-                                  type="number"
-                                  min=".16"
-                                  max=".75"
-                                  step=".01"
-                                  value={normalizeNotebookLineSpacing(draft.settings.lineSpacing).toFixed(2)}
-                                  onChange={(event) => updateSettings("lineSpacing", normalizeNotebookLineSpacing(event.target.value))}
-                                  className={inputClass}
-                                />
-                                <div className="grid grid-cols-2 gap-1" role="group" aria-label="Even line spacing presets">
-                                  {NOTEBOOK_LINE_SPACING_PRESETS.map((preset) => {
-                                    const selected = normalizeNotebookLineSpacing(draft.settings.lineSpacing) === preset.value;
-                                    return (
-                                      <button
-                                        key={preset.value}
-                                        type="button"
-                                        aria-pressed={selected}
-                                        aria-label={`Set ${preset.label.toLowerCase()} line spacing to ${preset.value.toFixed(2)} inches`}
-                                        onClick={() => updateSettings("lineSpacing", preset.value)}
-                                        className={`rounded-lg border px-2 py-1.5 text-[9px] font-semibold transition-colors ${selected ? "border-[#77927f] bg-[#e8eee6] text-[#3f644b]" : "border-[#e2dccf] bg-white text-[#77776b] hover:bg-[#f2efe7]"}`}
-                                      >
-                                        {preset.label} · {preset.value.toFixed(2)}″
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            </Field>
-                            <Field label="Line thickness">
-                              <input type="number" min=".2" max="3" step=".1" value={draft.settings.lineThickness} onChange={(event) => updateSettings("lineThickness", toSafeNumber(event.target.value, 0.6, 0.2, 3))} className={inputClass} />
-                            </Field>
-                            <Field label="Line color">
-                              <div className="flex h-10 items-center gap-2 rounded-xl border border-[#d9d4c8] bg-[#fffdf8] px-2.5">
-                                <input aria-label="Line color" type="color" value={draft.settings.lineColor} onChange={(event) => updateSettings("lineColor", event.target.value)} className="h-7 w-8 cursor-pointer rounded-md border-0 bg-transparent" />
-                                <span className="text-[11px] uppercase tracking-wide text-[#77776b]">{draft.settings.lineColor}</span>
-                              </div>
-                            </Field>
                             <Field label="Header text">
                               <input value={draft.settings.headerText} onChange={(event) => updateSettings("headerText", event.target.value)} className={inputClass} placeholder="Optional running header" />
                             </Field>
