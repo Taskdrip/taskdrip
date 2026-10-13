@@ -32,8 +32,12 @@ function setCanonical(url: string) {
   el.href = url;
 }
 
-function setJsonLd(data: object) {
+function setJsonLd(data?: object) {
   let el = document.querySelector('script[data-seo-ld]') as HTMLScriptElement | null;
+  if (!data) {
+    el?.remove();
+    return;
+  }
   if (!el) {
     el = document.createElement("script");
     el.type = "application/ld+json";
@@ -60,22 +64,24 @@ export function SeoHead({
     if (description) {
       setMeta("description", description);
       setMeta("og:description", description, "property");
-      setMeta("twitter:description", description, "property");
+    setMeta("twitter:description", description);
     }
     if (keywords) setMeta("keywords", keywords);
     if (title) {
       setMeta("og:title", title, "property");
-      setMeta("twitter:title", title, "property");
+      setMeta("twitter:title", title);
     }
     if (ogImage) {
       setMeta("og:image", ogImage, "property");
-      setMeta("twitter:image", ogImage, "property");
+      setMeta("twitter:image", ogImage);
     }
     setMeta("og:type", ogType, "property");
-    setMeta("twitter:card", ogImage ? "summary_large_image" : "summary", "property");
-    if (canonicalUrl) setCanonical(canonicalUrl);
-    if (jsonLd) setJsonLd(jsonLd);
-    if (noIndex) setMeta("robots", "noindex, nofollow");
+    setMeta("twitter:card", ogImage ? "summary_large_image" : "summary");
+    const canonical = canonicalUrl || `${window.location.origin}${window.location.pathname}`;
+    setCanonical(canonical);
+    setMeta("og:url", canonical, "property");
+    setJsonLd(jsonLd);
+    setMeta("robots", noIndex ? "noindex, nofollow" : "index, follow");
 
     return () => {
       if (title) document.title = prev;

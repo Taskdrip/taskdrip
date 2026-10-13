@@ -4,6 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import { registerRoutes, runSubscriptionExpiryCheck } from "./routes";
+import { registerPublicSeoRoutes } from "./public-seo-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 import { seedDemoData, backfillCreatorTiers } from "./seed-demo";
@@ -53,7 +54,15 @@ if (isProd) {
         useDefaults: false,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "blob:",
+            "https://pagead2.googlesyndication.com",
+            "https://googleads.g.doubleclick.net",
+            "https://tpc.googlesyndication.com",
+          ],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
           imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
@@ -154,6 +163,10 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Keep essential crawler endpoints available even if database-backed route
+// initialization is delayed or fails.
+registerPublicSeoRoutes(app);
 
 // Legacy uploads saved without extensions still need to be served. We allow
 // empty extension (legacy) plus an explicit allowlist, and rely on nosniff +

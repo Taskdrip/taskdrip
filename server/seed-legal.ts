@@ -355,6 +355,11 @@ Website: <a href="https://taskdrip.online">taskdrip.online</a></p>`,
   },
 ];
 
+const ADSENSE_PRIVACY_DISCLOSURE = `
+<h3>Google AdSense and Third-Party Advertising</h3>
+<p>When Google AdSense ads are displayed on Taskdrip, Google and its partners may use cookies or similar technologies to collect or receive information from this site and other sites and use that information to provide, measure, and personalize advertising. You can review or change Google's advertising personalization settings at <a href="https://adssettings.google.com/">Google Ads Settings</a>. For more information about Google's data practices, see <a href="https://policies.google.com/technologies/partner-sites">How Google uses information from sites or apps that use its services</a>.</p>
+`;
+
 export async function seedLegalPages(): Promise<void> {
   try {
     for (const page of LEGAL_CONTENT) {
@@ -366,6 +371,14 @@ export async function seedLegalPages(): Promise<void> {
           content: page.content,
         });
         console.log(`[seed-legal] Seeded legal page: ${page.slug}`);
+      } else if (page.slug === "privacy" && !existing[0].content.includes("Google AdSense and Third-Party Advertising")) {
+        await db.update(legalPages)
+          .set({
+            content: `${existing[0].content}\n${ADSENSE_PRIVACY_DISCLOSURE}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(legalPages.slug, "privacy"));
+        console.log("[seed-legal] Added Google AdSense disclosure to the privacy policy");
       }
     }
     // Seed one demo newsletter subscriber

@@ -148,6 +148,15 @@ const ROUTE_SEO: Record<string, { slug: string; title: string; description: stri
   "/advertise": { slug: "advertise", title: "Advertise on Taskdrip — Reach Crypto-Native Audiences", description: "Run banner ads, sponsored campaigns and creator collaborations on Taskdrip. Targeting tools, transparent pricing." },
   "/about": { slug: "about", title: "About Taskdrip — The Web3 Influencer Marketplace", description: "Taskdrip connects brands and creators with on-chain payouts, verified profiles and the $TDRIP rewards economy." },
   "/contact": { slug: "contact", title: "Contact Taskdrip — Support & Partnerships", description: "Talk to the Taskdrip team. Partnerships, press, support and creator onboarding." },
+  "/privacy": { slug: "privacy", title: "Privacy Policy | Taskdrip", description: "Read how Taskdrip handles account, usage, cookie, analytics, and advertising information." },
+  "/terms": { slug: "terms", title: "Terms of Service | Taskdrip", description: "Review the terms that apply when using Taskdrip's creator and brand services." },
+  "/cookies": { slug: "cookies", title: "Cookie Policy | Taskdrip", description: "Learn how Taskdrip uses essential, analytics, and advertising cookies and how to manage them." },
+  "/disclaimer": { slug: "disclaimer", title: "Disclaimer | Taskdrip", description: "Read important information about Taskdrip's services, earnings, digital assets, and third-party links." },
+  "/docs": { slug: "docs", title: "Taskdrip Documentation", description: "Guides to Taskdrip accounts, campaigns, creator profiles, payouts, and platform tools." },
+  "/documentation": { slug: "docs", title: "Taskdrip Documentation", description: "Guides to Taskdrip accounts, campaigns, creator profiles, payouts, and platform tools." },
+  "/hire-developer": { slug: "hire-developer", title: "Hire a Developer | Taskdrip", description: "Find a developer for your project through Taskdrip. Review the hiring process and submit a project request." },
+  "/roadmap": { slug: "roadmap", title: "Taskdrip Roadmap", description: "Explore planned product updates and the development direction for Taskdrip." },
+  "/tokenomics": { slug: "roadmap", title: "Taskdrip Roadmap", description: "Explore planned product updates and the development direction for Taskdrip." },
   "/tdrip": { slug: "tdrip", title: "$TDRIP — Taskdrip Rewards Token & Points", description: "Learn about $TDRIP, the rewards token powering Taskdrip. Earn, spend and unlock perks across the marketplace." },
   "/p2p-hub": { slug: "p2p-hub", title: "P2P Hub — Trade USDT, TON & $TDRIP Peer-to-Peer | Taskdrip", description: "Buy and sell crypto peer-to-peer with escrow protection. USDT, TON and $TDRIP — fast, low fee, on-chain." },
   "/signup": { slug: "signup", title: "Create your Taskdrip account — Free Sign Up", description: "Join Taskdrip in seconds. Earn $TDRIP, claim your welcome bonus, and start completing brand tasks today." },
@@ -159,6 +168,7 @@ function matchRouteSeo(location: string) {
   if (ROUTE_SEO[location]) return ROUTE_SEO[location];
   if (location.startsWith("/blog/")) return { slug: "blog-post", title: "Taskdrip Blog", description: "Insights on the Web3 creator economy from Taskdrip." };
   if (location.startsWith("/influencers/")) return { slug: "creator-profile", title: "Creator Profile | Taskdrip", description: "Verified creator profile on Taskdrip." };
+  if (location.startsWith("/p/") || location.startsWith("/u/")) return { slug: "creator-profile", title: "Creator Profile | Taskdrip", description: "Verified creator profile on Taskdrip." };
   if (location.startsWith("/brand/")) return { slug: "brand-profile", title: "Brand Profile | Taskdrip", description: "Verified brand profile on Taskdrip." };
   if (location.startsWith("/shop/product/")) return { slug: "shop-product", title: "Product | Taskdrip Shop", description: "Buy creator products with USDT, TON or $TDRIP." };
   if (location.startsWith("/breedskool/")) return { slug: "course", title: "Course | BreedSkool", description: "Web3 creator course on BreedSkool by Taskdrip." };
@@ -170,14 +180,30 @@ function matchRouteSeo(location: string) {
 /** Route-aware SEO. Mount once; updates head whenever location changes. */
 export function RouteSeo() {
   const [location] = useLocation();
-  // Skip private/admin paths
+  // Keep private routes out of search results during client-side navigation too.
   if (
     location.startsWith("/admin") ||
     location.startsWith("/dashboard") ||
     location.startsWith("/brand-dashboard") ||
     location.startsWith("/profile") ||
-    location.startsWith("/user-profile")
-  ) return null;
+    location.startsWith("/user-profile") ||
+    [
+      "/login", "/signup", "/admin-login", "/forgot-password",
+      "/messages", "/chat", "/wallet", "/ledger", "/payout-requests",
+      "/payment-deposit", "/escrow-payment", "/subscription", "/my-orders",
+      "/my-plugins", "/my-digital-library", "/my-training", "/referrals",
+      "/campaigns", "/my-campaigns", "/creator-studio", "/p2p-deals",
+      "/admin", "/admin-dashboard", "/profile-edit", "/short-links",
+    ].includes(location) ||
+    [
+      "/campaigns/", "/direct-hire/", "/orders/", "/shop/checkout/",
+      "/p2p-deals/", "/payout-requests/",
+      "/my-campaigns/", "/certificates/", "/short-links/",
+    ].some((prefix) => location.startsWith(prefix)) ||
+    /^\/breedskool\/[^/]+\/(?:learn|certificate)(?:\/|$)/.test(location)
+  ) {
+    return <SeoHead title="Taskdrip Account" noIndex />;
+  }
   const match = matchRouteSeo(location);
   if (!match) return null;
   return <PageSeo slug={match.slug} fallbackTitle={match.title} fallbackDescription={match.description} />;

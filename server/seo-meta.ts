@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { campaigns, blogPosts, shopProducts, users, courseEnrollments, p2pListings, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
+import { campaigns, blogPosts, shopProducts, users, courses, p2pListings, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
 import { and, eq, or } from "drizzle-orm";
 
 type Meta = {
@@ -146,6 +146,51 @@ const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
     keywords: "contact taskdrip, taskdrip support, brand partnership inquiry",
     canonicalUrl: "https://taskdrip.online/contact",
   },
+  "/privacy": {
+    title: "Privacy Policy | Taskdrip",
+    description: "Read how Taskdrip handles account, usage, cookie, analytics, and advertising information.",
+    canonicalUrl: "https://taskdrip.online/privacy",
+  },
+  "/terms": {
+    title: "Terms of Service | Taskdrip",
+    description: "Review the terms that apply when using Taskdrip's creator and brand services.",
+    canonicalUrl: "https://taskdrip.online/terms",
+  },
+  "/cookies": {
+    title: "Cookie Policy | Taskdrip",
+    description: "Learn how Taskdrip uses essential, analytics, and advertising cookies and how to manage them.",
+    canonicalUrl: "https://taskdrip.online/cookies",
+  },
+  "/disclaimer": {
+    title: "Disclaimer | Taskdrip",
+    description: "Read important information about Taskdrip's services, earnings, digital assets, and third-party links.",
+    canonicalUrl: "https://taskdrip.online/disclaimer",
+  },
+  "/docs": {
+    title: "Taskdrip Documentation",
+    description: "Guides to Taskdrip accounts, campaigns, creator profiles, payouts, and platform tools.",
+    canonicalUrl: "https://taskdrip.online/docs",
+  },
+  "/documentation": {
+    title: "Taskdrip Documentation",
+    description: "Guides to Taskdrip accounts, campaigns, creator profiles, payouts, and platform tools.",
+    canonicalUrl: "https://taskdrip.online/docs",
+  },
+  "/hire-developer": {
+    title: "Hire a Developer | Taskdrip",
+    description: "Find a developer for your project through Taskdrip. Review the hiring process and submit a project request.",
+    canonicalUrl: "https://taskdrip.online/hire-developer",
+  },
+  "/roadmap": {
+    title: "Taskdrip Roadmap",
+    description: "Explore planned product updates and the development direction for Taskdrip.",
+    canonicalUrl: "https://taskdrip.online/roadmap",
+  },
+  "/tokenomics": {
+    title: "Taskdrip Roadmap",
+    description: "Explore planned product updates and the development direction for Taskdrip.",
+    canonicalUrl: "https://taskdrip.online/roadmap",
+  },
   "/tdrip": {
     title: "$TDRIP Token — Taskdrip's Reward Points & Future Crypto Token",
     description: "Learn about $TDRIP, Taskdrip's points and future crypto token. Earn $TDRIP completing tasks, climbing the leaderboard, and referring friends.",
@@ -177,7 +222,9 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    const [post] = await db.select().from(blogPosts).where(
+      and(eq(blogPosts.slug, slug), eq(blogPosts.isPublished, true)),
+    );
     if (post) {
       const image = (post as any).featuredImage || ogImageFromHtml((post as any).content);
       return {
@@ -187,6 +234,11 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
         type: "article",
       };
     }
+    return {
+      title: "Blog post not found | Taskdrip",
+      description: "This Taskdrip blog post is unavailable.",
+      noIndex: true,
+    };
   }
 
   // /campaigns/:id
@@ -250,6 +302,8 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
   // /influencers/:username or /brand/:id or /user-profile/:id
   const profileMatch =
     pathname.match(/^\/influencers\/([^/?#]+)/) ||
+    pathname.match(/^\/p\/([^/?#]+)/) ||
+    pathname.match(/^\/u\/([^/?#]+)/) ||
     pathname.match(/^\/brand\/([^/?#]+)/) ||
     pathname.match(/^\/user-profile\/([^/?#]+)/);
   if (profileMatch) {
@@ -279,24 +333,37 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
           (user as any).seoOgImage || (user as any).profileImageUrl || (user as any).profileImage,
         ),
         type: "profile",
+        canonicalUrl: user.userType === "brand"
+          ? `${origin}/brand/${encodeURIComponent(user.id)}`
+          : user.userType === "admin"
+            ? `${origin}/profile/${encodeURIComponent(user.id)}`
+            : `${origin}/influencers/${encodeURIComponent(user.id)}`,
+        noIndex: user.userType === "admin",
       };
     }
   }
 
-  // /breedskool/:slug — course
+  // /breedskool/:id — published course
   const courseMatch = pathname.match(/^\/breedskool\/([^/?#]+)/);
-  if (courseMatch) {
+  if (courseMatch && !["campaign", "onsite"].includes(courseMatch[1])) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
-      const [course] = await db.select().from(courseEnrollments).where(eq(courseEnrollments.id, key));
+      const [course] = await db.select().from(courses).where(
+        and(eq(courses.id, key), eq(courses.isPublished, true)),
+      );
       if (course) {
         return {
-          title: `${(course as any).title || "Course"} | BreedSkool`,
-          description: trimText((course as any).description || (course as any).summary || ""),
-          image: absolutize(origin, (course as any).coverImage || (course as any).thumbnail),
+          title: `${course.title} | BreedSkool`,
+          description: trimText(course.shortDescription || course.description || ""),
+          image: absolutize(origin, course.thumbnail),
         };
       }
     } catch {}
+    return {
+      title: "Course not found | BreedSkool",
+      description: "This BreedSkool course is unavailable.",
+      noIndex: true,
+    };
   }
 
   // /p2p/:id
@@ -354,8 +421,7 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
   // Remove any existing og/twitter/description tags so the per-page values win when crawlers parse.
   let out = html
     .replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "")
-    .replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "")
-    .replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/gi, "");
+    .replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
 
   if (title) {
     out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(title)}</title>`);
@@ -371,8 +437,6 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
     `<meta property="og:type" content="${escapeHtml(type)}" />`,
     `<meta property="og:url" content="${escapeHtml(fullUrl)}" />`,
     image ? `<meta property="og:image" content="${escapeHtml(image)}" />` : "",
-    image ? `<meta property="og:image:width" content="1200" />` : "",
-    image ? `<meta property="og:image:height" content="630" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:site" content="@taskdrip" />`,
@@ -390,7 +454,11 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
     try {
       // Validate it's valid JSON
       JSON.parse(meta.structuredData);
-      const ldTag = `\n  <script type="application/ld+json">${meta.structuredData}</script>`;
+      const safeStructuredData = meta.structuredData
+        .replace(/</g, "\\u003c")
+        .replace(/>/g, "\\u003e")
+        .replace(/&/g, "\\u0026");
+      const ldTag = `\n  <script type="application/ld+json" data-seo-ld="true">${safeStructuredData}</script>`;
       result = result.replace(/<\/head>/i, `${ldTag}\n  </head>`);
     } catch {}
   }
@@ -400,16 +468,41 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
 
 export async function buildSeoHtml(html: string, req: { protocol: string; get: (h: string) => string | undefined; originalUrl: string }): Promise<string> {
   try {
-    const host = req.get("host") || "localhost";
-    const proto = req.get("x-forwarded-proto") || req.protocol || "http";
-    const origin = `${proto}://${host}`;
+    // This project has one production canonical origin; do not let preview or
+    // untrusted Host headers create alternate canonicals or sitemap URLs.
+    const origin = "https://taskdrip.online";
     const pathname = (req.originalUrl || "/").split("?")[0];
 
     const fallbackImage = await defaultOgImage(origin);
     const meta = (await lookupRoute(origin, pathname)) || { image: fallbackImage };
+    if (isPrivateRoute(pathname)) meta.noIndex = true;
     return injectMeta(html, origin, req.originalUrl || "/", meta, fallbackImage);
   } catch (err) {
     console.error("SEO meta injection failed:", err);
     return html;
   }
+}
+
+const NOINDEX_EXACT_PATHS = new Set([
+  "/login", "/signup", "/admin", "/admin-login", "/admin-dashboard", "/forgot-password",
+  "/dashboard", "/brand-dashboard", "/profile", "/user-profile",
+  "/messages", "/chat", "/wallet", "/ledger", "/payout-requests",
+  "/payment-deposit", "/escrow-payment", "/subscription", "/my-orders",
+  "/my-plugins", "/my-digital-library", "/my-training", "/referrals",
+  "/campaigns", "/my-campaigns", "/creator-studio", "/p2p-deals", "/profile-edit",
+  "/short-links",
+]);
+
+const NOINDEX_PATH_PREFIXES = [
+  "/admin/", "/dashboard/", "/brand-dashboard/",
+  "/profile/", "/user-profile/", "/campaigns/",
+  "/direct-hire/", "/orders/", "/shop/checkout/",
+  "/my-campaigns/", "/certificates/", "/short-links/",
+  "/p2p-deals/", "/payout-requests/",
+];
+
+function isPrivateRoute(pathname: string): boolean {
+  return NOINDEX_EXACT_PATHS.has(pathname) ||
+    NOINDEX_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    /^\/breedskool\/[^/]+\/(?:learn|certificate)(?:\/|$)/.test(pathname);
 }
