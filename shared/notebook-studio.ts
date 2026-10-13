@@ -4,8 +4,10 @@ export type NotebookLineStyle =
   | "wide"
   | "college"
   | "minimalist"
+  | "lined-journal"
   | "business"
   | "daily"
+  | "diary"
   | "meeting"
   | "study"
   | "dot"
@@ -26,6 +28,7 @@ export type NotebookSettings = {
   paper: "white" | "cream";
   bleed: boolean;
   lineStyle: NotebookLineStyle;
+  diaryStartMonth: string;
   lineSpacing: number;
   lineColor: string;
   lineThickness: number;
@@ -77,6 +80,7 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   paper: "white",
   bleed: false,
   lineStyle: "classic",
+  diaryStartMonth: "",
   lineSpacing: 0.32,
   lineColor: "#9db5c8",
   lineThickness: 0.55,
@@ -87,6 +91,32 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   headerText: "",
   footerText: "",
 };
+
+const NOTEBOOK_DIARY_LAST_DAY = Date.UTC(2027, 11, 31);
+
+export function currentNotebookDiaryStartMonth(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function notebookDiaryPageCount(startMonth: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(startMonth);
+  if (!match) return 0;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return 0;
+  const firstDay = Date.UTC(year, month - 1, 1);
+  if (firstDay > NOTEBOOK_DIARY_LAST_DAY) return 0;
+  return Math.floor((NOTEBOOK_DIARY_LAST_DAY - firstDay) / 86_400_000) + 1;
+}
+
+export function notebookDiaryPageDate(startMonth: string, pageNumber: number) {
+  const pageCount = notebookDiaryPageCount(startMonth);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) return null;
+  const match = /^(\d{4})-(\d{2})$/.exec(startMonth);
+  if (!match) return null;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, pageNumber));
+  return date.toISOString().slice(0, 10);
+}
 
 export const DEFAULT_NOTEBOOK_COVER: NotebookCoverDesign = {
   style: "minimal",

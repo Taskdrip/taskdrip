@@ -33,6 +33,11 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import {
+  currentNotebookDiaryStartMonth,
+  notebookDiaryPageCount,
+  notebookDiaryPageDate,
+} from "@shared/notebook-studio";
 
 type NotebookSettings = {
   subtitle: string;
@@ -47,6 +52,7 @@ type NotebookSettings = {
   paper: string;
   bleed: boolean;
   lineStyle: string;
+  diaryStartMonth: string;
   lineSpacing: number | string;
   lineColor: string;
   lineThickness: number | string;
@@ -95,6 +101,7 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   paper: "cream",
   bleed: false,
   lineStyle: "classic",
+  diaryStartMonth: "",
   lineSpacing: 0.28,
   lineColor: "#c9d0c8",
   lineThickness: 0.6,
@@ -121,6 +128,8 @@ const TRIM_SIZES = [
   ["custom", "Custom dimensions"],
 ];
 const LINE_STYLES = [
+  ["lined-journal", "Lined journal"],
+  ["diary", "Diary / calendar · dated daily pages"],
   ["classic", "Classic ruled"],
   ["wide", "Wide ruled"],
   ["college", "College ruled"],
@@ -324,6 +333,26 @@ export default function AdminNotebookStudio() {
   };
   const updateSettings = <K extends keyof NotebookSettings>(key: K, value: NotebookSettings[K]) => {
     updateDraft((project) => ({ ...project, settings: { ...project.settings, [key]: value } }));
+  };
+  const setPageLayout = (value: string) => {
+    if (value !== "diary") {
+      updateSettings("lineStyle", value);
+      return;
+    }
+    const startMonth = currentNotebookDiaryStartMonth();
+    const pageCount = notebookDiaryPageCount(startMonth);
+    updateDraft((project) => ({
+      ...project,
+      settings: {
+        ...project.settings,
+        lineStyle: "diary",
+        diaryStartMonth: startMonth,
+        pageCount,
+        ownershipPage: false,
+      },
+    }));
+    setPage(1);
+    setJumpValue("1");
   };
   const updateCover = <K extends keyof CoverDesign>(key: K, value: CoverDesign[K]) => {
     updateDraft((project) => ({ ...project, coverDesign: { ...project.coverDesign, [key]: value } }));
@@ -705,16 +734,29 @@ export default function AdminNotebookStudio() {
     const style = draft?.settings.lineStyle || "classic";
     const isDot = style === "dot";
     const isGraph = style === "graph";
+    const isDiary = style === "diary";
     const spacing = toSafeNumber(draft?.settings.lineSpacing || 0.28, 0.28, 0.12, 0.8);
     const stroke = Math.max(0.5, toSafeNumber(draft?.settings.lineThickness || 0.6, 0.6, 0.1, 2));
     const lineColor = draft?.settings.lineColor || "#c9d0c8";
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
-    const backgroundStyle = isDot
+    const backgroundStyle = isDiary
+      ? {}
+      : isDot
       ? { backgroundImage: `radial-gradient(${lineColor} ${stroke}px, transparent ${stroke + 0.35}px)`, backgroundSize: `${spacing * 31}px ${spacing * 31}px` }
       : isGraph
         ? { backgroundImage: `linear-gradient(to right, ${lineColor} ${stroke}px, transparent ${stroke}px), linear-gradient(to bottom, ${lineColor} ${stroke}px, transparent ${stroke}px)`, backgroundSize: `${spacing * 31}px ${spacing * 31}px` }
         : { backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31)}px)` };
     const styleLabel = LINE_STYLES.find(([value]) => value === style)?.[1] || "Ruled";
+    const diaryIsoDate = isDiary
+      ? notebookDiaryPageDate(draft?.settings.diaryStartMonth || currentNotebookDiaryStartMonth(), pageNumber)
+      : null;
+    const diaryDate = diaryIsoDate ? new Date(`${diaryIsoDate}T12:00:00.000Z`) : null;
+    const diaryWeekday = diaryDate
+      ? new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" }).format(diaryDate)
+      : "";
+    const diaryFullDate = diaryDate
+      ? new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(diaryDate)
+      : "";
     const trim = draft?.settings.trimSize === "custom"
       ? [Number(draft.settings.customWidth), Number(draft.settings.customHeight)]
       : String(draft?.settings.trimSize || "6x9").split("x").map(Number);
@@ -729,20 +771,33 @@ export default function AdminNotebookStudio() {
         aria-label={`Interior page ${pageNumber} preview`}
       >
         <div className="absolute inset-[8%] flex flex-col">
-          {(draft?.settings.headerText || draft?.settings.showDateField || draft?.settings.showSubjectField) && (
+          {isDiary ? (
+            <div className="mb-3 border-b border-[#c8c0b0] pb-3">
+              <p className="text-[clamp(8px,1.1vw,12px)] font-semibold uppercase tracking-[.13em] text-[#667066]">{diaryWeekday}</p>
+              <p className="mt-1 font-serif text-[clamp(14px,2.4vw,23px)] text-[#42564c]">{diaryFullDate}</p>
+            </div>
+          ) : (draft?.settings.headerText || draft?.settings.showDateField || draft?.settings.showSubjectField) && (
             <div className="flex min-h-[9%] items-end justify-between gap-2 border-b border-[#c8c0b0] pb-2 text-[clamp(7px,1vw,11px)] text-[#667066]">
               <span className="truncate">{draft?.settings.headerText || (draft?.settings.showSubjectField ? "Subject" : "")}</span>
               <span className="shrink-0">{draft?.settings.showDateField ? "Date  __________" : ""}</span>
             </div>
           )}
-          {draft?.settings.ownershipPage && pageNumber === 1 ? (
+          {!isDiary && draft?.settings.ownershipPage && pageNumber === 1 ? (
             <div className="flex flex-1 flex-col justify-center text-center">
               <BookOpen className="mx-auto mb-4 h-7 w-7 text-[#587464]" />
               <p className="font-serif text-[clamp(12px,2vw,22px)] text-[#42564c]">This notebook belongs to</p>
               <div className="mx-auto mt-10 w-4/5 border-b border-[#8b9386]" />
             </div>
           ) : (
-            <div className="flex-1" />
+            isDiary ? (
+              <div
+                className="min-h-0 flex-1"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31)}px)`,
+                }}
+                aria-label="Ruled writing lines"
+              />
+            ) : <div className="flex-1" />
           )}
           <div className="flex items-center justify-between border-t border-[#d7d0c1]/70 pt-2 text-[clamp(7px,.85vw,10px)] text-[#71766c]">
             <span className="max-w-[70%] truncate">{draft?.settings.footerText || styleLabel}</span>
@@ -966,8 +1021,13 @@ export default function AdminNotebookStudio() {
                             <Field label="Subtitle"><input value={draft.settings.subtitle} onChange={(event) => updateSettings("subtitle", event.target.value)} className={inputClass} placeholder="Optional subtitle" /></Field>
                             <Field label="Author name"><input value={draft.settings.authorName} onChange={(event) => updateSettings("authorName", event.target.value)} className={inputClass} placeholder="Name on the book" /></Field>
                             <Field label="Series name"><input value={draft.settings.seriesName} onChange={(event) => updateSettings("seriesName", event.target.value)} className={inputClass} placeholder="Optional series" /></Field>
-                            <Field label="Interior page count" hint="Print page count, excluding the cover.">
-                              <input type="number" min={1} max={1200} value={draft.settings.pageCount} onChange={(event) => updateSettings("pageCount", toSafeNumber(event.target.value, 160, 1, 1200))} className={inputClass} />
+                            <Field
+                              label="Interior page count"
+                              hint={draft.settings.lineStyle === "diary"
+                                ? `${draft.settings.diaryStartMonth}-01 through Dec 31, 2027 · one dated page per day`
+                                : "Print page count, excluding the cover."}
+                            >
+                              <input type="number" min={1} max={828} value={draft.settings.pageCount} disabled={draft.settings.lineStyle === "diary"} onChange={(event) => updateSettings("pageCount", toSafeNumber(event.target.value, 160, 1, 828))} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#f0ede4] disabled:text-[#77776b]`} />
                             </Field>
                             <Field label="Trim size">
                               <select value={draft.settings.trimSize} onChange={(event) => setTrimPreset(event.target.value)} className={selectClass}>
@@ -996,7 +1056,7 @@ export default function AdminNotebookStudio() {
                               </select>
                             </Field>
                             <Field label="Page layout">
-                              <select value={draft.settings.lineStyle} onChange={(event) => updateSettings("lineStyle", event.target.value)} className={selectClass}>
+                              <select value={draft.settings.lineStyle} onChange={(event) => setPageLayout(event.target.value)} className={selectClass}>
                                 {LINE_STYLES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                               </select>
                             </Field>
@@ -1030,7 +1090,13 @@ export default function AdminNotebookStudio() {
                               ["showSubjectField", "Show subject field"],
                             ] as const).map(([key, label]) => (
                               <label key={key} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1 py-1.5 text-[11px] text-[#5f6359] hover:bg-[#f2efe7]">
-                                <input type="checkbox" checked={draft.settings[key]} onChange={(event) => updateSettings(key, event.target.checked)} className="h-4 w-4 accent-[#456e5a]" />{label}
+                                <input
+                                  type="checkbox"
+                                  checked={draft.settings[key]}
+                                  disabled={key === "ownershipPage" && draft.settings.lineStyle === "diary"}
+                                  onChange={(event) => updateSettings(key, event.target.checked)}
+                                  className="h-4 w-4 accent-[#456e5a] disabled:cursor-not-allowed disabled:opacity-50"
+                                />{label}
                               </label>
                             ))}
                           </div>

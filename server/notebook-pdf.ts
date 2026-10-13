@@ -1,5 +1,5 @@
 import { deflateSync, inflateSync } from "node:zlib";
-import type { NotebookCoverDesign, NotebookSettings } from "@shared/notebook-studio";
+import { notebookDiaryPageDate, type NotebookCoverDesign, type NotebookSettings } from "@shared/notebook-studio";
 
 type PdfImage = {
   width: number;
@@ -320,7 +320,8 @@ function fixedPageText(
 ) {
   const parts: string[] = [];
   let pageContentTop = yTop;
-  if (pageNumber === 1 && settings.ownershipPage) {
+  const isDiary = settings.lineStyle === "diary";
+  if (!isDiary && pageNumber === 1 && settings.ownershipPage) {
     parts.push(textCommand(title, inch(xLeft), inch(height - 1.35), 17, "F2", "0.12 0.24 0.29"));
     parts.push(textCommand("This journal belongs to", inch(xLeft), inch(height - 2.5), 10));
     parts.push(lineCommand(inch(xLeft), inch(height - 2.72), inch(xRight), inch(height - 2.72), settings.lineColor, settings.lineThickness));
@@ -328,11 +329,25 @@ function fixedPageText(
     parts.push(lineCommand(inch(xLeft), inch(height - 3.32), inch(xRight), inch(height - 3.32), settings.lineColor, settings.lineThickness));
     pageContentTop = Math.max(yTop, height - 3.85);
   }
+  if (isDiary) {
+    const isoDate = notebookDiaryPageDate(settings.diaryStartMonth, pageNumber);
+    if (isoDate) {
+      const date = new Date(`${isoDate}T12:00:00.000Z`);
+      const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(date);
+      const fullDate = new Intl.DateTimeFormat("en-US", {
+        month: "long", day: "numeric", year: "numeric", timeZone: "UTC",
+      }).format(date);
+      parts.push(textCommand(weekday, inch(xLeft), inch(height - 0.66), 8, "F2", "0.32 0.36 0.40"));
+      parts.push(textCommand(fullDate, inch(xLeft), inch(height - 1.02), 15, "F2", "0.12 0.24 0.29"));
+      parts.push(lineCommand(inch(xLeft), inch(height - 1.16), inch(xRight), inch(height - 1.16), settings.lineColor, settings.lineThickness));
+      pageContentTop = Math.min(pageContentTop, height - 1.3);
+    }
+  }
   if (settings.headerText) {
     parts.push(textCommand(settings.headerText, inch(xLeft), inch(height - 0.42), 8, "F2"));
-    pageContentTop = Math.max(pageContentTop, height - 0.58);
+    if (!isDiary) pageContentTop = Math.max(pageContentTop, height - 0.58);
   }
-  if (settings.showDateField || settings.showSubjectField) {
+  if (!isDiary && (settings.showDateField || settings.showSubjectField)) {
     const rowY = height - 0.72;
     let x = xLeft;
     if (settings.showDateField) {

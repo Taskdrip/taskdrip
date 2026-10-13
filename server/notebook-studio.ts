@@ -7,6 +7,8 @@ import { creatorNotebookProjects } from "@shared/schema";
 import {
   DEFAULT_NOTEBOOK_COVER,
   DEFAULT_NOTEBOOK_SETTINGS,
+  currentNotebookDiaryStartMonth,
+  notebookDiaryPageCount,
   type NotebookCoverDesign,
   type NotebookSettings,
 } from "@shared/notebook-studio";
@@ -21,7 +23,7 @@ const BINDINGS = new Set(["paperback", "hardcover", "spiral"]);
 const INKS = new Set(["black", "color"]);
 const PAPERS = new Set(["white", "cream"]);
 const LINE_STYLES = new Set([
-  "classic", "wide", "college", "minimalist", "business", "daily", "meeting",
+  "classic", "wide", "college", "minimalist", "lined-journal", "business", "daily", "diary", "meeting",
   "study", "dot", "graph", "premium", "custom",
 ]);
 const COVER_STYLES = new Set([
@@ -101,6 +103,23 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
   if (raw.lineStyle !== undefined) {
     if (!LINE_STYLES.has(String(raw.lineStyle))) throw Object.assign(new Error("Choose a supported notebook interior style."), { statusCode: 400 });
     settings.lineStyle = raw.lineStyle;
+  }
+  if (raw.diaryStartMonth !== undefined) {
+    const startMonth = String(raw.diaryStartMonth);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth) || !notebookDiaryPageCount(startMonth)) {
+      throw Object.assign(new Error("Choose a diary start month on or before December 2027."), { statusCode: 400 });
+    }
+    settings.diaryStartMonth = startMonth;
+  } else if (settings.lineStyle === "diary" && !settings.diaryStartMonth) {
+    settings.diaryStartMonth = currentNotebookDiaryStartMonth();
+  }
+  if (settings.lineStyle === "diary") {
+    const diaryPages = notebookDiaryPageCount(settings.diaryStartMonth);
+    if (!diaryPages || diaryPages > 828) {
+      throw Object.assign(new Error("The dated diary must contain between 1 and 828 pages."), { statusCode: 400 });
+    }
+    settings.pageCount = diaryPages;
+    settings.ownershipPage = false;
   }
   if (raw.lineSpacing !== undefined) {
     const value = Number(raw.lineSpacing);
