@@ -1,14 +1,42 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { deflateSync } from "node:zlib";
 import {
+  DEFAULT_NOTEBOOK_PAGE_COPY,
   DEFAULT_NOTEBOOK_SETTINGS,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
   NOTEBOOK_LINE_SPACING_PRESETS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
   normalizeNotebookLineSpacing,
+  notebookPageArtKey,
+  notebookPrintArtPixels,
   notebookTotalPageCount,
 } from "../shared/notebook-studio";
-import { createNotebookInteriorPdf, validateNotebook } from "../server/notebook-pdf";
+import { createNotebookInteriorPdf, inspectNotebookPageImage, validateNotebook } from "../server/notebook-pdf";
+
+function pngChunk(type: string, data: Buffer) {
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  return Buffer.concat([length, Buffer.from(type), data, Buffer.alloc(4)]);
+}
+
+function createTestPng() {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(2, 0);
+  header.writeUInt32BE(2, 4);
+  header[8] = 8;
+  header[9] = 2;
+  const pixels = Buffer.from([
+    0, 230, 180, 120, 150, 170, 130,
+    0, 80, 120, 200, 230, 180, 120,
+  ]);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", deflateSync(pixels)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
 
 test("Lined journal PDF draws visible rules using the saved line controls", () => {
   const settings = {
@@ -86,15 +114,15 @@ test("selected intro designs precede the writing pages and are included in the p
   assert.equal(validation.writingPageCount, 2);
   assert.equal(validation.introPageCount, NOTEBOOK_INTRO_PAGE_OPTIONS.length);
   for (const title of [
-    "A JOURNAL FOR YOUR NEXT CHAPTER",
-    "MAKE THIS JOURNAL YOURS",
-    "SET YOUR INTENTIONS",
-    "WORLD MAP",
-    "THE CONTINENTS",
-    "OUR SOLAR SYSTEM",
-    "WORLD LEADERS",
-    "CURRENT AFFAIRS",
-    "2027 YEAR CALENDAR",
+    "A place to pause",
+    "Make this journal yours",
+    "Set your intentions",
+    "Explore the world",
+    "Seven continents, one curious world",
+    "A tour of our solar system",
+    "World leaders",
+    "The stories shaping our time",
+    "A year at a glance",
   ]) {
     assert.ok(pdf.includes(`(${title}) Tj`), `the PDF includes its ${title} intro design`);
   }
@@ -124,7 +152,7 @@ test("front blanks, closing designs, and end blanks are physically ordered and c
   assert.match(streams[1], /A JOURNAL FOR YOUR NEXT CHAPTER/);
   assert.match(streams[2], /\(1\) Tj/, "writing page numbers start at one after the front matter");
   assert.match(streams[3], /\(2\) Tj/);
-  assert.match(streams[4], /LOOKING BACK/);
+  assert.match(streams[4], /\(Looking back\) Tj/);
   assert.equal(streams[5], "", "the first end blank contains no running elements");
   assert.equal(streams[6], "", "the final end blank contains no running elements");
   const validation = validateNotebook("Page sequence", settings, { interiorExists: true, coverExists: false });
@@ -143,9 +171,9 @@ test("each available outro option produces its own complete closing design", () 
   const pdf = createNotebookInteriorPdf("Closing design test", settings).toString("latin1");
   const validation = validateNotebook("Closing design test", settings, { interiorExists: true, coverExists: false });
 
-  assert.match(pdf, /\(LOOKING BACK\) Tj/);
-  assert.match(pdf, /\(A NOTE TO MY FUTURE SELF\) Tj/);
-  assert.match(pdf, /\(THE NEXT CHAPTER\) Tj/);
+  assert.match(pdf, /\(Looking back\) Tj/);
+  assert.match(pdf, /\(A note to my future self\) Tj/);
+  assert.match(pdf, /\(The next chapter\) Tj/);
   assert.equal(validation.outroPageCount, NOTEBOOK_OUTRO_PAGE_OPTIONS.length);
   assert.equal(validation.pageCount, 2 + NOTEBOOK_OUTRO_PAGE_OPTIONS.length);
 });
@@ -209,4 +237,72 @@ test("writing rules stay below the header and subject row and above the footer m
   assert.ok(Math.min(...writingLines) >= 0.67 * 72 - 1, "no ruled line enters the footer region");
   assert.match(stream, /\(MY HEADER\) Tj/);
   assert.match(stream, /\(MY FOOTER\) Tj/);
+});
+
+test("page copy edits are used in the generated introduction and closing pages", () => {
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    pageCount: 1,
+    introPages: ["intentions"] as const,
+    outroPages: ["year-reflection"] as const,
+    pageCopy: {
+      ...DEFAULT_NOTEBOOK_PAGE_COPY,
+      "intro-intentions": {
+        title: "A season with purpose",
+        subtitle: "Write what you want to protect and grow.",
+        prompts: ["Make room for rest", "Call someone I miss", "Take one focused step"],
+      },
+      "outro-year-reflection": {
+        title: "What I am taking with me",
+        subtitle: "A few details can hold a whole season.",
+        prompts: ["The moment I replay", "A lesson I earned", "A kindness I received", "What I will carry forward"],
+      },
+    },
+  };
+  const pdf = createNotebookInteriorPdf("Copy edit test", settings).toString("latin1");
+
+  for (const copy of [
+    "A season with purpose",
+    "Write what you want to protect and grow.",
+    "Make room for rest",
+    "What I am taking with me",
+    "A kindness I received",
+  ]) {
+    assert.ok(pdf.includes(`(${copy}) Tj`), `the PDF includes saved page copy: ${copy}`);
+  }
+});
+
+test("uploaded page artwork replaces the designed page and is embedded in the print PDF", () => {
+  const image = createTestPng();
+  const info = inspectNotebookPageImage(image);
+  assert.deepEqual(info, { width: 2, height: 2, format: "png" });
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    pageCount: 1,
+    introPages: ["welcome"] as const,
+  };
+  const pdf = createNotebookInteriorPdf("Artwork test", settings, {
+    [notebookPageArtKey("intro", "welcome")]: image,
+  }).toString("latin1");
+
+  assert.match(pdf, /\/Subtype \/Image \/Width 2 \/Height 2/);
+  assert.match(pdf, /\/XObject << \/Im0 \d+ 0 R >>/);
+  assert.match(pdf, /\/Im0 Do Q/);
+  assert.ok(!pdf.includes("A JOURNAL FOR YOUR NEXT CHAPTER"), "replacement artwork suppresses the vector template");
+  assert.match(pdf, /\/Count 2/);
+});
+
+test("page art dimensions follow trim size and include bleed at 300 DPI", () => {
+  assert.deepEqual(
+    notebookPrintArtPixels({ trimSize: "6x9", customWidth: 6, customHeight: 9, bleed: false }),
+    { width: 1800, height: 2700 },
+  );
+  assert.deepEqual(
+    notebookPrintArtPixels({ trimSize: "6x9", customWidth: 6, customHeight: 9, bleed: true }),
+    { width: 1838, height: 2775 },
+  );
+  assert.deepEqual(
+    notebookPrintArtPixels({ trimSize: "custom", customWidth: 5.5, customHeight: 8.5, bleed: false }),
+    { width: 1650, height: 2550 },
+  );
 });

@@ -35,17 +35,23 @@ import {
   ZoomOut,
 } from "lucide-react";
 import {
+  DEFAULT_NOTEBOOK_PAGE_COPY,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
   NOTEBOOK_LINE_SPACING_PRESETS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
   normalizeNotebookLineSpacing,
+  notebookPageArtKey,
+  notebookPageCopy,
+  notebookPrintArtPixels,
   notebookDiaryPageCount,
   notebookDiaryPageDate,
   type NotebookCurrentAffairsEntry,
   type NotebookIntroPageType,
   type NotebookLeaderEntry,
   type NotebookOutroPageType,
+  type NotebookPageArtGroup,
+  type NotebookPageCopy,
 } from "@shared/notebook-studio";
 import NotebookKdpListingGuide from "./notebook-kdp-listing-guide";
 
@@ -64,6 +70,8 @@ type NotebookSettings = {
   lineStyle: string;
   introPages: NotebookIntroPageType[];
   outroPages: NotebookOutroPageType[];
+  pageCopy: Record<string, NotebookPageCopy>;
+  pageArtwork: Record<string, string>;
   frontBlankPageCount: number;
   backBlankPageCount: number;
   worldLeaderEntries: NotebookLeaderEntry[];
@@ -102,6 +110,10 @@ type NotebookProject = {
   updatedAt?: string | null;
 };
 
+type NotebookPageArtTarget =
+  | { group: "intro"; type: NotebookIntroPageType }
+  | { group: "outro"; type: NotebookOutroPageType };
+
 const API = "/api/admin/creator-studio/notebooks";
 const PAPER = "#f5f0e6";
 const DEFAULT_SETTINGS: NotebookSettings = {
@@ -119,6 +131,8 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   lineStyle: "classic",
   introPages: [],
   outroPages: [],
+  pageCopy: DEFAULT_NOTEBOOK_PAGE_COPY,
+  pageArtwork: {},
   frontBlankPageCount: 0,
   backBlankPageCount: 0,
   worldLeaderEntries: [],
@@ -181,6 +195,11 @@ function normalizeProject(project: NotebookProject): NotebookProject {
     settings: {
       ...DEFAULT_SETTINGS,
       ...(project.settings || {}),
+      pageCopy: Object.fromEntries(Object.entries(DEFAULT_NOTEBOOK_PAGE_COPY).map(([key, defaults]) => [
+        key,
+        { ...defaults, ...(project.settings?.pageCopy?.[key] || {}) },
+      ])),
+      pageArtwork: { ...(project.settings?.pageArtwork || {}) },
       introPages: Array.isArray(project.settings?.introPages) ? project.settings.introPages : [],
       outroPages: Array.isArray(project.settings?.outroPages) ? project.settings.outroPages : [],
       worldLeaderEntries: Array.isArray(project.settings?.worldLeaderEntries) ? project.settings.worldLeaderEntries : [],
@@ -315,6 +334,8 @@ export default function AdminNotebookStudio() {
   const [remoteSvgUrl, setRemoteSvgUrl] = useState("");
   const [remoteSvgError, setRemoteSvgError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pageArtFileInputRef = useRef<HTMLInputElement>(null);
+  const [pageArtTarget, setPageArtTarget] = useState<NotebookPageArtTarget | null>(null);
   const activeIdRef = useRef(activeId);
   activeIdRef.current = activeId;
 
@@ -357,6 +378,7 @@ export default function AdminNotebookStudio() {
     setDraft(activeProject ? normalizeProject(activeProject) : null);
     setPage(1);
     setJumpValue("1");
+    setPageArtTarget(null);
     setRemoteSvgUrl("");
     setRemoteSvgError("");
   }, [activeProject]);
@@ -373,6 +395,18 @@ export default function AdminNotebookStudio() {
   };
   const updateSettings = <K extends keyof NotebookSettings>(key: K, value: NotebookSettings[K]) => {
     updateDraft((project) => ({ ...project, settings: { ...project.settings, [key]: value } }));
+  };
+  const updatePageCopy = (key: string, update: Partial<NotebookPageCopy>) => {
+    updateDraft((project) => ({
+      ...project,
+      settings: {
+        ...project.settings,
+        pageCopy: {
+          ...project.settings.pageCopy,
+          [key]: { ...(DEFAULT_NOTEBOOK_PAGE_COPY[key] || { title: "", subtitle: "", prompts: [] }), ...project.settings.pageCopy[key], ...update },
+        },
+      },
+    }));
   };
   const toggleIntroPage = (value: NotebookIntroPageType, checked: boolean) => {
     updateDraft((project) => {
@@ -769,6 +803,64 @@ export default function AdminNotebookStudio() {
     }
   };
 
+  const syncPageArtwork = (saved: NotebookProject) => {
+    setProjects((current) => current.map((project) => project.id === saved.id
+      ? { ...project, settings: { ...project.settings, pageArtwork: saved.settings.pageArtwork }, status: saved.status, updatedAt: saved.updatedAt }
+      : project));
+    setDraft((current) => current?.id === saved.id
+      ? { ...current, settings: { ...current.settings, pageArtwork: saved.settings.pageArtwork }, status: saved.status, updatedAt: saved.updatedAt }
+      : current);
+  };
+
+  const pickPageArtwork = async (file?: File) => {
+    if (!file || !draft || !pageArtTarget) return;
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      report("error", "Choose a PNG or JPEG page image.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      report("error", "Page images must be 25 MB or smaller.");
+      return;
+    }
+    const projectId = draft.id;
+    const target = pageArtTarget;
+    setBusy("page-art");
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const result = await requestJson<{ project: NotebookProject }>(
+        `${API}/${projectId}/page-art/${target.group}/${target.type}`,
+        { method: "POST", body: form },
+      );
+      const saved = normalizeProject(result.project);
+      syncPageArtwork(saved);
+      report("success", "Full-page artwork uploaded and saved.");
+    } catch (error) {
+      report("error", (error as Error).message);
+    } finally {
+      setBusy("");
+      setPageArtTarget(null);
+    }
+  };
+
+  const restorePageArtwork = async (target: NotebookPageArtTarget) => {
+    if (!draft) return;
+    const projectId = draft.id;
+    setBusy("page-art");
+    try {
+      const result = await requestJson<{ project: NotebookProject }>(
+        `${API}/${projectId}/page-art/${target.group}/${target.type}`,
+        { method: "DELETE" },
+      );
+      syncPageArtwork(normalizeProject(result.project));
+      report("success", "Original page design restored.");
+    } catch (error) {
+      report("error", (error as Error).message);
+    } finally {
+      setBusy("");
+    }
+  };
+
   const validationItems = useMemo(() => {
     if (!draft?.validation || typeof draft.validation !== "object") return [];
     const validation = draft.validation as Record<string, unknown>;
@@ -834,6 +926,20 @@ export default function AdminNotebookStudio() {
   const renderIntroPage = (introType: NotebookIntroPageType, pageNumber: number) => {
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
     const label = NOTEBOOK_INTRO_PAGE_OPTIONS.find((option) => option.value === introType)?.label || "Intro page";
+    const copyKey = notebookPageArtKey("intro", introType);
+    const copy = draft ? notebookPageCopy(draft.settings, copyKey) : DEFAULT_NOTEBOOK_PAGE_COPY[copyKey];
+    if (draft?.settings.pageArtwork[copyKey]) {
+      return (
+        <article
+          key={`intro-${pageNumber}`}
+          className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          style={{ aspectRatio: trimAspect }}
+          aria-label={`${label} uploaded page preview`}
+        >
+          <img src={`${API}/${draft.id}/files/page-art/${copyKey}`} alt={`${label} replacement artwork`} className="h-full w-full object-cover" />
+        </article>
+      );
+    }
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const continents = ["Asia", "Africa", "North America", "South America", "Antarctica", "Europe", "Australia"];
     const planets = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"];
@@ -846,8 +952,9 @@ export default function AdminNotebookStudio() {
         aria-label={`${label} introductory page preview`}
       >
         <div className="absolute inset-[7%] flex flex-col text-[#42564c]">
-          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">A thoughtfully designed opening</p>
-          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{introType === "welcome" ? "A place to pause." : label}</h3>
+          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">{label}</p>
+          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{copy.title}</h3>
+          <p className="mt-1 max-w-[94%] text-[clamp(6px,.8vw,9px)] leading-relaxed text-[#73786e]">{copy.subtitle}</p>
           <div className="mt-2 h-px bg-gradient-to-r from-[#748f7d] via-[#d7d9cd] to-transparent" />
           <div className="min-h-0 flex-1 py-3">
             {introType === "welcome" && (
@@ -858,8 +965,8 @@ export default function AdminNotebookStudio() {
                   <circle cx="90" cy="74" r="17" fill="#e2c18d" />
                   <path d="M53 111c18-10 56-10 74 0" fill="none" stroke="#d5d2c4" strokeWidth="2" />
                 </svg>
-                <p className="font-serif text-[clamp(11px,2.4vw,21px)] text-[#42564c]">A place to begin again.</p>
-                <p className="mt-3 max-w-[88%] text-[clamp(7px,1vw,11px)] leading-relaxed text-[#73786e]">Use these pages to notice what matters, make room for new ideas, and keep the thoughts you want to return to.</p>
+                <p className="font-serif text-[clamp(11px,2.4vw,21px)] text-[#42564c]">Make space for what matters.</p>
+                <p className="mt-3 max-w-[88%] text-[clamp(7px,1vw,11px)] leading-relaxed text-[#73786e]">A date, a sentence, or a quick sketch is enough to begin.</p>
                 <div className="mt-5 w-[86%] rounded-xl border border-[#d9d4c8] bg-white/45 p-3 text-left">
                   <p className="text-[clamp(6px,.8vw,9px)] font-bold uppercase tracking-[.15em] text-[#78877a]">This journal belongs to</p>
                   <div className="mt-4 border-b border-[#9eaa9e]" />
@@ -869,12 +976,12 @@ export default function AdminNotebookStudio() {
             )}
             {introType === "journal-guide" && (
               <div className="grid h-full grid-rows-4 gap-2">
-                {[
-                  ["01", "Begin anywhere", "A date, sentence, or quick sketch is enough."],
-                  ["02", "Keep it honest", "There is no perfect way to fill a page."],
-                  ["03", "Return often", "Small notes become a record worth keeping."],
-                  ["04", "Look back kindly", "Notice what changed and what you learned."],
-                ].map(([number, heading, detail]) => (
+                  {[
+                    ["01", copy.prompts[0] || "Begin anywhere", "A date, sentence, or quick sketch is enough."],
+                    ["02", copy.prompts[1] || "Keep it honest", "There is no perfect way to fill a page."],
+                    ["03", copy.prompts[2] || "Return often", "Small notes become a record worth keeping."],
+                    ["04", copy.prompts[3] || "Look back kindly", "Notice what changed and what you learned."],
+                  ].map(([number, heading, detail]) => (
                   <div key={number} className="flex min-h-0 items-center gap-3 rounded-xl border border-[#dfdacd] bg-white/45 px-3 py-2">
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#607c69] text-[clamp(6px,.8vw,9px)] font-bold text-white">{number}</span>
                     <span className="min-w-0"><span className="block text-[clamp(7px,1.05vw,11px)] font-semibold">{heading}</span><span className="mt-0.5 block text-[clamp(6px,.8vw,9px)] text-[#73786e]">{detail}</span></span>
@@ -884,7 +991,7 @@ export default function AdminNotebookStudio() {
             )}
             {introType === "intentions" && (
               <div className="flex h-full flex-col gap-3">
-                {["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"].map((prompt, index) => (
+                {copy.prompts.slice(0, 3).map((prompt, index) => (
                   <div key={prompt} className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#dfdacd] bg-white/45 p-3">
                     <span className="text-[clamp(6px,.8vw,9px)] font-bold uppercase tracking-wide text-[#69806e]">0{index + 1} · {prompt}</span>
                     <div className="mt-auto space-y-3 pt-3"><div className="border-b border-[#c7c9bd]" /><div className="border-b border-[#d9d9cf]" /></div>
@@ -948,7 +1055,7 @@ export default function AdminNotebookStudio() {
             )}
             {introType === "world-presidents" && (
               <div className="flex h-full flex-col">
-                <p className="mb-2 text-[clamp(6px,.8vw,9px)] leading-relaxed text-[#73786e]">Not every country is led by a president. Check an official source and record its exact office title and review date.</p>
+                <p className="mb-2 text-[clamp(6px,.8vw,9px)] leading-relaxed text-[#73786e]">Leadership titles vary by country; confirm each entry against a dated official source.</p>
                 <div className="grid grid-cols-[.95fr_1fr_.78fr_1.2fr] border-b border-[#aab7aa] pb-1 text-[clamp(5px,.68vw,8px)] font-bold uppercase tracking-wide">
                   <span>Country</span><span>Leader</span><span>Office</span><span>Checked · source</span>
                 </div>
@@ -1008,11 +1115,21 @@ export default function AdminNotebookStudio() {
   const renderOutroPage = (outroType: NotebookOutroPageType, pageNumber: number) => {
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
     const label = NOTEBOOK_OUTRO_PAGE_OPTIONS.find((option) => option.value === outroType)?.label || "Closing page";
-    const prompts = outroType === "year-reflection"
-      ? ["A moment I want to remember", "Something I learned", "What I am grateful for", "What I will carry forward"]
-      : outroType === "next-chapter"
-        ? ["I hope to make more room for", "One small step I can take soon", "A reminder for the days ahead"]
-        : [];
+    const copyKey = notebookPageArtKey("outro", outroType);
+    const copy = draft ? notebookPageCopy(draft.settings, copyKey) : DEFAULT_NOTEBOOK_PAGE_COPY[copyKey];
+    if (draft?.settings.pageArtwork[copyKey]) {
+      return (
+        <article
+          key={`outro-${pageNumber}`}
+          className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          style={{ aspectRatio: trimAspect }}
+          aria-label={`${label} uploaded page preview`}
+        >
+          <img src={`${API}/${draft.id}/files/page-art/${copyKey}`} alt={`${label} replacement artwork`} className="h-full w-full object-cover" />
+        </article>
+      );
+    }
+    const prompts = copy.prompts;
     return (
       <article
         key={`outro-${pageNumber}`}
@@ -1021,8 +1138,9 @@ export default function AdminNotebookStudio() {
         aria-label={`${label} closing page preview`}
       >
         <div className="absolute inset-[7%] flex flex-col text-[#42564c]">
-          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">A thoughtful ending</p>
-          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{label}</h3>
+          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">{label}</p>
+          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{copy.title}</h3>
+          <p className="mt-1 max-w-[94%] text-[clamp(6px,.8vw,9px)] leading-relaxed text-[#73786e]">{copy.subtitle}</p>
           <div className="mt-2 h-px bg-gradient-to-r from-[#748f7d] via-[#d7d9cd] to-transparent" />
           <div className="flex min-h-0 flex-1 flex-col py-3">
             {outroType === "future-letter" ? (
@@ -1056,6 +1174,80 @@ export default function AdminNotebookStudio() {
           </div>
         </div>
       </article>
+    );
+  };
+
+  const renderPageCopyEditor = (
+    group: NotebookPageArtGroup,
+    type: NotebookIntroPageType | NotebookOutroPageType,
+    label: string,
+  ) => {
+    if (!draft) return null;
+    const key = notebookPageArtKey(group, type);
+    const copy = notebookPageCopy(draft.settings, key);
+    const artwork = draft.settings.pageArtwork[key];
+    const target = { group, type } as NotebookPageArtTarget;
+    const dimensions = notebookPrintArtPixels(draft.settings, 300);
+    return (
+      <details key={key} className="overflow-hidden rounded-xl border border-[#e8e2d7] bg-[#faf8f2]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[11px] font-semibold text-[#4d554c] hover:bg-[#f3f0e8]">
+          <span>{label}</span>
+          <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] ${artwork ? "bg-[#e6efe6] text-[#41634b]" : "bg-[#f0ede5] text-[#77776b]"}`}>
+            {artwork ? "Uploaded artwork" : "Designed page"}
+          </span>
+        </summary>
+        <div className="space-y-3 border-t border-[#e8e2d7] p-3">
+          <Field label="Page title">
+            <input value={copy.title} maxLength={100} onChange={(event) => updatePageCopy(key, { title: event.target.value })} className={inputClass} />
+          </Field>
+          <Field label="Supporting text" hint="This appears under the title in the printed page.">
+            <textarea value={copy.subtitle} maxLength={300} onChange={(event) => updatePageCopy(key, { subtitle: event.target.value })} className={textareaClass} />
+          </Field>
+          {(DEFAULT_NOTEBOOK_PAGE_COPY[key]?.prompts.length || 0) > 0 && (
+            <Field label="Prompt headings" hint="One per line. The designed layout keeps the prompts evenly spaced.">
+              <textarea
+                value={copy.prompts.join("\n")}
+                rows={Math.min(6, Math.max(3, copy.prompts.length))}
+                maxLength={960}
+                onChange={(event) => updatePageCopy(key, { prompts: event.target.value.split(/\r?\n/).slice(0, 8) })}
+                className={textareaClass}
+              />
+            </Field>
+          )}
+          <div className="rounded-xl border border-[#e4dfd4] bg-[#fffdf8] p-3">
+            <p className="text-[11px] font-semibold text-[#595b52]">Replace this page with your artwork</p>
+            <p className="mt-1 text-[10px] leading-4 text-[#858477]">
+              PNG or JPEG, up to 25 MB. Use a full-page image at least {dimensions.width.toLocaleString()} × {dimensions.height.toLocaleString()} pixels (300 DPI), matching the page shape{draft.settings.bleed ? " including bleed" : ""}. Uploading saves the artwork immediately; save text changes separately.
+            </p>
+            {artwork && (
+              <img
+                src={`${API}/${draft.id}/files/page-art/${key}`}
+                alt={`Saved artwork for ${label}`}
+                className="mt-3 max-h-44 w-auto rounded-lg border border-[#e1dbcf] object-contain shadow-sm"
+              />
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPageArtTarget(target);
+                  pageArtFileInputRef.current?.click();
+                }}
+                disabled={busy === "page-art"}
+                className={secondaryButton}
+              >
+                {busy === "page-art" ? <LoaderCircle size={15} className="animate-spin" /> : <Upload size={15} />}
+                {artwork ? "Replace artwork" : "Upload artwork"}
+              </button>
+              {artwork && (
+                <button type="button" onClick={() => void restorePageArtwork(target)} disabled={busy === "page-art"} className={secondaryButton}>
+                  Restore designed page
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </details>
     );
   };
 
@@ -1557,6 +1749,37 @@ export default function AdminNotebookStudio() {
                             </div>
                             <p className="mt-2 border-t border-[#ece7dc] pt-2 text-[10px] text-[#6d7167]">{outroPageCount} closing {outroPageCount === 1 ? "page" : "pages"} selected · {pageCount} physical pages total</p>
                           </fieldset>
+                          {(introPageCount + outroPageCount > 0) && (
+                            <fieldset className="rounded-xl border border-[#dcd6ca] bg-[#fffdf8] p-3">
+                              <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Page content & replacement artwork</legend>
+                              <p className="mb-3 text-[10px] leading-4 text-[#858477]">
+                                Edit the titles, descriptions, and prompts in each selected page. Uploading replacement art saves it immediately; use Save changes for text edits.
+                              </p>
+                              <div className="space-y-2">
+                                {draft.settings.introPages.map((type) => {
+                                  const label = NOTEBOOK_INTRO_PAGE_OPTIONS.find((option) => option.value === type)?.label || type;
+                                  return renderPageCopyEditor("intro", type, label);
+                                })}
+                                {draft.settings.outroPages.map((type) => {
+                                  const label = NOTEBOOK_OUTRO_PAGE_OPTIONS.find((option) => option.value === type)?.label || type;
+                                  return renderPageCopyEditor("outro", type, label);
+                                })}
+                              </div>
+                              <input
+                                ref={pageArtFileInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg"
+                                className="hidden"
+                                onChange={(event) => { void pickPageArtwork(event.target.files?.[0]); event.currentTarget.value = ""; }}
+                              />
+                              <div className="mt-3 flex justify-end border-t border-[#ece7dc] pt-3">
+                                <button type="button" onClick={() => void saveProject()} disabled={!dirty || busy === "save"} className={secondaryButton}>
+                                  {busy === "save" ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} />}
+                                  Save page text
+                                </button>
+                              </div>
+                            </fieldset>
+                          )}
                           {draft.settings.introPages.includes("world-presidents") && (
                             <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
                               <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Dated world-leader references</legend>

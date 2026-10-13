@@ -1,6 +1,7 @@
 import type { Express, Response } from "express";
 import { and, desc, eq } from "drizzle-orm";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import multer from "multer";
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { nanoid } from "nanoid";
 import { creatorNotebookProjects } from "@shared/schema";
@@ -10,18 +11,28 @@ import {
   normalizeNotebookLineSpacing,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
+  DEFAULT_NOTEBOOK_PAGE_COPY,
+  notebookPageArtKey,
+  notebookPrintArtPixels,
   currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
   notebookTotalPageCount,
+  type NotebookIntroPageType,
+  type NotebookOutroPageType,
+  type NotebookPageArtGroup,
   type NotebookCoverDesign,
   type NotebookSettings,
 } from "@shared/notebook-studio";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
-import { createNotebookCoverPdf, createNotebookCoverSvg, createNotebookInteriorPdf, validateNotebook } from "./notebook-pdf";
+import { createNotebookCoverPdf, createNotebookCoverSvg, createNotebookInteriorPdf, inspectNotebookPageImage, validateNotebook } from "./notebook-pdf";
 
 const PROJECT_FILES_DIR = path.resolve(process.cwd(), ".private-notebook-files");
 const PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+const pageArtUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+});
 const ADMIN_ROLES = new Set(["admin", "store_manager", "moderator", "content_editor"]);
 const BINDINGS = new Set(["paperback", "hardcover", "spiral"]);
 const INKS = new Set(["black", "color"]);
@@ -56,6 +67,51 @@ function cleanText(value: unknown, max: number, fallback = "") {
   return String(value ?? fallback).replace(/\u0000/g, "").trim().slice(0, max);
 }
 
+const NOTEBOOK_PAGE_ART_KEYS = new Set([
+  ...NOTEBOOK_INTRO_PAGE_OPTIONS.map((page) => notebookPageArtKey("intro", page.value)),
+  ...NOTEBOOK_OUTRO_PAGE_OPTIONS.map((page) => notebookPageArtKey("outro", page.value)),
+]);
+
+function normalizePageCopy(input: unknown, previous: NotebookSettings["pageCopy"]) {
+  if (input !== undefined && (!input || typeof input !== "object" || Array.isArray(input))) {
+    throw Object.assign(new Error("Page copy must be an object."), { statusCode: 400 });
+  }
+  const source = input as Record<string, any> | undefined;
+  return Object.fromEntries(Object.entries(DEFAULT_NOTEBOOK_PAGE_COPY).map(([key, defaults]) => {
+    const value = source?.[key];
+    const saved = previous?.[key] || defaults;
+    if (value !== undefined && (!value || typeof value !== "object" || Array.isArray(value))) {
+      throw Object.assign(new Error(`Copy for ${key} must be an object.`), { statusCode: 400 });
+    }
+    const prompts = value?.prompts ?? saved.prompts ?? defaults.prompts;
+    if (!Array.isArray(prompts) || prompts.length > 8) {
+      throw Object.assign(new Error(`Prompts for ${key} must be a list of up to eight lines.`), { statusCode: 400 });
+    }
+    return [key, {
+      title: cleanText(value?.title ?? saved.title ?? defaults.title, 100),
+      subtitle: cleanText(value?.subtitle ?? saved.subtitle ?? defaults.subtitle, 300),
+      prompts: prompts.map((prompt: unknown) => cleanText(prompt, 120)).filter(Boolean),
+    }];
+  }));
+}
+
+function normalizePageArtwork(input: unknown, previous: NotebookSettings["pageArtwork"]) {
+  if (input !== undefined && (!input || typeof input !== "object" || Array.isArray(input))) {
+    throw Object.assign(new Error("Page artwork references must be an object."), { statusCode: 400 });
+  }
+  const source = input as Record<string, unknown> | undefined;
+  const artwork: Record<string, string> = {};
+  for (const [key, rawFilename] of Object.entries(source ?? previous ?? {})) {
+    if (!NOTEBOOK_PAGE_ART_KEYS.has(key)) continue;
+    const filename = cleanText(rawFilename, 100);
+    if (!new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.(?:png|jpe?g)$`, "i").test(filename)) {
+      throw Object.assign(new Error(`The uploaded image reference for ${key} is invalid.`), { statusCode: 400 });
+    }
+    artwork[key] = filename;
+  }
+  return artwork;
+}
+
 function normalizeReferenceEntries<T>(
   value: unknown,
   fields: Record<keyof T, number>,
@@ -88,6 +144,8 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
   }
   const raw = input as Record<string, any>;
   const settings = { ...previous };
+  settings.pageCopy = normalizePageCopy(raw.pageCopy, previous.pageCopy || DEFAULT_NOTEBOOK_PAGE_COPY);
+  settings.pageArtwork = normalizePageArtwork(raw.pageArtwork, previous.pageArtwork || {});
   settings.lineSpacing = normalizeNotebookLineSpacing(raw.lineSpacing ?? previous.lineSpacing);
   if (raw.subtitle !== undefined) settings.subtitle = cleanText(raw.subtitle, 300);
   if (raw.authorName !== undefined) settings.authorName = cleanText(raw.authorName, 160);
@@ -283,6 +341,22 @@ function filePath(id: string, kind: "interior" | "cover") {
   return path.join(projectDirectory(id), `${kind}.pdf`);
 }
 
+function pageArtDirectory(id: string) {
+  return path.join(projectDirectory(id), "page-art");
+}
+
+function pageArtPath(id: string, key: string, filename: string) {
+  if (!NOTEBOOK_PAGE_ART_KEYS.has(key) || !new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.(?:png|jpe?g)$`, "i").test(filename)) {
+    throw Object.assign(new Error("Invalid notebook page artwork reference."), { statusCode: 400 });
+  }
+  const directory = pageArtDirectory(id);
+  const target = path.resolve(directory, filename);
+  if (!target.startsWith(`${directory}${path.sep}`)) {
+    throw Object.assign(new Error("Invalid notebook page artwork path."), { statusCode: 400 });
+  }
+  return target;
+}
+
 function serialize(row: any) {
   return {
     ...row,
@@ -398,6 +472,129 @@ export function registerNotebookStudioRoutes(app: Express) {
     }
   });
 
+  app.post(`${base}/:id/page-art/:group/:type`, isAuthenticated, requirePublishingAdmin, (req: any, res, next) => {
+    pageArtUpload.single("image")(req, res, (error) => {
+      if (error) return res.status(400).json({ message: error.message || "The image could not be uploaded." });
+      next();
+    });
+  }, async (req: any, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const group = String(req.params.group);
+      const type = String(req.params.type);
+      const validType = group === "intro"
+        ? NOTEBOOK_INTRO_PAGE_OPTIONS.some((page) => page.value === type)
+        : group === "outro" && NOTEBOOK_OUTRO_PAGE_OPTIONS.some((page) => page.value === type);
+      if (!validType) return res.status(400).json({ message: "Choose a valid intro or outro page." });
+      if (!req.file?.buffer) return res.status(400).json({ message: "Choose a PNG or JPEG image to upload." });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const pages = group === "intro" ? settings.introPages : settings.outroPages;
+      if (!pages.includes(type as NotebookIntroPageType & NotebookOutroPageType)) {
+        return res.status(409).json({ message: "Select this page in the notebook settings before uploading its artwork." });
+      }
+      const key = notebookPageArtKey(group as NotebookPageArtGroup, type as NotebookIntroPageType & NotebookOutroPageType);
+      const imageInfo = inspectNotebookPageImage(req.file.buffer);
+      if (!imageInfo) {
+        return res.status(400).json({ message: "This image is not supported. Upload a non-interlaced RGB/RGBA PNG or JPEG under 20 megapixels." });
+      }
+      const recommended = notebookPrintArtPixels(settings, 300);
+      if (imageInfo.width < recommended.width || imageInfo.height < recommended.height) {
+        return res.status(400).json({
+          message: `This image is too small for print. Upload at least ${recommended.width} × ${recommended.height} pixels (300 DPI) for this notebook.`,
+        });
+      }
+      const expectedRatio = recommended.width / recommended.height;
+      const imageRatio = imageInfo.width / imageInfo.height;
+      if (Math.abs(imageRatio / expectedRatio - 1) > 0.015) {
+        return res.status(400).json({
+          message: `Match the notebook page shape before uploading. Recommended canvas: ${recommended.width} × ${recommended.height} pixels.`,
+        });
+      }
+
+      const filename = `${key}.${imageInfo.format === "jpeg" ? "jpg" : "png"}`;
+      const target = pageArtPath(project.id, key, filename);
+      await mkdir(pageArtDirectory(project.id), { recursive: true });
+      const temporary = `${target}.${nanoid(8)}.tmp`;
+      await writeFile(temporary, req.file.buffer, { mode: 0o600 });
+      await rename(temporary, target);
+      const previousFilename = settings.pageArtwork[key];
+      if (previousFilename && previousFilename !== filename) {
+        await rm(pageArtPath(project.id, key, previousFilename), { force: true }).catch(() => {});
+      }
+      const nextSettings = normalizeSettings({
+        ...settings,
+        pageArtwork: { ...settings.pageArtwork, [key]: filename },
+      }, settings);
+      const [updated] = await db.update(creatorNotebookProjects).set({
+        settings: nextSettings,
+        status: "editing",
+        generationStatus: "stale",
+        validation: null,
+        updatedAt: new Date(),
+      }).where(and(eq(creatorNotebookProjects.id, project.id), eq(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      res.json({ project: serialize(updated), image: imageInfo, recommended });
+    } catch (error: any) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not upload page artwork:", error);
+      res.status(500).json({ message: "Could not save page artwork." });
+    }
+  });
+
+  app.get(`${base}/:id/files/page-art/:key`, isAuthenticated, requirePublishingAdmin, async (req: any, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const key = String(req.params.key);
+      const filename = settings.pageArtwork[key];
+      if (!filename) return res.status(404).json({ message: "No replacement artwork is saved for this page." });
+      const file = pageArtPath(project.id, key, filename);
+      const imageInfo = inspectNotebookPageImage(await readFile(file));
+      if (!imageInfo) return res.status(404).json({ message: "Saved page artwork is no longer available." });
+      res.setHeader("Content-Type", imageInfo.format === "png" ? "image/png" : "image/jpeg");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.sendFile(file);
+    } catch (error: any) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not serve page artwork:", error);
+      res.status(500).json({ message: "Could not load page artwork." });
+    }
+  });
+
+  app.delete(`${base}/:id/page-art/:group/:type`, isAuthenticated, requirePublishingAdmin, async (req: any, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const group = String(req.params.group);
+      const type = String(req.params.type);
+      const validType = group === "intro"
+        ? NOTEBOOK_INTRO_PAGE_OPTIONS.some((page) => page.value === type)
+        : group === "outro" && NOTEBOOK_OUTRO_PAGE_OPTIONS.some((page) => page.value === type);
+      if (!validType) return res.status(400).json({ message: "Choose a valid intro or outro page." });
+      const key = notebookPageArtKey(group as NotebookPageArtGroup, type as NotebookIntroPageType & NotebookOutroPageType);
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const filename = settings.pageArtwork[key];
+      const nextArtwork = { ...settings.pageArtwork };
+      delete nextArtwork[key];
+      const nextSettings = { ...settings, pageArtwork: nextArtwork };
+      const [updated] = await db.update(creatorNotebookProjects).set({
+        settings: nextSettings,
+        status: "editing",
+        generationStatus: "stale",
+        validation: null,
+        updatedAt: new Date(),
+      }).where(and(eq(creatorNotebookProjects.id, project.id), eq(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      if (filename) await rm(pageArtPath(project.id, key, filename), { force: true }).catch(() => {});
+      res.json({ project: serialize(updated) });
+    } catch (error: any) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not reset page artwork:", error);
+      res.status(500).json({ message: "Could not restore the designed page." });
+    }
+  });
+
   app.post(`${base}/:id/duplicate`, isAuthenticated, requirePublishingAdmin, async (req: any, res) => {
     try {
       const source = await getOwnedProject(req.params.id, req.user.id);
@@ -410,6 +607,26 @@ export function registerNotebookStudioRoutes(app: Express) {
         status: "draft",
         generationStatus: "idle",
       }).returning();
+      const sourceSettings = normalizeSettings(source.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const copiedArtwork: Record<string, string> = {};
+      for (const [key, filename] of Object.entries(sourceSettings.pageArtwork)) {
+        try {
+          const from = pageArtPath(source.id, key, filename);
+          const to = pageArtPath(copy.id, key, filename);
+          await mkdir(pageArtDirectory(copy.id), { recursive: true });
+          await copyFile(from, to);
+          copiedArtwork[key] = filename;
+        } catch {
+          // A missing optional art file should not prevent duplicating the notebook.
+        }
+      }
+      if (Object.keys(copiedArtwork).length !== Object.keys(sourceSettings.pageArtwork).length) {
+        const settings = { ...sourceSettings, pageArtwork: copiedArtwork };
+        const [withArt] = await db.update(creatorNotebookProjects).set({ settings })
+          .where(eq(creatorNotebookProjects.id, copy.id)).returning();
+        res.status(201).json(serialize(withArt || { ...copy, settings }));
+        return;
+      }
       res.status(201).json(serialize(copy));
     } catch (error) {
       console.error("[notebook-studio] Could not duplicate project:", error);
@@ -475,7 +692,11 @@ export function registerNotebookStudioRoutes(app: Express) {
       let coverKey = project.coverFileKey;
 
       if (requestedKind === "all" || requestedKind === "interior") {
-        const interiorBytes = createNotebookInteriorPdf(project.title, settings);
+        const pageArtwork: Record<string, Buffer> = {};
+        for (const [key, filename] of Object.entries(settings.pageArtwork || {})) {
+          pageArtwork[key] = await readFile(pageArtPath(project.id, key, filename));
+        }
+        const interiorBytes = createNotebookInteriorPdf(project.title, settings, pageArtwork);
         const interiorPath = filePath(project.id, "interior");
         const temporary = `${interiorPath}.${nanoid(8)}.tmp`;
         await writeFile(temporary, interiorBytes, { mode: 0o600 });

@@ -6,9 +6,13 @@ import {
   normalizeNotebookLineSpacing,
   notebookOutroPageCount,
   notebookTotalPageCount,
+  DEFAULT_NOTEBOOK_PAGE_COPY,
+  notebookPageArtKey,
+  notebookPageCopy,
   type NotebookCoverDesign,
   type NotebookIntroPageType,
   type NotebookOutroPageType,
+  type NotebookPageArtGroup,
   type NotebookSettings,
 } from "@shared/notebook-studio";
 
@@ -535,27 +539,33 @@ function notebookIntroPage(
   const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
   const contentTop = top - 0.76;
   const contentHeight = contentTop - bottom - 0.1;
+  const copy = notebookPageCopy(settings, notebookPageArtKey("intro", type));
 
   if (type === "welcome") {
     introText(parts, "A JOURNAL FOR YOUR NEXT CHAPTER", x, contentTop - 0.05, 6.2, true, "0.42 0.49 0.43");
     introSunburst(parts, x + pageWidth / 2, contentTop - 1.17, Math.min(0.34, pageWidth * 0.085), accent);
-    introText(parts, "A place to pause.", x, contentTop - 2.12, 21, true, "0.16 0.24 0.22");
-    introText(parts, "A place to begin again.", x, contentTop - 2.48, 15, false, "0.35 0.43 0.37");
-    introText(parts, "Use these pages to notice what matters, make room for new ideas,", x, contentTop - 2.98, 8, false, textColor);
-    introText(parts, "and keep the thoughts you want to return to.", x, contentTop - 3.18, 8, false, textColor);
+    wrapPdfText(copy.title, Math.max(18, Math.floor(pageWidth * 7.5)), 2)
+      .forEach((line, index) => introText(parts, line, x, contentTop - 2.12 - index * 0.31, 21, true, "0.16 0.24 0.22"));
+    wrapPdfText(copy.subtitle, Math.max(20, Math.floor(pageWidth * 15)), 2)
+      .forEach((line, index) => introText(parts, line, x, contentTop - 2.9 - index * 0.17, 7.7, false, textColor));
     introBox(parts, x + 0.08, contentTop - 4.57, pageWidth - 0.16, 0.92, pale, 0.65);
     introText(parts, "THIS JOURNAL BELONGS TO", x + 0.2, contentTop - 3.91, 6.4, true, textColor);
     introRule(parts, x + 0.2, contentTop - 4.29, right - 0.12, contentTop - 4.29, accent, 0.55);
     introText(parts, settings.authorName ? `Made for ${settings.authorName}` : "One thought I want to carry with me:", x + 0.08, bottom + 0.44, 7, false, textColor);
     introRule(parts, x + 2.15, bottom + 0.42, right, bottom + 0.42, accent, 0.45);
   } else if (type === "journal-guide") {
-    introHeading(parts, "MAKE THIS JOURNAL YOURS", "A simple rhythm for pages that grow with you.", x, top, right, accent);
-    const steps = [
-      ["01", "Begin anywhere", "A date, a sentence, or a quick sketch is enough to start."],
-      ["02", "Keep it honest", "Write for yourself. There is no perfect way to fill a page."],
-      ["03", "Return often", "Small notes made regularly become a record worth keeping."],
-      ["04", "Look back kindly", "Notice what changed, what stayed, and what you learned."],
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
+    const stepDetails = [
+      "A date, a sentence, or a quick sketch is enough to start.",
+      "Write for yourself. There is no perfect way to fill a page.",
+      "Small notes made regularly become a record worth keeping.",
+      "Notice what changed, what stayed, and what you learned.",
     ];
+    const steps = stepDetails.map((detail, index) => [
+      String(index + 1).padStart(2, "0"),
+      copy.prompts[index] || DEFAULT_NOTEBOOK_PAGE_COPY["intro-journal-guide"].prompts[index],
+      detail,
+    ]);
     const gap = 0.15;
     const cardH = Math.min(1.16, (contentHeight - 0.2 - gap * 3) / 4);
     steps.forEach(([number, heading, detail], index) => {
@@ -567,8 +577,8 @@ function notebookIntroPage(
       introText(parts, detail, x + 0.55, cardTop - 0.56, 6.2, false, "0.40 0.43 0.40");
     });
   } else if (type === "intentions") {
-    introHeading(parts, "SET YOUR INTENTIONS", "Choose a few things to give your time and attention to.", x, top, right, accent);
-    const prompts = ["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"];
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
+    const prompts = copy.prompts.slice(0, 3);
     const cardH = Math.min(1.63, (contentHeight - 0.35) / 3);
     prompts.forEach((prompt, index) => {
       const cardTop = contentTop - index * (cardH + 0.14);
@@ -579,7 +589,7 @@ function notebookIntroPage(
       introRule(parts, x + 0.12, cardTop - 1.27, right - 0.12, cardTop - 1.27, "#cdd2c8", 0.45);
     });
   } else if (type === "world-map") {
-    introHeading(parts, "WORLD MAP", "Explore the continents and oceans. Add labels or notes.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const mapX = x + 0.03;
     const mapTop = contentTop - 0.05;
     const mapW = pageWidth - 0.06;
@@ -612,7 +622,7 @@ function notebookIntroPage(
     introText(parts, "Ocean or place to remember:", x, bottom + 0.45, 7, true, textColor);
     introRule(parts, x + 1.55, bottom + 0.43, right, bottom + 0.43, accent, 0.5);
   } else if (type === "continents") {
-    introHeading(parts, "THE CONTINENTS", "Seven regions to explore — add a country or a fact to each.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const names = ["ASIA", "AFRICA", "NORTH AMERICA", "SOUTH AMERICA", "ANTARCTICA", "EUROPE", "AUSTRALIA"];
     const cols = 2;
     const gap = 0.13;
@@ -630,7 +640,7 @@ function notebookIntroPage(
       introRule(parts, cardX + 0.1, cardTop - 0.82, cardX + cardW - 0.1, cardTop - 0.82, accent, 0.45);
     });
   } else if (type === "planets") {
-    introHeading(parts, "OUR SOLAR SYSTEM", "The eight planets, shown in order from the Sun.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const centerX = x + pageWidth * 0.5;
     const centerY = contentTop - contentHeight * 0.43;
     const orbitRadiusMax = Math.min(pageWidth * 0.41, contentHeight * 0.35);
@@ -650,7 +660,7 @@ function notebookIntroPage(
     });
     parts.push(`${rgb(settings.ink === "color" ? "#e5b45a" : "#777777")} rg ${inch(centerX - 0.1).toFixed(2)} ${inch(centerY - 0.1).toFixed(2)} ${inch(0.2).toFixed(2)} ${inch(0.2).toFixed(2)} re f\n`);
   } else if (type === "world-presidents") {
-    introHeading(parts, "WORLD LEADERS", "Record each country's official title and verify names before publication.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     introText(parts, "Not every country is led by a president. Use a dated official source for each entry.", x, contentTop - 0.04, 6.3, false, "0.40 0.43 0.40");
     const tableTop = contentTop - 0.14;
     const entries = (settings.worldLeaderEntries || []).slice(0, 8);
@@ -687,7 +697,7 @@ function notebookIntroPage(
       : "Use official government websites or a trusted current reference. Add the check date beside every source.",
     x, bottom + 0.12, 5.7, false, "0.40 0.43 0.40");
   } else if (type === "current-affairs") {
-    introHeading(parts, "CURRENT AFFAIRS", "A source-led record of events, context, and why they matter.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const cardGap = 0.14;
     const entries = (settings.currentAffairsEntries || []).slice(0, 4);
     const count = entries.length || 3;
@@ -727,7 +737,7 @@ function notebookIntroPage(
       }
     }
   } else if (type === "calendar-2027") {
-    introHeading(parts, "2027 YEAR CALENDAR", "All twelve months · Monday to Sunday", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const gridTop = contentTop - 0.02;
     const cols = 4;
     const rows = 3;
@@ -778,16 +788,12 @@ function notebookOutroPage(
   const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
   const contentTop = top - 0.8;
   const contentHeight = contentTop - bottom - 0.1;
+  const copy = notebookPageCopy(settings, notebookPageArtKey("outro", type));
 
   if (type === "year-reflection") {
-    introHeading(parts, "LOOKING BACK", "Give the season you have lived a thoughtful ending.", left, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, left, top, right, accent);
     introSunburst(parts, right - 0.5, contentTop - 0.45, 0.22, accent);
-    const prompts = [
-      "A moment I want to remember",
-      "Something I learned about myself",
-      "A person or small thing I am grateful for",
-      "What I want to carry into the next chapter",
-    ];
+    const prompts = copy.prompts.slice(0, 4);
     const gap = 0.12;
     const cardH = (contentHeight - 0.1 - gap * (prompts.length - 1)) / prompts.length;
     prompts.forEach((prompt, index) => {
@@ -797,7 +803,7 @@ function notebookOutroPage(
       introRule(parts, left + 0.12, cardTop - cardH + 0.15, right - 0.12, cardTop - cardH + 0.15, "#cdd2c8", 0.45);
     });
   } else if (type === "future-letter") {
-    introHeading(parts, "A NOTE TO MY FUTURE SELF", "Write a few honest words to meet again later.", left, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, left, top, right, accent);
     introSunburst(parts, right - 0.47, contentTop - 0.42, 0.2, accent);
     introText(parts, "Dear future me,", left + 0.04, contentTop - 0.55, 9, true, textColor);
     const writingTop = contentTop - 0.9;
@@ -808,12 +814,17 @@ function notebookOutroPage(
     introText(parts, "OPEN THIS AGAIN ON", left, bottom + 0.42, 5.7, true, textColor);
     introRule(parts, left + 1.08, bottom + 0.4, right, bottom + 0.4, accent, 0.55);
   } else if (type === "next-chapter") {
-    introHeading(parts, "THE NEXT CHAPTER", "You do not need the whole plan. Choose your next kind step.", left, top, right, accent);
-    const prompts = [
-      ["01", "I hope to make more room for", "A person, practice, or possibility"],
-      ["02", "One step I can take soon", "Keep it small enough to begin"],
-      ["03", "A reminder for the days ahead", "Write something you will need to hear"],
+    introHeading(parts, copy.title, copy.subtitle, left, top, right, accent);
+    const promptDetails = [
+      "A person, practice, or possibility",
+      "Keep it small enough to begin",
+      "Write something you will need to hear",
     ];
+    const prompts = promptDetails.map((detail, index) => [
+      String(index + 1).padStart(2, "0"),
+      copy.prompts[index] || DEFAULT_NOTEBOOK_PAGE_COPY["outro-next-chapter"].prompts[index],
+      detail,
+    ]);
     const gap = 0.16;
     const cardH = (contentHeight - 0.16 - gap * 2) / prompts.length;
     prompts.forEach(([number, heading, detail], index) => {
@@ -829,7 +840,11 @@ function notebookOutroPage(
   return parts.join("");
 }
 
-export function createNotebookInteriorPdf(title: string, settings: NotebookSettings) {
+export function createNotebookInteriorPdf(
+  title: string,
+  settings: NotebookSettings,
+  pageArtwork: Record<string, Buffer> = {},
+) {
   const trim = notebookTrim(settings);
   const pageWidth = trim.width + (settings.bleed ? BLEED_INCHES : 0);
   const pageHeight = trim.height + (settings.bleed ? BLEED_INCHES * 2 : 0);
@@ -862,7 +877,15 @@ export function createNotebookInteriorPdf(title: string, settings: NotebookSetti
     const yTop = pageHeight - top;
     const introType = settings.introPages?.[page - frontBlankCount - 1];
     const outroType = settings.outroPages?.[page - writingEndPage - 1];
-    const content = page <= frontBlankCount || page > outroEndPage
+    const artworkKey = introType
+      ? notebookPageArtKey("intro", introType)
+      : outroType
+        ? notebookPageArtKey("outro", outroType)
+        : "";
+    const image = artworkKey ? readUploadedImage(pageArtwork[artworkKey] || null) : null;
+    const content = image
+      ? `q 0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)} re W n ${inch(pageWidth).toFixed(2)} 0 0 ${inch(pageHeight).toFixed(2)} 0 0 cm /Im0 Do Q\n`
+      : page <= frontBlankCount || page > outroEndPage
       ? ""
       : page <= introEndPage && introType
         ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom)
@@ -881,11 +904,18 @@ export function createNotebookInteriorPdf(title: string, settings: NotebookSetti
           : outroType
             ? notebookOutroPage(outroType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom)
             : "";
+    const imageObjectNumber = image ? objects.length + 1 : 0;
+    if (image) {
+      objects.push(streamObject(
+        image.data,
+        `/Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /${image.colorSpace} /BitsPerComponent 8 /Filter /${image.filter}`,
+      ));
+    }
     const pageObjectNumber = objects.length + 1;
     const contentObjectNumber = pageObjectNumber + 1;
     pageObjectNumbers.push(pageObjectNumber);
     objects.push(Buffer.from(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${image ? ` /XObject << /Im0 ${imageObjectNumber} 0 R >>` : ""} >> /Contents ${contentObjectNumber} 0 R >>`,
       "ascii",
     ));
     objects.push(streamObject(content));
@@ -1053,6 +1083,16 @@ function decodeJpeg(buffer: Buffer): PdfImage | null {
 function readUploadedImage(raw: Buffer | null): PdfImage | null {
   if (!raw) return null;
   try { return decodePng(raw) || decodeJpeg(raw); } catch { return null; }
+}
+
+export function inspectNotebookPageImage(raw: Buffer): { width: number; height: number; format: "png" | "jpeg" } | null {
+  const image = readUploadedImage(raw);
+  if (!image) return null;
+  return {
+    width: image.width,
+    height: image.height,
+    format: image.filter === "FlateDecode" ? "png" : "jpeg",
+  };
 }
 
 export function createNotebookCoverPdf(
