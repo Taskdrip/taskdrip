@@ -1,0 +1,301 @@
+# TASKDRIP EBOOK STUDIO — ADD COMPLETE NOTEBOOK / LINED WORK JOURNAL CREATION
+
+## OBJECTIVE
+
+Modify the existing Ebook Studio in Taskdrip.online to support creating a complete, downloadable, print-ready **Notebook / Lined Work Journal**.
+
+IMPORTANT: The Ebook Studio already exists and already supports creating other ebooks. Do not build a new studio, new dashboard, separate application, or replacement publishing workflow.
+
+Add a new book type or creation option called **Notebook / Lined Work Journal** to the existing ebook creation workflow. Reuse the current studio's interface, authentication, database, project management, file storage, cover-design functionality, preview components, PDF generation and download mechanisms wherever available.
+
+The completed feature must let an authorized admin determine the number of pages, configure the notebook, create or upload a cover design, generate all interior pages, preview the complete notebook, and download the finished publishing files in the appropriate Amazon KDP formats.
+
+Implement the actual functionality, not a mockup.
+
+## 1. ADD A NOTEBOOK BOOK TYPE
+
+Within the existing Ebook Studio, add a book-type option named:
+
+**Notebook / Lined Work Journal**
+
+When selected, display the notebook-specific settings and creation interface.
+
+Do not change the workflow for existing ebook types.
+
+Use the current ebook project's data model and workflow where possible. Extend existing models or add only the minimum additional fields required.
+
+## 2. ADMIN-CONTROLLED PAGE COUNT
+
+Allow authorized administrators to determine the number of pages for each notebook.
+
+Provide an editable page-count field with validation.
+
+Examples of supported user choices might include 100, 120, 160, 200, 250 or 300 pages, subject to the publishing configuration selected.
+
+The admin must be able to enter a custom page count instead of being restricted to preset values.
+
+Requirements:
+
+- Validate that the page count is a positive integer.
+- Apply the selected KDP binding's supported page-count restrictions.
+- Show the final expected interior page count before generation.
+- Generate exactly the requested number of interior pages.
+- Verify the actual page count of the resulting PDF.
+- Display a clear error if generation fails or the final count does not match.
+- Save the selected page count with the existing ebook project.
+- Allow the admin to edit the page count and regenerate the interior.
+
+Do not confuse pages with sheets. For example, 160 interior pages represent 80 sheets printed on both sides.
+
+If existing role permissions distinguish administrators from ordinary users, follow those permissions. If the existing studio allows users to create their own books, do not unnecessarily remove that capability; simply ensure that the page-count configuration and any administrative controls follow the intended role permissions.
+
+## 3. NOTEBOOK SETTINGS
+
+Provide these settings within the existing book creation interface:
+
+- Notebook title
+- Subtitle, optional
+- Author or publisher name
+- Page count
+- Trim width and height
+- Binding type
+- Interior ink option
+- Paper option, where supported
+- Bleed configuration
+- Interior layout
+- Line spacing
+- Line colour
+- Line thickness
+- Inner gutter
+- Outer margins
+- Top and bottom margins
+- Optional date field
+- Optional subject or project field
+- Optional page numbering
+- Optional ownership page
+- Cover finish, where supported
+
+Set sensible defaults for a professional lined work journal.
+
+Allow the admin to save the settings and generate the book.
+
+IMPORTANT: The originally desired notebook size is approximately 8.3 × 11.6 inches, with 160 pages and 80 sheets. Do not assume that this exact trim size is supported by KDP hardcover printing. Validate the selected binding and trim size against the applicable KDP specifications. If necessary, suggest a supported alternative, but never silently change the user's settings.
+
+## 4. GENERATE THE COMPLETE LINED INTERIOR
+
+Implement a working interior generator using the existing PDF-generation tools or libraries in Taskdrip.
+
+Generate every requested page with consistent ruled lines and comfortable writing space.
+
+For example, when the admin selects 160 pages, the application must produce a PDF containing exactly 160 pages, not a sample, placeholder, or partially generated manuscript.
+
+Interior requirements:
+
+- Correct trim dimensions.
+- Consistent ruled lines.
+- Configurable line spacing and thickness.
+- Correct inner gutter and margins.
+- Optional headers, dates and page numbers.
+- Optional introductory ownership page.
+- Consistent layout throughout.
+- No text clipping or unintended blank pages.
+- No lines outside the printable area.
+- Appropriate PDF page dimensions.
+- Print-friendly black-and-white output by default.
+
+Allow an ownership page to be enabled or disabled. When enabled, it must count toward the configured total page count.
+
+If all pages are configured as lined, generate all pages as lined pages.
+
+Save the generated PDF to the existing project's file storage and link it to the existing ebook record.
+
+## 5. COVER DESIGN
+
+Reuse the existing Ebook Studio cover designer, image uploader, AI image-generation integration, or cover artwork components.
+
+Do not build a separate cover-design application if equivalent functionality already exists.
+
+Allow the admin to:
+
+- Upload a notebook cover image.
+- Select existing artwork from the studio when available.
+- Generate artwork using the existing configured AI image-generation service, if available.
+- Enter the notebook title and subtitle.
+- Set the author or publisher name.
+- Preview the cover.
+- Replace the cover artwork.
+- Save changes and regenerate the final cover.
+
+Support different cover themes, including:
+
+- Cybernetic technology.
+- Artificial intelligence.
+- Business and entrepreneurship.
+- Cryptocurrency and blockchain.
+- Nature and botanical artwork.
+- Original anime-inspired artwork.
+- Education and productivity.
+- Minimalist professional designs.
+
+The selected artwork must be used in the actual exported cover file.
+
+Do not merely show an attractive image in the interface while exporting a different or empty cover.
+
+## 6. GENERATE THE COMPLETE KDP COVER FILE
+
+Generate a full cover suitable for the selected KDP book configuration.
+
+For hardcover books, the full cover must include the back, spine and front, with applicable hardcover hinge, wrap and bleed areas.
+
+For paperback books, use the applicable paperback template.
+
+Use the official KDP Cover Calculator or a verified template for the exact binding, trim size, page count, paper and ink configuration.
+
+Do not invent spine dimensions or reuse paperback dimensions for a hardcover.
+
+If the exact specifications cannot be verified, allow the admin to provide the official downloaded KDP template and use it to position the artwork.
+
+Keep the artwork, title, author name and other cover elements within the correct safe areas.
+
+Reserve the barcode area where required.
+
+Export the complete cover as a print-ready PDF using the appropriate dimensions and resolution.
+
+If the configuration has not been verified, clearly label the export as requiring manual KDP template verification.
+
+Official reference:
+https://kdp.amazon.com/en_US/cover-calculator
+
+## 7. PREVIEW THE COMPLETE NOTEBOOK
+
+Add a working preview step to the existing ebook creation workflow.
+
+The admin must be able to preview:
+
+1. The front cover.
+2. The back cover.
+3. The spine and full cover wrap.
+4. Interior pages.
+5. The first page.
+6. Pages from the middle of the book.
+7. The final page.
+8. The complete page sequence through page navigation.
+
+Show the actual generated interior and selected cover, not static sample images.
+
+Allow the admin to navigate between pages and verify the selected page count.
+
+If the cover or interior changes, refresh the corresponding preview.
+
+Provide a final review screen showing the book title, binding, dimensions, page count, interior preview, cover preview and validation status before download.
+
+## 8. DOWNLOAD THE FINISHED NOTEBOOK
+
+Add working download buttons to the existing studio.
+
+Required outputs:
+
+**A. Interior PDF**
+
+The complete manuscript containing the configured number of lined pages, formatted to the selected trim size.
+
+**B. Complete cover PDF**
+
+The full cover wrap, including the front, spine and back, generated using the correct template for the selected binding.
+
+**C. Cover preview image**
+
+A PNG or JPG preview for reviewing and promoting the notebook.
+
+Where supported by the existing architecture, also provide a project export containing the book settings and original cover artwork.
+
+Use clear filenames based on the notebook title.
+
+Verify that the generated files exist and are downloadable before displaying a successful download state.
+
+Ensure that only authorized users can access their project's files.
+
+Do not create empty placeholder PDFs or fake download links.
+
+## 9. KDP FORMAT VALIDATION
+
+Before allowing the admin to mark the notebook as ready for download, validate:
+
+- The requested page count.
+- The actual PDF page count.
+- Page dimensions.
+- Interior margins and gutter.
+- Cover dimensions.
+- Binding compatibility.
+- Supported page-count limits.
+- Bleed configuration.
+- Image resolution where measurable.
+- Missing or invalid artwork.
+- Whether the correct cover template was used.
+
+Display clear statuses such as:
+
+- Ready
+- Warning
+- Failed
+- Manual verification required
+
+Show a helpful explanation when validation fails.
+
+Do not claim that the notebook is KDP-compliant merely because a PDF was generated. Distinguish between file validation and confirmed compliance with the latest Amazon requirements.
+
+## 10. PERSISTENCE AND EXISTING PROJECT INTEGRATION
+
+Save all notebook settings, page counts, cover selections, generated PDFs and project status using the existing Taskdrip storage and database architecture.
+
+When the admin leaves and reopens a project, the selected settings and generated assets must remain available.
+
+Allow the admin to edit the settings and regenerate the interior or cover without creating unnecessary duplicate ebook projects.
+
+Reuse the existing project's ownership and authorization checks.
+
+Do not expose private files to other users.
+
+Do not introduce a separate login, new dashboard, or unrelated database system.
+
+## 11. TEST THE FEATURE
+
+After implementation, test the actual workflow:
+
+1. Open the existing Ebook Studio.
+2. Select Notebook / Lined Work Journal.
+3. Enter a title.
+4. Set the page count to 160.
+5. Select the desired trim size and binding.
+6. Configure the lined interior.
+7. Generate the complete interior.
+8. Confirm that the PDF contains exactly 160 pages.
+9. Add a cover design.
+10. Generate the full cover file.
+11. Preview the cover and interior.
+12. Download both PDFs.
+13. Verify the downloaded files and dimensions.
+14. Change the page count and confirm that the interior regenerates correctly.
+15. Confirm that existing ebook creation features still work.
+
+Fix errors discovered during testing.
+
+## 12. PROTECT THE LIVE APPLICATION
+
+The existing Taskdrip application is already deployed on Railway.
+
+Modify only the files necessary to implement this feature.
+
+Do not rebuild the website from scratch, delete existing ebook functionality, replace authentication, overwrite production secrets, or run destructive database operations.
+
+Follow the existing project's Git, build, migration and Railway deployment workflow.
+
+Run the appropriate tests and production build before deployment.
+
+Do not claim the live application has been updated unless the changes have actually been deployed and verified.
+
+## FINAL ACCEPTANCE CRITERIA
+
+The task is complete when an authorized admin can create a complete Notebook / Lined Work Journal inside the existing Ebook Studio, determine its page count, configure the lined interior, add a cover, preview the actual book, and download the finished interior PDF and correctly formatted cover PDF for the selected KDP binding.
+
+Start by inspecting the existing Ebook Studio and implementing this feature within it. Do not create another studio or replace existing functionality.
