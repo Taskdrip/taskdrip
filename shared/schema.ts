@@ -15,6 +15,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import type { EbookDesignDocument } from "./ebook-design";
+import type { NotebookCoverDesign, NotebookSettings, NotebookValidationReport } from "./notebook-studio";
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
@@ -500,6 +501,28 @@ export const creatorBooks = pgTable("creator_books", {
 }, (table) => [
   index("creator_books_creator_id_idx").on(table.creatorId),
   index("creator_books_status_idx").on(table.status),
+]);
+
+// Print-on-demand notebooks are separate from prose ebooks so their fixed-page
+// layout and KDP production files never affect the existing manuscript flow.
+export const creatorNotebookProjects = pgTable("creator_notebook_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerId: varchar("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 240 }).notNull().default("Untitled notebook"),
+  settings: jsonb("settings").$type<NotebookSettings>().notNull().default(sql`'{}'::jsonb`),
+  coverDesign: jsonb("cover_design").$type<NotebookCoverDesign>().notNull().default(sql`'{}'::jsonb`),
+  status: varchar("status", { length: 32 }).notNull().default("draft"),
+  generationStatus: varchar("generation_status", { length: 24 }).notNull().default("idle"),
+  interiorFileKey: text("interior_file_key"),
+  coverFileKey: text("cover_file_key"),
+  previewFileKey: text("preview_file_key"),
+  validation: jsonb("validation").$type<NotebookValidationReport | null>().default(sql`null`),
+  lastGeneratedAt: timestamp("last_generated_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("creator_notebook_projects_owner_updated_idx").on(table.ownerId, table.updatedAt),
+  index("creator_notebook_projects_status_idx").on(table.status),
 ]);
 
 export const creatorPublishingProducts = pgTable("creator_publishing_products", {

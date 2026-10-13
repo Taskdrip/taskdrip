@@ -32,6 +32,7 @@ import {
   type EbookDesignPage,
 } from "@shared/ebook-design";
 import { createChildrenBibleColoringBook } from "./children-bible-coloring-book";
+import { registerNotebookStudioRoutes } from "./notebook-studio";
 
 const PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
@@ -630,6 +631,7 @@ export async function recordCreatorProductSale(purchaseId: string, referralAmoun
 }
 
 export function registerCreatorPublishingRoutes(app: Express) {
+  registerNotebookStudioRoutes(app);
   const reminderTimer = setInterval(() => {
     sendCreatorStudioExpiryReminders().catch((error) => {
       console.error("[creator-studio] Subscription reminder scan failed:", error);

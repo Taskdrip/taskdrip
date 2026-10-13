@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import EbookBookDesigner from "@/components/ebook-book-designer";
+import AdminNotebookStudio from "@/components/admin-notebook-studio";
 import { KDP_BOOK_TYPES, KDP_GENRES, KDP_TRIM_SIZES, downloadKdpManuscript } from "@/lib/kdp-manuscript";
 import { exportEbook, type EbookExportFormat } from "@/lib/ebook-export";
 import { ArrowDownToLine, ArrowLeft, Banknote, BookOpen, Check, Copy, CreditCard, ExternalLink, FileText, Loader2, LockKeyhole, Plus, Sparkles, Store, Trash2, Wallet, Wand2 } from "lucide-react";
@@ -99,7 +100,7 @@ export default function CreatorStudioPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const [section, setSection] = useState<"overview" | "books" | "products" | "earnings">("overview");
+  const [section, setSection] = useState<"overview" | "books" | "products" | "earnings" | "notebooks">("overview");
   const [activeBook, setActiveBook] = useState<Book | null>(null);
   const [designerOpen, setDesignerOpen] = useState(false);
   const [bookFile, setBookFile] = useState<File | null>(null);
@@ -748,10 +749,13 @@ export default function CreatorStudioPage() {
             ["books", "My Books"],
             ["products", "Digital Products"],
             ["earnings", "Sales & Earnings"],
+            ...(isStudioAdmin ? [["notebooks", "Notebook Studio"] as const] : []),
           ] as const).map(([value, label]) => (
             <Button key={value} size="sm" variant={section === value ? "default" : "outline"} onClick={() => setSection(value)}>{label}</Button>
           ))}
         </nav>
+
+        {section === "notebooks" && isStudioAdmin && <AdminNotebookStudio />}
 
         {section === "overview" && (
           <div className="grid lg:grid-cols-3 gap-4">
