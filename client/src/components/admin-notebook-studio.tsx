@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   CircleHelp,
   Clock3,
   Copy,
@@ -38,6 +39,7 @@ import {
   notebookDiaryPageCount,
   notebookDiaryPageDate,
 } from "@shared/notebook-studio";
+import NotebookKdpListingGuide from "./notebook-kdp-listing-guide";
 
 type NotebookSettings = {
   subtitle: string;
@@ -276,7 +278,7 @@ export default function AdminNotebookStudio() {
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
-  const [tab, setTab] = useState<"interior" | "cover" | "validation">("interior");
+  const [tab, setTab] = useState<"interior" | "cover" | "validation" | "kdp">("interior");
   const [listSearch, setListSearch] = useState("");
   const [listCollapsed, setListCollapsed] = useState(false);
   const [zoom, setZoom] = useState(82);
@@ -991,7 +993,7 @@ export default function AdminNotebookStudio() {
                 </div>
               </div>
 
-              <div className="grid items-start gap-4 2xl:grid-cols-[minmax(310px,.72fr)_minmax(520px,1.28fr)]">
+              <div className={`grid items-start gap-4 ${tab === "kdp" ? "" : "2xl:grid-cols-[minmax(310px,.72fr)_minmax(520px,1.28fr)]"}`}>
                 <div className="space-y-4">
                   <section className="overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
                     <div className="border-b border-[#e5dfd2] px-4 pt-4 sm:px-5">
@@ -1001,6 +1003,7 @@ export default function AdminNotebookStudio() {
                           ["interior", "Interior", FileText],
                           ["cover", "Cover", BookOpen],
                           ["validation", "Validation", FileCheck2],
+                          ["kdp", "KDP listing", ClipboardList],
                         ] as const).map(([value, label, Icon]) => (
                           <button key={value} type="button" onClick={() => setTab(value)} className={`relative flex shrink-0 items-center gap-2 pb-3 text-[12px] font-semibold transition-colors ${tab === value ? "text-[#315a51]" : "text-[#828174] hover:text-[#555e53]"}`}>
                             <Icon size={14} />{label}
@@ -1201,6 +1204,8 @@ export default function AdminNotebookStudio() {
                           </div>
                         </div>
                       )}
+
+                      {tab === "kdp" && <NotebookKdpListingGuide title={draft.title} settings={draft.settings} />}
                     </div>
                   </section>
 
@@ -1232,7 +1237,7 @@ export default function AdminNotebookStudio() {
                   )}
                 </div>
 
-                <section className="min-w-0 overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
+                {tab !== "kdp" && <section className="min-w-0 overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d8d1c3] bg-[#f8f5ed] px-4 py-3.5 sm:px-5">
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">{tab === "cover" ? "Cover proof" : tab === "validation" ? "Print checks" : "Interior proof"}</p>
@@ -1332,7 +1337,7 @@ export default function AdminNotebookStudio() {
                       )}
                     </div>
                   )}
-                </section>
+                </section>}
               </div>
 
               {tab === "interior" && hasInterior && (
