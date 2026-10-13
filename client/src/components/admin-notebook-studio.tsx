@@ -35,9 +35,11 @@ import {
   ZoomOut,
 } from "lucide-react";
 import {
+  NOTEBOOK_INTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
   notebookDiaryPageDate,
+  type NotebookIntroPageType,
 } from "@shared/notebook-studio";
 import NotebookKdpListingGuide from "./notebook-kdp-listing-guide";
 
@@ -54,6 +56,7 @@ type NotebookSettings = {
   paper: string;
   bleed: boolean;
   lineStyle: string;
+  introPages: NotebookIntroPageType[];
   diaryStartMonth: string;
   lineSpacing: number | string;
   lineColor: string;
@@ -103,6 +106,7 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   paper: "cream",
   bleed: false,
   lineStyle: "classic",
+  introPages: [],
   diaryStartMonth: "",
   lineSpacing: 0.28,
   lineColor: "#c9d0c8",
@@ -158,7 +162,11 @@ function normalizeProject(project: NotebookProject): NotebookProject {
   return {
     ...project,
     title: project.title || "",
-    settings: { ...DEFAULT_SETTINGS, ...(project.settings || {}) },
+    settings: {
+      ...DEFAULT_SETTINGS,
+      ...(project.settings || {}),
+      introPages: Array.isArray(project.settings?.introPages) ? project.settings.introPages : [],
+    },
     coverDesign: { ...DEFAULT_COVER, ...(project.coverDesign || {}) },
   };
 }
@@ -292,7 +300,9 @@ export default function AdminNotebookStudio() {
   activeIdRef.current = activeId;
 
   const activeProject = useMemo(() => projects.find((project) => project.id === activeId) || null, [projects, activeId]);
-  const pageCount = Math.max(1, Number(draft?.settings.pageCount) || 160);
+  const mainPageCount = Math.max(1, Number(draft?.settings.pageCount) || 160);
+  const introPageCount = draft?.settings.introPages?.length || 0;
+  const pageCount = mainPageCount + introPageCount;
   const filteredProjects = useMemo(() => {
     const needle = listSearch.trim().toLowerCase();
     return needle ? projects.filter((project) => project.title.toLowerCase().includes(needle)) : projects;
@@ -330,11 +340,34 @@ export default function AdminNotebookStudio() {
     setRemoteSvgError("");
   }, [activeProject]);
 
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+      setJumpValue(String(pageCount));
+    }
+  }, [page, pageCount]);
+
   const updateDraft = (transform: (project: NotebookProject) => NotebookProject) => {
     setDraft((current) => current ? transform(current) : current);
   };
   const updateSettings = <K extends keyof NotebookSettings>(key: K, value: NotebookSettings[K]) => {
     updateDraft((project) => ({ ...project, settings: { ...project.settings, [key]: value } }));
+  };
+  const toggleIntroPage = (value: NotebookIntroPageType, checked: boolean) => {
+    updateDraft((project) => {
+      const selected = new Set(project.settings.introPages || []);
+      if (checked) selected.add(value);
+      else selected.delete(value);
+      return {
+        ...project,
+        settings: {
+          ...project.settings,
+          introPages: NOTEBOOK_INTRO_PAGE_OPTIONS
+            .filter((option) => selected.has(option.value))
+            .map((option) => option.value),
+        },
+      };
+    });
   };
   const setPageLayout = (value: string) => {
     if (value !== "diary") {
@@ -732,25 +765,175 @@ export default function AdminNotebookStudio() {
     );
   }
 
+  const renderIntroPage = (introType: NotebookIntroPageType, pageNumber: number) => {
+    const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
+    const label = NOTEBOOK_INTRO_PAGE_OPTIONS.find((option) => option.value === introType)?.label || "Intro page";
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const continents = ["Asia", "Africa", "North America", "South America", "Antarctica", "Europe", "Australia"];
+    const planets = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"];
+    const weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+    return (
+      <article
+        key={`intro-${pageNumber}`}
+        className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+        style={{ aspectRatio: trimAspect, backgroundColor: background }}
+        aria-label={`${label} introductory page preview`}
+      >
+        <div className="absolute inset-[7%] flex flex-col text-[#42564c]">
+          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">Notebook introduction</p>
+          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{label}</h3>
+          <div className="mt-2 h-px bg-[#9db5a5]" />
+          <div className="min-h-0 flex-1 py-3">
+            {introType === "world-map" && (
+              <div className="flex h-full flex-col">
+                <p className="mb-2 text-[clamp(7px,.9vw,10px)] text-[#73786e]">Explore the continents and oceans. Add labels or notes.</p>
+                <svg viewBox="0 0 360 190" className="min-h-0 w-full flex-1 rounded-lg border border-[#e5dfd2] bg-[#f8f5ed]" role="img" aria-label="Stylized world map with seven continent shapes">
+                  <g stroke="#d3dbd3" strokeWidth="1">
+                    {[60, 120, 180, 240, 300].map((x) => <path key={`x${x}`} d={`M${x} 8V182`} />)}
+                    {[48, 95, 142].map((y) => <path key={`y${y}`} d={`M8 ${y}H352`} />)}
+                  </g>
+                  <g fill="#c8d9cd" stroke="#729080" strokeWidth="1.5" strokeLinejoin="round">
+                    <path d="M24 38 39 19 73 16 91 31 85 51 69 60 64 79 48 75 40 59 27 54Z" />
+                    <path d="m92 82 23 1 14 19-5 29-13 32-10 16-9-29-2-32-8-19Z" />
+                    <path d="m165 37 18-12 13 8-1 15-13 7-12-5Z" />
+                    <path d="m169 67 23-10 20 15-2 28-13 33-14 4-13-27-7-22Z" />
+                    <path d="m202 32 30-18 49 8 45 22-9 19-34 1-17 14-26-10-12-18-18 2Z" />
+                    <path d="m279 120 21-8 20 13-3 22-19 8-16-11Z" />
+                    <path d="m106 177 29-5 49 4 40-3 32 7-39 6h-73Z" />
+                  </g>
+                </svg>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[clamp(7px,.9vw,10px)]">
+                  {continents.map((continent) => <span key={continent} className="border-b border-[#d9d4c8] py-1">{continent}</span>)}
+                </div>
+                <p className="mt-2 text-[clamp(7px,.85vw,9px)] text-[#73786e]">Ocean or place to remember: ____________________</p>
+              </div>
+            )}
+            {introType === "continents" && (
+              <div className="grid h-full grid-cols-2 grid-rows-4 gap-2">
+                {continents.map((continent) => (
+                  <div key={continent} className="flex min-h-0 flex-col rounded-lg border border-[#ded9cc] bg-white/40 p-2">
+                    <p className="text-[clamp(8px,1.2vw,12px)] font-semibold">{continent}</p>
+                    <p className="mt-1 text-[clamp(6px,.8vw,9px)] text-[#7b7d72]">Country or fact</p>
+                    <div className="mt-auto border-b border-[#b9c3b7]" />
+                  </div>
+                ))}
+              </div>
+            )}
+            {introType === "planets" && (
+              <div className="flex h-full flex-col">
+                <p className="text-center text-[clamp(7px,.9vw,10px)] text-[#73786e]">The eight planets, in order from the Sun</p>
+                <svg viewBox="0 0 360 230" className="min-h-0 w-full flex-1" role="img" aria-label="Solar system orbit diagram showing eight planets">
+                  <g fill="none" stroke="#d9d9ca" strokeWidth="1.2">
+                    {[18, 32, 46, 60, 76, 91, 105, 119].map((radius) => <circle key={radius} cx="180" cy="112" r={radius} />)}
+                  </g>
+                  <circle cx="180" cy="112" r="9" fill="#d8a85c" />
+                  {planets.map((name, index) => {
+                    const radius = 18 + index * 14.3;
+                    const angle = -Math.PI / 2 + index * .9;
+                    return <circle key={name} cx={180 + Math.cos(angle) * radius} cy={112 + Math.sin(angle) * radius} r={index > 3 ? 4 : 3} fill={["#aa8a69", "#c9ad79", "#59889a", "#bc705b", "#b68b62", "#d2bb7b", "#76a2a5", "#5d7da1"][index]} />;
+                  })}
+                </svg>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[clamp(7px,.9vw,10px)]">
+                  {planets.map((planet, index) => <span key={planet} className="flex items-center gap-1.5 border-b border-[#e4dfd4] py-1"><span className="text-[#9a805d]">{index + 1}.</span>{planet}</span>)}
+                </div>
+              </div>
+            )}
+            {introType === "world-presidents" && (
+              <div className="flex h-full flex-col">
+                <p className="mb-2 text-[clamp(7px,.9vw,10px)] text-[#73786e]">Record the source and date checked; officeholders can change.</p>
+                <div className="grid grid-cols-[1fr_1.1fr_.85fr] border-b border-[#aab7aa] pb-1 text-[clamp(6px,.78vw,9px)] font-bold uppercase tracking-wide">
+                  <span>Country / region</span><span>President / leader</span><span>Source · date</span>
+                </div>
+                <div className="grid min-h-0 flex-1 grid-rows-6">
+                  {Array.from({ length: 6 }, (_, index) => <div key={index} className="grid grid-cols-[1fr_1.1fr_.85fr] border-b border-[#e0dbd0]" />)}
+                </div>
+                <p className="mt-2 text-[clamp(6px,.8vw,9px)] text-[#73786e]">Check a current, reliable source before filling this page.</p>
+              </div>
+            )}
+            {introType === "current-affairs" && (
+              <div className="grid h-full grid-rows-3 gap-2">
+                {Array.from({ length: 3 }, (_, index) => (
+                  <div key={index} className="flex min-h-0 flex-col rounded-lg border border-[#ded9cc] bg-white/35 p-2">
+                    <p className="text-[clamp(7px,.95vw,10px)] font-semibold">{String(index + 1).padStart(2, "0")} · HEADLINE</p>
+                    <div className="mt-1 border-b border-[#b9c3b7]" />
+                    <div className="mt-1 grid grid-cols-2 gap-2 text-[clamp(6px,.78vw,9px)] text-[#73786e]">
+                      <span>DATE __________________</span><span>PLACE ________________</span>
+                    </div>
+                    <p className="mt-1 text-[clamp(6px,.78vw,9px)] text-[#73786e]">SOURCE ______________________________</p>
+                    <p className="mt-auto text-[clamp(6px,.78vw,9px)] text-[#73786e]">Why it matters: _____________________________</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {introType === "calendar-2027" && (
+              <div className="grid h-full grid-cols-4 grid-rows-3 gap-1.5">
+                {months.map((month, index) => {
+                  const firstWeekday = (new Date(Date.UTC(2027, index, 1)).getUTCDay() + 6) % 7;
+                  const dayCount = new Date(Date.UTC(2027, index + 1, 0)).getUTCDate();
+                  return (
+                    <div key={month} className="flex min-h-0 flex-col rounded border border-[#ded9cc] bg-white/35 p-1">
+                      <p className="mb-1 text-center text-[clamp(6px,.82vw,9px)] font-bold uppercase tracking-wide">{month}</p>
+                      <div className="grid grid-cols-7 text-center text-[clamp(5px,.65vw,7px)] text-[#818478]">{weekdays.map((weekday, day) => <span key={`${weekday}-${day}`}>{weekday}</span>)}</div>
+                      <div className="mt-0.5 grid min-h-0 flex-1 grid-cols-7 grid-rows-6 text-center text-[clamp(5px,.72vw,8px)] leading-tight">
+                        {Array.from({ length: 42 }, (_, slot) => {
+                          const day = slot - firstWeekday + 1;
+                          return <span key={slot} className={day > 0 && day <= dayCount ? "text-[#42564c]" : "text-transparent"}>{day > 0 && day <= dayCount ? day : "·"}</span>;
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between border-t border-[#d7d0c1] pt-1.5 text-[clamp(6px,.75vw,9px)] text-[#71766c]">
+            <span>INTRODUCTORY PAGE · BEFORE WRITING PAGES</span>
+            <span>INTRO</span>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  const trimAspect = (() => {
+    const trim = draft?.settings.trimSize === "custom"
+      ? [Number(draft.settings.customWidth), Number(draft.settings.customHeight)]
+      : String(draft?.settings.trimSize || "6x9").split("x").map(Number);
+    return trim.length === 2 && trim.every((dimension) => Number.isFinite(dimension) && dimension > 0)
+      ? `${trim[0]} / ${trim[1]}`
+      : "2 / 3";
+  })();
+
   const renderInteriorPage = (pageNumber: number) => {
+    const selectedIntroPages = draft?.settings.introPages || [];
+    if (pageNumber <= selectedIntroPages.length) {
+      return renderIntroPage(selectedIntroPages[pageNumber - 1], pageNumber);
+    }
+    const contentPageNumber = pageNumber - selectedIntroPages.length;
     const style = draft?.settings.lineStyle || "classic";
     const isDot = style === "dot";
     const isGraph = style === "graph";
     const isDiary = style === "diary";
-    const spacing = toSafeNumber(draft?.settings.lineSpacing || 0.28, 0.28, 0.12, 0.8);
-    const stroke = Math.max(0.5, toSafeNumber(draft?.settings.lineThickness || 0.6, 0.6, 0.1, 2));
+    const spacing = toSafeNumber(draft?.settings.lineSpacing || 0.28, 0.28, 0.16, 0.75);
+    const stroke = Math.max(0.5, toSafeNumber(draft?.settings.lineThickness || 0.6, 0.6, 0.2, 3));
     const lineColor = draft?.settings.lineColor || "#c9d0c8";
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
+    const spacingPx = Math.max(7, spacing * 31);
+    const strokePx = Math.min(spacingPx * 0.3, Math.max(0.55, stroke * 0.75));
+    const lineEnd = Math.max(0.5, spacingPx - strokePx);
+    const ruledBackgroundStyle = {
+      backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${lineEnd}px, ${lineColor} ${lineEnd}px, ${lineColor} ${spacingPx}px)`,
+    };
     const backgroundStyle = isDiary
-      ? {}
+      ? ruledBackgroundStyle
       : isDot
-      ? { backgroundImage: `radial-gradient(${lineColor} ${stroke}px, transparent ${stroke + 0.35}px)`, backgroundSize: `${spacing * 31}px ${spacing * 31}px` }
+      ? { backgroundImage: `radial-gradient(${lineColor} ${stroke}px, transparent ${stroke + 0.35}px)`, backgroundSize: `${spacingPx}px ${spacingPx}px` }
       : isGraph
-        ? { backgroundImage: `linear-gradient(to right, ${lineColor} ${stroke}px, transparent ${stroke}px), linear-gradient(to bottom, ${lineColor} ${stroke}px, transparent ${stroke}px)`, backgroundSize: `${spacing * 31}px ${spacing * 31}px` }
-        : { backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31)}px)` };
+        ? { backgroundImage: `linear-gradient(to right, ${lineColor} ${stroke}px, transparent ${stroke}px), linear-gradient(to bottom, ${lineColor} ${stroke}px, transparent ${stroke}px)`, backgroundSize: `${spacingPx}px ${spacingPx}px` }
+        : ruledBackgroundStyle;
     const styleLabel = LINE_STYLES.find(([value]) => value === style)?.[1] || "Ruled";
     const diaryIsoDate = isDiary
-      ? notebookDiaryPageDate(draft?.settings.diaryStartMonth || currentNotebookDiaryStartMonth(), pageNumber)
+      ? notebookDiaryPageDate(draft?.settings.diaryStartMonth || currentNotebookDiaryStartMonth(), contentPageNumber)
       : null;
     const diaryDate = diaryIsoDate ? new Date(`${diaryIsoDate}T12:00:00.000Z`) : null;
     const diaryWeekday = diaryDate
@@ -759,18 +942,12 @@ export default function AdminNotebookStudio() {
     const diaryFullDate = diaryDate
       ? new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(diaryDate)
       : "";
-    const trim = draft?.settings.trimSize === "custom"
-      ? [Number(draft.settings.customWidth), Number(draft.settings.customHeight)]
-      : String(draft?.settings.trimSize || "6x9").split("x").map(Number);
-    const aspect = trim.length === 2 && trim.every((dimension) => Number.isFinite(dimension) && dimension > 0)
-      ? `${trim[0]} / ${trim[1]}`
-      : "2 / 3";
     return (
       <article
         key={pageNumber}
         className="relative w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
-        style={{ aspectRatio: aspect, backgroundColor: background, ...backgroundStyle }}
-        aria-label={`Interior page ${pageNumber} preview`}
+        style={{ aspectRatio: trimAspect, backgroundColor: background, ...backgroundStyle }}
+        aria-label={`Writing page ${contentPageNumber} preview`}
       >
         <div className="absolute inset-[8%] flex flex-col">
           {isDiary ? (
@@ -784,7 +961,7 @@ export default function AdminNotebookStudio() {
               <span className="shrink-0">{draft?.settings.showDateField ? "Date  __________" : ""}</span>
             </div>
           )}
-          {!isDiary && draft?.settings.ownershipPage && pageNumber === 1 ? (
+          {!isDiary && draft?.settings.ownershipPage && contentPageNumber === 1 ? (
             <div className="flex flex-1 flex-col justify-center text-center">
               <BookOpen className="mx-auto mb-4 h-7 w-7 text-[#587464]" />
               <p className="font-serif text-[clamp(12px,2vw,22px)] text-[#42564c]">This notebook belongs to</p>
@@ -794,16 +971,14 @@ export default function AdminNotebookStudio() {
             isDiary ? (
               <div
                 className="min-h-0 flex-1"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31 - stroke)}px, ${lineColor} ${Math.max(16, spacing * 31)}px)`,
-                }}
+                style={ruledBackgroundStyle}
                 aria-label="Ruled writing lines"
               />
             ) : <div className="flex-1" />
           )}
           <div className="flex items-center justify-between border-t border-[#d7d0c1]/70 pt-2 text-[clamp(7px,.85vw,10px)] text-[#71766c]">
             <span className="max-w-[70%] truncate">{draft?.settings.footerText || styleLabel}</span>
-            {draft?.settings.showPageNumbers && <span className="tabular-nums">{pageNumber}</span>}
+            {draft?.settings.showPageNumbers && <span className="tabular-nums">{contentPageNumber}</span>}
           </div>
         </div>
         {draft?.settings.bleed && <div className="pointer-events-none absolute inset-[2.5%] border border-dashed border-[#b87958]/55" aria-hidden="true" />}
@@ -895,7 +1070,7 @@ export default function AdminNotebookStudio() {
                               <span className={`h-1.5 w-1.5 rounded-full ${project.status === "generated" || project.status === "ready" ? "bg-[#6d9272]" : "bg-[#c89b58]"}`} />
                               <span className="capitalize">{String(project.status || "draft").replace(/[_-]/g, " ")}</span>
                               <span className="text-[#b5ae9e]">·</span>
-                              <span>{project.settings?.pageCount || 160} pp</span>
+                              <span>{(project.settings?.pageCount || 160) + (project.settings?.introPages?.length || 0)} total pp</span>
                             </span>
                           </span>
                         </button>
@@ -965,7 +1140,7 @@ export default function AdminNotebookStudio() {
                       />
                       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[#858477]">
                         <span className="flex items-center gap-1"><Clock3 size={11} />Updated {formatDate(draft.updatedAt)}</span>
-                        <span>{draft.settings.pageCount} interior pages</span>
+                        <span>{pageCount} total pages · {draft.settings.pageCount} writing</span>
                         <span>{draft.settings.trimSize === "custom" ? `${draft.settings.customWidth} × ${draft.settings.customHeight} in` : draft.settings.trimSize} trim</span>
                       </p>
                     </div>
@@ -1028,7 +1203,7 @@ export default function AdminNotebookStudio() {
                               label="Interior page count"
                               hint={draft.settings.lineStyle === "diary"
                                 ? `${draft.settings.diaryStartMonth}-01 through Dec 31, 2027 · one dated page per day`
-                                : "Print page count, excluding the cover."}
+                                : "Writing pages only. Selected intro pages print before these and are not included here."}
                             >
                               <input type="number" min={1} max={828} value={draft.settings.pageCount} disabled={draft.settings.lineStyle === "diary"} onChange={(event) => updateSettings("pageCount", toSafeNumber(event.target.value, 160, 1, 828))} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#f0ede4] disabled:text-[#77776b]`} />
                             </Field>
@@ -1064,12 +1239,40 @@ export default function AdminNotebookStudio() {
                               </select>
                             </Field>
                           </div>
+                          <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
+                            <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Intro pages before the writing pages</legend>
+                            <p className="mb-2 text-[10px] leading-4 text-[#858477]">
+                              Choose any designs to print first. They are separate from the writing-page count; the 2027 calendar includes every date.
+                            </p>
+                            <div className="grid gap-1 sm:grid-cols-2">
+                              {NOTEBOOK_INTRO_PAGE_OPTIONS.map((option) => (
+                                <label key={option.value} className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-[#f2efe7]">
+                                  <input
+                                    type="checkbox"
+                                    checked={draft.settings.introPages.includes(option.value)}
+                                    onChange={(event) => toggleIntroPage(option.value, event.target.checked)}
+                                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
+                                  />
+                                  <span>
+                                    <span className="block text-[11px] font-semibold text-[#4d554c]">{option.label}</span>
+                                    <span className="block text-[9px] leading-4 text-[#858477]">{option.description}</span>
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                            <p className="mt-2 border-t border-[#ece7dc] pt-2 text-[10px] text-[#6d7167]">
+                              {introPageCount} intro {introPageCount === 1 ? "page" : "pages"} selected · {pageCount} total printed pages
+                            </p>
+                          </fieldset>
+                          <p className="text-[10px] leading-4 text-[#858477]">
+                            Writing-line spacing, thickness, and color below apply to the notebook pages and are visible in this preview and the generated PDF.
+                          </p>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <Field label="Line spacing (in)">
-                              <input type="number" min=".12" max=".8" step=".01" value={draft.settings.lineSpacing} onChange={(event) => updateSettings("lineSpacing", Number(event.target.value))} className={inputClass} />
+                              <input type="number" min=".16" max=".75" step=".01" value={draft.settings.lineSpacing} onChange={(event) => updateSettings("lineSpacing", toSafeNumber(event.target.value, 0.28, 0.16, 0.75))} className={inputClass} />
                             </Field>
                             <Field label="Line thickness">
-                              <input type="number" min=".1" max="2" step=".1" value={draft.settings.lineThickness} onChange={(event) => updateSettings("lineThickness", Number(event.target.value))} className={inputClass} />
+                              <input type="number" min=".2" max="3" step=".1" value={draft.settings.lineThickness} onChange={(event) => updateSettings("lineThickness", toSafeNumber(event.target.value, 0.6, 0.2, 3))} className={inputClass} />
                             </Field>
                             <Field label="Line color">
                               <div className="flex h-10 items-center gap-2 rounded-xl border border-[#d9d4c8] bg-[#fffdf8] px-2.5">
@@ -1181,7 +1384,7 @@ export default function AdminNotebookStudio() {
                             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                               <div className="rounded-xl border border-[#e4dfd3] bg-[#fffdf8] p-3"><p className="text-[9px] uppercase tracking-[.13em] text-[#8b897c]">Interior file</p><p className="mt-1 text-[11px] font-semibold">{hasInterior ? "Generated" : "Not generated"}</p></div>
                               <div className="rounded-xl border border-[#e4dfd3] bg-[#fffdf8] p-3"><p className="text-[9px] uppercase tracking-[.13em] text-[#8b897c]">Cover file</p><p className="mt-1 text-[11px] font-semibold">{hasCover ? "Generated" : "Not generated"}</p></div>
-                              <div className="rounded-xl border border-[#e4dfd3] bg-[#fffdf8] p-3"><p className="text-[9px] uppercase tracking-[.13em] text-[#8b897c]">Page count</p><p className="mt-1 text-[11px] font-semibold">{draft.settings.pageCount} pages</p></div>
+                              <div className="rounded-xl border border-[#e4dfd3] bg-[#fffdf8] p-3"><p className="text-[9px] uppercase tracking-[.13em] text-[#8b897c]">Total print pages</p><p className="mt-1 text-[11px] font-semibold">{Number(validationSummary.pageCount) || pageCount} pages</p></div>
                             </div>
                           )}
                           {validationItems.length > 0 ? (

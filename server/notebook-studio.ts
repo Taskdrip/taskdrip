@@ -7,8 +7,10 @@ import { creatorNotebookProjects } from "@shared/schema";
 import {
   DEFAULT_NOTEBOOK_COVER,
   DEFAULT_NOTEBOOK_SETTINGS,
+  NOTEBOOK_INTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
+  notebookTotalPageCount,
   type NotebookCoverDesign,
   type NotebookSettings,
 } from "@shared/notebook-studio";
@@ -103,6 +105,17 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
   if (raw.lineStyle !== undefined) {
     if (!LINE_STYLES.has(String(raw.lineStyle))) throw Object.assign(new Error("Choose a supported notebook interior style."), { statusCode: 400 });
     settings.lineStyle = raw.lineStyle;
+  }
+  if (raw.introPages !== undefined) {
+    if (!Array.isArray(raw.introPages)) {
+      throw Object.assign(new Error("Choose introductory page designs from the available list."), { statusCode: 400 });
+    }
+    const allowedIntroPages = new Set<string>(NOTEBOOK_INTRO_PAGE_OPTIONS.map((option) => option.value));
+    const requested = raw.introPages.map(String);
+    if (requested.some((page) => !allowedIntroPages.has(page)) || new Set(requested).size !== requested.length) {
+      throw Object.assign(new Error("One or more introductory page designs are not supported."), { statusCode: 400 });
+    }
+    settings.introPages = requested as NotebookSettings["introPages"];
   }
   if (raw.diaryStartMonth !== undefined) {
     const startMonth = String(raw.diaryStartMonth);
@@ -403,7 +416,7 @@ export function registerNotebookStudioRoutes(app: Express) {
         await writeFile(temporary, interiorBytes, { mode: 0o600 });
         await rename(temporary, interiorPath);
         if (!interiorBytes.subarray(0, 8).toString("latin1").startsWith("%PDF-1.")
-          || !interiorBytes.includes(Buffer.from(`/Count ${settings.pageCount}`, "ascii"))
+          || !interiorBytes.includes(Buffer.from(`/Count ${notebookTotalPageCount(settings)}`, "ascii"))
           || !interiorBytes.toString("latin1").endsWith("%%EOF\n")) {
           throw new Error("Interior PDF validation failed; no download was marked ready.");
         }
@@ -411,7 +424,7 @@ export function registerNotebookStudioRoutes(app: Express) {
       }
 
       if (requestedKind === "all" || requestedKind === "cover") {
-        if (settings.binding === "paperback" && settings.pageCount >= 24) {
+        if (settings.binding === "paperback" && notebookTotalPageCount(settings) >= 24) {
           const coverImagePath = project.coverDesign?.frontImageUrl
             ? path.resolve(PUBLIC_UPLOADS_DIR, path.basename(project.coverDesign.frontImageUrl))
             : "";

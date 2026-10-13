@@ -15,6 +15,17 @@ export type NotebookLineStyle =
   | "premium"
   | "custom";
 
+export const NOTEBOOK_INTRO_PAGE_OPTIONS = [
+  { value: "world-map", label: "World map", description: "A labeled study map with continent prompts." },
+  { value: "continents", label: "Continents", description: "Seven continent fact cards." },
+  { value: "planets", label: "Planets", description: "A solar-system diagram and planet notes." },
+  { value: "world-presidents", label: "World presidents", description: "A fill-in tracker for country leaders." },
+  { value: "current-affairs", label: "Current affairs", description: "A dated worksheet for headlines and sources." },
+  { value: "calendar-2027", label: "2027 calendar", description: "A full-year calendar with all dates." },
+] as const;
+
+export type NotebookIntroPageType = typeof NOTEBOOK_INTRO_PAGE_OPTIONS[number]["value"];
+
 export type NotebookSettings = {
   subtitle: string;
   authorName: string;
@@ -28,6 +39,7 @@ export type NotebookSettings = {
   paper: "white" | "cream";
   bleed: boolean;
   lineStyle: NotebookLineStyle;
+  introPages: NotebookIntroPageType[];
   diaryStartMonth: string;
   lineSpacing: number;
   lineColor: string;
@@ -59,6 +71,8 @@ export type NotebookValidationReport = {
   status: "ready" | "warning" | "failed" | "manual";
   checkedAt: string;
   pageCount: number;
+  writingPageCount?: number;
+  introPageCount?: number;
   trimWidth: number;
   trimHeight: number;
   coverWidth: number | null;
@@ -80,6 +94,7 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   paper: "white",
   bleed: false,
   lineStyle: "classic",
+  introPages: [],
   diaryStartMonth: "",
   lineSpacing: 0.32,
   lineColor: "#9db5c8",
@@ -91,6 +106,14 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   headerText: "",
   footerText: "",
 };
+
+export function notebookIntroPageCount(settings: Pick<NotebookSettings, "introPages">) {
+  return Array.isArray(settings.introPages) ? settings.introPages.length : 0;
+}
+
+export function notebookTotalPageCount(settings: Pick<NotebookSettings, "pageCount" | "introPages">) {
+  return settings.pageCount + notebookIntroPageCount(settings);
+}
 
 const NOTEBOOK_DIARY_LAST_DAY = Date.UTC(2027, 11, 31);
 

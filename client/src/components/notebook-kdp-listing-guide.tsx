@@ -1,6 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { AlertCircle, Check, Copy, ExternalLink, Info } from "lucide-react";
-import { currentNotebookDiaryStartMonth } from "@shared/notebook-studio";
+import {
+  currentNotebookDiaryStartMonth,
+  notebookTotalPageCount,
+  type NotebookIntroPageType,
+} from "@shared/notebook-studio";
 
 type NotebookKdpListingGuideProps = {
   title: string;
@@ -9,6 +13,7 @@ type NotebookKdpListingGuideProps = {
     authorName: string;
     seriesName: string;
     pageCount: number;
+    introPages: NotebookIntroPageType[];
     trimSize: string;
     customWidth: number | string;
     customHeight: number | string;
@@ -135,7 +140,9 @@ export default function NotebookKdpListingGuide({ title, settings }: NotebookKdp
   const startMonth = settings.diaryStartMonth || currentNotebookDiaryStartMonth();
   const dateRange = formatDiaryDateRange(startMonth);
   const trim = formatTrim(settings);
-  const pageCount = Math.max(0, Number(settings.pageCount) || 0);
+  const writingPageCount = Math.max(0, Number(settings.pageCount) || 0);
+  const introPageCount = settings.introPages?.length || 0;
+  const pageCount = notebookTotalPageCount(settings);
   const pagesAreHardcoverEligible = pageCount >= 75 && pageCount <= 550;
   const trimIsKnownHardcoverSize = settings.trimSize === "6x9" || settings.trimSize === "5.5x8.5";
   const paper = settings.paper === "cream" ? "cream" : "white";
@@ -147,7 +154,7 @@ export default function NotebookKdpListingGuide({ title, settings }: NotebookKdp
       ? `Its daily pages cover ${dateRange}. Each page prints the day and date with space for notes, plans, and reflections.`
       : "Its undated ruled pages provide a simple place for notes, lists, plans, and personal reflections.",
     "",
-    `Inside: ${pageCount} interior pages, ${trim} trim size, and ${paper} paper with ${ink} ink.`,
+    `Inside: ${pageCount} total interior pages (${writingPageCount} writing${introPageCount ? ` + ${introPageCount} introductory` : ""}), ${trim} trim size, and ${paper} paper with ${ink} ink.`,
     "",
     "Use this journal for personal writing, daily notes, and the ideas you want to keep in one place.",
   ].join("\n");
