@@ -3,6 +3,7 @@ import {
   notebookBlankPageCount,
   notebookDiaryPageDate,
   notebookIntroPageCount,
+  normalizeNotebookLineSpacing,
   notebookOutroPageCount,
   notebookTotalPageCount,
   type NotebookCoverDesign,
@@ -425,8 +426,8 @@ function fixedPageText(
   const lineBottom = Math.max(yBottom, 0.67);
   const availableHeight = pageContentTop - lineBottom;
   const style = settings.lineStyle;
+  const spacing = normalizeNotebookLineSpacing(settings.lineSpacing);
   if (style === "graph") {
-    const spacing = Math.max(0.16, Math.min(0.6, settings.lineSpacing));
     for (let x = xLeft; x <= xRight + 0.001; x += spacing) {
       parts.push(lineCommand(inch(x), inch(lineBottom), inch(x), inch(pageContentTop), settings.lineColor, settings.lineThickness * 0.65));
     }
@@ -434,7 +435,6 @@ function fixedPageText(
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness * 0.65));
     }
   } else if (style === "dot") {
-    const spacing = Math.max(0.16, Math.min(0.6, settings.lineSpacing));
     const dotSize = Math.max(0.45, settings.lineThickness);
     parts.push(`${rgb(settings.lineColor)} rg\n`);
     for (let x = xLeft; x <= xRight; x += spacing) {
@@ -443,22 +443,12 @@ function fixedPageText(
       }
     }
   } else if (style === "lined-journal") {
-    const spacing = Math.max(0.16, Math.min(0.75, settings.lineSpacing));
     for (let y = pageContentTop - spacing; y >= lineBottom; y -= spacing) {
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
     }
   } else {
-    const spacingForStyle = style === "wide" ? Math.max(settings.lineSpacing, 0.38)
-      : style === "college" ? Math.min(settings.lineSpacing, 0.3)
-        : settings.lineSpacing;
-    const spacing = Math.max(0.2, Math.min(0.75, spacingForStyle));
-    let lineIndex = 0;
-    for (let y = pageContentTop - spacing; y >= lineBottom && lineIndex < 70; y -= spacing) {
+    for (let y = pageContentTop - spacing; y >= lineBottom; y -= spacing) {
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
-      if (style === "business" && lineIndex % 4 === 0) {
-        parts.push(lineCommand(inch(xLeft), inch(y - spacing * 0.13), inch(xRight), inch(y - spacing * 0.13), settings.lineColor, settings.lineThickness * 0.5));
-      }
-      lineIndex += 1;
     }
   }
   return parts.join("");

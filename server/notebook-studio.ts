@@ -7,6 +7,7 @@ import { creatorNotebookProjects } from "@shared/schema";
 import {
   DEFAULT_NOTEBOOK_COVER,
   DEFAULT_NOTEBOOK_SETTINGS,
+  normalizeNotebookLineSpacing,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
@@ -87,6 +88,7 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
   }
   const raw = input as Record<string, any>;
   const settings = { ...previous };
+  settings.lineSpacing = normalizeNotebookLineSpacing(raw.lineSpacing ?? previous.lineSpacing);
   if (raw.subtitle !== undefined) settings.subtitle = cleanText(raw.subtitle, 300);
   if (raw.authorName !== undefined) settings.authorName = cleanText(raw.authorName, 160);
   if (raw.seriesName !== undefined) settings.seriesName = cleanText(raw.seriesName, 160);

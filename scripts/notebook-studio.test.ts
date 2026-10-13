@@ -3,7 +3,9 @@ import test from "node:test";
 import {
   DEFAULT_NOTEBOOK_SETTINGS,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
+  NOTEBOOK_LINE_SPACING_PRESETS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
+  normalizeNotebookLineSpacing,
   notebookTotalPageCount,
 } from "../shared/notebook-studio";
 import { createNotebookInteriorPdf, validateNotebook } from "../server/notebook-pdf";
@@ -25,6 +27,46 @@ test("Lined journal PDF draws visible rules using the saved line controls", () =
 
   assert.match(pdf, /\/Count 2/);
   assert.ok((pdf.match(new RegExp(selectedRule, "g")) || []).length > 20, "each writing page should contain many ruled lines");
+});
+
+test("exact line-spacing presets create one uniform interval for every ruled layout", () => {
+  assert.deepEqual(
+    NOTEBOOK_LINE_SPACING_PRESETS.map((preset) => preset.value),
+    [0.24, 0.28, 0.32, 0.38],
+  );
+  assert.equal(normalizeNotebookLineSpacing("0.276"), 0.28);
+  assert.equal(normalizeNotebookLineSpacing(-1), 0.16);
+  assert.equal(normalizeNotebookLineSpacing(2), 0.75);
+
+  for (const lineStyle of ["classic", "wide", "college", "business", "lined-journal"] as const) {
+    const settings = {
+      ...DEFAULT_NOTEBOOK_SETTINGS,
+      pageCount: 1,
+      introPages: [],
+      lineStyle,
+      lineSpacing: 0.29,
+      ownershipPage: false,
+      showDateField: false,
+      showSubjectField: false,
+      headerText: "",
+      footerText: "",
+      showPageNumbers: false,
+    };
+    const pdf = createNotebookInteriorPdf("Spacing test", settings).toString("latin1");
+    const stream = [...pdf.matchAll(/stream\n([\s\S]*?)\nendstream/g)][0][1];
+    const yPositions = [...stream.matchAll(/([\d.]+) ([\d.]+) m ([\d.]+) ([\d.]+) l S/g)]
+      .filter((line) => Math.abs(Number(line[1]) - 30.6) < 0.2 && Math.abs(Number(line[3]) - 405) < 0.2)
+      .map((line) => Number(line[2]))
+      .sort((a, b) => a - b);
+
+    assert.ok(yPositions.length > 10, `${lineStyle} has a full writing area of evenly spaced rules`);
+    for (let index = 1; index < yPositions.length; index++) {
+      assert.ok(
+        Math.abs((yPositions[index] - yPositions[index - 1]) - 0.29 * 72) < 0.02,
+        `${lineStyle} rule ${index + 1} uses exactly the selected 0.29-inch baseline spacing`,
+      );
+    }
+  }
 });
 
 test("selected intro designs precede the writing pages and are included in the print count", () => {

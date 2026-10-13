@@ -37,6 +37,19 @@ export const NOTEBOOK_OUTRO_PAGE_OPTIONS = [
 
 export type NotebookOutroPageType = typeof NOTEBOOK_OUTRO_PAGE_OPTIONS[number]["value"];
 
+export const NOTEBOOK_LINE_SPACING_PRESETS = [
+  { value: 0.24, label: "Compact" },
+  { value: 0.28, label: "Standard" },
+  { value: 0.32, label: "Comfortable" },
+  { value: 0.38, label: "Wide" },
+] as const;
+
+export function normalizeNotebookLineSpacing(value: unknown) {
+  const parsed = Number(value);
+  const spacing = Number.isFinite(parsed) ? parsed : 0.32;
+  return Math.round(Math.max(0.16, Math.min(0.75, spacing)) * 100) / 100;
+}
+
 export type NotebookLeaderEntry = {
   country: string;
   leader: string;

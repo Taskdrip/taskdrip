@@ -36,8 +36,10 @@ import {
 } from "lucide-react";
 import {
   NOTEBOOK_INTRO_PAGE_OPTIONS,
+  NOTEBOOK_LINE_SPACING_PRESETS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
+  normalizeNotebookLineSpacing,
   notebookDiaryPageCount,
   notebookDiaryPageDate,
   type NotebookCurrentAffairsEntry,
@@ -122,9 +124,9 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   worldLeaderEntries: [],
   currentAffairsEntries: [],
   diaryStartMonth: "",
-  lineSpacing: 0.28,
+  lineSpacing: 0.32,
   lineColor: "#c9d0c8",
-  lineThickness: 0.6,
+  lineThickness: 0.55,
   showPageNumbers: true,
   ownershipPage: true,
   showDateField: false,
@@ -428,7 +430,14 @@ export default function AdminNotebookStudio() {
   ]);
   const setPageLayout = (value: string) => {
     if (value !== "diary") {
-      updateSettings("lineStyle", value);
+      updateDraft((project) => ({
+        ...project,
+        settings: {
+          ...project.settings,
+          lineStyle: value,
+          lineSpacing: value === "wide" ? 0.38 : value === "college" ? 0.28 : project.settings.lineSpacing,
+        },
+      }));
       return;
     }
     const startMonth = currentNotebookDiaryStartMonth();
@@ -1088,21 +1097,24 @@ export default function AdminNotebookStudio() {
     const isDot = style === "dot";
     const isGraph = style === "graph";
     const isDiary = style === "diary";
-    const spacing = toSafeNumber(draft?.settings.lineSpacing || 0.28, 0.28, 0.16, 0.75);
-    const stroke = Math.max(0.5, toSafeNumber(draft?.settings.lineThickness || 0.6, 0.6, 0.2, 3));
+    const spacing = normalizeNotebookLineSpacing(draft?.settings.lineSpacing);
+    const stroke = Math.max(0.2, toSafeNumber(draft?.settings.lineThickness || 0.55, 0.55, 0.2, 3));
     const lineColor = draft?.settings.lineColor || "#c9d0c8";
-    const spacingPx = Math.max(7, spacing * 31);
-    const strokePx = Math.min(spacingPx * 0.3, Math.max(0.55, stroke * 0.75));
-    const lineEnd = Math.max(0.5, spacingPx - strokePx);
+    const trimWidth = draft?.settings.trimSize === "custom"
+      ? Math.max(4, Number(draft.settings.customWidth) || 6)
+      : Math.max(4, Number(String(draft?.settings.trimSize || "6x9").split("x")[0]) || 6);
+    const spacingCss = `${(100 * spacing / trimWidth).toFixed(5)}cqw`;
+    const strokeCss = `max(0.5px, ${(100 * stroke / (72 * trimWidth)).toFixed(5)}cqw)`;
+    const lineEndCss = `calc(${spacingCss} - ${strokeCss})`;
     const ruledBackgroundStyle = {
-      backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${lineEnd}px, ${lineColor} ${lineEnd}px, ${lineColor} ${spacingPx}px)`,
+      backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${lineEndCss}, ${lineColor} ${lineEndCss}, ${lineColor} ${spacingCss})`,
     };
     const backgroundStyle = isDiary
       ? ruledBackgroundStyle
       : isDot
-      ? { backgroundImage: `radial-gradient(${lineColor} ${stroke}px, transparent ${stroke + 0.35}px)`, backgroundSize: `${spacingPx}px ${spacingPx}px` }
+      ? { backgroundImage: `radial-gradient(circle, ${lineColor} 0, ${lineColor} ${strokeCss}, transparent calc(${strokeCss} + 0.35px))`, backgroundSize: `${spacingCss} ${spacingCss}` }
       : isGraph
-        ? { backgroundImage: `linear-gradient(to right, ${lineColor} ${stroke}px, transparent ${stroke}px), linear-gradient(to bottom, ${lineColor} ${stroke}px, transparent ${stroke}px)`, backgroundSize: `${spacingPx}px ${spacingPx}px` }
+        ? { backgroundImage: `linear-gradient(to right, ${lineColor} 0, ${lineColor} ${strokeCss}, transparent ${strokeCss}), linear-gradient(to bottom, ${lineColor} 0, ${lineColor} ${strokeCss}, transparent ${strokeCss})`, backgroundSize: `${spacingCss} ${spacingCss}` }
         : ruledBackgroundStyle;
     const diaryIsoDate = isDiary
       ? notebookDiaryPageDate(draft?.settings.diaryStartMonth || currentNotebookDiaryStartMonth(), contentPageNumber)
@@ -1118,7 +1130,7 @@ export default function AdminNotebookStudio() {
       <article
         key={pageNumber}
         className="relative w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
-        style={{ aspectRatio: trimAspect, backgroundColor: background }}
+        style={{ aspectRatio: trimAspect, backgroundColor: background, containerType: "inline-size" }}
         aria-label={`Writing page ${contentPageNumber} preview`}
       >
         <div className="absolute inset-[8%] flex flex-col">
@@ -1511,8 +1523,39 @@ export default function AdminNotebookStudio() {
                             Writing rules stay inside the writing area, clear of the header, date/subject fields, and footer. The page proof uses the same separated writing region.
                           </p>
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <Field label="Line spacing (in)">
-                              <input type="number" min=".16" max=".75" step=".01" value={draft.settings.lineSpacing} onChange={(event) => updateSettings("lineSpacing", toSafeNumber(event.target.value, 0.28, 0.16, 0.75))} className={inputClass} />
+                            <Field
+                              label="Even line spacing (in)"
+                              hint="Exact distance between every ruled line. The live proof and exported PDF use the same interval."
+                            >
+                              <div className="space-y-2">
+                                <input
+                                  aria-label="Exact even line spacing in inches"
+                                  type="number"
+                                  min=".16"
+                                  max=".75"
+                                  step=".01"
+                                  value={normalizeNotebookLineSpacing(draft.settings.lineSpacing).toFixed(2)}
+                                  onChange={(event) => updateSettings("lineSpacing", normalizeNotebookLineSpacing(event.target.value))}
+                                  className={inputClass}
+                                />
+                                <div className="grid grid-cols-2 gap-1" role="group" aria-label="Even line spacing presets">
+                                  {NOTEBOOK_LINE_SPACING_PRESETS.map((preset) => {
+                                    const selected = normalizeNotebookLineSpacing(draft.settings.lineSpacing) === preset.value;
+                                    return (
+                                      <button
+                                        key={preset.value}
+                                        type="button"
+                                        aria-pressed={selected}
+                                        aria-label={`Set ${preset.label.toLowerCase()} line spacing to ${preset.value.toFixed(2)} inches`}
+                                        onClick={() => updateSettings("lineSpacing", preset.value)}
+                                        className={`rounded-lg border px-2 py-1.5 text-[9px] font-semibold transition-colors ${selected ? "border-[#77927f] bg-[#e8eee6] text-[#3f644b]" : "border-[#e2dccf] bg-white text-[#77776b] hover:bg-[#f2efe7]"}`}
+                                      >
+                                        {preset.label} · {preset.value.toFixed(2)}″
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </Field>
                             <Field label="Line thickness">
                               <input type="number" min=".2" max="3" step=".1" value={draft.settings.lineThickness} onChange={(event) => updateSettings("lineThickness", toSafeNumber(event.target.value, 0.6, 0.2, 3))} className={inputClass} />
