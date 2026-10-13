@@ -36,10 +36,14 @@ import {
 } from "lucide-react";
 import {
   NOTEBOOK_INTRO_PAGE_OPTIONS,
+  NOTEBOOK_OUTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
   notebookDiaryPageDate,
+  type NotebookCurrentAffairsEntry,
   type NotebookIntroPageType,
+  type NotebookLeaderEntry,
+  type NotebookOutroPageType,
 } from "@shared/notebook-studio";
 import NotebookKdpListingGuide from "./notebook-kdp-listing-guide";
 
@@ -57,6 +61,11 @@ type NotebookSettings = {
   bleed: boolean;
   lineStyle: string;
   introPages: NotebookIntroPageType[];
+  outroPages: NotebookOutroPageType[];
+  frontBlankPageCount: number;
+  backBlankPageCount: number;
+  worldLeaderEntries: NotebookLeaderEntry[];
+  currentAffairsEntries: NotebookCurrentAffairsEntry[];
   diaryStartMonth: string;
   lineSpacing: number | string;
   lineColor: string;
@@ -107,6 +116,11 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   bleed: false,
   lineStyle: "classic",
   introPages: [],
+  outroPages: [],
+  frontBlankPageCount: 0,
+  backBlankPageCount: 0,
+  worldLeaderEntries: [],
+  currentAffairsEntries: [],
   diaryStartMonth: "",
   lineSpacing: 0.28,
   lineColor: "#c9d0c8",
@@ -166,6 +180,9 @@ function normalizeProject(project: NotebookProject): NotebookProject {
       ...DEFAULT_SETTINGS,
       ...(project.settings || {}),
       introPages: Array.isArray(project.settings?.introPages) ? project.settings.introPages : [],
+      outroPages: Array.isArray(project.settings?.outroPages) ? project.settings.outroPages : [],
+      worldLeaderEntries: Array.isArray(project.settings?.worldLeaderEntries) ? project.settings.worldLeaderEntries : [],
+      currentAffairsEntries: Array.isArray(project.settings?.currentAffairsEntries) ? project.settings.currentAffairsEntries : [],
     },
     coverDesign: { ...DEFAULT_COVER, ...(project.coverDesign || {}) },
   };
@@ -302,7 +319,9 @@ export default function AdminNotebookStudio() {
   const activeProject = useMemo(() => projects.find((project) => project.id === activeId) || null, [projects, activeId]);
   const mainPageCount = Math.max(1, Number(draft?.settings.pageCount) || 160);
   const introPageCount = draft?.settings.introPages?.length || 0;
-  const pageCount = mainPageCount + introPageCount;
+  const outroPageCount = draft?.settings.outroPages?.length || 0;
+  const pageCount = mainPageCount + introPageCount + outroPageCount
+    + (draft?.settings.frontBlankPageCount || 0) + (draft?.settings.backBlankPageCount || 0);
   const filteredProjects = useMemo(() => {
     const needle = listSearch.trim().toLowerCase();
     return needle ? projects.filter((project) => project.title.toLowerCase().includes(needle)) : projects;
@@ -369,6 +388,44 @@ export default function AdminNotebookStudio() {
       };
     });
   };
+  const toggleOutroPage = (value: NotebookOutroPageType, checked: boolean) => {
+    updateDraft((project) => {
+      const selected = new Set(project.settings.outroPages || []);
+      if (checked) selected.add(value);
+      else selected.delete(value);
+      return {
+        ...project,
+        settings: {
+          ...project.settings,
+          outroPages: NOTEBOOK_OUTRO_PAGE_OPTIONS
+            .filter((option) => selected.has(option.value))
+            .map((option) => option.value),
+        },
+      };
+    });
+  };
+  const updateLeaderEntry = (index: number, key: keyof NotebookLeaderEntry, value: string) => {
+    updateDraft((project) => {
+      const entries = [...project.settings.worldLeaderEntries];
+      entries[index] = { ...entries[index], [key]: value };
+      return { ...project, settings: { ...project.settings, worldLeaderEntries: entries } };
+    });
+  };
+  const updateCurrentAffairsEntry = (index: number, key: keyof NotebookCurrentAffairsEntry, value: string) => {
+    updateDraft((project) => {
+      const entries = [...project.settings.currentAffairsEntries];
+      entries[index] = { ...entries[index], [key]: value };
+      return { ...project, settings: { ...project.settings, currentAffairsEntries: entries } };
+    });
+  };
+  const addLeaderEntry = () => updateSettings("worldLeaderEntries", [
+    ...draft!.settings.worldLeaderEntries,
+    { country: "", leader: "", office: "", checkedDate: "", source: "" },
+  ]);
+  const addCurrentAffairsEntry = () => updateSettings("currentAffairsEntries", [
+    ...draft!.settings.currentAffairsEntries,
+    { headline: "", date: "", location: "", source: "", whyItMatters: "" },
+  ]);
   const setPageLayout = (value: string) => {
     if (value !== "diary") {
       updateSettings("lineStyle", value);
@@ -780,10 +837,52 @@ export default function AdminNotebookStudio() {
         aria-label={`${label} introductory page preview`}
       >
         <div className="absolute inset-[7%] flex flex-col text-[#42564c]">
-          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">Notebook introduction</p>
-          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{label}</h3>
-          <div className="mt-2 h-px bg-[#9db5a5]" />
+          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">A thoughtfully designed opening</p>
+          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{introType === "welcome" ? "A place to pause." : label}</h3>
+          <div className="mt-2 h-px bg-gradient-to-r from-[#748f7d] via-[#d7d9cd] to-transparent" />
           <div className="min-h-0 flex-1 py-3">
+            {introType === "welcome" && (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <svg viewBox="0 0 180 130" className="mb-3 h-[28%] w-full" role="img" aria-label="Sunrise line illustration symbolizing a fresh start">
+                  <path d="M27 96h126M43 96a47 47 0 0 1 94 0" fill="none" stroke="#718c78" strokeWidth="2" />
+                  <path d="M90 20v15M45 40l10 10M135 40l-10 10M31 67h16M133 67h16" stroke="#c29155" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="90" cy="74" r="17" fill="#e2c18d" />
+                  <path d="M53 111c18-10 56-10 74 0" fill="none" stroke="#d5d2c4" strokeWidth="2" />
+                </svg>
+                <p className="font-serif text-[clamp(11px,2.4vw,21px)] text-[#42564c]">A place to begin again.</p>
+                <p className="mt-3 max-w-[88%] text-[clamp(7px,1vw,11px)] leading-relaxed text-[#73786e]">Use these pages to notice what matters, make room for new ideas, and keep the thoughts you want to return to.</p>
+                <div className="mt-5 w-[86%] rounded-xl border border-[#d9d4c8] bg-white/45 p-3 text-left">
+                  <p className="text-[clamp(6px,.8vw,9px)] font-bold uppercase tracking-[.15em] text-[#78877a]">This journal belongs to</p>
+                  <div className="mt-4 border-b border-[#9eaa9e]" />
+                </div>
+                <p className="mt-auto pt-3 text-[clamp(6px,.8vw,9px)] text-[#73786e]">Start with one line. Let the rest unfold.</p>
+              </div>
+            )}
+            {introType === "journal-guide" && (
+              <div className="grid h-full grid-rows-4 gap-2">
+                {[
+                  ["01", "Begin anywhere", "A date, sentence, or quick sketch is enough."],
+                  ["02", "Keep it honest", "There is no perfect way to fill a page."],
+                  ["03", "Return often", "Small notes become a record worth keeping."],
+                  ["04", "Look back kindly", "Notice what changed and what you learned."],
+                ].map(([number, heading, detail]) => (
+                  <div key={number} className="flex min-h-0 items-center gap-3 rounded-xl border border-[#dfdacd] bg-white/45 px-3 py-2">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#607c69] text-[clamp(6px,.8vw,9px)] font-bold text-white">{number}</span>
+                    <span className="min-w-0"><span className="block text-[clamp(7px,1.05vw,11px)] font-semibold">{heading}</span><span className="mt-0.5 block text-[clamp(6px,.8vw,9px)] text-[#73786e]">{detail}</span></span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {introType === "intentions" && (
+              <div className="flex h-full flex-col gap-3">
+                {["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"].map((prompt, index) => (
+                  <div key={prompt} className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#dfdacd] bg-white/45 p-3">
+                    <span className="text-[clamp(6px,.8vw,9px)] font-bold uppercase tracking-wide text-[#69806e]">0{index + 1} · {prompt}</span>
+                    <div className="mt-auto space-y-3 pt-3"><div className="border-b border-[#c7c9bd]" /><div className="border-b border-[#d9d9cf]" /></div>
+                  </div>
+                ))}
+              </div>
+            )}
             {introType === "world-map" && (
               <div className="flex h-full flex-col">
                 <p className="mb-2 text-[clamp(7px,.9vw,10px)] text-[#73786e]">Explore the continents and oceans. Add labels or notes.</p>
@@ -840,27 +939,29 @@ export default function AdminNotebookStudio() {
             )}
             {introType === "world-presidents" && (
               <div className="flex h-full flex-col">
-                <p className="mb-2 text-[clamp(7px,.9vw,10px)] text-[#73786e]">Record the source and date checked; officeholders can change.</p>
-                <div className="grid grid-cols-[1fr_1.1fr_.85fr] border-b border-[#aab7aa] pb-1 text-[clamp(6px,.78vw,9px)] font-bold uppercase tracking-wide">
-                  <span>Country / region</span><span>President / leader</span><span>Source · date</span>
+                <p className="mb-2 text-[clamp(6px,.8vw,9px)] leading-relaxed text-[#73786e]">Not every country is led by a president. Check an official source and record its exact office title and review date.</p>
+                <div className="grid grid-cols-[.95fr_1fr_.78fr_1.2fr] border-b border-[#aab7aa] pb-1 text-[clamp(5px,.68vw,8px)] font-bold uppercase tracking-wide">
+                  <span>Country</span><span>Leader</span><span>Office</span><span>Checked · source</span>
                 </div>
-                <div className="grid min-h-0 flex-1 grid-rows-6">
-                  {Array.from({ length: 6 }, (_, index) => <div key={index} className="grid grid-cols-[1fr_1.1fr_.85fr] border-b border-[#e0dbd0]" />)}
+                <div className="grid min-h-0 flex-1" style={{ gridTemplateRows: `repeat(${Math.max(5, draft?.settings.worldLeaderEntries.length || 0)}, minmax(0,1fr))` }}>
+                  {Array.from({ length: Math.max(5, draft?.settings.worldLeaderEntries.length || 0) }, (_, index) => {
+                    const entry = draft?.settings.worldLeaderEntries[index];
+                    return <div key={index} className="grid grid-cols-[.95fr_1fr_.78fr_1.2fr] items-center border-b border-[#e0dbd0] text-[clamp(5px,.67vw,8px)]">
+                      {[entry?.country, entry?.leader, entry?.office, [entry?.checkedDate, entry?.source].filter(Boolean).join(" · ")].map((value, column) => <span key={column} className="truncate pr-1">{value || " "}</span>)}
+                    </div>;
+                  })}
                 </div>
-                <p className="mt-2 text-[clamp(6px,.8vw,9px)] text-[#73786e]">Check a current, reliable source before filling this page.</p>
+                <p className="mt-2 text-[clamp(6px,.75vw,8px)] text-[#73786e]">{draft?.settings.worldLeaderEntries.length ? "Publisher-supplied references · recheck before release." : "Use official government websites or trusted current references."}</p>
               </div>
             )}
             {introType === "current-affairs" && (
-              <div className="grid h-full grid-rows-3 gap-2">
-                {Array.from({ length: 3 }, (_, index) => (
-                  <div key={index} className="flex min-h-0 flex-col rounded-lg border border-[#ded9cc] bg-white/35 p-2">
-                    <p className="text-[clamp(7px,.95vw,10px)] font-semibold">{String(index + 1).padStart(2, "0")} · HEADLINE</p>
-                    <div className="mt-1 border-b border-[#b9c3b7]" />
-                    <div className="mt-1 grid grid-cols-2 gap-2 text-[clamp(6px,.78vw,9px)] text-[#73786e]">
-                      <span>DATE __________________</span><span>PLACE ________________</span>
-                    </div>
-                    <p className="mt-1 text-[clamp(6px,.78vw,9px)] text-[#73786e]">SOURCE ______________________________</p>
-                    <p className="mt-auto text-[clamp(6px,.78vw,9px)] text-[#73786e]">Why it matters: _____________________________</p>
+              <div className="flex h-full flex-col gap-2">
+                {(draft?.settings.currentAffairsEntries.length ? draft.settings.currentAffairsEntries : Array.from({ length: 3 }, () => null)).map((entry, index) => (
+                  <div key={index} className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#ded9cc] bg-white/45 p-2">
+                    <p className="line-clamp-2 text-[clamp(7px,.95vw,10px)] font-semibold">{entry?.headline || `${String(index + 1).padStart(2, "0")} · STORY HEADLINE`}</p>
+                    <p className="mt-1 text-[clamp(5px,.7vw,8px)] text-[#73786e]">{entry ? [entry.date, entry.location].filter(Boolean).join(" · ") : "DATE · PLACE"}</p>
+                    <p className="mt-1 line-clamp-2 text-[clamp(6px,.78vw,9px)] text-[#73786e]">{entry?.whyItMatters || "Why does this matter? Add context."}</p>
+                    <p className="mt-auto line-clamp-1 pt-1 text-[clamp(5px,.7vw,8px)] text-[#657565]">SOURCE · {entry?.source || "Record a dated source"}</p>
                   </div>
                 ))}
               </div>
@@ -895,6 +996,60 @@ export default function AdminNotebookStudio() {
     );
   };
 
+  const renderOutroPage = (outroType: NotebookOutroPageType, pageNumber: number) => {
+    const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
+    const label = NOTEBOOK_OUTRO_PAGE_OPTIONS.find((option) => option.value === outroType)?.label || "Closing page";
+    const prompts = outroType === "year-reflection"
+      ? ["A moment I want to remember", "Something I learned", "What I am grateful for", "What I will carry forward"]
+      : outroType === "next-chapter"
+        ? ["I hope to make more room for", "One small step I can take soon", "A reminder for the days ahead"]
+        : [];
+    return (
+      <article
+        key={`outro-${pageNumber}`}
+        className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+        style={{ aspectRatio: trimAspect, backgroundColor: background }}
+        aria-label={`${label} closing page preview`}
+      >
+        <div className="absolute inset-[7%] flex flex-col text-[#42564c]">
+          <p className="text-[clamp(7px,1vw,10px)] font-bold uppercase tracking-[.2em] text-[#78877a]">A thoughtful ending</p>
+          <h3 className="mt-1 font-serif text-[clamp(17px,3vw,27px)] leading-tight">{label}</h3>
+          <div className="mt-2 h-px bg-gradient-to-r from-[#748f7d] via-[#d7d9cd] to-transparent" />
+          <div className="flex min-h-0 flex-1 flex-col py-3">
+            {outroType === "future-letter" ? (
+              <>
+                <div className="mb-3 flex items-center justify-center">
+                  <svg viewBox="0 0 180 74" className="h-16 w-40" role="img" aria-label="Decorative envelope and small star illustration">
+                    <path d="M35 20h110v46H35zM36 22l54 31 54-31" fill="#f5f0e6" stroke="#718c78" strokeWidth="2" />
+                    <path d="M90 8v7m-22 1 5 6m39-6-5 6" stroke="#c29155" strokeWidth="2.5" strokeLinecap="round" />
+                    <circle cx="90" cy="8" r="3" fill="#c29155" />
+                  </svg>
+                </div>
+                <p className="font-serif text-[clamp(10px,1.8vw,17px)]">Dear future me,</p>
+                <div className="mt-4 flex-1 space-y-[clamp(9px,2vw,17px)]">
+                  {Array.from({ length: 8 }, (_, index) => <div key={index} className="border-b border-[#cdd2c8]" />)}
+                </div>
+                <p className="mt-3 text-[clamp(6px,.8vw,9px)] font-semibold uppercase tracking-wide text-[#687c6a]">Open this again on _____________________</p>
+              </>
+            ) : (
+              <div className={`grid min-h-0 flex-1 ${prompts.length === 4 ? "grid-rows-4" : "grid-rows-3"} gap-2`}>
+                {prompts.map((prompt, index) => (
+                  <div key={prompt} className="flex min-h-0 flex-col rounded-xl border border-[#dfdacd] bg-white/45 p-2.5">
+                    <span className="text-[clamp(6px,.8vw,9px)] font-bold uppercase tracking-wide text-[#69806e]">0{index + 1} · {prompt}</span>
+                    <div className="mt-auto space-y-3 pt-2"><div className="border-b border-[#c7c9bd]" /><div className="border-b border-[#d9d9cf]" /></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between border-t border-[#d7d0c1] pt-1.5 text-[clamp(6px,.75vw,9px)] text-[#71766c]">
+            <span>END OF WRITING PAGES</span><span>KEEP GOING</span>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
   const trimAspect = (() => {
     const trim = draft?.settings.trimSize === "custom"
       ? [Number(draft.settings.customWidth), Number(draft.settings.customHeight)]
@@ -906,10 +1061,29 @@ export default function AdminNotebookStudio() {
 
   const renderInteriorPage = (pageNumber: number) => {
     const selectedIntroPages = draft?.settings.introPages || [];
-    if (pageNumber <= selectedIntroPages.length) {
-      return renderIntroPage(selectedIntroPages[pageNumber - 1], pageNumber);
+    const selectedOutroPages = draft?.settings.outroPages || [];
+    const frontBlankCount = draft?.settings.frontBlankPageCount || 0;
+    const introEndPage = frontBlankCount + selectedIntroPages.length;
+    const writingEndPage = introEndPage + mainPageCount;
+    const outroEndPage = writingEndPage + selectedOutroPages.length;
+    const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
+    if (pageNumber <= frontBlankCount || pageNumber > outroEndPage) {
+      return (
+        <article
+          key={`blank-${pageNumber}`}
+          className="relative mx-auto w-full max-w-[420px] shrink-0 border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          style={{ aspectRatio: trimAspect, backgroundColor: background }}
+          aria-label="Intentional blank page preview"
+        />
+      );
     }
-    const contentPageNumber = pageNumber - selectedIntroPages.length;
+    if (pageNumber <= introEndPage) {
+      return renderIntroPage(selectedIntroPages[pageNumber - frontBlankCount - 1], pageNumber);
+    }
+    if (pageNumber > writingEndPage) {
+      return renderOutroPage(selectedOutroPages[pageNumber - writingEndPage - 1], pageNumber);
+    }
+    const contentPageNumber = pageNumber - introEndPage;
     const style = draft?.settings.lineStyle || "classic";
     const isDot = style === "dot";
     const isGraph = style === "graph";
@@ -917,7 +1091,6 @@ export default function AdminNotebookStudio() {
     const spacing = toSafeNumber(draft?.settings.lineSpacing || 0.28, 0.28, 0.16, 0.75);
     const stroke = Math.max(0.5, toSafeNumber(draft?.settings.lineThickness || 0.6, 0.6, 0.2, 3));
     const lineColor = draft?.settings.lineColor || "#c9d0c8";
-    const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
     const spacingPx = Math.max(7, spacing * 31);
     const strokePx = Math.min(spacingPx * 0.3, Math.max(0.55, stroke * 0.75));
     const lineEnd = Math.max(0.5, spacingPx - strokePx);
@@ -931,7 +1104,6 @@ export default function AdminNotebookStudio() {
       : isGraph
         ? { backgroundImage: `linear-gradient(to right, ${lineColor} ${stroke}px, transparent ${stroke}px), linear-gradient(to bottom, ${lineColor} ${stroke}px, transparent ${stroke}px)`, backgroundSize: `${spacingPx}px ${spacingPx}px` }
         : ruledBackgroundStyle;
-    const styleLabel = LINE_STYLES.find(([value]) => value === style)?.[1] || "Ruled";
     const diaryIsoDate = isDiary
       ? notebookDiaryPageDate(draft?.settings.diaryStartMonth || currentNotebookDiaryStartMonth(), contentPageNumber)
       : null;
@@ -946,7 +1118,7 @@ export default function AdminNotebookStudio() {
       <article
         key={pageNumber}
         className="relative w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
-        style={{ aspectRatio: trimAspect, backgroundColor: background, ...backgroundStyle }}
+        style={{ aspectRatio: trimAspect, backgroundColor: background }}
         aria-label={`Writing page ${contentPageNumber} preview`}
       >
         <div className="absolute inset-[8%] flex flex-col">
@@ -955,31 +1127,35 @@ export default function AdminNotebookStudio() {
               <p className="text-[clamp(8px,1.1vw,12px)] font-semibold uppercase tracking-[.13em] text-[#667066]">{diaryWeekday}</p>
               <p className="mt-1 font-serif text-[clamp(14px,2.4vw,23px)] text-[#42564c]">{diaryFullDate}</p>
             </div>
-          ) : (draft?.settings.headerText || draft?.settings.showDateField || draft?.settings.showSubjectField) && (
-            <div className="flex min-h-[9%] items-end justify-between gap-2 border-b border-[#c8c0b0] pb-2 text-[clamp(7px,1vw,11px)] text-[#667066]">
-              <span className="truncate">{draft?.settings.headerText || (draft?.settings.showSubjectField ? "Subject" : "")}</span>
-              <span className="shrink-0">{draft?.settings.showDateField ? "Date  __________" : ""}</span>
+          ) : (
+            <div className="shrink-0">
+              {draft?.settings.headerText && <p className="mb-2 truncate text-[clamp(6px,.9vw,10px)] font-semibold uppercase tracking-[.13em] text-[#667066]">{draft.settings.headerText}</p>}
+              {(draft?.settings.showDateField || draft?.settings.showSubjectField) && (
+                <div className="flex min-h-[28px] items-end justify-between gap-2 border-b border-[#c8c0b0] pb-2 text-[clamp(7px,1vw,11px)] text-[#667066]">
+                  {draft.settings.showSubjectField && <span className="min-w-0 flex-1">Subject <span className="inline-block w-[60%] border-b border-[#aeb7a9]" /></span>}
+                  {draft.settings.showDateField && <span className="shrink-0">Date <span className="inline-block w-[62px] border-b border-[#aeb7a9]" /></span>}
+                </div>
+              )}
             </div>
           )}
-          {!isDiary && draft?.settings.ownershipPage && contentPageNumber === 1 ? (
-            <div className="flex flex-1 flex-col justify-center text-center">
+          {!isDiary && draft?.settings.ownershipPage && contentPageNumber === 1 && (
+            <div className="flex min-h-[38%] flex-[.42] flex-col justify-center text-center">
               <BookOpen className="mx-auto mb-4 h-7 w-7 text-[#587464]" />
               <p className="font-serif text-[clamp(12px,2vw,22px)] text-[#42564c]">This notebook belongs to</p>
-              <div className="mx-auto mt-10 w-4/5 border-b border-[#8b9386]" />
+              <div className="mx-auto mt-7 w-4/5 border-b border-[#8b9386]" />
             </div>
-          ) : (
-            isDiary ? (
-              <div
-                className="min-h-0 flex-1"
-                style={ruledBackgroundStyle}
-                aria-label="Ruled writing lines"
-              />
-            ) : <div className="flex-1" />
           )}
-          <div className="flex items-center justify-between border-t border-[#d7d0c1]/70 pt-2 text-[clamp(7px,.85vw,10px)] text-[#71766c]">
-            <span className="max-w-[70%] truncate">{draft?.settings.footerText || styleLabel}</span>
-            {draft?.settings.showPageNumbers && <span className="tabular-nums">{contentPageNumber}</span>}
-          </div>
+          <div
+            className={`relative min-h-0 overflow-hidden ${!isDiary && draft?.settings.ownershipPage && contentPageNumber === 1 ? "flex-[.58]" : "flex-1"}`}
+            style={backgroundStyle}
+            aria-label={isDot ? "Dot-grid writing area" : isGraph ? "Graph writing area" : "Ruled writing area"}
+          />
+          {(draft?.settings.footerText || draft?.settings.showPageNumbers) && (
+            <div className="flex shrink-0 items-center justify-between gap-3 pt-1 text-[clamp(6px,.82vw,9px)] text-[#71766c]">
+              <span className="max-w-[78%] truncate">{draft?.settings.footerText || ""}</span>
+              {draft?.settings.showPageNumbers && <span className="tabular-nums">{contentPageNumber}</span>}
+            </div>
+          )}
         </div>
         {draft?.settings.bleed && <div className="pointer-events-none absolute inset-[2.5%] border border-dashed border-[#b87958]/55" aria-hidden="true" />}
       </article>
@@ -1070,7 +1246,11 @@ export default function AdminNotebookStudio() {
                               <span className={`h-1.5 w-1.5 rounded-full ${project.status === "generated" || project.status === "ready" ? "bg-[#6d9272]" : "bg-[#c89b58]"}`} />
                               <span className="capitalize">{String(project.status || "draft").replace(/[_-]/g, " ")}</span>
                               <span className="text-[#b5ae9e]">·</span>
-                              <span>{(project.settings?.pageCount || 160) + (project.settings?.introPages?.length || 0)} total pp</span>
+                              <span>{(project.settings?.pageCount || 160)
+                                + (project.settings?.introPages?.length || 0)
+                                + (project.settings?.outroPages?.length || 0)
+                                + (project.settings?.frontBlankPageCount || 0)
+                                + (project.settings?.backBlankPageCount || 0)} total pp</span>
                             </span>
                           </span>
                         </button>
@@ -1203,7 +1383,7 @@ export default function AdminNotebookStudio() {
                               label="Interior page count"
                               hint={draft.settings.lineStyle === "diary"
                                 ? `${draft.settings.diaryStartMonth}-01 through Dec 31, 2027 · one dated page per day`
-                                : "Writing pages only. Selected intro pages print before these and are not included here."}
+                                : "Writing pages only. Front matter, closing pages, and blank pages are counted separately."}
                             >
                               <input type="number" min={1} max={828} value={draft.settings.pageCount} disabled={draft.settings.lineStyle === "diary"} onChange={(event) => updateSettings("pageCount", toSafeNumber(event.target.value, 160, 1, 828))} className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#f0ede4] disabled:text-[#77776b]`} />
                             </Field>
@@ -1264,8 +1444,71 @@ export default function AdminNotebookStudio() {
                               {introPageCount} intro {introPageCount === 1 ? "page" : "pages"} selected · {pageCount} total printed pages
                             </p>
                           </fieldset>
+                          <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
+                            <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Intentional blank pages</legend>
+                            <p className="mb-2 text-[10px] leading-4 text-[#858477]">Set how many completely blank sheets appear before the introduction and after the closing pages. Blank sheets count toward the print total.</p>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <Field label="Blank pages at the front"><input aria-label="Blank pages before the introduction" type="number" min={0} max={12} step={1} value={draft.settings.frontBlankPageCount} onChange={(event) => updateSettings("frontBlankPageCount", toSafeNumber(event.target.value, 0, 0, 12))} className={inputClass} /></Field>
+                              <Field label="Blank pages at the end"><input aria-label="Blank pages after the closing pages" type="number" min={0} max={12} step={1} value={draft.settings.backBlankPageCount} onChange={(event) => updateSettings("backBlankPageCount", toSafeNumber(event.target.value, 0, 0, 12))} className={inputClass} /></Field>
+                            </div>
+                          </fieldset>
+                          <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
+                            <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Closing pages after the writing section</legend>
+                            <p className="mb-2 text-[10px] leading-4 text-[#858477]">Choose designed reflection pages to finish the journal before any final blank sheets.</p>
+                            <div className="grid gap-1 sm:grid-cols-2">
+                              {NOTEBOOK_OUTRO_PAGE_OPTIONS.map((option) => (
+                                <label key={option.value} className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-[#f2efe7]">
+                                  <input type="checkbox" checked={draft.settings.outroPages.includes(option.value)} onChange={(event) => toggleOutroPage(option.value, event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]" />
+                                  <span><span className="block text-[11px] font-semibold text-[#4d554c]">{option.label}</span><span className="block text-[9px] leading-4 text-[#858477]">{option.description}</span></span>
+                                </label>
+                              ))}
+                            </div>
+                            <p className="mt-2 border-t border-[#ece7dc] pt-2 text-[10px] text-[#6d7167]">{outroPageCount} closing {outroPageCount === 1 ? "page" : "pages"} selected · {pageCount} physical pages total</p>
+                          </fieldset>
+                          {draft.settings.introPages.includes("world-presidents") && (
+                            <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
+                              <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Dated world-leader references</legend>
+                              <p className="mb-3 text-[10px] leading-4 text-[#858477]">Enter facts you have checked against reliable sources. The printed tracker labels a leader's actual office; it does not assume every country has a president.</p>
+                              <div className="space-y-3">
+                                {draft.settings.worldLeaderEntries.map((entry, index) => (
+                                  <div key={`leader-${index}`} className="rounded-lg border border-[#ece7dc] bg-[#faf8f2] p-2.5">
+                                    <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-[#536353]">Reference {index + 1}<button type="button" aria-label={`Remove world leader reference ${index + 1}`} onClick={() => updateSettings("worldLeaderEntries", draft.settings.worldLeaderEntries.filter((_, entryIndex) => entryIndex !== index))} className="rounded p-1 text-[#8a665b] hover:bg-[#f4eae5]"><Trash2 size={13} /></button></div>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      <input aria-label={`Country for world leader reference ${index + 1}`} value={entry.country} onChange={(event) => updateLeaderEntry(index, "country", event.target.value)} placeholder="Country or region" className={inputClass} />
+                                      <input aria-label={`Leader for world leader reference ${index + 1}`} value={entry.leader} onChange={(event) => updateLeaderEntry(index, "leader", event.target.value)} placeholder="Leader's name" className={inputClass} />
+                                      <input aria-label={`Office for world leader reference ${index + 1}`} value={entry.office} onChange={(event) => updateLeaderEntry(index, "office", event.target.value)} placeholder="Official office / title" className={inputClass} />
+                                      <input aria-label={`Check date for world leader reference ${index + 1}`} type="date" value={entry.checkedDate} onChange={(event) => updateLeaderEntry(index, "checkedDate", event.target.value)} className={inputClass} />
+                                      <input aria-label={`Source for world leader reference ${index + 1}`} value={entry.source} onChange={(event) => updateLeaderEntry(index, "source", event.target.value)} placeholder="Source title or URL" className={`${inputClass} sm:col-span-2`} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <button type="button" onClick={addLeaderEntry} disabled={draft.settings.worldLeaderEntries.length >= 8} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#d9d4c8] px-2.5 py-2 text-[10px] font-semibold text-[#4b6552] hover:bg-[#f1f2eb] disabled:opacity-40"><Plus size={13} />Add leader reference</button>
+                            </fieldset>
+                          )}
+                          {draft.settings.introPages.includes("current-affairs") && (
+                            <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
+                              <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Dated current-affairs stories</legend>
+                              <p className="mb-3 text-[10px] leading-4 text-[#858477]">Add publisher-verified stories with dates, a source, and a concise note on why each matters. Current events are never filled with unverified placeholders.</p>
+                              <div className="space-y-3">
+                                {draft.settings.currentAffairsEntries.map((entry, index) => (
+                                  <div key={`affair-${index}`} className="rounded-lg border border-[#ece7dc] bg-[#faf8f2] p-2.5">
+                                    <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-[#536353]">Story {index + 1}<button type="button" aria-label={`Remove current affairs story ${index + 1}`} onClick={() => updateSettings("currentAffairsEntries", draft.settings.currentAffairsEntries.filter((_, entryIndex) => entryIndex !== index))} className="rounded p-1 text-[#8a665b] hover:bg-[#f4eae5]"><Trash2 size={13} /></button></div>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      <input aria-label={`Headline for current affairs story ${index + 1}`} value={entry.headline} onChange={(event) => updateCurrentAffairsEntry(index, "headline", event.target.value)} placeholder="Headline / event" className={`${inputClass} sm:col-span-2`} />
+                                      <input aria-label={`Date for current affairs story ${index + 1}`} type="date" value={entry.date} onChange={(event) => updateCurrentAffairsEntry(index, "date", event.target.value)} className={inputClass} />
+                                      <input aria-label={`Location for current affairs story ${index + 1}`} value={entry.location} onChange={(event) => updateCurrentAffairsEntry(index, "location", event.target.value)} placeholder="Location" className={inputClass} />
+                                      <input aria-label={`Source for current affairs story ${index + 1}`} value={entry.source} onChange={(event) => updateCurrentAffairsEntry(index, "source", event.target.value)} placeholder="Source title or URL" className={`${inputClass} sm:col-span-2`} />
+                                      <input aria-label={`Why this current affairs story matters ${index + 1}`} value={entry.whyItMatters} onChange={(event) => updateCurrentAffairsEntry(index, "whyItMatters", event.target.value)} placeholder="Why it matters (brief context)" className={`${inputClass} sm:col-span-2`} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <button type="button" onClick={addCurrentAffairsEntry} disabled={draft.settings.currentAffairsEntries.length >= 4} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#d9d4c8] px-2.5 py-2 text-[10px] font-semibold text-[#4b6552] hover:bg-[#f1f2eb] disabled:opacity-40"><Plus size={13} />Add current-affairs story</button>
+                            </fieldset>
+                          )}
                           <p className="text-[10px] leading-4 text-[#858477]">
-                            Writing-line spacing, thickness, and color below apply to the notebook pages and are visible in this preview and the generated PDF.
+                            Writing rules stay inside the writing area, clear of the header, date/subject fields, and footer. The page proof uses the same separated writing region.
                           </p>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <Field label="Line spacing (in)">

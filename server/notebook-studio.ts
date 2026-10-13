@@ -8,6 +8,7 @@ import {
   DEFAULT_NOTEBOOK_COVER,
   DEFAULT_NOTEBOOK_SETTINGS,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
+  NOTEBOOK_OUTRO_PAGE_OPTIONS,
   currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
   notebookTotalPageCount,
@@ -52,6 +53,32 @@ function requirePublishingAdmin(req: any, res: Response, next: any) {
 
 function cleanText(value: unknown, max: number, fallback = "") {
   return String(value ?? fallback).replace(/\u0000/g, "").trim().slice(0, max);
+}
+
+function normalizeReferenceEntries<T>(
+  value: unknown,
+  fields: Record<keyof T, number>,
+  label: string,
+  limit: number,
+): T[] {
+  if (!Array.isArray(value) || value.length > limit) {
+    throw Object.assign(new Error(`${label} must be a list of up to ${limit} entries.`), { statusCode: 400 });
+  }
+  return value.map((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw Object.assign(new Error(`${label} entry ${index + 1} must be an object.`), { statusCode: 400 });
+    }
+    const cleaned = Object.fromEntries(
+      Object.entries(fields as Record<string, number>).map(([key, max]) => [key, cleanText((entry as Record<string, unknown>)[key], max)]),
+    ) as T;
+    for (const key of ["date", "checkedDate"]) {
+      const date = (cleaned as Record<string, string>)[key];
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw Object.assign(new Error(`${label} dates must use YYYY-MM-DD format.`), { statusCode: 400 });
+      }
+    }
+    return cleaned;
+  }).filter((entry) => Object.values(entry as Record<string, string>).some(Boolean));
 }
 
 function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_NOTEBOOK_SETTINGS): NotebookSettings {
@@ -116,6 +143,42 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
       throw Object.assign(new Error("One or more introductory page designs are not supported."), { statusCode: 400 });
     }
     settings.introPages = requested as NotebookSettings["introPages"];
+  }
+  if (raw.outroPages !== undefined) {
+    if (!Array.isArray(raw.outroPages)) {
+      throw Object.assign(new Error("Choose closing page designs from the available list."), { statusCode: 400 });
+    }
+    const allowedOutroPages = new Set<string>(NOTEBOOK_OUTRO_PAGE_OPTIONS.map((option) => option.value));
+    const requested = raw.outroPages.map(String);
+    if (requested.some((page) => !allowedOutroPages.has(page)) || new Set(requested).size !== requested.length) {
+      throw Object.assign(new Error("One or more closing page designs are not supported."), { statusCode: 400 });
+    }
+    settings.outroPages = requested as NotebookSettings["outroPages"];
+  }
+  for (const key of ["frontBlankPageCount", "backBlankPageCount"] as const) {
+    if (raw[key] !== undefined) {
+      const count = Number(raw[key]);
+      if (!Number.isInteger(count) || count < 0 || count > 12) {
+        throw Object.assign(new Error("Choose between 0 and 12 blank pages for each end of the notebook."), { statusCode: 400 });
+      }
+      settings[key] = count;
+    }
+  }
+  if (raw.worldLeaderEntries !== undefined) {
+    settings.worldLeaderEntries = normalizeReferenceEntries<NotebookSettings["worldLeaderEntries"][number]>(
+      raw.worldLeaderEntries,
+      { country: 100, leader: 120, office: 100, checkedDate: 10, source: 240 },
+      "World leader references",
+      8,
+    );
+  }
+  if (raw.currentAffairsEntries !== undefined) {
+    settings.currentAffairsEntries = normalizeReferenceEntries<NotebookSettings["currentAffairsEntries"][number]>(
+      raw.currentAffairsEntries,
+      { headline: 180, date: 10, location: 100, source: 240, whyItMatters: 220 },
+      "Current affairs references",
+      4,
+    );
   }
   if (raw.diaryStartMonth !== undefined) {
     const startMonth = String(raw.diaryStartMonth);

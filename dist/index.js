@@ -47,6 +47,7 @@ __export(schema_exports, {
   courseReviews: () => courseReviews,
   courses: () => courses,
   creatorBooks: () => creatorBooks,
+  creatorNotebookProjects: () => creatorNotebookProjects,
   creatorProductDownloads: () => creatorProductDownloads,
   creatorProductEarnings: () => creatorProductEarnings,
   creatorPublishingProducts: () => creatorPublishingProducts,
@@ -223,7 +224,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, pluginLicenses, pluginLicenseSites, pluginLicenseEvents, pluginSupportThreads, pluginSupportMessages, productReviews, creatorBooks, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, pluginLicenses, pluginLicenseSites, pluginLicenseEvents, pluginSupportThreads, pluginSupportMessages, productReviews, creatorBooks, creatorNotebookProjects, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -701,6 +702,25 @@ var init_schema = __esm({
     }, (table) => [
       index("creator_books_creator_id_idx").on(table.creatorId),
       index("creator_books_status_idx").on(table.status)
+    ]);
+    creatorNotebookProjects = pgTable("creator_notebook_projects", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      ownerId: varchar("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      title: varchar("title", { length: 240 }).notNull().default("Untitled notebook"),
+      settings: jsonb("settings").$type().notNull().default(sql`'{}'::jsonb`),
+      coverDesign: jsonb("cover_design").$type().notNull().default(sql`'{}'::jsonb`),
+      status: varchar("status", { length: 32 }).notNull().default("draft"),
+      generationStatus: varchar("generation_status", { length: 24 }).notNull().default("idle"),
+      interiorFileKey: text("interior_file_key"),
+      coverFileKey: text("cover_file_key"),
+      previewFileKey: text("preview_file_key"),
+      validation: jsonb("validation").$type().default(sql`null`),
+      lastGeneratedAt: timestamp("last_generated_at"),
+      createdAt: timestamp("created_at").defaultNow(),
+      updatedAt: timestamp("updated_at").defaultNow()
+    }, (table) => [
+      index("creator_notebook_projects_owner_updated_idx").on(table.ownerId, table.updatedAt),
+      index("creator_notebook_projects_status_idx").on(table.status)
     ]);
     creatorPublishingProducts = pgTable("creator_publishing_products", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3700,8 +3720,8 @@ async function generateAiReport(lead) {
     lines.push("");
     lines.push("### Suggested first outreach");
     lines.push(`Hi ${lead.name.split(" ")[0]}, we'd love to help you reach a wider crypto-native audience through Taskdrip's verified influencer marketplace. Open to a 15-min chat?`);
-    const report = lines.join("\n");
-    return { summary: lines[0], report };
+    const report2 = lines.join("\n");
+    return { summary: lines[0], report: report2 };
   }
   const sys = "You are a senior growth strategist at Taskdrip, a Web3 SocialFi influencer marketplace. Produce concise, action-oriented growth reports for a prospect.";
   const usr = `Prospect (${lead.kind}): ${JSON.stringify({
@@ -3861,7 +3881,7 @@ var seed_breedskool_courses_exports = {};
 __export(seed_breedskool_courses_exports, {
   seedBreedskoolCourses: () => seedBreedskoolCourses
 });
-import { eq as eq12, sql as sql9 } from "drizzle-orm";
+import { eq as eq13, sql as sql9 } from "drizzle-orm";
 async function seedBreedskoolCourses(adminId) {
   let created = 0;
   let linked = 0;
@@ -3884,7 +3904,7 @@ async function seedBreedskoolCourses(adminId) {
             whatYouLearn: course.whatYouLearn,
             requirements: course.requirements,
             syllabus: course.syllabus
-          }).where(eq12(courses.id, courseId));
+          }).where(eq13(courses.id, courseId));
         }
       } else {
         const [newCourse] = await db.insert(courses).values({
@@ -3908,7 +3928,7 @@ async function seedBreedskoolCourses(adminId) {
         courseId = newCourse.id;
         created++;
       }
-      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq12(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq13(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
           await db.insert(courseLessons).values({
@@ -3931,7 +3951,7 @@ async function seedBreedskoolCourses(adminId) {
               content: lesson.content,
               isPreview: lesson.isPreview,
               order: lesson.order
-            }).where(eq12(courseLessons.id, existingLesson.id));
+            }).where(eq13(courseLessons.id, existingLesson.id));
           } else {
             await db.insert(courseLessons).values({
               courseId,
@@ -3946,7 +3966,7 @@ async function seedBreedskoolCourses(adminId) {
           sql9`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
       }
-      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq12(breedskoolCoursePricing.courseKey, course.courseKey));
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey));
       linked++;
     } catch (e) {
       console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
@@ -4308,11 +4328,11 @@ __export(seed_breedskool_exports, {
   seedBreedskoolPaymentSettings: () => seedBreedskoolPaymentSettings,
   seedBreedskoolPricing: () => seedBreedskoolPricing
 });
-import { eq as eq13, inArray as inArray9, and as and9 } from "drizzle-orm";
+import { eq as eq14, inArray as inArray9, and as and10 } from "drizzle-orm";
 async function seedBreedskoolPaymentSettings() {
   for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
     try {
-      const existing = await db.select().from(appSettings).where(eq13(appSettings.key, key)).limit(1);
+      const existing = await db.select().from(appSettings).where(eq14(appSettings.key, key)).limit(1);
       if (existing.length === 0) {
         await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
       }
@@ -4326,7 +4346,7 @@ async function seedBreedskoolPricing() {
   let skipped = 0;
   for (const course of BREEDSKOOL_COURSES) {
     try {
-      const existing = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
+      const existing = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(breedskoolCoursePricing).values({
           ...course,
@@ -4349,7 +4369,7 @@ async function seedBreedskoolPricing() {
           isActive: course.isActive,
           acceptedPayments: course.acceptedPayments,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey));
+        }).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey));
         skipped++;
       }
     } catch (e) {
@@ -4365,10 +4385,10 @@ async function fixVerifiedBreedskoolEnrollments() {
     for (const reg of verified) {
       let resolvedUserId = reg.userId;
       if (!resolvedUserId && reg.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq13(users.email, reg.email.toLowerCase().trim())).limit(1);
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq14(users.email, reg.email.toLowerCase().trim())).limit(1);
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq13(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq14(breedskoolRegistrations.id, reg.id));
         }
       }
       if (!resolvedUserId) {
@@ -4377,20 +4397,20 @@ async function fixVerifiedBreedskoolEnrollments() {
       }
       let courseId = reg.linkedCourseId;
       if (!courseId && reg.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq13(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
         courseId = pricing?.linkedCourseId || null;
       }
       if (!courseId) {
         noLink++;
         continue;
       }
-      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and9(
-        eq13(courseEnrollments.courseId, courseId),
-        eq13(courseEnrollments.userId, reg.userId)
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and10(
+        eq14(courseEnrollments.courseId, courseId),
+        eq14(courseEnrollments.userId, reg.userId)
       )).limit(1);
       if (existing) {
         if (existing.status !== "active") {
-          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq13(courseEnrollments.id, existing.id));
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq14(courseEnrollments.id, existing.id));
           fixed++;
         } else {
           skipped++;
@@ -4407,7 +4427,7 @@ async function fixVerifiedBreedskoolEnrollments() {
         fixed++;
       }
       if (!reg.linkedCourseId && courseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq13(breedskoolRegistrations.id, reg.id));
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq14(breedskoolRegistrations.id, reg.id));
       }
     }
   } catch (e) {
@@ -5084,7 +5104,7 @@ __export(influencer_crm_service_exports, {
   getTierInfo: () => getTierInfo,
   sendInfluencerOutreach: () => sendInfluencerOutreach
 });
-import { eq as eq14, inArray as inArray10 } from "drizzle-orm";
+import { eq as eq15, inArray as inArray10 } from "drizzle-orm";
 function classifyTier(followers) {
   if (!followers || followers <= 0) return "unknown";
   for (const t of TIERS) {
@@ -5293,7 +5313,7 @@ async function crawlInfluencersAI(opts) {
   }
   if (includeInternal) {
     const { users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-    const internal = await db.select().from(users3).where(eq14(users3.userType, "influencer")).limit(100);
+    const internal = await db.select().from(users3).where(eq15(users3.userType, "influencer")).limit(100);
     if (internal.length > 0) sourcesUsed.push("internal");
     for (const u of internal) {
       const followers = u.totalFollowers || 0;
@@ -5338,7 +5358,7 @@ function dedupeByExternalId(items) {
   });
 }
 async function getInfluencerTierStats() {
-  const rows = await db.select().from(leads).where(eq14(leads.kind, "influencer"));
+  const rows = await db.select().from(leads).where(eq15(leads.kind, "influencer"));
   const tierCounts = {};
   const tierContacted = {};
   for (const r of rows) {
@@ -5387,7 +5407,7 @@ async function sendInfluencerOutreach(opts) {
     sentBy: sentBy || null
   });
   if (status === "sent" || status === "logged") {
-    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq14(leads.id, lead.id));
+    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq15(leads.id, lead.id));
   }
   return { success: status !== "failed", channel: "email", error };
 }
@@ -5441,25 +5461,25 @@ __export(vite_config_exports, {
 });
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path3 from "path";
+import path4 from "path";
 import { fileURLToPath } from "url";
 var __dirname, vite_config_default;
 var init_vite_config = __esm({
   "vite.config.ts"() {
     "use strict";
-    __dirname = path3.dirname(fileURLToPath(import.meta.url));
+    __dirname = path4.dirname(fileURLToPath(import.meta.url));
     vite_config_default = defineConfig({
       plugins: [react()],
       resolve: {
         alias: {
-          "@": path3.resolve(__dirname, "client", "src"),
-          "@shared": path3.resolve(__dirname, "shared"),
-          "@assets": path3.resolve(__dirname, "attached_assets")
+          "@": path4.resolve(__dirname, "client", "src"),
+          "@shared": path4.resolve(__dirname, "shared"),
+          "@assets": path4.resolve(__dirname, "attached_assets")
         }
       },
-      root: path3.resolve(__dirname, "client"),
+      root: path4.resolve(__dirname, "client"),
       build: {
-        outDir: path3.resolve(__dirname, "dist/public"),
+        outDir: path4.resolve(__dirname, "dist/public"),
         emptyOutDir: true,
         chunkSizeWarningLimit: 5e3,
         rollupOptions: {
@@ -5483,7 +5503,7 @@ var init_vite_config = __esm({
 
 // server/index.ts
 import express3 from "express";
-import path5 from "path";
+import path6 from "path";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { createServer as createServer2 } from "http";
@@ -6288,8 +6308,8 @@ var DatabaseStorage = class {
     }
   }
   async likePost(postId, userId) {
-    const { nanoid: nanoid5 } = await import("nanoid");
-    const id = nanoid5();
+    const { nanoid: nanoid6 } = await import("nanoid");
+    const id = nanoid6();
     await db.insert(postLikes).values({ id, postId, userId });
     await db.update(posts).set({ likeCount: sql2`${posts.likeCount} + 1` }).where(eq(posts.id, postId));
   }
@@ -8221,8 +8241,8 @@ function registerShortenerRoutes(app2) {
         return res.status(400).json({ message: "Custom slug must be 3\u201340 characters: letters, numbers, hyphens, underscores." });
       }
       for (let i = 0; i < 5; i++) {
-        const [exists] = await db.select().from(shortLinks).where(eq3(shortLinks.slug, slug));
-        if (!exists) break;
+        const [exists2] = await db.select().from(shortLinks).where(eq3(shortLinks.slug, slug));
+        if (!exists2) break;
         if (customSlug) return res.status(409).json({ message: "That custom slug is already taken." });
         slug = randomSlug();
       }
@@ -9181,8 +9201,8 @@ function registerAutoBloggerRoutes(app2) {
       { name: "YouTube \u2014 Marques Brownlee", type: "youtube", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ", category: "Tech" }
     ];
     for (const s of seeds) {
-      const [exists] = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.name, s.name));
-      if (!exists) await db.insert(autoBlogSources).values(s);
+      const [exists2] = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.name, s.name));
+      if (!exists2) await db.insert(autoBlogSources).values(s);
     }
     res.json({ ok: true });
   });
@@ -11802,22 +11822,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       const issues = [];
       for (const slug of PAGES2) {
         const s = seoMap.get(slug);
-        const path6 = slug === "home" ? "/" : `/${slug}`;
+        const path7 = slug === "home" ? "/" : `/${slug}`;
         if (!s) {
-          issues.push({ type: "missing_meta", severity: "high", path: path6, detail: "No SEO settings configured" });
+          issues.push({ type: "missing_meta", severity: "high", path: path7, detail: "No SEO settings configured" });
           continue;
         }
-        if (!s.metaTitle) issues.push({ type: "missing_meta_title", severity: "high", path: path6, detail: "Missing meta title" });
-        else if (s.metaTitle.length > 60) issues.push({ type: "long_meta_title", severity: "medium", path: path6, detail: `Meta title too long (${s.metaTitle.length} chars, max 60)` });
-        if (!s.metaDescription) issues.push({ type: "missing_meta_desc", severity: "high", path: path6, detail: "Missing meta description" });
-        else if (s.metaDescription.length > 160) issues.push({ type: "long_meta_desc", severity: "medium", path: path6, detail: `Meta description too long (${s.metaDescription.length} chars, max 160)` });
-        if (!s.ogTitle && !s.ogDescription) issues.push({ type: "missing_og", severity: "medium", path: path6, detail: "Missing Open Graph tags" });
+        if (!s.metaTitle) issues.push({ type: "missing_meta_title", severity: "high", path: path7, detail: "Missing meta title" });
+        else if (s.metaTitle.length > 60) issues.push({ type: "long_meta_title", severity: "medium", path: path7, detail: `Meta title too long (${s.metaTitle.length} chars, max 60)` });
+        if (!s.metaDescription) issues.push({ type: "missing_meta_desc", severity: "high", path: path7, detail: "Missing meta description" });
+        else if (s.metaDescription.length > 160) issues.push({ type: "long_meta_desc", severity: "medium", path: path7, detail: `Meta description too long (${s.metaDescription.length} chars, max 160)` });
+        if (!s.ogTitle && !s.ogDescription) issues.push({ type: "missing_og", severity: "medium", path: path7, detail: "Missing Open Graph tags" });
       }
       for (const post of allBlogs) {
-        const path6 = `/blog/${post.slug}`;
-        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path: path6, detail: `Blog post missing meta description` });
-        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path: path6, detail: `Blog post missing featured image` });
-        if (!post.title) issues.push({ type: "missing_title", severity: "high", path: path6, detail: `Blog post missing title` });
+        const path7 = `/blog/${post.slug}`;
+        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path: path7, detail: `Blog post missing meta description` });
+        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path: path7, detail: `Blog post missing featured image` });
+        if (!post.title) issues.push({ type: "missing_title", severity: "high", path: path7, detail: `Blog post missing title` });
       }
       const highCount = issues.filter((i) => i.severity === "high").length;
       const mediumCount = issues.filter((i) => i.severity === "medium").length;
@@ -11993,28 +12013,28 @@ function sanitize2(value, key = "") {
   }
   return value;
 }
-function classify(path6) {
-  if (path6.includes("/register")) return "registration";
-  if (path6.includes("/purchase") || path6.includes("/orders")) return "order";
-  if (path6.includes("payment") || path6.includes("subscription") || path6.includes("topup") || path6.includes("transaction")) return "payment";
-  if (path6.includes("campaign")) return "campaign";
-  if (path6.includes("course") || path6.includes("breedskool")) return "course";
-  if (path6.includes("profile") || path6.includes("become-creator") || path6.includes("message-privacy")) return "profile";
-  if (path6.includes("message") || path6.includes("contact") || path6.includes("hire")) return "communication";
-  if (path6.includes("post") || path6.includes("blog") || path6.includes("review") || path6.includes("report")) return "content";
-  if (path6.includes("p2p") || path6.includes("listing") || path6.includes("payout")) return "marketplace";
-  if (path6.includes("/admin/")) return "admin";
+function classify(path7) {
+  if (path7.includes("/register")) return "registration";
+  if (path7.includes("/purchase") || path7.includes("/orders")) return "order";
+  if (path7.includes("payment") || path7.includes("subscription") || path7.includes("topup") || path7.includes("transaction")) return "payment";
+  if (path7.includes("campaign")) return "campaign";
+  if (path7.includes("course") || path7.includes("breedskool")) return "course";
+  if (path7.includes("profile") || path7.includes("become-creator") || path7.includes("message-privacy")) return "profile";
+  if (path7.includes("message") || path7.includes("contact") || path7.includes("hire")) return "communication";
+  if (path7.includes("post") || path7.includes("blog") || path7.includes("review") || path7.includes("report")) return "content";
+  if (path7.includes("p2p") || path7.includes("listing") || path7.includes("payout")) return "marketplace";
+  if (path7.includes("/admin/")) return "admin";
   return "activity";
 }
-function shouldIgnore(path6) {
-  return IGNORED_PATHS.some((prefix) => path6 === prefix || path6.startsWith(prefix));
+function shouldIgnore(path7) {
+  return IGNORED_PATHS.some((prefix) => path7 === prefix || path7.startsWith(prefix));
 }
-function hasExistingEmail(path6) {
-  if (path6.startsWith("/api/courses/")) return !path6.endsWith("/enroll");
-  return ROUTES_WITH_EXISTING_ADMIN_EMAIL.some((prefix) => path6 === prefix || path6.startsWith(prefix));
+function hasExistingEmail(path7) {
+  if (path7.startsWith("/api/courses/")) return !path7.endsWith("/enroll");
+  return ROUTES_WITH_EXISTING_ADMIN_EMAIL.some((prefix) => path7 === prefix || path7.startsWith(prefix));
 }
-function routeTitle(method, path6) {
-  const clean = path6.replace(/^\/api\/?/, "").replace(/\/+/g, " ").replace(/[-_]/g, " ");
+function routeTitle(method, path7) {
+  const clean = path7.replace(/^\/api\/?/, "").replace(/\/+/g, " ").replace(/[-_]/g, " ");
   return `${method} ${clean || "API action"}`.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 async function recordActivity(input) {
@@ -12048,16 +12068,16 @@ function requestActor(req) {
 }
 function activityAuditMiddleware(req, res, next) {
   const isWrite = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
-  const path6 = req.path;
-  if (!isWrite || !path6.startsWith("/api") || shouldIgnore(path6)) return next();
+  const path7 = req.path;
+  if (!isWrite || !path7.startsWith("/api") || shouldIgnore(path7)) return next();
   const startedAt = Date.now();
   res.on("finish", () => {
     const actor = requestActor(req);
     const status = res.statusCode >= 400 ? "failed" : "success";
     const body = sanitize2(req.body || {});
-    const eventType = classify(path6);
-    const title = routeTitle(req.method, path6);
-    const entityId = path6.split("/").filter(Boolean).pop() || null;
+    const eventType = classify(path7);
+    const title = routeTitle(req.method, path7);
+    const entityId = path7.split("/").filter(Boolean).pop() || null;
     const details = Object.entries(body).filter(([key]) => !["password", "smtpPass", "imapPass"].includes(key)).slice(0, 12).map(([key, value]) => `${key}: ${compact(value, 180)}`).join(" | ");
     void recordActivity({
       actorId: actor.id,
@@ -12066,7 +12086,7 @@ function activityAuditMiddleware(req, res, next) {
       eventType,
       action: title,
       description: `${status === "success" ? "Completed" : "Failed"} ${title}${details ? ` \u2014 ${details}` : ""}`,
-      route: path6,
+      route: path7,
       method: req.method,
       status,
       entityId: entityId && !entityId.startsWith("api") ? entityId : null,
@@ -12078,7 +12098,7 @@ function activityAuditMiddleware(req, res, next) {
       ipAddress: req.ip,
       userAgent: req.get("user-agent") || null
     });
-    if (status === "success" && !hasExistingEmail(path6) && (actor.id || actor.email) && req.user?.userType !== "admin") {
+    if (status === "success" && !hasExistingEmail(path7) && (actor.id || actor.email) && req.user?.userType !== "admin") {
       const label = EVENT_LABELS[eventType] || EVENT_LABELS.activity;
       void sendAdminActivityEmail({
         event: "activity",
@@ -12088,7 +12108,7 @@ function activityAuditMiddleware(req, res, next) {
         customer: { name: actor.name || void 0, email: actor.email || void 0 },
         details: [
           { label: "Action", value: title },
-          { label: "Route", value: path6 },
+          { label: "Route", value: path7 },
           { label: "Status", value: `${res.statusCode} ${status}` },
           { label: "Details", value: details || "No form fields supplied" }
         ]
@@ -12217,17 +12237,17 @@ function scanRequestBody(body, depth = 0) {
 init_schema();
 init_lead_service();
 init_db();
-import { desc as desc11, sql as sql13, eq as eq15, and as and11, count as count4, gte as gte2, inArray as inArray11, ilike as ilike2, or as or2, isNull as isNull2 } from "drizzle-orm";
+import { desc as desc12, sql as sql13, eq as eq16, and as and12, count as count4, gte as gte2, inArray as inArray11, ilike as ilike2, or as or2 } from "drizzle-orm";
 
 // server/creator-publishing.ts
 init_schema();
 init_db();
-import { and as and6, count as count3, desc as desc7, eq as eq9, gt, inArray as inArray6, sql as sql7 } from "drizzle-orm";
+import { and as and7, count as count3, desc as desc8, eq as eq10, gt, inArray as inArray6, sql as sql7 } from "drizzle-orm";
 import { mkdirSync, existsSync, unlinkSync } from "node:fs";
-import path from "node:path";
+import path2 from "node:path";
 import multer from "multer";
 import OpenAI3 from "openai";
-import { nanoid as nanoid3 } from "nanoid";
+import { nanoid as nanoid4 } from "nanoid";
 
 // server/ebook-design-generator.ts
 import OpenAI2 from "openai";
@@ -12921,10 +12941,1692 @@ ${storyWinks[stories.indexOf(story)]}`
   };
 }
 
+// server/notebook-studio.ts
+init_schema();
+import { and as and6, desc as desc7, eq as eq9 } from "drizzle-orm";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { nanoid as nanoid3 } from "nanoid";
+
+// shared/notebook-studio.ts
+var NOTEBOOK_INTRO_PAGE_OPTIONS = [
+  { value: "welcome", label: "Welcome to your journal", description: "A designed opening page with an encouraging note and space to make this journal yours." },
+  { value: "journal-guide", label: "How to use this journal", description: "A practical, illustrated guide for making the most of these pages." },
+  { value: "intentions", label: "Intentions & goals", description: "A guided page for choosing priorities and turning them into small steps." },
+  { value: "world-map", label: "World map", description: "A labeled study map with continent prompts." },
+  { value: "continents", label: "Continents", description: "Seven continent fact cards." },
+  { value: "planets", label: "Planets", description: "A solar-system diagram and planet notes." },
+  { value: "world-presidents", label: "World presidents", description: "A fill-in tracker for country leaders." },
+  { value: "current-affairs", label: "Current affairs", description: "A dated worksheet for headlines and sources." },
+  { value: "calendar-2027", label: "2027 calendar", description: "A full-year calendar with all dates." }
+];
+var NOTEBOOK_OUTRO_PAGE_OPTIONS = [
+  { value: "year-reflection", label: "Looking back", description: "A thoughtful review of highlights, lessons, and things to carry forward." },
+  { value: "future-letter", label: "A note to my future self", description: "A closing letter page with a place to set a date to revisit it." },
+  { value: "next-chapter", label: "The next chapter", description: "A forward-looking page for hopes, next steps, and a fresh start." }
+];
+var DEFAULT_NOTEBOOK_SETTINGS = {
+  subtitle: "",
+  authorName: "",
+  seriesName: "",
+  pageCount: 160,
+  trimSize: "6x9",
+  customWidth: 6,
+  customHeight: 9,
+  binding: "paperback",
+  ink: "black",
+  paper: "white",
+  bleed: false,
+  lineStyle: "classic",
+  introPages: [],
+  outroPages: [],
+  frontBlankPageCount: 0,
+  backBlankPageCount: 0,
+  worldLeaderEntries: [],
+  currentAffairsEntries: [],
+  diaryStartMonth: "",
+  lineSpacing: 0.32,
+  lineColor: "#9db5c8",
+  lineThickness: 0.55,
+  showPageNumbers: true,
+  ownershipPage: false,
+  showDateField: false,
+  showSubjectField: false,
+  headerText: "",
+  footerText: ""
+};
+function notebookIntroPageCount(settings) {
+  return Array.isArray(settings.introPages) ? settings.introPages.length : 0;
+}
+function notebookOutroPageCount(settings) {
+  return Array.isArray(settings.outroPages) ? settings.outroPages.length : 0;
+}
+function notebookBlankPageCount(settings) {
+  return Math.max(0, Number(settings.frontBlankPageCount) || 0) + Math.max(0, Number(settings.backBlankPageCount) || 0);
+}
+function notebookTotalPageCount(settings) {
+  return settings.pageCount + notebookIntroPageCount(settings) + notebookOutroPageCount({ outroPages: settings.outroPages || [] }) + notebookBlankPageCount({
+    frontBlankPageCount: settings.frontBlankPageCount || 0,
+    backBlankPageCount: settings.backBlankPageCount || 0
+  });
+}
+var NOTEBOOK_DIARY_LAST_DAY = Date.UTC(2027, 11, 31);
+function currentNotebookDiaryStartMonth(now = /* @__PURE__ */ new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+function notebookDiaryPageCount(startMonth) {
+  const match = /^(\d{4})-(\d{2})$/.exec(startMonth);
+  if (!match) return 0;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return 0;
+  const firstDay = Date.UTC(year, month - 1, 1);
+  if (firstDay > NOTEBOOK_DIARY_LAST_DAY) return 0;
+  return Math.floor((NOTEBOOK_DIARY_LAST_DAY - firstDay) / 864e5) + 1;
+}
+function notebookDiaryPageDate(startMonth, pageNumber) {
+  const pageCount = notebookDiaryPageCount(startMonth);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount) return null;
+  const match = /^(\d{4})-(\d{2})$/.exec(startMonth);
+  if (!match) return null;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, pageNumber));
+  return date.toISOString().slice(0, 10);
+}
+var DEFAULT_NOTEBOOK_COVER = {
+  style: "minimal",
+  background: "#173b4a",
+  accent: "#d8a85c",
+  description: "",
+  backDescription: "",
+  frontImageUrl: ""
+};
+
+// server/notebook-studio.ts
+init_db();
+
+// server/notebook-pdf.ts
+import { deflateSync, inflateSync } from "node:zlib";
+var POINTS_PER_INCH = 72;
+var BLEED_INCHES = 0.125;
+function notebookTrim(settings) {
+  if (settings.trimSize === "custom") {
+    return { width: Number(settings.customWidth), height: Number(settings.customHeight) };
+  }
+  const [width, height] = settings.trimSize.split("x").map(Number);
+  return { width, height };
+}
+function notebookSpineWidth(settings) {
+  const factor = settings.ink === "color" ? 2347e-6 : settings.paper === "cream" ? 25e-4 : 2252e-6;
+  return notebookTotalPageCount(settings) * factor;
+}
+function pageLimit(settings, width, height) {
+  const largeTrim = width >= 8 && height >= 10;
+  if (settings.paper === "cream" && settings.ink === "black") return largeTrim ? 730 : 828;
+  return largeTrim ? 780 : 828;
+}
+function validateNotebook(title, settings, files) {
+  const { width, height } = notebookTrim(settings);
+  const totalPages = notebookTotalPageCount(settings);
+  const introPages = notebookIntroPageCount(settings);
+  const outroPages = notebookOutroPageCount(settings);
+  const blankPages = notebookBlankPageCount(settings);
+  const frontBlanks = settings.frontBlankPageCount || 0;
+  const backBlanks = settings.backBlankPageCount || 0;
+  const items = [];
+  const supportedTrims = /* @__PURE__ */ new Set(["5x8", "5.5x8.5", "6x9", "8.27x11.69"]);
+  const exactTrimSupported = settings.trimSize !== "custom" && supportedTrims.has(settings.trimSize);
+  items.push({
+    status: title.trim().length >= 2 ? "ready" : "failed",
+    label: "Book title",
+    message: title.trim().length >= 2 ? "A title is set." : "Enter a title with at least two characters."
+  });
+  const minimumPages = settings.binding === "hardcover" ? 75 : 24;
+  const maxPages = pageLimit(settings, width, height);
+  const validPageCount = Number.isInteger(totalPages) && totalPages >= minimumPages && totalPages <= maxPages;
+  items.push({
+    status: validPageCount ? "ready" : "failed",
+    label: "Page count",
+    message: validPageCount ? `${totalPages} physical pages: ${frontBlanks} front blank, ${introPages} introductory, ${settings.pageCount} writing, ${outroPages} closing, and ${backBlanks} end blank. This is within the ${minimumPages}\u2013${maxPages} page range for this print selection.` : `${settings.binding} books at this trim and print selection allow ${minimumPages}\u2013${maxPages} total pages; the project is set to ${totalPages}.`
+  });
+  const addReferenceCheck = (enabled, label, entries, requiredFields) => {
+    if (!enabled) return;
+    const populatedEntries = entries.filter((entry) => Object.values(entry).some(Boolean));
+    const incomplete = populatedEntries.some((entry) => requiredFields.some((field) => !entry[field]));
+    items.push({
+      status: incomplete ? "warning" : populatedEntries.length ? "ready" : "warning",
+      label: `${label} references`,
+      message: incomplete ? "Some entries are missing a date, source, or key reference details. Complete and fact-check them before publishing." : populatedEntries.length ? `${populatedEntries.length} publisher-supplied entries include the details needed for a sourced reference page. Recheck them before release.` : "No live facts are prefilled. Add dated, sourced entries in the editor or keep the page as a guided research worksheet."
+    });
+  };
+  addReferenceCheck(
+    settings.introPages.includes("world-presidents"),
+    "World leader",
+    settings.worldLeaderEntries || [],
+    ["country", "leader", "office", "checkedDate", "source"]
+  );
+  addReferenceCheck(
+    settings.introPages.includes("current-affairs"),
+    "Current affairs",
+    settings.currentAffairsEntries || [],
+    ["headline", "date", "source", "whyItMatters"]
+  );
+  const dimsValid = Number.isFinite(width) && Number.isFinite(height) && width >= 4 && width <= 8.5 && height >= 6 && height <= 11.69;
+  items.push({
+    status: dimsValid ? exactTrimSupported ? "ready" : "warning" : "failed",
+    label: "Trim size",
+    message: !dimsValid ? "KDP paperback trim dimensions must be 4\u20138.5 inches wide and 6\u201311.69 inches high." : exactTrimSupported ? `${width.toFixed(2)} \xD7 ${height.toFixed(2)} inches is a listed KDP trim size.` : settings.trimSize === "custom" && Math.abs(width - 8.3) < 0.05 && Math.abs(height - 11.6) < 0.1 ? "8.3 \xD7 11.6 inches is not an exact KDP trim preset. A4 (8.27 \xD7 11.69 inches) is supported and is the closest option." : "This custom trim is within the KDP paperback dimension limits, but it is not a listed KDP preset. Verify it in KDP before upload."
+  });
+  const minGutter = totalPages <= 150 ? 0.375 : totalPages <= 300 ? 0.5 : totalPages <= 500 ? 0.625 : totalPages <= 700 ? 0.75 : 0.875;
+  const insideMargin = minGutter + 0.05;
+  const gutterValid = width - insideMargin - 0.375 >= 2.25;
+  items.push({
+    status: gutterValid ? "ready" : "failed",
+    label: "Margins and gutter",
+    message: gutterValid ? `The inside margin uses a ${minGutter.toFixed(3)} inch minimum gutter allowance for this page count, with extra writing clearance.` : "The selected trim does not leave enough writing area after the required inside gutter."
+  });
+  items.push({
+    status: settings.binding === "paperback" ? "ready" : "manual",
+    label: "Binding",
+    message: settings.binding === "paperback" ? "Paperback full-wrap cover dimensions can be calculated from KDP's published spine formula." : `${settings.binding} is not generated as a paperback wrap. Interior PDF is available; create and check its cover with the selected printer.`
+  });
+  const spineWidth = notebookSpineWidth(settings);
+  const coverWidth = settings.binding === "paperback" && dimsValid ? 2 * width + spineWidth + 2 * BLEED_INCHES : null;
+  const coverHeight = settings.binding === "paperback" && dimsValid ? height + 2 * BLEED_INCHES : null;
+  if (settings.binding === "paperback") {
+    const coverDimensionsSupported = totalPages >= 24 && spineWidth > 0;
+    items.push({
+      status: coverDimensionsSupported ? "ready" : "failed",
+      label: "Cover wrap",
+      message: coverDimensionsSupported ? `Calculated from KDP's published paperback formula: ${coverWidth.toFixed(4)} \xD7 ${coverHeight.toFixed(4)} inches; spine ${spineWidth.toFixed(4)} inches, with 0.125 inch cover bleed.` : "The cover wrap cannot be calculated until the trim and page count are valid."
+    });
+  }
+  items.push({
+    status: files.interiorExists ? "ready" : "warning",
+    label: "Interior PDF",
+    message: files.interiorExists ? "The generated interior file is available." : "Generate the interior PDF to complete file checks."
+  });
+  if (settings.binding === "paperback") {
+    items.push({
+      status: files.coverExists ? "ready" : "warning",
+      label: "Full-wrap cover PDF",
+      message: files.coverExists ? "The generated cover file is available." : "Generate the cover PDF to complete file checks."
+    });
+  }
+  items.push({
+    status: "manual",
+    label: "Amazon review",
+    message: "These are technical checks only. Review the files in KDP's Print Previewer; Amazon makes the final acceptance decision."
+  });
+  const hasFailure = items.some((item) => item.status === "failed");
+  const hasWarning = items.some((item) => item.status === "warning");
+  const hasManual = items.some((item) => item.status === "manual");
+  const status = hasFailure ? "failed" : hasWarning ? "warning" : hasManual ? "manual" : "ready";
+  return {
+    status,
+    checkedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    pageCount: totalPages,
+    writingPageCount: settings.pageCount,
+    introPageCount: introPages,
+    outroPageCount: outroPages,
+    blankPageCount: blankPages,
+    trimWidth: width,
+    trimHeight: height,
+    coverWidth,
+    coverHeight,
+    items,
+    disclaimer: "A passing report is not a guarantee of KDP acceptance or publication. Always inspect the final files in KDP's Print Previewer."
+  };
+}
+function inch(value) {
+  return value * POINTS_PER_INCH;
+}
+function safeColor(value, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+}
+function rgb(color) {
+  const value = safeColor(color, "#000000").slice(1);
+  const components = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16) / 255);
+  return components.map((component) => component.toFixed(3)).join(" ");
+}
+function pdfText(value) {
+  return String(value ?? "").replace(/[^\x20-\xFF]/g, "?").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/[\r\n\t]/g, " ");
+}
+function textCommand(text3, x, y, size = 9, font = "F1", color = "0.18 0.22 0.26") {
+  const safe = pdfText(text3).slice(0, 240);
+  return safe ? `BT /${font} ${size.toFixed(2)} Tf ${color} rg 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (${safe}) Tj ET
+` : "";
+}
+function lineCommand(x1, y1, x2, y2, color, thickness) {
+  return `${rgb(color)} RG ${Math.max(0.2, Math.min(3, thickness)).toFixed(2)} w ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S
+`;
+}
+function pdfCirclePath(x, y, radius) {
+  const k = radius * 0.55228475;
+  return `${(x + radius).toFixed(2)} ${y.toFixed(2)} m ${(x + radius).toFixed(2)} ${(y + k).toFixed(2)} ${(x + k).toFixed(2)} ${(y + radius).toFixed(2)} ${x.toFixed(2)} ${(y + radius).toFixed(2)} c ${(x - k).toFixed(2)} ${(y + radius).toFixed(2)} ${(x - radius).toFixed(2)} ${(y + k).toFixed(2)} ${(x - radius).toFixed(2)} ${y.toFixed(2)} c ${(x - radius).toFixed(2)} ${(y - k).toFixed(2)} ${(x - k).toFixed(2)} ${(y - radius).toFixed(2)} ${x.toFixed(2)} ${(y - radius).toFixed(2)} c ${(x + k).toFixed(2)} ${(y - radius).toFixed(2)} ${(x + radius).toFixed(2)} ${(y - k).toFixed(2)} ${(x + radius).toFixed(2)} ${y.toFixed(2)} c`;
+}
+function addCoverMotif(parts, style, accent, left, bottom, width, height) {
+  const cx = left + width / 2;
+  const cy = bottom + height * 0.77;
+  const radius = Math.min(width * 0.24, height * 0.12);
+  const color = rgb(accent);
+  parts.push(`${color} RG 1.8 w
+`);
+  if (style === "colorful") {
+    for (const [x, y, r] of [
+      [cx - radius * 0.6, cy, radius * 0.75],
+      [cx + radius * 0.6, cy, radius * 0.75],
+      [cx, cy + radius * 0.8, radius * 0.75]
+    ]) parts.push(`${color} rg ${pdfCirclePath(x, y, r)} f
+`);
+  } else if (style === "business" || style === "education") {
+    for (let index2 = 0; index2 < 5; index2++) {
+      const lineWidth = width * (0.24 + index2 * 0.055);
+      const y = cy - radius * 0.8 + index2 * radius * 0.4;
+      parts.push(lineCommand(cx - lineWidth / 2, y, cx + lineWidth / 2, y, accent, 3));
+    }
+  } else if (style === "botanical") {
+    parts.push(lineCommand(cx, cy - radius, cx, cy + radius, accent, 2.5));
+    for (const direction of [-1, 1]) {
+      for (let index2 = 0; index2 < 3; index2++) {
+        const y = cy - radius * 0.45 + index2 * radius * 0.65;
+        const x = cx + direction * radius * 0.7;
+        parts.push(`${pdfCirclePath(x, y, radius * 0.24)} S
+`);
+        parts.push(lineCommand(cx, y - radius * 0.08, x - direction * radius * 0.2, y + radius * 0.12, accent, 1.1));
+      }
+    }
+  } else if (style === "space") {
+    parts.push(`${pdfCirclePath(cx, cy, radius * 0.4)} f
+`);
+    parts.push(`${pdfCirclePath(cx, cy, radius * 0.95)} S
+`);
+    parts.push(`${pdfCirclePath(cx, cy, radius * 1.3)} S
+`);
+    parts.push(`${color} rg ${pdfCirclePath(cx + radius * 0.88, cy + radius * 0.4, radius * 0.08)} f
+`);
+  } else if (style === "luxury") {
+    parts.push(`${pdfCirclePath(cx, cy, radius)} S
+`);
+    parts.push(`${pdfCirclePath(cx, cy, radius * 0.78)} S
+`);
+    parts.push(lineCommand(cx - radius * 0.55, cy, cx + radius * 0.55, cy, accent, 1));
+    parts.push(lineCommand(cx, cy - radius * 0.55, cx, cy + radius * 0.55, accent, 1));
+  } else if (style === "technology") {
+    parts.push(`${pdfCirclePath(cx, cy, radius)} S
+`);
+    parts.push(`${pdfCirclePath(cx, cy, radius * 0.68)} S
+`);
+    parts.push(lineCommand(cx - radius * 1.2, cy, cx + radius * 1.2, cy, accent, 1));
+    parts.push(lineCommand(cx, cy - radius * 1.2, cx, cy + radius * 1.2, accent, 1));
+    parts.push(`${color} rg ${pdfCirclePath(cx, cy, radius * 0.08)} f
+`);
+  } else {
+    parts.push(`${pdfCirclePath(cx, cy, radius)} S
+`);
+    parts.push(`${pdfCirclePath(cx, cy, radius * 0.7)} S
+`);
+    parts.push(lineCommand(cx - radius * 1.2, cy, cx + radius * 1.2, cy, accent, 1));
+    parts.push(lineCommand(cx, cy - radius * 1.2, cx, cy + radius * 1.2, accent, 1));
+  }
+}
+function readableTextColor(hex) {
+  const value = safeColor(hex, "#173b4a").slice(1);
+  const channels = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16) / 255);
+  const luminance = channels.reduce((total, component, index2) => {
+    const linear = component <= 0.04045 ? component / 12.92 : ((component + 0.055) / 1.055) ** 2.4;
+    return total + linear * [0.2126, 0.7152, 0.0722][index2];
+  }, 0);
+  return luminance > 0.42 ? "0.10 0.12 0.13" : "1 1 1";
+}
+function wrapPdfText(value, maxLength, maxLines) {
+  const lines = [];
+  let line = "";
+  for (const word of pdfText(value).split(/\s+/)) {
+    if (!word) continue;
+    if (line && (line + " " + word).length > maxLength) {
+      lines.push(line);
+      line = word;
+      if (lines.length >= maxLines) break;
+    } else {
+      line = line ? `${line} ${word}` : word;
+    }
+  }
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines;
+}
+function gutterMargin(pageCount) {
+  return pageCount <= 150 ? 0.375 : pageCount <= 300 ? 0.5 : pageCount <= 500 ? 0.625 : pageCount <= 700 ? 0.75 : 0.875;
+}
+function buildPdf(objects, root = 1) {
+  const header = Buffer.from("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n", "latin1");
+  const chunks = [header];
+  const offsets = [0];
+  let byteLength = header.length;
+  objects.forEach((object, index2) => {
+    offsets.push(byteLength);
+    const prefix = Buffer.from(`${index2 + 1} 0 obj
+`, "ascii");
+    const suffix = Buffer.from("\nendobj\n", "ascii");
+    chunks.push(prefix, object, suffix);
+    byteLength += prefix.length + object.length + suffix.length;
+  });
+  const xrefOffset = byteLength;
+  const xref = [`xref
+0 ${objects.length + 1}
+`, "0000000000 65535 f \n"];
+  for (let index2 = 1; index2 < offsets.length; index2++) xref.push(`${String(offsets[index2]).padStart(10, "0")} 00000 n 
+`);
+  const trailer = `trailer
+<< /Size ${objects.length + 1} /Root ${root} 0 R >>
+startxref
+${xrefOffset}
+%%EOF
+`;
+  chunks.push(Buffer.from(xref.join("") + trailer, "ascii"));
+  return Buffer.concat(chunks);
+}
+function streamObject(data, dictionary = "") {
+  const content = typeof data === "string" ? Buffer.from(data, "latin1") : data;
+  return Buffer.concat([
+    Buffer.from(`<< /Length ${content.length}${dictionary} >>
+stream
+`, "ascii"),
+    content,
+    Buffer.from("\nendstream", "ascii")
+  ]);
+}
+function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight, yTop, yBottom) {
+  const parts = [];
+  let pageContentTop = yTop;
+  const isDiary = settings.lineStyle === "diary";
+  if (!isDiary && pageNumber === 1 && settings.ownershipPage) {
+    parts.push(textCommand(title, inch(xLeft), inch(height - 1.35), 17, "F2", "0.12 0.24 0.29"));
+    parts.push(textCommand("This journal belongs to", inch(xLeft), inch(height - 2.5), 10));
+    parts.push(lineCommand(inch(xLeft), inch(height - 2.72), inch(xRight), inch(height - 2.72), settings.lineColor, settings.lineThickness));
+    parts.push(textCommand(settings.authorName || "Write your name here", inch(xLeft), inch(height - 3.1), 9, "F1", "0.36 0.39 0.41"));
+    parts.push(lineCommand(inch(xLeft), inch(height - 3.32), inch(xRight), inch(height - 3.32), settings.lineColor, settings.lineThickness));
+    pageContentTop = Math.min(pageContentTop, height - 3.75);
+  }
+  if (isDiary) {
+    const isoDate = notebookDiaryPageDate(settings.diaryStartMonth, pageNumber);
+    if (isoDate) {
+      const date = /* @__PURE__ */ new Date(`${isoDate}T12:00:00.000Z`);
+      const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(date);
+      const fullDate = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC"
+      }).format(date);
+      parts.push(textCommand(weekday, inch(xLeft), inch(height - 0.66), 8, "F2", "0.32 0.36 0.40"));
+      parts.push(textCommand(fullDate, inch(xLeft), inch(height - 1.02), 15, "F2", "0.12 0.24 0.29"));
+      parts.push(lineCommand(inch(xLeft), inch(height - 1.16), inch(xRight), inch(height - 1.16), settings.lineColor, settings.lineThickness));
+      pageContentTop = Math.min(pageContentTop, height - 1.38);
+    }
+  }
+  if (settings.headerText) {
+    parts.push(textCommand(settings.headerText, inch(xLeft), inch(height - 0.42), 8, "F2"));
+    if (!isDiary) pageContentTop = Math.min(pageContentTop, height - 0.78);
+  }
+  if (!isDiary && (settings.showDateField || settings.showSubjectField)) {
+    const rowY = height - 0.72;
+    let x = xLeft;
+    if (settings.showDateField) {
+      parts.push(textCommand("Date", inch(x), inch(rowY), 7, "F2", "0.32 0.36 0.40"));
+      x += Math.min(1.8, (xRight - xLeft) * 0.32);
+      parts.push(lineCommand(inch(x), inch(rowY - 0.04), inch(Math.min(xRight, x + 0.95)), inch(rowY - 0.04), settings.lineColor, settings.lineThickness));
+      x += 1.15;
+    }
+    if (settings.showSubjectField) {
+      parts.push(textCommand("Subject", inch(x), inch(rowY), 7, "F2", "0.32 0.36 0.40"));
+      x += 0.48;
+      parts.push(lineCommand(inch(x), inch(rowY - 0.04), inch(xRight), inch(rowY - 0.04), settings.lineColor, settings.lineThickness));
+    }
+    pageContentTop = Math.min(pageContentTop, rowY - 0.24);
+  }
+  if (settings.footerText) {
+    parts.push(textCommand(settings.footerText, inch(xLeft), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+  }
+  if (settings.showPageNumbers) {
+    parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+  }
+  const lineBottom = Math.max(yBottom, 0.67);
+  const availableHeight = pageContentTop - lineBottom;
+  const style = settings.lineStyle;
+  if (style === "graph") {
+    const spacing = Math.max(0.16, Math.min(0.6, settings.lineSpacing));
+    for (let x = xLeft; x <= xRight + 1e-3; x += spacing) {
+      parts.push(lineCommand(inch(x), inch(lineBottom), inch(x), inch(pageContentTop), settings.lineColor, settings.lineThickness * 0.65));
+    }
+    for (let y = lineBottom; y <= pageContentTop + 1e-3; y += spacing) {
+      parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness * 0.65));
+    }
+  } else if (style === "dot") {
+    const spacing = Math.max(0.16, Math.min(0.6, settings.lineSpacing));
+    const dotSize = Math.max(0.45, settings.lineThickness);
+    parts.push(`${rgb(settings.lineColor)} rg
+`);
+    for (let x = xLeft; x <= xRight; x += spacing) {
+      for (let y = lineBottom; y <= pageContentTop; y += spacing) {
+        parts.push(`${inch(x).toFixed(2)} ${inch(y).toFixed(2)} ${dotSize.toFixed(2)} ${dotSize.toFixed(2)} re f
+`);
+      }
+    }
+  } else if (style === "lined-journal") {
+    const spacing = Math.max(0.16, Math.min(0.75, settings.lineSpacing));
+    for (let y = pageContentTop - spacing; y >= lineBottom; y -= spacing) {
+      parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
+    }
+  } else {
+    const spacingForStyle = style === "wide" ? Math.max(settings.lineSpacing, 0.38) : style === "college" ? Math.min(settings.lineSpacing, 0.3) : settings.lineSpacing;
+    const spacing = Math.max(0.2, Math.min(0.75, spacingForStyle));
+    let lineIndex = 0;
+    for (let y = pageContentTop - spacing; y >= lineBottom && lineIndex < 70; y -= spacing) {
+      parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
+      if (style === "business" && lineIndex % 4 === 0) {
+        parts.push(lineCommand(inch(xLeft), inch(y - spacing * 0.13), inch(xRight), inch(y - spacing * 0.13), settings.lineColor, settings.lineThickness * 0.5));
+      }
+      lineIndex += 1;
+    }
+  }
+  return parts.join("");
+}
+function introText(parts, text3, x, y, size = 8, bold = false, color = "0.20 0.26 0.24") {
+  parts.push(textCommand(text3, inch(x), inch(y), size, bold ? "F2" : "F1", color));
+}
+function introRule(parts, x1, y1, x2, y2, color, thickness = 0.6) {
+  parts.push(lineCommand(inch(x1), inch(y1), inch(x2), inch(y2), color, thickness));
+}
+function introBox(parts, x, y, width, height, color, thickness = 0.6) {
+  parts.push(`${rgb(color)} RG ${thickness.toFixed(2)} w ${inch(x).toFixed(2)} ${inch(y).toFixed(2)} ${inch(width).toFixed(2)} ${inch(height).toFixed(2)} re S
+`);
+}
+function introPolygon(parts, points, x, top, width, height, fill, stroke) {
+  if (points.length < 3) return;
+  const [first, ...rest] = points;
+  const path7 = [
+    `${inch(x + first[0] * width).toFixed(2)} ${inch(top - first[1] * height).toFixed(2)} m`,
+    ...rest.map(([px, py]) => `${inch(x + px * width).toFixed(2)} ${inch(top - py * height).toFixed(2)} l`),
+    "h"
+  ].join(" ");
+  parts.push(`${rgb(fill)} rg ${rgb(stroke)} RG 0.5 w ${path7} B
+`);
+}
+function introHeading(parts, title, subtitle, x, top, right, accent) {
+  introText(parts, title, x, top - 0.3, 15, true, "0.16 0.24 0.22");
+  introText(parts, subtitle, x, top - 0.52, 7.2, false, "0.40 0.43 0.40");
+  introRule(parts, x, top - 0.68, right, top - 0.68, "#dedfd4", 0.7);
+  introRule(parts, x, top - 0.68, x + Math.min(0.72, (right - x) * 0.22), top - 0.68, accent, 2.1);
+  const markX = right - 0.11;
+  const markY = top - 0.31;
+  parts.push(`${rgb(accent)} RG 0.75 w ${pdfCirclePath(inch(markX), inch(markY), inch(0.09))} S
+`);
+  parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(markX), inch(markY), inch(0.025))} f
+`);
+}
+function introSunburst(parts, cx, cy, radius, accent) {
+  parts.push(`${rgb(accent)} RG 0.85 w ${pdfCirclePath(inch(cx), inch(cy), inch(radius))} S
+`);
+  parts.push(`${rgb(accent)} RG 0.5 w ${pdfCirclePath(inch(cx), inch(cy), inch(radius * 0.72))} S
+`);
+  for (let index2 = 0; index2 < 12; index2++) {
+    const angle = index2 * Math.PI / 6;
+    const inner = radius * 1.12;
+    const outer = radius * (index2 % 3 === 0 ? 1.42 : 1.28);
+    introRule(
+      parts,
+      cx + Math.cos(angle) * inner,
+      cy + Math.sin(angle) * inner,
+      cx + Math.cos(angle) * outer,
+      cy + Math.sin(angle) * outer,
+      accent,
+      0.8
+    );
+  }
+  parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(cx), inch(cy), inch(radius * 0.12))} f
+`);
+}
+function notebookIntroPage(type, settings, width, height, left, right, top, bottom) {
+  const parts = [];
+  const x = left;
+  const pageWidth = right - left;
+  const accent = settings.ink === "color" ? settings.lineColor : "#64716b";
+  const pale = settings.ink === "color" ? "#e8efeb" : "#eeeeeb";
+  const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
+  const contentTop = top - 0.76;
+  const contentHeight = contentTop - bottom - 0.1;
+  if (type === "welcome") {
+    introText(parts, "A JOURNAL FOR YOUR NEXT CHAPTER", x, contentTop - 0.05, 6.2, true, "0.42 0.49 0.43");
+    introSunburst(parts, x + pageWidth / 2, contentTop - 1.17, Math.min(0.34, pageWidth * 0.085), accent);
+    introText(parts, "A place to pause.", x, contentTop - 2.12, 21, true, "0.16 0.24 0.22");
+    introText(parts, "A place to begin again.", x, contentTop - 2.48, 15, false, "0.35 0.43 0.37");
+    introText(parts, "Use these pages to notice what matters, make room for new ideas,", x, contentTop - 2.98, 8, false, textColor);
+    introText(parts, "and keep the thoughts you want to return to.", x, contentTop - 3.18, 8, false, textColor);
+    introBox(parts, x + 0.08, contentTop - 4.57, pageWidth - 0.16, 0.92, pale, 0.65);
+    introText(parts, "THIS JOURNAL BELONGS TO", x + 0.2, contentTop - 3.91, 6.4, true, textColor);
+    introRule(parts, x + 0.2, contentTop - 4.29, right - 0.12, contentTop - 4.29, accent, 0.55);
+    introText(parts, settings.authorName ? `Made for ${settings.authorName}` : "One thought I want to carry with me:", x + 0.08, bottom + 0.44, 7, false, textColor);
+    introRule(parts, x + 2.15, bottom + 0.42, right, bottom + 0.42, accent, 0.45);
+  } else if (type === "journal-guide") {
+    introHeading(parts, "MAKE THIS JOURNAL YOURS", "A simple rhythm for pages that grow with you.", x, top, right, accent);
+    const steps = [
+      ["01", "Begin anywhere", "A date, a sentence, or a quick sketch is enough to start."],
+      ["02", "Keep it honest", "Write for yourself. There is no perfect way to fill a page."],
+      ["03", "Return often", "Small notes made regularly become a record worth keeping."],
+      ["04", "Look back kindly", "Notice what changed, what stayed, and what you learned."]
+    ];
+    const gap = 0.15;
+    const cardH = Math.min(1.16, (contentHeight - 0.2 - gap * 3) / 4);
+    steps.forEach(([number, heading, detail], index2) => {
+      const cardTop = contentTop - index2 * (cardH + gap);
+      introBox(parts, x, cardTop - cardH, pageWidth, cardH, pale, 0.55);
+      parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(x + 0.28), inch(cardTop - cardH / 2), inch(0.13))} f
+`);
+      introText(parts, number, x + 0.19, cardTop - cardH / 2 - 0.025, 6, true, "1 1 1");
+      introText(parts, heading, x + 0.55, cardTop - 0.31, 8, true, textColor);
+      introText(parts, detail, x + 0.55, cardTop - 0.56, 6.2, false, "0.40 0.43 0.40");
+    });
+  } else if (type === "intentions") {
+    introHeading(parts, "SET YOUR INTENTIONS", "Choose a few things to give your time and attention to.", x, top, right, accent);
+    const prompts = ["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"];
+    const cardH = Math.min(1.63, (contentHeight - 0.35) / 3);
+    prompts.forEach((prompt, index2) => {
+      const cardTop = contentTop - index2 * (cardH + 0.14);
+      introBox(parts, x, cardTop - cardH, pageWidth, cardH, pale, 0.6);
+      introText(parts, `${String(index2 + 1).padStart(2, "0")}  ${prompt.toUpperCase()}`, x + 0.12, cardTop - 0.22, 6.1, true, textColor);
+      introRule(parts, x + 0.12, cardTop - 0.61, right - 0.12, cardTop - 0.61, accent, 0.45);
+      introRule(parts, x + 0.12, cardTop - 0.94, right - 0.12, cardTop - 0.94, "#cdd2c8", 0.45);
+      introRule(parts, x + 0.12, cardTop - 1.27, right - 0.12, cardTop - 1.27, "#cdd2c8", 0.45);
+    });
+  } else if (type === "world-map") {
+    introHeading(parts, "WORLD MAP", "Explore the continents and oceans. Add labels or notes.", x, top, right, accent);
+    const mapX = x + 0.03;
+    const mapTop = contentTop - 0.05;
+    const mapW = pageWidth - 0.06;
+    const mapH = contentHeight * 0.66;
+    const mapBottom = mapTop - mapH;
+    for (let index2 = 1; index2 < 6; index2++) {
+      const gx = mapX + mapW * index2 / 6;
+      introRule(parts, gx, mapBottom, gx, mapTop, pale, 0.5);
+    }
+    for (let index2 = 1; index2 < 4; index2++) {
+      const gy = mapBottom + mapH * index2 / 4;
+      introRule(parts, mapX, gy, mapX + mapW, gy, pale, 0.5);
+    }
+    const continents = [
+      [[0.05, 0.2], [0.09, 0.1], [0.2, 0.08], [0.26, 0.16], [0.24, 0.25], [0.18, 0.31], [0.16, 0.42], [0.11, 0.39], [0.09, 0.3]],
+      [[0.25, 0.43], [0.33, 0.42], [0.37, 0.51], [0.35, 0.64], [0.32, 0.78], [0.29, 0.92], [0.26, 0.83], [0.25, 0.67], [0.22, 0.55]],
+      [[0.45, 0.22], [0.49, 0.16], [0.53, 0.2], [0.54, 0.26], [0.51, 0.31], [0.47, 0.29]],
+      [[0.46, 0.34], [0.53, 0.31], [0.58, 0.38], [0.57, 0.53], [0.53, 0.66], [0.49, 0.62], [0.46, 0.5], [0.44, 0.41]],
+      [[0.54, 0.15], [0.64, 0.1], [0.76, 0.13], [0.9, 0.18], [0.94, 0.26], [0.87, 0.32], [0.79, 0.29], [0.75, 0.37], [0.67, 0.32], [0.59, 0.3], [0.55, 0.24]],
+      [[0.77, 0.63], [0.82, 0.6], [0.88, 0.64], [0.9, 0.72], [0.86, 0.79], [0.8, 0.76], [0.77, 0.69]],
+      [[0.26, 0.94], [0.38, 0.91], [0.51, 0.93], [0.65, 0.91], [0.76, 0.94], [0.69, 0.97], [0.42, 0.97]]
+    ];
+    continents.forEach((shape) => introPolygon(parts, shape, mapX, mapTop, mapW, mapH, settings.ink === "color" ? "#d7e3dc" : "#e2e2de", accent));
+    introText(parts, "NORTH AMERICA", mapX, mapBottom - 0.19, 5.5, true, textColor);
+    introText(parts, "SOUTH AMERICA", mapX + mapW * 0.2, mapBottom - 0.19, 5.5, true, textColor);
+    introText(parts, "EUROPE", mapX + mapW * 0.43, mapBottom - 0.19, 5.5, true, textColor);
+    introText(parts, "AFRICA", mapX + mapW * 0.57, mapBottom - 0.19, 5.5, true, textColor);
+    introText(parts, "ASIA", mapX + mapW * 0.69, mapBottom - 0.19, 5.5, true, textColor);
+    introText(parts, "AUSTRALIA", mapX + mapW * 0.8, mapBottom - 0.19, 5.5, true, textColor);
+    introText(parts, "Ocean or place to remember:", x, bottom + 0.45, 7, true, textColor);
+    introRule(parts, x + 1.55, bottom + 0.43, right, bottom + 0.43, accent, 0.5);
+  } else if (type === "continents") {
+    introHeading(parts, "THE CONTINENTS", "Seven regions to explore \u2014 add a country or a fact to each.", x, top, right, accent);
+    const names = ["ASIA", "AFRICA", "NORTH AMERICA", "SOUTH AMERICA", "ANTARCTICA", "EUROPE", "AUSTRALIA"];
+    const cols = 2;
+    const gap = 0.13;
+    const cardW = (pageWidth - gap) / cols;
+    const cardH = Math.min(1.3, (contentHeight - 0.12) / 4);
+    names.forEach((name, index2) => {
+      const col = index2 % cols;
+      const row = Math.floor(index2 / cols);
+      const cardX = x + col * (cardW + gap);
+      const cardTop = contentTop - row * (cardH + 0.13);
+      introBox(parts, cardX, cardTop - cardH, cardW, cardH, pale, 0.65);
+      introText(parts, name, cardX + 0.1, cardTop - 0.2, 7, true, textColor);
+      introText(parts, "Country / fact:", cardX + 0.1, cardTop - 0.43, 6, false, textColor);
+      introRule(parts, cardX + 0.1, cardTop - 0.57, cardX + cardW - 0.1, cardTop - 0.57, accent, 0.45);
+      introRule(parts, cardX + 0.1, cardTop - 0.82, cardX + cardW - 0.1, cardTop - 0.82, accent, 0.45);
+    });
+  } else if (type === "planets") {
+    introHeading(parts, "OUR SOLAR SYSTEM", "The eight planets, shown in order from the Sun.", x, top, right, accent);
+    const centerX = x + pageWidth * 0.5;
+    const centerY = contentTop - contentHeight * 0.43;
+    const orbitRadiusMax = Math.min(pageWidth * 0.41, contentHeight * 0.35);
+    const planets = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE"];
+    const colors = settings.ink === "color" ? ["#bd9060", "#d9b879", "#5c94a4", "#bd715d", "#ba8f65", "#d3bd7e", "#81aeb0", "#587da4"] : ["#999999", "#858585", "#707070", "#9b9b9b", "#686868", "#8a8a8a", "#777777", "#5e5e5e"];
+    planets.forEach((name, index2) => {
+      const radius = orbitRadiusMax * (0.18 + index2 * 0.105);
+      parts.push(`${rgb(pale)} RG 0.55 w ${pdfCirclePath(inch(centerX), inch(centerY), inch(radius))} S
+`);
+      const angle = -Math.PI / 2 + index2 * 0.9;
+      const planetX = centerX + Math.cos(angle) * radius;
+      const planetY = centerY + Math.sin(angle) * radius;
+      parts.push(`${rgb(colors[index2])} rg ${inch(planetX - 0.045).toFixed(2)} ${inch(planetY - 0.045).toFixed(2)} ${inch(0.09).toFixed(2)} ${inch(0.09).toFixed(2)} re f
+`);
+      introText(parts, name, x + index2 % 2 * pageWidth * 0.53, contentTop - contentHeight * 0.79 - Math.floor(index2 / 2) * 0.2, 6, true, textColor);
+      introRule(parts, x + 0.84 + index2 % 2 * pageWidth * 0.53, contentTop - contentHeight * 0.79 - Math.floor(index2 / 2) * 0.2 - 0.02, x + pageWidth * (index2 % 2 ? 0.97 : 0.48), contentTop - contentHeight * 0.79 - Math.floor(index2 / 2) * 0.2 - 0.02, accent, 0.4);
+    });
+    parts.push(`${rgb(settings.ink === "color" ? "#e5b45a" : "#777777")} rg ${inch(centerX - 0.1).toFixed(2)} ${inch(centerY - 0.1).toFixed(2)} ${inch(0.2).toFixed(2)} ${inch(0.2).toFixed(2)} re f
+`);
+  } else if (type === "world-presidents") {
+    introHeading(parts, "WORLD LEADERS", "Record each country's official title and verify names before publication.", x, top, right, accent);
+    introText(parts, "Not every country is led by a president. Use a dated official source for each entry.", x, contentTop - 0.04, 6.3, false, "0.40 0.43 0.40");
+    const tableTop = contentTop - 0.14;
+    const entries = (settings.worldLeaderEntries || []).slice(0, 8);
+    const rows = entries.length || 6;
+    const rowH = Math.min(0.84, (contentHeight - 0.52) / rows);
+    const columns = [x, x + pageWidth * 0.25, x + pageWidth * 0.49, x + pageWidth * 0.7, right];
+    ["COUNTRY", "LEADER", "OFFICE", "CHECKED \xB7 SOURCE"].forEach((label, index2) => {
+      introText(parts, label, columns[index2] + 0.04, tableTop - 0.18, 5.2, true, textColor);
+    });
+    introRule(parts, x, tableTop - 0.25, right, tableTop - 0.25, accent, 0.8);
+    for (let row = 0; row < rows; row++) {
+      const y = tableTop - 0.25 - rowH * (row + 1);
+      const entry = entries[row];
+      if (entry) {
+        [entry.country, entry.leader, entry.office].forEach((value, column) => {
+          wrapPdfText(value, column === 2 ? 17 : 19, 2).forEach((line, lineIndex) => {
+            introText(parts, line, columns[column] + 0.04, y + rowH - 0.18 - lineIndex * 0.12, 5.4, false, textColor);
+          });
+        });
+        wrapPdfText([entry.checkedDate, entry.source].filter(Boolean).join(" \xB7 "), 25, 2).forEach((line, index2) => {
+          introText(parts, line, columns[3] + 0.04, y + rowH - 0.18 - index2 * 0.12, 5, false, "0.35 0.39 0.36");
+        });
+      } else {
+        ["Country / region", "Leader's name", "Official title", "Date \xB7 source"].forEach((label, column) => {
+          introText(parts, label, columns[column] + 0.04, y + rowH - 0.23, 5.2, false, "0.45 0.48 0.44");
+        });
+      }
+      introRule(parts, x, y, right, y, pale, 0.6);
+    }
+    [columns[1], columns[2], columns[3]].forEach((columnX) => introRule(parts, columnX, tableTop - 0.02, columnX, tableTop - 0.25 - rowH * rows, pale, 0.5));
+    introText(
+      parts,
+      entries.length ? "Reference details supplied by the publisher. Recheck every source before release." : "Use official government websites or a trusted current reference. Add the check date beside every source.",
+      x,
+      bottom + 0.12,
+      5.7,
+      false,
+      "0.40 0.43 0.40"
+    );
+  } else if (type === "current-affairs") {
+    introHeading(parts, "CURRENT AFFAIRS", "A source-led record of events, context, and why they matter.", x, top, right, accent);
+    const cardGap = 0.14;
+    const entries = (settings.currentAffairsEntries || []).slice(0, 4);
+    const count5 = entries.length || 3;
+    const cardH = (contentHeight - cardGap * (count5 - 1) - 0.08) / count5;
+    for (let card = 0; card < count5; card++) {
+      const cardTop = contentTop - card * (cardH + cardGap);
+      const cardBottom = cardTop - cardH;
+      const entry = entries[card];
+      introBox(parts, x, cardBottom, pageWidth, cardH, pale, 0.6);
+      parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(x + 0.21), inch(cardTop - 0.2), inch(0.07))} f
+`);
+      introText(parts, String(card + 1).padStart(2, "0"), x + 0.185, cardTop - 0.22, 5, true, "1 1 1");
+      if (entry) {
+        wrapPdfText(entry.headline, Math.floor(pageWidth * 15), 2).forEach((line, index2) => {
+          introText(parts, line, x + 0.39, cardTop - 0.2 - index2 * 0.13, 6.2, true, textColor);
+        });
+        introText(
+          parts,
+          [entry.date, entry.location].filter(Boolean).join(" \xB7 ") || "DATE \xB7 LOCATION",
+          x + 0.12,
+          cardTop - 0.53,
+          5.4,
+          false,
+          "0.38 0.43 0.39"
+        );
+        introText(parts, "WHY IT MATTERS", x + 0.12, cardTop - 0.74, 5.1, true, textColor);
+        wrapPdfText(entry.whyItMatters || "Publisher note not supplied.", Math.floor(pageWidth * 15), 2).forEach((line, index2) => {
+          introText(parts, line, x + 0.12, cardTop - 0.91 - index2 * 0.12, 5.5, false, textColor);
+        });
+        introText(parts, "SOURCE", x + 0.12, cardBottom + 0.12, 5, true, textColor);
+        wrapPdfText(entry.source, Math.floor(pageWidth * 18), 2).forEach((line, index2) => {
+          introText(parts, line, x + 0.57, cardBottom + 0.12 - index2 * 0.11, 4.8, false, "0.35 0.39 0.36");
+        });
+      } else {
+        introText(parts, "HEADLINE", x + 0.39, cardTop - 0.2, 6, true, textColor);
+        introRule(parts, x + 0.91, cardTop - 0.21, right - 0.1, cardTop - 0.21, accent, 0.45);
+        introText(parts, "DATE", x + 0.12, cardTop - 0.43, 5.1, true, textColor);
+        introRule(parts, x + 0.45, cardTop - 0.44, x + 1.22, cardTop - 0.44, accent, 0.45);
+        introText(parts, "PLACE", x + 1.35, cardTop - 0.43, 5.1, true, textColor);
+        introRule(parts, x + 1.73, cardTop - 0.44, right - 0.1, cardTop - 0.44, accent, 0.45);
+        introText(parts, "SOURCE", x + 0.12, cardTop - 0.64, 5.1, true, textColor);
+        introRule(parts, x + 0.57, cardTop - 0.65, right - 0.1, cardTop - 0.65, accent, 0.45);
+        introText(parts, "Why it matters:", x + 0.12, cardBottom + 0.12, 5.1, false, textColor);
+        introRule(parts, x + 0.98, cardBottom + 0.1, right - 0.1, cardBottom + 0.1, "#cdd2c8", 0.45);
+      }
+    }
+  } else if (type === "calendar-2027") {
+    introHeading(parts, "2027 YEAR CALENDAR", "All twelve months \xB7 Monday to Sunday", x, top, right, accent);
+    const gridTop = contentTop - 0.02;
+    const cols = 4;
+    const rows = 3;
+    const gapX = 0.1;
+    const gapY = 0.11;
+    const moduleW = (pageWidth - gapX * (cols - 1)) / cols;
+    const moduleH = (contentHeight - gapY * (rows - 1)) / rows;
+    const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    for (let month = 0; month < 12; month++) {
+      const col = month % cols;
+      const row = Math.floor(month / cols);
+      const mx = x + col * (moduleW + gapX);
+      const mt = gridTop - row * (moduleH + gapY);
+      introBox(parts, mx, mt - moduleH, moduleW, moduleH, pale, 0.5);
+      introText(parts, monthNames[month], mx + 0.06, mt - 0.16, 7, true, textColor);
+      const cellW = (moduleW - 0.12) / 7;
+      const dayTop = mt - 0.3;
+      const weekLabels = ["M", "T", "W", "T", "F", "S", "S"];
+      weekLabels.forEach((day, index2) => introText(parts, day, mx + 0.06 + index2 * cellW + 0.01, dayTop, 5.1, true, "0.42 0.44 0.42"));
+      const firstDay = new Date(Date.UTC(2027, month, 1)).getUTCDay();
+      const offset = (firstDay + 6) % 7;
+      const daysInMonth = new Date(Date.UTC(2027, month + 1, 0)).getUTCDate();
+      const cellH = Math.min(0.14, (moduleH - 0.42) / 6);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const slot = offset + day - 1;
+        const dayX = mx + 0.06 + slot % 7 * cellW + 0.01;
+        const dayY = dayTop - 0.12 - Math.floor(slot / 7) * cellH;
+        introText(parts, String(day), dayX, dayY, 5.1, false, textColor);
+      }
+    }
+  }
+  return parts.join("");
+}
+function notebookOutroPage(type, settings, pageWidth, pageHeight, left, right, top, bottom) {
+  const parts = [];
+  const accent = settings.ink === "color" ? settings.lineColor : "#64716b";
+  const pale = settings.ink === "color" ? "#e8efeb" : "#eeeeeb";
+  const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
+  const contentTop = top - 0.8;
+  const contentHeight = contentTop - bottom - 0.1;
+  if (type === "year-reflection") {
+    introHeading(parts, "LOOKING BACK", "Give the season you have lived a thoughtful ending.", left, top, right, accent);
+    introSunburst(parts, right - 0.5, contentTop - 0.45, 0.22, accent);
+    const prompts = [
+      "A moment I want to remember",
+      "Something I learned about myself",
+      "A person or small thing I am grateful for",
+      "What I want to carry into the next chapter"
+    ];
+    const gap = 0.12;
+    const cardH = (contentHeight - 0.1 - gap * (prompts.length - 1)) / prompts.length;
+    prompts.forEach((prompt, index2) => {
+      const cardTop = contentTop - index2 * (cardH + gap);
+      introBox(parts, left, cardTop - cardH, right - left, cardH, pale, 0.55);
+      introText(parts, `${String(index2 + 1).padStart(2, "0")}  ${prompt.toUpperCase()}`, left + 0.12, cardTop - 0.2, 5.8, true, textColor);
+      introRule(parts, left + 0.12, cardTop - cardH + 0.15, right - 0.12, cardTop - cardH + 0.15, "#cdd2c8", 0.45);
+    });
+  } else if (type === "future-letter") {
+    introHeading(parts, "A NOTE TO MY FUTURE SELF", "Write a few honest words to meet again later.", left, top, right, accent);
+    introSunburst(parts, right - 0.47, contentTop - 0.42, 0.2, accent);
+    introText(parts, "Dear future me,", left + 0.04, contentTop - 0.55, 9, true, textColor);
+    const writingTop = contentTop - 0.9;
+    for (let index2 = 0; index2 < 11; index2++) {
+      const y = writingTop - index2 * Math.min(0.48, contentHeight * 0.057);
+      if (y > bottom + 0.72) introRule(parts, left, y, right, y, index2 % 3 === 2 ? accent : "#d3d6cc", index2 % 3 === 2 ? 0.5 : 0.38);
+    }
+    introText(parts, "OPEN THIS AGAIN ON", left, bottom + 0.42, 5.7, true, textColor);
+    introRule(parts, left + 1.08, bottom + 0.4, right, bottom + 0.4, accent, 0.55);
+  } else if (type === "next-chapter") {
+    introHeading(parts, "THE NEXT CHAPTER", "You do not need the whole plan. Choose your next kind step.", left, top, right, accent);
+    const prompts = [
+      ["01", "I hope to make more room for", "A person, practice, or possibility"],
+      ["02", "One step I can take soon", "Keep it small enough to begin"],
+      ["03", "A reminder for the days ahead", "Write something you will need to hear"]
+    ];
+    const gap = 0.16;
+    const cardH = (contentHeight - 0.16 - gap * 2) / prompts.length;
+    prompts.forEach(([number, heading, detail], index2) => {
+      const cardTop = contentTop - index2 * (cardH + gap);
+      introBox(parts, left, cardTop - cardH, right - left, cardH, pale, 0.6);
+      parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(left + 0.25), inch(cardTop - 0.26), inch(0.12))} f
+`);
+      introText(parts, number, left + 0.205, cardTop - 0.28, 5.3, true, "1 1 1");
+      introText(parts, heading, left + 0.5, cardTop - 0.25, 7, true, textColor);
+      introText(parts, detail, left + 0.5, cardTop - 0.46, 5.5, false, "0.4 0.43 0.4");
+      introRule(parts, left + 0.12, cardTop - cardH + 0.18, right - 0.12, cardTop - cardH + 0.18, "#cdd2c8", 0.45);
+    });
+  }
+  return parts.join("");
+}
+function createNotebookInteriorPdf(title, settings) {
+  const trim = notebookTrim(settings);
+  const pageWidth = trim.width + (settings.bleed ? BLEED_INCHES : 0);
+  const pageHeight = trim.height + (settings.bleed ? BLEED_INCHES * 2 : 0);
+  const introCount = settings.introPages?.length || 0;
+  const outroCount = notebookOutroPageCount(settings);
+  const frontBlankCount = settings.frontBlankPageCount || 0;
+  const backBlankCount = settings.backBlankPageCount || 0;
+  const introEndPage = frontBlankCount + introCount;
+  const writingEndPage = introEndPage + settings.pageCount;
+  const outroEndPage = writingEndPage + outroCount;
+  const totalPages = notebookTotalPageCount(settings);
+  const gutter = gutterMargin(totalPages);
+  const outer = 0.375;
+  const top = 0.55;
+  const bottom = 0.55;
+  const objects = [
+    Buffer.from("<< /Type /Catalog /Pages 2 0 R >>", "ascii"),
+    Buffer.alloc(0),
+    Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", "ascii"),
+    Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>", "ascii")
+  ];
+  const pageObjectNumbers = [];
+  for (let page2 = 1; page2 <= totalPages; page2++) {
+    const isOdd = page2 % 2 === 1;
+    const inside = gutter + 0.05;
+    const left = isOdd ? inside : outer;
+    const right = isOdd ? outer : inside;
+    const xLeft = left;
+    const xRight = pageWidth - right;
+    const yTop = pageHeight - top;
+    const introType = settings.introPages?.[page2 - frontBlankCount - 1];
+    const outroType = settings.outroPages?.[page2 - writingEndPage - 1];
+    const content = page2 <= frontBlankCount || page2 > outroEndPage ? "" : page2 <= introEndPage && introType ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : page2 <= writingEndPage ? fixedPageText(
+      settings,
+      title,
+      page2 - introEndPage,
+      pageWidth,
+      pageHeight,
+      xLeft,
+      xRight,
+      yTop,
+      bottom
+    ) : outroType ? notebookOutroPage(outroType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : "";
+    const pageObjectNumber = objects.length + 1;
+    const contentObjectNumber = pageObjectNumber + 1;
+    pageObjectNumbers.push(pageObjectNumber);
+    objects.push(Buffer.from(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`,
+      "ascii"
+    ));
+    objects.push(streamObject(content));
+  }
+  objects[1] = Buffer.from(
+    `<< /Type /Pages /Kids [${pageObjectNumbers.map((number) => `${number} 0 R`).join(" ")}] /Count ${totalPages} >>`,
+    "ascii"
+  );
+  return buildPdf(objects);
+}
+function xmlEscape(value) {
+  return String(value ?? "").replace(/[<>&"']/g, (character) => ({
+    "<": "&lt;",
+    ">": "&gt;",
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;"
+  })[character] || character);
+}
+function coverStyleColors(design) {
+  return {
+    background: safeColor(design.background, "#173b4a"),
+    accent: safeColor(design.accent, "#d8a85c")
+  };
+}
+function coverArtwork(settings, design) {
+  const width = 600;
+  const height = 840;
+  const { background, accent } = coverStyleColors(design);
+  const motif = design.style === "botanical" ? `<path d="M70 180 C180 90 250 190 270 320 M220 225 C150 190 120 160 112 122 M246 272 C320 245 360 195 368 146 M208 250 C162 270 130 304 120 347" fill="none" stroke="${accent}" stroke-width="5"/><circle cx="108" cy="118" r="18" fill="none" stroke="${accent}" stroke-width="4"/><circle cx="373" cy="141" r="20" fill="none" stroke="${accent}" stroke-width="4"/>` : design.style === "technology" || design.style === "space" ? `<circle cx="300" cy="245" r="98" fill="none" stroke="${accent}" stroke-width="2"/><circle cx="300" cy="245" r="138" fill="none" stroke="${accent}" stroke-width="1" opacity=".65"/><path d="M105 245 H495 M300 52 V438" stroke="${accent}" stroke-width="1" opacity=".5"/><circle cx="300" cy="245" r="9" fill="${accent}"/>` : design.style === "colorful" ? `<path d="M60 170 L300 80 L540 170 L480 290 L120 290 Z" fill="${accent}" opacity=".7"/><circle cx="300" cy="240" r="95" fill="none" stroke="${accent}" stroke-width="5"/><path d="M105 345 L495 115" stroke="${accent}" stroke-width="3" opacity=".6"/>` : `<rect x="93" y="96" width="414" height="340" rx="12" fill="none" stroke="${accent}" stroke-width="2"/><path d="M123 126 H477 M123 406 H477" stroke="${accent}" stroke-width="1" opacity=".6"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="600" height="840" fill="${background}"/><rect x="18" y="18" width="564" height="804" rx="4" fill="none" stroke="${accent}" stroke-width="2"/><g opacity=".92">${motif}</g></svg>`;
+}
+function createNotebookCoverSvg(title, settings, design) {
+  const { width, height } = notebookTrim(settings);
+  const { background, accent } = coverStyleColors(design);
+  const safeTitle = xmlEscape(title);
+  const subtitle = xmlEscape(settings.subtitle);
+  const author = xmlEscape(settings.authorName);
+  const series = xmlEscape(settings.seriesName);
+  const back = xmlEscape(design.backDescription);
+  const style = design.style || "minimal";
+  const motif = coverArtwork(settings, design).replace(/^<svg[^>]*>|<\/svg>$/g, "");
+  const imageUrl = /^\/uploads\/[A-Za-z0-9_-]{16,80}\.(?:png|jpe?g)$/i.test(design.frontImageUrl || "") ? xmlEscape(design.frontImageUrl) : "";
+  const fontFamily = style === "education" ? "Georgia,serif" : "Arial,sans-serif";
+  const imageMarkup = imageUrl ? `<image href="${imageUrl}" x="56" y="300" width="${width * 150 - 112}" height="${height * 150 * 0.38}" preserveAspectRatio="xMidYMid slice" opacity=".88"/>` : motif;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(width * 150)}" height="${Math.round(height * 150)}" viewBox="0 0 600 840"><defs><linearGradient id="paper" x2="1" y2="1"><stop stop-color="${background}"/><stop offset="1" stop-color="${background}"/></linearGradient></defs><rect width="600" height="840" fill="url(#paper)"/><rect x="20" y="20" width="560" height="800" fill="none" stroke="${accent}" stroke-width="2"/><g>${motif}</g><rect x="52" y="280" width="496" height="310" rx="8" fill="${background}" opacity=".7"/>${imageMarkup}<text x="300" y="635" fill="#ffffff" text-anchor="middle" font-family="${fontFamily}" font-size="36" font-weight="700">${safeTitle.slice(0, 70)}</text>${subtitle ? `<text x="300" y="682" fill="${accent}" text-anchor="middle" font-family="${fontFamily}" font-size="20">${subtitle.slice(0, 90)}</text>` : ""}${author ? `<text x="300" y="760" fill="#ffffff" text-anchor="middle" font-family="${fontFamily}" font-size="16">${author.slice(0, 70)}</text>` : ""}${series ? `<text x="300" y="110" fill="${accent}" text-anchor="middle" font-family="${fontFamily}" font-size="13" letter-spacing="2">${series.slice(0, 60)}</text>` : ""}${back ? `<text x="70" y="785" fill="${accent}" font-family="${fontFamily}" font-size="10">${back.slice(0, 55)}</text>` : ""}</svg>`;
+}
+function paeth(a, b, c) {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+}
+function decodePng(buffer) {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (buffer.length < 33 || !buffer.subarray(0, 8).equals(signature)) return null;
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let colorType = -1;
+  let bitDepth = 0;
+  let interlace = 1;
+  const idat = [];
+  while (offset + 12 <= buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    if (length > 32 * 1024 * 1024 || offset + 12 + length > buffer.length) return null;
+    const data = buffer.subarray(offset + 8, offset + 8 + length);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
+      interlace = data[12];
+    } else if (type === "IDAT") {
+      idat.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+    offset += 12 + length;
+  }
+  if (!width || !height || width * height > 2e7 || bitDepth !== 8 || interlace !== 0 || ![2, 6].includes(colorType)) return null;
+  const channels = colorType === 6 ? 4 : 3;
+  const stride = width * channels;
+  const inflated = inflateSync(Buffer.concat(idat), { maxOutputLength: height * (stride + 1) });
+  if (inflated.length !== height * (stride + 1)) return null;
+  const raw = Buffer.alloc(height * stride);
+  for (let y = 0; y < height; y++) {
+    const filter = inflated[y * (stride + 1)];
+    const row = inflated.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    for (let x = 0; x < stride; x++) {
+      const value = row[x];
+      const left = x >= channels ? raw[y * stride + x - channels] : 0;
+      const above = y > 0 ? raw[(y - 1) * stride + x] : 0;
+      const upperLeft = y > 0 && x >= channels ? raw[(y - 1) * stride + x - channels] : 0;
+      const filtered = filter === 0 ? value : filter === 1 ? value + left : filter === 2 ? value + above : filter === 3 ? value + Math.floor((left + above) / 2) : filter === 4 ? value + paeth(left, above, upperLeft) : NaN;
+      if (!Number.isFinite(filtered)) return null;
+      raw[y * stride + x] = filtered & 255;
+    }
+  }
+  const rgbData = Buffer.alloc(width * height * 3);
+  for (let pixel = 0; pixel < width * height; pixel++) {
+    const source = pixel * channels;
+    const target = pixel * 3;
+    const alpha = channels === 4 ? raw[source + 3] / 255 : 1;
+    for (let c = 0; c < 3; c++) rgbData[target + c] = Math.round(raw[source + c] * alpha + 255 * (1 - alpha));
+  }
+  return { width, height, data: deflateSync(rgbData), filter: "FlateDecode", colorSpace: "DeviceRGB" };
+}
+function decodeJpeg(buffer) {
+  if (buffer.length < 12 || buffer[0] !== 255 || buffer[1] !== 216) return null;
+  let offset = 2;
+  while (offset + 4 <= buffer.length) {
+    if (buffer[offset] !== 255) {
+      offset += 1;
+      continue;
+    }
+    while (offset < buffer.length && buffer[offset] === 255) offset++;
+    if (offset >= buffer.length) return null;
+    const marker = buffer[offset++];
+    if (marker === 217 || marker === 218) break;
+    if (marker === 1 || marker >= 208 && marker <= 215) continue;
+    if (offset + 2 > buffer.length) return null;
+    const segmentLength = buffer.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > buffer.length) return null;
+    if ([192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207].includes(marker)) {
+      if (segmentLength < 8) return null;
+      const height = buffer.readUInt16BE(offset + 3);
+      const width = buffer.readUInt16BE(offset + 5);
+      const components = buffer[offset + 7];
+      const colorSpace = components === 1 ? "DeviceGray" : components === 3 ? "DeviceRGB" : null;
+      if (!width || !height || width * height > 2e7 || !colorSpace) return null;
+      return {
+        width,
+        height,
+        data: buffer,
+        filter: "DCTDecode",
+        colorSpace
+      };
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+function readUploadedImage(raw) {
+  if (!raw) return null;
+  try {
+    return decodePng(raw) || decodeJpeg(raw);
+  } catch {
+    return null;
+  }
+}
+function createNotebookCoverPdf(title, settings, design, uploadedCoverBytes = null) {
+  if (settings.binding !== "paperback") throw new Error("A KDP paperback wrap is only generated for paperback projects.");
+  const trim = notebookTrim(settings);
+  const spine = notebookSpineWidth(settings);
+  const pageWidth = trim.width * 2 + spine + 2 * BLEED_INCHES;
+  const pageHeight = trim.height + 2 * BLEED_INCHES;
+  const left = BLEED_INCHES;
+  const spineX = left + trim.width;
+  const frontX = spineX + spine;
+  const topY = BLEED_INCHES + trim.height;
+  const { background, accent } = coverStyleColors(design);
+  const titleColor = readableTextColor(background);
+  const parts = [
+    `${rgb(background)} rg 0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)} re f
+`,
+    `${rgb(accent)} RG 1.2 w ${inch(left + 0.22).toFixed(2)} ${inch(0.22).toFixed(2)} ${inch(trim.width - 0.44).toFixed(2)} ${inch(trim.height - 0.44).toFixed(2)} re S
+`,
+    `${rgb(accent)} RG 1.2 w ${inch(frontX + 0.22).toFixed(2)} ${inch(0.22).toFixed(2)} ${inch(trim.width - 0.44).toFixed(2)} ${inch(trim.height - 0.44).toFixed(2)} re S
+`,
+    `${rgb(background)} rg ${inch(spineX).toFixed(2)} 0 ${inch(spine).toFixed(2)} ${inch(pageHeight).toFixed(2)} re f
+`
+  ];
+  const frontBottom = BLEED_INCHES;
+  const motifTop = frontBottom + trim.height * 0.62;
+  const hasFrontImage = Boolean(uploadedCoverBytes);
+  if (!hasFrontImage) addCoverMotif(parts, design.style, accent, frontX, frontBottom, trim.width, trim.height);
+  if (settings.seriesName) {
+    parts.push(textCommand(settings.seriesName, inch(frontX + 0.4), inch(topY - 0.72), 9, "F2", rgb(accent)));
+  }
+  if (design.description) {
+    parts.push(textCommand(design.description, inch(frontX + 0.4), inch(topY - 1), 7, "F1", rgb(accent)));
+  }
+  if (design.backDescription) {
+    const words = String(design.backDescription).slice(0, 800).split(/\s+/);
+    let line = "";
+    let y = inch(topY - 1.05);
+    for (const word of words) {
+      if ((line + " " + word).length > 42) {
+        parts.push(textCommand(line, inch(left + 0.4), y, 9, "F1", "0.10 0.12 0.14"));
+        y -= 15;
+        line = word;
+      } else line = line ? `${line} ${word}` : word;
+      if (y < inch(1.55)) break;
+    }
+    if (line && y >= inch(1.55)) parts.push(textCommand(line, inch(left + 0.4), y, 9, "F1", "0.10 0.12 0.14"));
+  }
+  parts.push(`${rgb(background)} rg ${inch(left + trim.width - 2.2).toFixed(2)} ${inch(0.35).toFixed(2)} ${inch(1.85).toFixed(2)} ${inch(1.15).toFixed(2)} re f
+`);
+  const image = readUploadedImage(uploadedCoverBytes);
+  const imageObjectNumber = image ? 5 : 0;
+  if (image) {
+    const panelW = trim.width - 0.8;
+    const panelH = trim.height * 0.22;
+    const scale = Math.min(panelW / image.width, panelH / image.height);
+    const drawW = image.width * scale;
+    const drawH = image.height * scale;
+    const drawX = frontX + (trim.width - drawW) / 2;
+    const drawY = motifTop + (trim.height * 0.22 - drawH) / 2;
+    parts.push(`q ${inch(drawW).toFixed(2)} 0 0 ${inch(drawH).toFixed(2)} ${inch(drawX).toFixed(2)} ${inch(drawY).toFixed(2)} cm /Im0 Do Q
+`);
+  }
+  const coverTitle = wrapPdfText(title, Math.max(18, Math.floor(trim.width * 7.5)), 2);
+  const titleY = inch(frontBottom + trim.height * (hasFrontImage ? 0.5 : 0.51));
+  coverTitle.forEach((line, index2) => {
+    parts.push(textCommand(line, inch(frontX + 0.4), titleY - index2 * 25, 20, "F2", titleColor));
+  });
+  if (settings.subtitle) {
+    parts.push(textCommand(settings.subtitle, inch(frontX + 0.4), titleY - coverTitle.length * 25 - 3, 11, "F1", rgb(accent)));
+  }
+  if (settings.authorName) {
+    parts.push(textCommand(settings.authorName, inch(frontX + 0.4), inch(frontBottom + 0.68), 10, "F1", titleColor));
+  }
+  parts.push(`${rgb(accent)} RG 1.4 w ${inch(frontX + 0.4).toFixed(2)} ${inch(frontBottom + trim.height * 0.44).toFixed(2)} m ${inch(frontX + trim.width - 0.4).toFixed(2)} ${inch(frontBottom + trim.height * 0.44).toFixed(2)} l S
+`);
+  if (notebookTotalPageCount(settings) >= 80 && spine >= 0.25) {
+    const spineTitle = pdfText(title).slice(0, 40);
+    parts.push(`q 0 1 -1 0 ${inch(spineX + spine * 0.72).toFixed(2)} ${inch(topY - 0.55).toFixed(2)} cm
+`);
+    parts.push(textCommand(spineTitle, 0, 0, 7, "F2", "1 1 1"));
+    parts.push("Q\n");
+  }
+  const objects = [
+    Buffer.from("<< /Type /Catalog /Pages 2 0 R >>", "ascii"),
+    Buffer.from("<< /Type /Pages /Kids [6 0 R] /Count 1 >>", "ascii"),
+    Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", "ascii"),
+    Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>", "ascii")
+  ];
+  if (image) objects.push(streamObject(image.data, `/Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /${image.colorSpace} /BitsPerComponent 8 /Filter /${image.filter}`));
+  const imageResources = image ? ` /XObject << /Im0 ${imageObjectNumber} 0 R >>` : "";
+  objects.push(Buffer.from(
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${imageResources} >> /Contents ${image ? 7 : 6} 0 R >>`,
+    "ascii"
+  ));
+  objects.push(streamObject(parts.join("")));
+  return buildPdf(objects);
+}
+
+// server/notebook-studio.ts
+var PROJECT_FILES_DIR = path.resolve(process.cwd(), ".private-notebook-files");
+var PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+var ADMIN_ROLES = /* @__PURE__ */ new Set(["admin", "store_manager", "moderator", "content_editor"]);
+var BINDINGS = /* @__PURE__ */ new Set(["paperback", "hardcover", "spiral"]);
+var INKS = /* @__PURE__ */ new Set(["black", "color"]);
+var PAPERS = /* @__PURE__ */ new Set(["white", "cream"]);
+var LINE_STYLES = /* @__PURE__ */ new Set([
+  "classic",
+  "wide",
+  "college",
+  "minimalist",
+  "lined-journal",
+  "business",
+  "daily",
+  "diary",
+  "meeting",
+  "study",
+  "dot",
+  "graph",
+  "premium",
+  "custom"
+]);
+var COVER_STYLES = /* @__PURE__ */ new Set([
+  "minimal",
+  "botanical",
+  "geometric",
+  "technology",
+  "business",
+  "space",
+  "education",
+  "luxury",
+  "colorful"
+]);
+var TRIM_PRESETS = /* @__PURE__ */ new Set([
+  "5x8",
+  "5.5x8.5",
+  "6x9",
+  "8.27x11.69"
+]);
+function isPublishingAdmin(user) {
+  return user?.userType === "admin" || ADMIN_ROLES.has(user?.role);
+}
+function requirePublishingAdmin(req, res, next) {
+  if (!req.isAuthenticated?.() || !req.user?.id) {
+    return res.status(401).json({ message: "Sign in to use Notebook Studio." });
+  }
+  if (!isPublishingAdmin(req.user)) {
+    return res.status(403).json({ message: "Publishing admin access required." });
+  }
+  next();
+}
+function cleanText(value, max, fallback = "") {
+  return String(value ?? fallback).replace(/\u0000/g, "").trim().slice(0, max);
+}
+function normalizeReferenceEntries(value, fields, label, limit) {
+  if (!Array.isArray(value) || value.length > limit) {
+    throw Object.assign(new Error(`${label} must be a list of up to ${limit} entries.`), { statusCode: 400 });
+  }
+  return value.map((entry, index2) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw Object.assign(new Error(`${label} entry ${index2 + 1} must be an object.`), { statusCode: 400 });
+    }
+    const cleaned = Object.fromEntries(
+      Object.entries(fields).map(([key, max]) => [key, cleanText(entry[key], max)])
+    );
+    for (const key of ["date", "checkedDate"]) {
+      const date = cleaned[key];
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw Object.assign(new Error(`${label} dates must use YYYY-MM-DD format.`), { statusCode: 400 });
+      }
+    }
+    return cleaned;
+  }).filter((entry) => Object.values(entry).some(Boolean));
+}
+function normalizeSettings(input, previous = DEFAULT_NOTEBOOK_SETTINGS) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw Object.assign(new Error("Notebook settings must be an object."), { statusCode: 400 });
+  }
+  const raw = input;
+  const settings = { ...previous };
+  if (raw.subtitle !== void 0) settings.subtitle = cleanText(raw.subtitle, 300);
+  if (raw.authorName !== void 0) settings.authorName = cleanText(raw.authorName, 160);
+  if (raw.seriesName !== void 0) settings.seriesName = cleanText(raw.seriesName, 160);
+  if (raw.pageCount !== void 0) {
+    const pages = Number(raw.pageCount);
+    if (!Number.isInteger(pages) || pages < 1 || pages > 828) {
+      throw Object.assign(new Error("Choose a whole-number page count from 1 to 828. KDP restrictions are shown in validation."), { statusCode: 400 });
+    }
+    settings.pageCount = pages;
+  }
+  if (raw.trimSize !== void 0) {
+    const trim = String(raw.trimSize);
+    if (trim !== "custom" && !TRIM_PRESETS.has(trim)) {
+      throw Object.assign(new Error("Choose a listed trim size or use the custom size option."), { statusCode: 400 });
+    }
+    settings.trimSize = trim;
+  }
+  for (const key of ["customWidth", "customHeight"]) {
+    if (raw[key] !== void 0) {
+      const value = Number(raw[key]);
+      if (!Number.isFinite(value) || value < 4 || value > 11.69) {
+        throw Object.assign(new Error("Custom trim dimensions must be between 4 and 11.69 inches."), { statusCode: 400 });
+      }
+      settings[key] = value;
+    }
+  }
+  if (raw.binding !== void 0) {
+    if (!BINDINGS.has(String(raw.binding))) throw Object.assign(new Error("Choose paperback, hardcover, or spiral binding."), { statusCode: 400 });
+    settings.binding = raw.binding;
+  }
+  if (raw.ink !== void 0) {
+    if (!INKS.has(String(raw.ink))) throw Object.assign(new Error("Choose black or premium color interior ink."), { statusCode: 400 });
+    settings.ink = raw.ink;
+  }
+  if (raw.paper !== void 0) {
+    if (!PAPERS.has(String(raw.paper))) throw Object.assign(new Error("Choose white or cream paper."), { statusCode: 400 });
+    settings.paper = raw.paper;
+  }
+  if (settings.ink === "color" && settings.paper === "cream") {
+    throw Object.assign(new Error("Color interiors use white paper. Choose white paper or switch the ink to black."), { statusCode: 400 });
+  }
+  if (raw.bleed !== void 0) settings.bleed = raw.bleed === true;
+  if (raw.lineStyle !== void 0) {
+    if (!LINE_STYLES.has(String(raw.lineStyle))) throw Object.assign(new Error("Choose a supported notebook interior style."), { statusCode: 400 });
+    settings.lineStyle = raw.lineStyle;
+  }
+  if (raw.introPages !== void 0) {
+    if (!Array.isArray(raw.introPages)) {
+      throw Object.assign(new Error("Choose introductory page designs from the available list."), { statusCode: 400 });
+    }
+    const allowedIntroPages = new Set(NOTEBOOK_INTRO_PAGE_OPTIONS.map((option) => option.value));
+    const requested = raw.introPages.map(String);
+    if (requested.some((page2) => !allowedIntroPages.has(page2)) || new Set(requested).size !== requested.length) {
+      throw Object.assign(new Error("One or more introductory page designs are not supported."), { statusCode: 400 });
+    }
+    settings.introPages = requested;
+  }
+  if (raw.outroPages !== void 0) {
+    if (!Array.isArray(raw.outroPages)) {
+      throw Object.assign(new Error("Choose closing page designs from the available list."), { statusCode: 400 });
+    }
+    const allowedOutroPages = new Set(NOTEBOOK_OUTRO_PAGE_OPTIONS.map((option) => option.value));
+    const requested = raw.outroPages.map(String);
+    if (requested.some((page2) => !allowedOutroPages.has(page2)) || new Set(requested).size !== requested.length) {
+      throw Object.assign(new Error("One or more closing page designs are not supported."), { statusCode: 400 });
+    }
+    settings.outroPages = requested;
+  }
+  for (const key of ["frontBlankPageCount", "backBlankPageCount"]) {
+    if (raw[key] !== void 0) {
+      const count5 = Number(raw[key]);
+      if (!Number.isInteger(count5) || count5 < 0 || count5 > 12) {
+        throw Object.assign(new Error("Choose between 0 and 12 blank pages for each end of the notebook."), { statusCode: 400 });
+      }
+      settings[key] = count5;
+    }
+  }
+  if (raw.worldLeaderEntries !== void 0) {
+    settings.worldLeaderEntries = normalizeReferenceEntries(
+      raw.worldLeaderEntries,
+      { country: 100, leader: 120, office: 100, checkedDate: 10, source: 240 },
+      "World leader references",
+      8
+    );
+  }
+  if (raw.currentAffairsEntries !== void 0) {
+    settings.currentAffairsEntries = normalizeReferenceEntries(
+      raw.currentAffairsEntries,
+      { headline: 180, date: 10, location: 100, source: 240, whyItMatters: 220 },
+      "Current affairs references",
+      4
+    );
+  }
+  if (raw.diaryStartMonth !== void 0) {
+    const startMonth = String(raw.diaryStartMonth);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth) || !notebookDiaryPageCount(startMonth)) {
+      throw Object.assign(new Error("Choose a diary start month on or before December 2027."), { statusCode: 400 });
+    }
+    settings.diaryStartMonth = startMonth;
+  } else if (settings.lineStyle === "diary" && !settings.diaryStartMonth) {
+    settings.diaryStartMonth = currentNotebookDiaryStartMonth();
+  }
+  if (settings.lineStyle === "diary") {
+    const diaryPages = notebookDiaryPageCount(settings.diaryStartMonth);
+    if (!diaryPages || diaryPages > 828) {
+      throw Object.assign(new Error("The dated diary must contain between 1 and 828 pages."), { statusCode: 400 });
+    }
+    settings.pageCount = diaryPages;
+    settings.ownershipPage = false;
+  }
+  if (raw.lineSpacing !== void 0) {
+    const value = Number(raw.lineSpacing);
+    if (!Number.isFinite(value) || value < 0.16 || value > 0.75) {
+      throw Object.assign(new Error("Line spacing must be between 0.16 and 0.75 inches."), { statusCode: 400 });
+    }
+    settings.lineSpacing = value;
+  }
+  if (raw.lineThickness !== void 0) {
+    const value = Number(raw.lineThickness);
+    if (!Number.isFinite(value) || value < 0.2 || value > 3) {
+      throw Object.assign(new Error("Line thickness must be between 0.2 and 3 points."), { statusCode: 400 });
+    }
+    settings.lineThickness = value;
+  }
+  if (raw.lineColor !== void 0) {
+    if (!/^#[0-9a-f]{6}$/i.test(String(raw.lineColor))) throw Object.assign(new Error("Use a valid six-digit line color."), { statusCode: 400 });
+    settings.lineColor = String(raw.lineColor);
+  }
+  for (const key of ["showPageNumbers", "ownershipPage", "showDateField", "showSubjectField"]) {
+    if (raw[key] !== void 0) settings[key] = raw[key] === true;
+  }
+  if (raw.headerText !== void 0) settings.headerText = cleanText(raw.headerText, 100);
+  if (raw.footerText !== void 0) settings.footerText = cleanText(raw.footerText, 100);
+  return settings;
+}
+async function uploadedCoverExists(url) {
+  if (!url) return true;
+  const match = url.match(/^\/uploads\/([A-Za-z0-9_-]{16,80}\.(?:png|jpe?g))$/i);
+  if (!match) return false;
+  const fullPath = path.resolve(PUBLIC_UPLOADS_DIR, match[1]);
+  if (!fullPath.startsWith(`${PUBLIC_UPLOADS_DIR}${path.sep}`)) return false;
+  try {
+    const bytes = await readFile(fullPath);
+    const isPng = bytes.length > 8 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    const isJpeg = bytes.length > 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
+    return match[1].toLowerCase().endsWith(".png") && isPng || /\.(?:jpe?g)$/i.test(match[1]) && isJpeg;
+  } catch {
+    return false;
+  }
+}
+async function normalizeCover(input, previous = DEFAULT_NOTEBOOK_COVER) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw Object.assign(new Error("Cover design must be an object."), { statusCode: 400 });
+  }
+  const raw = input;
+  const cover = { ...previous };
+  if (raw.style !== void 0) {
+    if (!COVER_STYLES.has(String(raw.style))) throw Object.assign(new Error("Choose a supported cover theme."), { statusCode: 400 });
+    cover.style = raw.style;
+  }
+  for (const key of ["background", "accent"]) {
+    if (raw[key] !== void 0) {
+      if (!/^#[0-9a-f]{6}$/i.test(String(raw[key]))) throw Object.assign(new Error("Cover colors must use valid six-digit hex values."), { statusCode: 400 });
+      cover[key] = String(raw[key]);
+    }
+  }
+  if (raw.description !== void 0) cover.description = cleanText(raw.description, 600);
+  if (raw.backDescription !== void 0) cover.backDescription = cleanText(raw.backDescription, 1200);
+  if (raw.frontImageUrl !== void 0) {
+    const url = cleanText(raw.frontImageUrl, 240);
+    if (url && !await uploadedCoverExists(url)) {
+      throw Object.assign(new Error("Upload a valid PNG or JPEG cover image using the cover editor."), { statusCode: 400 });
+    }
+    cover.frontImageUrl = url;
+  }
+  return cover;
+}
+function safeTitleFileName(title) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 75) || "notebook";
+}
+function projectDirectory(id) {
+  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) throw Object.assign(new Error("Invalid project id."), { statusCode: 400 });
+  return path.join(PROJECT_FILES_DIR, id);
+}
+function filePath(id, kind) {
+  return path.join(projectDirectory(id), `${kind}.pdf`);
+}
+function serialize(row) {
+  return {
+    ...row,
+    generatedInteriorKey: row.interiorFileKey || null,
+    generatedCoverKey: row.coverFileKey || null,
+    previewFileKey: row.previewFileKey || null
+  };
+}
+async function getOwnedProject(id, ownerId) {
+  const [project] = await db.select().from(creatorNotebookProjects).where(and6(eq9(creatorNotebookProjects.id, id), eq9(creatorNotebookProjects.ownerId, ownerId))).limit(1);
+  return project;
+}
+async function exists(file) {
+  try {
+    const info = await stat(file);
+    return info.isFile() && info.size > 0;
+  } catch {
+    return false;
+  }
+}
+function report(project, files) {
+  return validateNotebook(
+    project.title,
+    project.settings,
+    files || { interiorExists: Boolean(project.interiorFileKey), coverExists: Boolean(project.coverFileKey) }
+  );
+}
+async function sendProjectFile(res, file, title, extension, inline = false) {
+  if (!await exists(file)) return res.status(404).json({ message: "Generate this file before downloading it." });
+  res.setHeader("Content-Type", extension === "pdf" ? "application/pdf" : extension === "svg" ? "image/svg+xml; charset=utf-8" : "application/json; charset=utf-8");
+  res.setHeader("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${safeTitleFileName(title)}.${extension}"`);
+  res.setHeader("Cache-Control", "private, no-store");
+  res.sendFile(file);
+}
+function registerNotebookStudioRoutes(app2) {
+  const base = "/api/admin/creator-studio/notebooks";
+  app2.get(base, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const projects = await db.select().from(creatorNotebookProjects).where(eq9(creatorNotebookProjects.ownerId, req.user.id)).orderBy(desc7(creatorNotebookProjects.updatedAt));
+      res.json(projects.map(serialize));
+    } catch (error) {
+      console.error("[notebook-studio] Could not list projects:", error);
+      res.status(500).json({ message: "Could not load notebook projects." });
+    }
+  });
+  app2.post(base, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const title = cleanText(req.body?.title, 240, "Untitled notebook") || "Untitled notebook";
+      const [project] = await db.insert(creatorNotebookProjects).values({
+        ownerId: req.user.id,
+        title,
+        settings: normalizeSettings({
+          ...DEFAULT_NOTEBOOK_SETTINGS,
+          ...req.body?.settings,
+          authorName: cleanText(`${req.user.firstName || ""} ${req.user.lastName || ""}`, 160)
+        }),
+        coverDesign: await normalizeCover(req.body?.coverDesign || DEFAULT_NOTEBOOK_COVER)
+      }).returning();
+      res.status(201).json(serialize(project));
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not create project:", error);
+      res.status(500).json({ message: "Could not create a notebook project." });
+    }
+  });
+  app2.get(`${base}/:id`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      res.json(serialize(project));
+    } catch (error) {
+      console.error("[notebook-studio] Could not load project:", error);
+      res.status(500).json({ message: "Could not load this notebook project." });
+    }
+  });
+  app2.patch(`${base}/:id`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const previous = await getOwnedProject(req.params.id, req.user.id);
+      if (!previous) return res.status(404).json({ message: "Notebook project not found." });
+      const changes = { updatedAt: /* @__PURE__ */ new Date(), status: "editing" };
+      if (req.body?.title !== void 0) {
+        const title = cleanText(req.body.title, 240);
+        if (title.length < 2) return res.status(400).json({ message: "Notebook title must contain at least two characters." });
+        changes.title = title;
+      }
+      if (req.body?.settings !== void 0) changes.settings = normalizeSettings(req.body.settings, previous.settings);
+      if (req.body?.coverDesign !== void 0) changes.coverDesign = await normalizeCover(req.body.coverDesign, previous.coverDesign);
+      if (req.body?.settings !== void 0 || req.body?.coverDesign !== void 0 || req.body?.title !== void 0) {
+        changes.validation = null;
+        changes.generationStatus = "stale";
+      }
+      const [updated] = await db.update(creatorNotebookProjects).set(changes).where(and6(eq9(creatorNotebookProjects.id, previous.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      res.json(serialize(updated));
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not save project:", error);
+      res.status(500).json({ message: "Could not save this notebook project." });
+    }
+  });
+  app2.post(`${base}/:id/duplicate`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const source = await getOwnedProject(req.params.id, req.user.id);
+      if (!source) return res.status(404).json({ message: "Notebook project not found." });
+      const [copy] = await db.insert(creatorNotebookProjects).values({
+        ownerId: req.user.id,
+        title: `${source.title} \u2014 Copy`.slice(0, 240),
+        settings: source.settings,
+        coverDesign: source.coverDesign,
+        status: "draft",
+        generationStatus: "idle"
+      }).returning();
+      res.status(201).json(serialize(copy));
+    } catch (error) {
+      console.error("[notebook-studio] Could not duplicate project:", error);
+      res.status(500).json({ message: "Could not duplicate this notebook project." });
+    }
+  });
+  app2.delete(`${base}/:id`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      await db.delete(creatorNotebookProjects).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id)));
+      await rm(projectDirectory(project.id), { recursive: true, force: true }).catch(() => {
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[notebook-studio] Could not delete project:", error);
+      res.status(500).json({ message: "Could not delete this notebook project." });
+    }
+  });
+  app2.post(`${base}/:id/validate`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const [interiorExists, coverExists] = await Promise.all([
+        exists(filePath(project.id, "interior")),
+        exists(filePath(project.id, "cover"))
+      ]);
+      const validation = report(project, { interiorExists, coverExists });
+      await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id)));
+      res.json({ validation });
+    } catch (error) {
+      console.error("[notebook-studio] Could not validate project:", error);
+      res.status(500).json({ message: "Could not run notebook validation." });
+    }
+  });
+  app2.post(`${base}/:id/generate`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const previousReport = validateNotebook(project.title, settings, { interiorExists: false, coverExists: false });
+      const fatalIssues = previousReport.items.filter((item) => item.status === "failed");
+      if (fatalIssues.length) {
+        await db.update(creatorNotebookProjects).set({
+          validation: previousReport,
+          generationStatus: "failed",
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq9(creatorNotebookProjects.id, project.id));
+        return res.status(400).json({
+          message: fatalIssues.map((item) => item.message).join(" "),
+          project: serialize({ ...project, validation: previousReport }),
+          validation: previousReport
+        });
+      }
+      await mkdir(projectDirectory(project.id), { recursive: true });
+      const requestedKind = ["interior", "cover"].includes(String(req.body?.kind)) ? String(req.body.kind) : "all";
+      let interiorKey = project.interiorFileKey;
+      let coverKey = project.coverFileKey;
+      if (requestedKind === "all" || requestedKind === "interior") {
+        const interiorBytes = createNotebookInteriorPdf(project.title, settings);
+        const interiorPath = filePath(project.id, "interior");
+        const temporary = `${interiorPath}.${nanoid3(8)}.tmp`;
+        await writeFile(temporary, interiorBytes, { mode: 384 });
+        await rename(temporary, interiorPath);
+        if (!interiorBytes.subarray(0, 8).toString("latin1").startsWith("%PDF-1.") || !interiorBytes.includes(Buffer.from(`/Count ${notebookTotalPageCount(settings)}`, "ascii")) || !interiorBytes.toString("latin1").endsWith("%%EOF\n")) {
+          throw new Error("Interior PDF validation failed; no download was marked ready.");
+        }
+        interiorKey = `${project.id}/interior.pdf`;
+      }
+      if (requestedKind === "all" || requestedKind === "cover") {
+        if (settings.binding === "paperback" && notebookTotalPageCount(settings) >= 24) {
+          const coverImagePath = project.coverDesign?.frontImageUrl ? path.resolve(PUBLIC_UPLOADS_DIR, path.basename(project.coverDesign.frontImageUrl)) : "";
+          const coverImageBytes = coverImagePath && coverImagePath.startsWith(`${PUBLIC_UPLOADS_DIR}${path.sep}`) ? await readFile(coverImagePath).catch(() => null) : null;
+          const coverBytes = createNotebookCoverPdf(project.title, settings, project.coverDesign, coverImageBytes);
+          const coverPath = filePath(project.id, "cover");
+          const temporary = `${coverPath}.${nanoid3(8)}.tmp`;
+          await writeFile(temporary, coverBytes, { mode: 384 });
+          await rename(temporary, coverPath);
+          if (!coverBytes.subarray(0, 8).toString("latin1").startsWith("%PDF-1.") || !coverBytes.toString("latin1").endsWith("%%EOF\n")) {
+            throw new Error("Cover PDF validation failed; no download was marked ready.");
+          }
+          coverKey = `${project.id}/cover.pdf`;
+        } else if (requestedKind === "cover") {
+          return res.status(409).json({
+            message: "A paperback full-wrap cover is available only for paperback projects with at least 24 pages. Interior remains available for other bindings."
+          });
+        }
+      }
+      const provisional = { ...project, settings, interiorFileKey: interiorKey, coverFileKey: coverKey };
+      const [interiorExists, coverExists] = await Promise.all([
+        exists(filePath(project.id, "interior")),
+        exists(filePath(project.id, "cover"))
+      ]);
+      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists });
+      const [updated] = await db.update(creatorNotebookProjects).set({
+        settings,
+        interiorFileKey: interiorKey,
+        coverFileKey: coverKey,
+        previewFileKey: `${project.id}/preview.svg`,
+        validation,
+        generationStatus: "complete",
+        status: validation.status === "ready" ? "ready" : "needs_review",
+        lastGeneratedAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      res.json({ project: serialize(updated || provisional), validation });
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Generation failed:", error);
+      await db.update(creatorNotebookProjects).set({
+        generationStatus: "failed",
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq9(creatorNotebookProjects.id, req.params.id)).catch(() => {
+      });
+      res.status(500).json({ message: error?.message || "Could not generate notebook files. Your saved settings are unchanged." });
+    }
+  });
+  app2.get(`${base}/:id/files/interior`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    const project = await getOwnedProject(req.params.id, req.user.id).catch(() => null);
+    if (!project) return res.status(404).json({ message: "Notebook project not found." });
+    return sendProjectFile(res, filePath(project.id, "interior"), `${safeTitleFileName(project.title)}-interior`, "pdf");
+  });
+  app2.get(`${base}/:id/files/cover`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    const project = await getOwnedProject(req.params.id, req.user.id).catch(() => null);
+    if (!project) return res.status(404).json({ message: "Notebook project not found." });
+    return sendProjectFile(res, filePath(project.id, "cover"), `${safeTitleFileName(project.title)}-full-wrap-cover`, "pdf");
+  });
+  app2.get(`${base}/:id/files/preview.svg`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      res.type("image/svg+xml").set("Cache-Control", "private, no-store").send(createNotebookCoverSvg(project.title, project.settings, project.coverDesign));
+    } catch (error) {
+      console.error("[notebook-studio] Could not create cover preview:", error);
+      res.status(500).json({ message: "Could not create the cover preview." });
+    }
+  });
+  app2.get(`${base}/:id/files/config`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    const project = await getOwnedProject(req.params.id, req.user.id).catch(() => null);
+    if (!project) return res.status(404).json({ message: "Notebook project not found." });
+    const config = JSON.stringify({
+      schemaVersion: 1,
+      title: project.title,
+      settings: project.settings,
+      coverDesign: project.coverDesign,
+      validation: project.validation
+    }, null, 2);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeTitleFileName(project.title)}-project.json"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.send(config);
+  });
+}
+
 // server/creator-publishing.ts
-var PRIVATE_PRODUCT_DIR = path.resolve(process.cwd(), ".private-product-files");
+var PRIVATE_PRODUCT_DIR = path2.resolve(process.cwd(), ".private-product-files");
 mkdirSync(PRIVATE_PRODUCT_DIR, { recursive: true });
-var PRIVATE_STUDIO_PAYMENT_DIR = path.resolve(process.cwd(), ".private-studio-payment-proofs");
+var PRIVATE_STUDIO_PAYMENT_DIR = path2.resolve(process.cwd(), ".private-studio-payment-proofs");
 mkdirSync(PRIVATE_STUDIO_PAYMENT_DIR, { recursive: true });
 var GROQ_API_BASE_URL2 = "https://api.groq.com/openai/v1";
 var GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile";
@@ -13013,7 +14715,7 @@ function normalizeCreatorStudioAIControls(input) {
   };
 }
 async function getCreatorStudioAIConfig() {
-  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_ai_settings")).limit(1);
+  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_studio_ai_settings")).limit(1);
   let saved = {};
   try {
     saved = JSON.parse(row?.value || "{}");
@@ -13065,13 +14767,13 @@ var privateProductUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, PRIVATE_PRODUCT_DIR),
     filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname || "").toLowerCase();
-      cb(null, `${nanoid3()}${ext}`);
+      const ext = path2.extname(file.originalname || "").toLowerCase();
+      cb(null, `${nanoid4()}${ext}`);
     }
   }),
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase();
+    const ext = path2.extname(file.originalname || "").toLowerCase();
     if (!ALLOWED_FILE_EXTENSIONS.has(ext)) {
       return cb(new Error("Unsupported file type. Upload a PDF, EPUB, ZIP, document, image, audio, or video file."));
     }
@@ -13082,36 +14784,36 @@ var studioPaymentProofUpload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, PRIVATE_STUDIO_PAYMENT_DIR),
     filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname || "").toLowerCase();
-      cb(null, `${nanoid3()}${ext}`);
+      const ext = path2.extname(file.originalname || "").toLowerCase();
+      cb(null, `${nanoid4()}${ext}`);
     }
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase();
+    const ext = path2.extname(file.originalname || "").toLowerCase();
     if (![".png", ".jpg", ".jpeg", ".webp", ".pdf"].includes(ext)) {
       return cb(new Error("Payment proof must be a PNG, JPG, WEBP, or PDF file."));
     }
     cb(null, true);
   }
 });
-var ADMIN_ROLES = /* @__PURE__ */ new Set(["admin", "store_manager", "moderator", "content_editor"]);
+var ADMIN_ROLES2 = /* @__PURE__ */ new Set(["admin", "store_manager", "moderator", "content_editor"]);
 var DOWNLOADABLE_PURCHASE_STATES = ["paid", "approved", "delivered"];
 var BOOK_EXPORT_EXTENSIONS = /* @__PURE__ */ new Set([".pdf", ".epub"]);
-function isPublishingAdmin(user) {
-  return user?.userType === "admin" || ADMIN_ROLES.has(user?.role);
+function isPublishingAdmin2(user) {
+  return user?.userType === "admin" || ADMIN_ROLES2.has(user?.role);
 }
 function canPublish(user) {
   return Boolean(user?.id);
 }
 async function getCreatorStudioMonthlyPrice() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_monthly_price")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_studio_monthly_price")).limit(1);
   const price = Number(setting?.value);
   return Number.isFinite(price) && price >= 0 && price <= 999999 ? Number(price.toFixed(2)) : 7;
 }
 var EMPTY_STUDIO_PAYMENT_OPTIONS = { cryptoWallets: [], bankAccounts: [] };
 async function getCreatorStudioPaymentOptions() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_studio_payment_options")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_studio_payment_options")).limit(1);
   try {
     const parsed = JSON.parse(setting?.value || "{}");
     return {
@@ -13147,7 +14849,7 @@ function validateStudioPaymentOptions(input) {
 }
 async function sendCreatorStudioExpiryReminders() {
   const now = /* @__PURE__ */ new Date();
-  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq9(creatorStudioSubscriptions.status, "active"));
+  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.status, "active"));
   if (!activeRows.length) return;
   const emailService = await Promise.resolve().then(() => (init_email_service(), email_service_exports)).catch(() => null);
   for (const subscription of activeRows) {
@@ -13157,10 +14859,10 @@ async function sendCreatorStudioExpiryReminders() {
     const reminderType = daysLeft <= 0 ? "creator_studio_expired" : daysLeft <= 3 ? "creator_studio_expiry_reminder" : null;
     if (!reminderType) continue;
     const reminderLink = `/creator-studio?renewal=${subscription.id}&expires=${subscription.endDate.getTime()}`;
-    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and6(
-      eq9(notifications.relatedId, subscription.id),
-      eq9(notifications.type, reminderType),
-      eq9(notifications.actionUrl, reminderLink)
+    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and7(
+      eq10(notifications.relatedId, subscription.id),
+      eq10(notifications.type, reminderType),
+      eq10(notifications.actionUrl, reminderLink)
     )).limit(1);
     if (existing) continue;
     const expired = daysLeft <= 0;
@@ -13175,7 +14877,7 @@ async function sendCreatorStudioExpiryReminders() {
       isRead: false,
       priority: "high"
     }).catch((error) => console.warn("[creator-studio] Could not save expiry notification:", error));
-    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq9(users.id, subscription.userId)).limit(1);
+    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq10(users.id, subscription.userId)).limit(1);
     if (user?.email && emailService?.sendEmail) {
       await emailService.sendEmail({
         to: user.email,
@@ -13185,24 +14887,24 @@ async function sendCreatorStudioExpiryReminders() {
       }).catch((error) => console.warn("[creator-studio] Renewal email failed:", error?.message || error));
     }
     if (expired) {
-      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and6(
-        eq9(creatorStudioSubscriptions.id, subscription.id),
-        eq9(creatorStudioSubscriptions.status, "active")
+      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and7(
+        eq10(creatorStudioSubscriptions.id, subscription.id),
+        eq10(creatorStudioSubscriptions.status, "active")
       ));
     }
   }
 }
 async function getCreatorStudioAccess(userId) {
   const now = /* @__PURE__ */ new Date();
-  const [active] = await db.select().from(creatorStudioSubscriptions).where(and6(
-    eq9(creatorStudioSubscriptions.userId, userId),
-    eq9(creatorStudioSubscriptions.status, "active"),
+  const [active] = await db.select().from(creatorStudioSubscriptions).where(and7(
+    eq10(creatorStudioSubscriptions.userId, userId),
+    eq10(creatorStudioSubscriptions.status, "active"),
     gt(creatorStudioSubscriptions.endDate, now)
-  )).orderBy(desc7(creatorStudioSubscriptions.endDate)).limit(1);
-  const [pending] = await db.select().from(creatorStudioSubscriptions).where(and6(
-    eq9(creatorStudioSubscriptions.userId, userId),
-    eq9(creatorStudioSubscriptions.status, "pending")
-  )).orderBy(desc7(creatorStudioSubscriptions.createdAt)).limit(1);
+  )).orderBy(desc8(creatorStudioSubscriptions.endDate)).limit(1);
+  const [pending] = await db.select().from(creatorStudioSubscriptions).where(and7(
+    eq10(creatorStudioSubscriptions.userId, userId),
+    eq10(creatorStudioSubscriptions.status, "pending")
+  )).orderBy(desc8(creatorStudioSubscriptions.createdAt)).limit(1);
   const monthlyPrice = await getCreatorStudioMonthlyPrice();
   return {
     hasAccess: monthlyPrice === 0 || !!active,
@@ -13214,7 +14916,7 @@ async function getCreatorStudioAccess(userId) {
 }
 var requireCreatorStudioAccess = async (req, res, next) => {
   if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
-  if (isPublishingAdmin(req.user)) {
+  if (isPublishingAdmin2(req.user)) {
     req.creatorStudioAccess = { hasAccess: true, subscriptionStatus: "active" };
     return next();
   }
@@ -13239,7 +14941,7 @@ function safeProduct(product) {
   return safe;
 }
 function safeFileName(name) {
-  return path.basename(name || "download").replace(/[\r\n"]/g, "_").slice(0, 240) || "download";
+  return path2.basename(name || "download").replace(/[\r\n"]/g, "_").slice(0, 240) || "download";
 }
 function parseList(value) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean).slice(0, 20);
@@ -13264,7 +14966,7 @@ function normalizeDesignerDocument(value) {
     const blocks = [];
     for (const rawBlock of rawPage.blocks) {
       if (!rawBlock || !blockKinds.has(rawBlock.kind)) return null;
-      const id = String(rawBlock.id || nanoid3()).slice(0, 80);
+      const id = String(rawBlock.id || nanoid4()).slice(0, 80);
       if (rawBlock.kind === "text") {
         const role = String(rawBlock.role || "");
         if (!["eyebrow", "title", "subtitle", "heading", "body", "quote", "caption"].includes(role)) return null;
@@ -13292,7 +14994,7 @@ function normalizeDesignerDocument(value) {
       }
     }
     pages.push({
-      id: String(rawPage.id || nanoid3()).slice(0, 80),
+      id: String(rawPage.id || nanoid4()).slice(0, 80),
       kind: rawPage.kind,
       title: String(rawPage.title || "Untitled page").slice(0, 240),
       ...rawPage.chapterId ? { chapterId: String(rawPage.chapterId).slice(0, 80) } : {},
@@ -13405,16 +15107,16 @@ function validateDraft(body) {
   };
 }
 async function getPublishingFeePercent() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq9(appSettings.key, "creator_publishing_fee_percent")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_publishing_fee_percent")).limit(1);
   const value = Number(setting?.value);
   return Number.isFinite(value) && value >= 0 && value <= 100 ? value : 10;
 }
 async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
-  const [purchase] = await db.select().from(purchases).where(eq9(purchases.id, purchaseId)).limit(1);
+  const [purchase] = await db.select().from(purchases).where(eq10(purchases.id, purchaseId)).limit(1);
   if (!purchase || !DOWNLOADABLE_PURCHASE_STATES.includes(purchase.status)) return;
-  const [listing] = await db.select().from(creatorPublishingProducts).where(and6(
-    eq9(creatorPublishingProducts.shopProductId, purchase.productId),
-    eq9(creatorPublishingProducts.status, "published")
+  const [listing] = await db.select().from(creatorPublishingProducts).where(and7(
+    eq10(creatorPublishingProducts.shopProductId, purchase.productId),
+    eq10(creatorPublishingProducts.status, "published")
   )).limit(1);
   if (!listing || listing.creatorId === purchase.userId) return;
   const gross = Number(purchase.totalAmount || purchase.amount);
@@ -13445,10 +15147,11 @@ async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
       availableBalance: sql7`${users.availableBalance} + ${net}`,
       totalEarned: sql7`${users.totalEarned} + ${net}`,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq9(users.id, listing.creatorId));
+    }).where(eq10(users.id, listing.creatorId));
   });
 }
 function registerCreatorPublishingRoutes(app2) {
+  registerNotebookStudioRoutes(app2);
   const reminderTimer = setInterval(() => {
     sendCreatorStudioExpiryReminders().catch((error) => {
       console.error("[creator-studio] Subscription reminder scan failed:", error);
@@ -13481,7 +15184,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/access", isAuthenticated, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      if (isPublishingAdmin(req.user)) {
+      if (isPublishingAdmin2(req.user)) {
         return res.json({
           hasAccess: true,
           monthlyPrice: 0,
@@ -13535,7 +15238,7 @@ function registerCreatorPublishingRoutes(app2) {
         currency: access.currency,
         network: String(req.body.network || "manual").trim().slice(0, 40),
         transactionHash: transactionHash || null,
-        paymentProofKey: req.file ? path.basename(req.file.filename) : null,
+        paymentProofKey: req.file ? path2.basename(req.file.filename) : null,
         paymentMethodLabel: String(req.body.paymentMethodLabel || "").trim().slice(0, 160) || null,
         periodDays: 30
       }).returning();
@@ -13548,7 +15251,7 @@ function registerCreatorPublishingRoutes(app2) {
         priority: "normal"
       }).catch(() => {
       });
-      const [admin2] = await db.select({ id: users.id }).from(users).where(eq9(users.userType, "admin")).limit(1);
+      const [admin2] = await db.select({ id: users.id }).from(users).where(eq10(users.userType, "admin")).limit(1);
       if (admin2) {
         await db.insert(notifications).values({
           userId: admin2.id,
@@ -13574,10 +15277,10 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.get("/api/admin/creator-studio/subscriptions", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const requestedStatus = String(req.query.status || "").trim();
-      const rows = requestedStatus ? await db.select().from(creatorStudioSubscriptions).where(eq9(creatorStudioSubscriptions.status, requestedStatus)).orderBy(desc7(creatorStudioSubscriptions.createdAt)).limit(200) : await db.select().from(creatorStudioSubscriptions).orderBy(desc7(creatorStudioSubscriptions.createdAt)).limit(200);
+      const rows = requestedStatus ? await db.select().from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.status, requestedStatus)).orderBy(desc8(creatorStudioSubscriptions.createdAt)).limit(200) : await db.select().from(creatorStudioSubscriptions).orderBy(desc8(creatorStudioSubscriptions.createdAt)).limit(200);
       const enriched = await Promise.all(rows.map(async (row) => {
         const [user] = await db.select({
           id: users.id,
@@ -13585,7 +15288,7 @@ function registerCreatorPublishingRoutes(app2) {
           lastName: users.lastName,
           email: users.email,
           userType: users.userType
-        }).from(users).where(eq9(users.id, row.userId)).limit(1);
+        }).from(users).where(eq10(users.id, row.userId)).limit(1);
         const { paymentProofKey, ...safeRow } = row;
         return {
           ...safeRow,
@@ -13600,22 +15303,22 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.get("/api/admin/creator-studio/subscriptions/:id/proof", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const [subscription] = await db.select({
         paymentProofKey: creatorStudioSubscriptions.paymentProofKey
-      }).from(creatorStudioSubscriptions).where(eq9(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      }).from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.id, req.params.id)).limit(1);
       if (!subscription?.paymentProofKey) return res.status(404).json({ message: "Payment proof not found." });
-      const filePath = path.join(PRIVATE_STUDIO_PAYMENT_DIR, path.basename(subscription.paymentProofKey));
-      if (!existsSync(filePath)) return res.status(404).json({ message: "Payment proof file is no longer available." });
-      res.sendFile(filePath);
+      const filePath2 = path2.join(PRIVATE_STUDIO_PAYMENT_DIR, path2.basename(subscription.paymentProofKey));
+      if (!existsSync(filePath2)) return res.status(404).json({ message: "Payment proof file is no longer available." });
+      res.sendFile(filePath2);
     } catch (error) {
       console.error("Could not load Creator Studio payment proof:", error);
       res.status(500).json({ message: "Could not load payment proof." });
     }
   });
   app2.patch("/api/admin/creator-studio/subscriptions/:id", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const action = String(req.body.action || "");
     const reviewNote = String(req.body.reviewNote || "").trim().slice(0, 4e3);
     if (!["approve", "reject", "revoke", "extend"].includes(action)) {
@@ -13623,7 +15326,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason when rejecting a payment." });
     try {
-      const [subscription] = await db.select().from(creatorStudioSubscriptions).where(eq9(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      const [subscription] = await db.select().from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.id, req.params.id)).limit(1);
       if (!subscription) return res.status(404).json({ message: "Creator Studio subscription not found." });
       if (action === "approve" && subscription.status !== "pending") {
         return res.status(409).json({ message: "Only pending payments can be approved." });
@@ -13646,7 +15349,7 @@ function registerCreatorPublishingRoutes(app2) {
         reviewedBy: req.user.id,
         reviewedAt: now,
         updatedAt: now
-      }).where(eq9(creatorStudioSubscriptions.id, subscription.id)).returning();
+      }).where(eq10(creatorStudioSubscriptions.id, subscription.id)).returning();
       const title = action === "approve" ? "Creator Studio access approved" : action === "extend" ? "Creator Studio access extended" : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
       const content = action === "approve" ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.` : action === "extend" ? `Your Creator Studio subscription has been extended until ${endDate.toLocaleDateString()}.` : action === "reject" ? `Your Creator Studio payment was not approved. ${reviewNote}` : "An admin ended your Creator Studio access.";
       await db.insert(notifications).values({
@@ -13666,7 +15369,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.get("/api/admin/creator-studio/payment-options", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       res.json(await getCreatorStudioPaymentOptions());
     } catch (error) {
@@ -13675,7 +15378,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.put("/api/admin/creator-studio/payment-options", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const options = validateStudioPaymentOptions(req.body);
       await db.insert(appSettings).values({
@@ -13693,7 +15396,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.get("/api/admin/creator-studio/ai-settings", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const config = await getCreatorStudioAIConfig();
       res.json(config);
@@ -13703,7 +15406,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.put("/api/admin/creator-studio/ai-settings", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const model = String(req.body.model || "").trim().slice(0, 120);
     if (!model || !/^[\w./:-]+$/.test(model)) {
       return res.status(400).json({ message: "Enter a valid model name. Do not enter an API key here." });
@@ -13749,17 +15452,17 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.post("/api/admin/creator-studio/books/children-bible-coloring", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const [existing] = await db.select({
         id: creatorBooks.id,
         title: creatorBooks.title,
         designerDocument: creatorBooks.designerDocument,
         status: creatorBooks.status
-      }).from(creatorBooks).where(and6(
-        eq9(creatorBooks.creatorId, req.user.id),
-        eq9(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
-        eq9(creatorBooks.genre, "Bible stories and coloring books")
+      }).from(creatorBooks).where(and7(
+        eq10(creatorBooks.creatorId, req.user.id),
+        eq10(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
+        eq10(creatorBooks.genre, "Bible stories and coloring books")
       )).limit(1);
       if (existing) {
         if (req.body?.replaceExisting !== true) {
@@ -13776,9 +15479,9 @@ function registerCreatorPublishingRoutes(app2) {
         const [book2] = await db.update(creatorBooks).set({
           ...draft2,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and6(
-          eq9(creatorBooks.id, existing.id),
-          eq9(creatorBooks.creatorId, req.user.id)
+        }).where(and7(
+          eq10(creatorBooks.id, existing.id),
+          eq10(creatorBooks.creatorId, req.user.id)
         )).returning({ id: creatorBooks.id, title: creatorBooks.title });
         if (!book2) return res.status(404).json({ message: "The existing book could not be found for upgrade." });
         return res.json({
@@ -13802,14 +15505,14 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.post("/api/admin/creator-studio/subscriptions/grant", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const email = String(req.body.email || "").trim().toLowerCase();
     const periodDays = Number(req.body.periodDays ?? 30);
     if (!email || !Number.isInteger(periodDays) || periodDays < 1 || periodDays > 365) {
       return res.status(400).json({ message: "Enter a creator email and an access period from 1 to 365 days." });
     }
     try {
-      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq9(users.email, email)).limit(1);
+      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq10(users.email, email)).limit(1);
       if (!user || user.userType !== "creator") return res.status(404).json({ message: "No creator account found for that email." });
       const access = await getCreatorStudioAccess(user.id);
       if (access.hasAccess) return res.status(409).json({ message: "This creator already has active access." });
@@ -13844,13 +15547,13 @@ function registerCreatorPublishingRoutes(app2) {
     }
   });
   app2.post("/api/admin/creator-studio/subscribers/:userId/reset-password", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const password = String(req.body.password || "");
     if (password.length < 12 || password.length > 128) {
       return res.status(400).json({ message: "Use a temporary password between 12 and 128 characters." });
     }
     try {
-      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq9(users.id, req.params.userId)).limit(1);
+      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq10(users.id, req.params.userId)).limit(1);
       if (!subscriber || subscriber.userType !== "creator") return res.status(404).json({ message: "Creator account not found." });
       await storage.resetUserPassword(subscriber.id, password);
       res.json({ success: true });
@@ -13862,7 +15565,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/books", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const books = await db.select().from(creatorBooks).where(eq9(creatorBooks.creatorId, req.user.id)).orderBy(desc7(creatorBooks.updatedAt));
+      const books = await db.select().from(creatorBooks).where(eq10(creatorBooks.creatorId, req.user.id)).orderBy(desc8(creatorBooks.updatedAt));
       res.json(books);
     } catch (error) {
       console.error("Failed to load creator books:", error);
@@ -13890,7 +15593,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.patch("/api/creator-studio/books/:id", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (book.status === "published" || book.status === "submitted") {
         return res.status(409).json({ message: "This book is under review or already published and cannot be edited here." });
@@ -13958,7 +15661,7 @@ function registerCreatorPublishingRoutes(app2) {
       if (changes.title !== void 0 && changes.title.length < 2) {
         return res.status(400).json({ message: "Book title must contain at least 2 characters." });
       }
-      const [updated] = await db.update(creatorBooks).set(changes).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.creatorId, req.user.id))).returning();
+      const [updated] = await db.update(creatorBooks).set(changes).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.creatorId, req.user.id))).returning();
       res.json(updated);
     } catch (error) {
       console.error("Failed to save book:", error);
@@ -13976,7 +15679,7 @@ function registerCreatorPublishingRoutes(app2) {
         generationMessage: creatorBooks.generationMessage,
         generationError: creatorBooks.generationError,
         updatedAt: creatorBooks.updatedAt
-      }).from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+      }).from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (["queued", "generating"].includes(book.generationStatus) && book.updatedAt && Date.now() - new Date(book.updatedAt).getTime() > 30 * 60 * 1e3) {
         const message = "This generation was interrupted. Your previous draft is unchanged; you can try again.";
@@ -13986,7 +15689,7 @@ function registerCreatorPublishingRoutes(app2) {
           generationMessage: null,
           generationError: message,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.generationJobId, book.generationJobId || "")));
+        }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.generationJobId, book.generationJobId || "")));
         return res.json({ ...book, generationStatus: "failed", generationProgress: 0, generationError: message });
       }
       res.json(book);
@@ -14004,7 +15707,7 @@ function registerCreatorPublishingRoutes(app2) {
     if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
     if (![4, 6, 8, 10, 12, 16, 20].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 20 chapters." });
     try {
-      const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (["published", "submitted"].includes(book.status)) {
         return res.status(409).json({ message: "Books submitted for review or already published cannot be regenerated." });
@@ -14019,7 +15722,7 @@ function registerCreatorPublishingRoutes(app2) {
           requiresConfirmation: true
         });
       }
-      const jobId = nanoid3();
+      const jobId = nanoid4();
       const startedAt = /* @__PURE__ */ new Date();
       await db.update(creatorBooks).set({
         generationJobId: jobId,
@@ -14028,7 +15731,7 @@ function registerCreatorPublishingRoutes(app2) {
         generationMessage: "Preparing the book generator",
         generationError: null,
         updatedAt: startedAt
-      }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.creatorId, req.user.id)));
+      }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.creatorId, req.user.id)));
       const authorName = `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim().slice(0, 160);
       const onProgress = async (progress, message) => {
         await db.update(creatorBooks).set({
@@ -14037,7 +15740,7 @@ function registerCreatorPublishingRoutes(app2) {
           generationMessage: String(message).slice(0, 240),
           generationError: null,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.generationJobId, jobId)));
+        }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.generationJobId, jobId)));
       };
       void (async () => {
         try {
@@ -14071,7 +15774,7 @@ function registerCreatorPublishingRoutes(app2) {
             generationMessage: "Complete draft and page designs are ready to edit.",
             generationError: null,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.creatorId, req.user.id), eq9(creatorBooks.generationJobId, jobId)));
+          }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.creatorId, req.user.id), eq10(creatorBooks.generationJobId, jobId)));
         } catch (error) {
           const message = String(error?.message || "Book generation failed. Please try again.").slice(0, 500);
           console.error("[ebook-studio] Full book generation failed:", message);
@@ -14081,7 +15784,7 @@ function registerCreatorPublishingRoutes(app2) {
             generationMessage: null,
             generationError: message,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and6(eq9(creatorBooks.id, book.id), eq9(creatorBooks.generationJobId, jobId)));
+          }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.generationJobId, jobId)));
         }
       })();
       res.status(202).json({
@@ -14099,13 +15802,13 @@ function registerCreatorPublishingRoutes(app2) {
       removeUpload(req.file);
       return res.status(403).json({ message: "Creator accounts only." });
     }
-    const ext = path.extname(req.file?.originalname || "").toLowerCase();
+    const ext = path2.extname(req.file?.originalname || "").toLowerCase();
     if (req.file && !BOOK_EXPORT_EXTENSIONS.has(ext)) {
       removeUpload(req.file);
       return res.status(400).json({ message: "Upload the finished PDF or EPUB file for sale." });
     }
     try {
-      const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, req.params.id), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) {
         removeUpload(req.file);
         return res.status(404).json({ message: "Book not found." });
@@ -14153,7 +15856,7 @@ function registerCreatorPublishingRoutes(app2) {
           tags: ["ebook", "book"],
           amazonUrl,
           accessUrl,
-          fileKey: req.file ? path.basename(req.file.filename) : null,
+          fileKey: req.file ? path2.basename(req.file.filename) : null,
           originalFileName,
           mimeType: req.file?.mimetype || null,
           fileSize: req.file?.size || null,
@@ -14161,7 +15864,7 @@ function registerCreatorPublishingRoutes(app2) {
           submittedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
         }).returning();
-        await tx.update(creatorBooks).set({ status: "submitted", updatedAt: /* @__PURE__ */ new Date() }).where(eq9(creatorBooks.id, book.id)).returning();
+        await tx.update(creatorBooks).set({ status: "submitted", updatedAt: /* @__PURE__ */ new Date() }).where(eq10(creatorBooks.id, book.id)).returning();
         return product;
       });
       res.status(201).json({ ...safeProduct(submitted), bookStatus: "submitted" });
@@ -14174,7 +15877,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/products", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const products = await db.select().from(creatorPublishingProducts).where(eq9(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc7(creatorPublishingProducts.updatedAt));
+      const products = await db.select().from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc8(creatorPublishingProducts.updatedAt));
       res.json(products.map(safeProduct));
     } catch (error) {
       console.error("Failed to load creator products:", error);
@@ -14195,7 +15898,7 @@ function registerCreatorPublishingRoutes(app2) {
       const [product] = await db.insert(creatorPublishingProducts).values({
         creatorId: req.user.id,
         ...validation.value,
-        fileKey: req.file ? path.basename(req.file.filename) : null,
+        fileKey: req.file ? path2.basename(req.file.filename) : null,
         originalFileName: req.file ? safeFileName(req.file.originalname) : null,
         mimeType: req.file?.mimetype || null,
         fileSize: req.file?.size || null,
@@ -14219,9 +15922,9 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: validation.error });
     }
     try {
-      const [existing] = await db.select().from(creatorPublishingProducts).where(and6(
-        eq9(creatorPublishingProducts.id, req.params.id),
-        eq9(creatorPublishingProducts.creatorId, req.user.id)
+      const [existing] = await db.select().from(creatorPublishingProducts).where(and7(
+        eq10(creatorPublishingProducts.id, req.params.id),
+        eq10(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!existing) {
         removeUpload(req.file);
@@ -14233,16 +15936,16 @@ function registerCreatorPublishingRoutes(app2) {
       }
       const [updated] = await db.update(creatorPublishingProducts).set({
         ...validation.value,
-        fileKey: req.file ? path.basename(req.file.filename) : existing.fileKey,
+        fileKey: req.file ? path2.basename(req.file.filename) : existing.fileKey,
         originalFileName: req.file ? safeFileName(req.file.originalname) : existing.originalFileName,
         mimeType: req.file?.mimetype || existing.mimeType,
         fileSize: req.file?.size || existing.fileSize,
         status: "draft",
         reviewNote: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(creatorPublishingProducts.id, existing.id)).returning();
+      }).where(eq10(creatorPublishingProducts.id, existing.id)).returning();
       if (req.file && existing.fileKey && existing.fileKey !== updated.fileKey) {
-        removeUpload({ path: path.join(PRIVATE_PRODUCT_DIR, path.basename(existing.fileKey)) });
+        removeUpload({ path: path2.join(PRIVATE_PRODUCT_DIR, path2.basename(existing.fileKey)) });
       }
       res.json(safeProduct(updated));
     } catch (error) {
@@ -14254,15 +15957,15 @@ function registerCreatorPublishingRoutes(app2) {
   app2.post("/api/creator-studio/products/:id/submit", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and6(
-        eq9(creatorPublishingProducts.id, req.params.id),
-        eq9(creatorPublishingProducts.creatorId, req.user.id)
+      const [product] = await db.select().from(creatorPublishingProducts).where(and7(
+        eq10(creatorPublishingProducts.id, req.params.id),
+        eq10(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Digital product not found." });
       if (!["draft", "rejected"].includes(product.status)) {
         return res.status(409).json({ message: "This product is already submitted or published." });
       }
-      if (!product.fileKey || !existsSync(path.join(PRIVATE_PRODUCT_DIR, path.basename(product.fileKey)))) {
+      if (!product.fileKey || !existsSync(path2.join(PRIVATE_PRODUCT_DIR, path2.basename(product.fileKey)))) {
         return res.status(400).json({ message: "Upload the product file before submitting it for review." });
       }
       const [updated] = await db.update(creatorPublishingProducts).set({
@@ -14270,7 +15973,7 @@ function registerCreatorPublishingRoutes(app2) {
         reviewNote: null,
         submittedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(creatorPublishingProducts.id, product.id)).returning();
+      }).where(eq10(creatorPublishingProducts.id, product.id)).returning();
       res.json(safeProduct(updated));
     } catch (error) {
       console.error("Failed to submit digital product:", error);
@@ -14280,16 +15983,16 @@ function registerCreatorPublishingRoutes(app2) {
   app2.delete("/api/creator-studio/products/:id", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and6(
-        eq9(creatorPublishingProducts.id, req.params.id),
-        eq9(creatorPublishingProducts.creatorId, req.user.id)
+      const [product] = await db.select().from(creatorPublishingProducts).where(and7(
+        eq10(creatorPublishingProducts.id, req.params.id),
+        eq10(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Digital product not found." });
       if (!["draft", "rejected"].includes(product.status)) {
         return res.status(409).json({ message: "Only drafts and rejected products can be deleted." });
       }
-      await db.delete(creatorPublishingProducts).where(eq9(creatorPublishingProducts.id, product.id));
-      if (product.fileKey) removeUpload({ path: path.join(PRIVATE_PRODUCT_DIR, path.basename(product.fileKey)) });
+      await db.delete(creatorPublishingProducts).where(eq10(creatorPublishingProducts.id, product.id));
+      if (product.fileKey) removeUpload({ path: path2.join(PRIVATE_PRODUCT_DIR, path2.basename(product.fileKey)) });
       res.json({ deleted: true });
     } catch (error) {
       console.error("Failed to delete digital product:", error);
@@ -14346,7 +16049,7 @@ Book concept: ${idea}` }
       bookType: creatorBooks.bookType,
       genre: creatorBooks.genre,
       idea: creatorBooks.idea
-    }).from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+    }).from(creatorBooks).where(and7(eq10(creatorBooks.id, bookId), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
     try {
@@ -14380,7 +16083,7 @@ Chapter: ${chapterTitle}` }
     if (!ai) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
     const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
-    const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, bookId), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (book.status === "published" || book.status === "submitted") {
       return res.status(409).json({ message: "Metadata for submitted books is locked." });
@@ -14433,7 +16136,7 @@ Current description: ${book.description || ""}`
     const tool = String(req.body.tool || "");
     const bookId = String(req.body.bookId || "");
     const chapterId = String(req.body.chapterId || "");
-    const [book] = await db.select().from(creatorBooks).where(and6(eq9(creatorBooks.id, bookId), eq9(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, bookId), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (book.status === "published" || book.status === "submitted") {
       return res.status(409).json({ message: "Writing tools are disabled for submitted or published books." });
@@ -14490,9 +16193,9 @@ ${config.settings.toolPrompts[tool]}` },
     }
   });
   app2.get("/api/admin/publishing-products", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
-      const rows = await db.select().from(creatorPublishingProducts).where(eq9(creatorPublishingProducts.status, "pending_review")).orderBy(desc7(creatorPublishingProducts.submittedAt));
+      const rows = await db.select().from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.status, "pending_review")).orderBy(desc8(creatorPublishingProducts.submittedAt));
       const results = await Promise.all(rows.map(async (product) => {
         const [creator] = await db.select({
           id: users.id,
@@ -14501,8 +16204,8 @@ ${config.settings.toolPrompts[tool]}` },
           email: users.email,
           username: users.username,
           profileImageUrl: users.profileImageUrl
-        }).from(users).where(eq9(users.id, product.creatorId)).limit(1);
-        const [book] = product.bookId ? await db.select().from(creatorBooks).where(eq9(creatorBooks.id, product.bookId)).limit(1) : [void 0];
+        }).from(users).where(eq10(users.id, product.creatorId)).limit(1);
+        const [book] = product.bookId ? await db.select().from(creatorBooks).where(eq10(creatorBooks.id, product.bookId)).limit(1) : [void 0];
         return { ...safeProduct(product), creator, book: book ? { ...book, chapters: book.chapters } : null };
       }));
       res.json(results);
@@ -14512,7 +16215,7 @@ ${config.settings.toolPrompts[tool]}` },
     }
   });
   app2.get("/api/admin/publishing-settings", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       res.json({
         platformFeePercent: await getPublishingFeePercent(),
@@ -14523,7 +16226,7 @@ ${config.settings.toolPrompts[tool]}` },
     }
   });
   app2.put("/api/admin/publishing-settings", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const feePercent = Number(req.body.platformFeePercent);
     if (!Number.isFinite(feePercent) || feePercent < 0 || feePercent > 100) {
       return res.status(400).json({ message: "Platform fee must be between 0 and 100 percent." });
@@ -14561,22 +16264,22 @@ ${config.settings.toolPrompts[tool]}` },
     }
   });
   app2.patch("/api/admin/publishing-products/:id", isAuthenticated, async (req, res) => {
-    if (!isPublishingAdmin(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
+    if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     const action = String(req.body.action || "");
     const reviewNote = String(req.body.reviewNote || "").trim().slice(0, 4e3);
     if (!["approve", "reject"].includes(action)) return res.status(400).json({ message: "Choose approve or reject." });
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason so the creator can revise the submission." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(eq9(creatorPublishingProducts.id, req.params.id)).limit(1);
+      const [product] = await db.select().from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.id, req.params.id)).limit(1);
       if (!product) return res.status(404).json({ message: "Publishing submission not found." });
       if (product.status !== "pending_review") return res.status(409).json({ message: "This submission has already been reviewed." });
       const updated = await db.transaction(async (tx) => {
         const [claim] = await tx.update(creatorPublishingProducts).set({
           status: "reviewing",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and6(
-          eq9(creatorPublishingProducts.id, product.id),
-          eq9(creatorPublishingProducts.status, "pending_review")
+        }).where(and7(
+          eq10(creatorPublishingProducts.id, product.id),
+          eq10(creatorPublishingProducts.status, "pending_review")
         )).returning({ id: creatorPublishingProducts.id });
         if (!claim) throw Object.assign(new Error("This submission has already been reviewed."), { statusCode: 409 });
         let shopProductId = product.shopProductId;
@@ -14597,7 +16300,7 @@ ${config.settings.toolPrompts[tool]}` },
           }).returning({ id: shopProducts.id });
           shopProductId = shopProduct.id;
         } else if (action === "approve" && shopProductId) {
-          await tx.update(shopProducts).set({ isActive: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(shopProducts.id, shopProductId));
+          await tx.update(shopProducts).set({ isActive: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq10(shopProducts.id, shopProductId));
         }
         const [reviewed] = await tx.update(creatorPublishingProducts).set({
           shopProductId,
@@ -14605,12 +16308,12 @@ ${config.settings.toolPrompts[tool]}` },
           reviewNote: action === "reject" ? reviewNote : null,
           reviewedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq9(creatorPublishingProducts.id, product.id)).returning();
+        }).where(eq10(creatorPublishingProducts.id, product.id)).returning();
         if (product.bookId) {
           await tx.update(creatorBooks).set({
             status: action === "approve" ? "published" : "rejected",
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq9(creatorBooks.id, product.bookId));
+          }).where(eq10(creatorBooks.id, product.bookId));
         }
         return reviewed;
       });
@@ -14663,11 +16366,11 @@ ${config.settings.toolPrompts[tool]}` },
         reviewCount: shopProducts.reviewCount,
         salesCount: shopProducts.salesCount,
         isFeatured: shopProducts.isFeatured
-      }).from(creatorPublishingProducts).innerJoin(shopProducts, eq9(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and6(
-        eq9(creatorPublishingProducts.creatorId, req.params.id),
-        eq9(creatorPublishingProducts.status, "published"),
-        eq9(shopProducts.isActive, true)
-      )).orderBy(desc7(creatorPublishingProducts.createdAt));
+      }).from(creatorPublishingProducts).innerJoin(shopProducts, eq10(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and7(
+        eq10(creatorPublishingProducts.creatorId, req.params.id),
+        eq10(creatorPublishingProducts.status, "published"),
+        eq10(shopProducts.isActive, true)
+      )).orderBy(desc8(creatorPublishingProducts.createdAt));
       res.json(rows);
     } catch (error) {
       console.error("Failed to load public creator products:", error);
@@ -14687,9 +16390,9 @@ ${config.settings.toolPrompts[tool]}` },
         amazonUrl: creatorPublishingProducts.amazonUrl,
         accessUrl: creatorPublishingProducts.accessUrl,
         creatorId: creatorPublishingProducts.creatorId
-      }).from(creatorPublishingProducts).where(and6(
-        eq9(creatorPublishingProducts.shopProductId, req.params.shopProductId),
-        eq9(creatorPublishingProducts.status, "published")
+      }).from(creatorPublishingProducts).where(and7(
+        eq10(creatorPublishingProducts.shopProductId, req.params.shopProductId),
+        eq10(creatorPublishingProducts.status, "published")
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Publishing product not found." });
       res.json(product);
@@ -14712,13 +16415,13 @@ ${config.settings.toolPrompts[tool]}` },
         amazonUrl: creatorPublishingProducts.amazonUrl,
         accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId
-      }).from(purchases).innerJoin(shopProducts, eq9(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq9(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and6(
-        eq9(purchases.userId, req.user.id),
+      }).from(purchases).innerJoin(shopProducts, eq10(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq10(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and7(
+        eq10(purchases.userId, req.user.id),
         inArray6(purchases.status, DOWNLOADABLE_PURCHASE_STATES),
-        eq9(creatorPublishingProducts.status, "published")
-      )).orderBy(desc7(purchases.paidAt));
+        eq10(creatorPublishingProducts.status, "published")
+      )).orderBy(desc8(purchases.paidAt));
       const withCounts = await Promise.all(rows.map(async (row) => {
-        const [downloads] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq9(creatorProductDownloads.purchaseId, row.purchaseId));
+        const [downloads] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq10(creatorProductDownloads.purchaseId, row.purchaseId));
         return { ...row, downloadsRemaining: Math.max(0, 10 - Number(downloads?.total || 0)) };
       }));
       res.json(withCounts);
@@ -14729,24 +16432,24 @@ ${config.settings.toolPrompts[tool]}` },
   });
   app2.get("/api/publishing/download/:publishingProductId", isAuthenticated, async (req, res) => {
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and6(
-        eq9(creatorPublishingProducts.id, req.params.publishingProductId),
-        eq9(creatorPublishingProducts.status, "published")
+      const [product] = await db.select().from(creatorPublishingProducts).where(and7(
+        eq10(creatorPublishingProducts.id, req.params.publishingProductId),
+        eq10(creatorPublishingProducts.status, "published")
       )).limit(1);
       if (!product?.shopProductId || !product.fileKey) return res.status(404).json({ message: "Download not found." });
-      const [purchase] = await db.select().from(purchases).where(and6(
-        eq9(purchases.productId, product.shopProductId),
-        eq9(purchases.userId, req.user.id),
+      const [purchase] = await db.select().from(purchases).where(and7(
+        eq10(purchases.productId, product.shopProductId),
+        eq10(purchases.userId, req.user.id),
         inArray6(purchases.status, DOWNLOADABLE_PURCHASE_STATES)
-      )).orderBy(desc7(purchases.paidAt)).limit(1);
+      )).orderBy(desc8(purchases.paidAt)).limit(1);
       if (!purchase) return res.status(403).json({ message: "A verified purchase is required to download this file." });
-      const [downloadCount] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq9(creatorProductDownloads.purchaseId, purchase.id));
+      const [downloadCount] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq10(creatorProductDownloads.purchaseId, purchase.id));
       if (Number(downloadCount?.total || 0) >= 10) {
         return res.status(429).json({ message: "This purchase has reached its 10-download limit. Contact support if you need access restored." });
       }
-      const fileKey = path.basename(product.fileKey);
-      const filePath = path.resolve(PRIVATE_PRODUCT_DIR, fileKey);
-      if (!filePath.startsWith(`${PRIVATE_PRODUCT_DIR}${path.sep}`) || !existsSync(filePath)) {
+      const fileKey = path2.basename(product.fileKey);
+      const filePath2 = path2.resolve(PRIVATE_PRODUCT_DIR, fileKey);
+      if (!filePath2.startsWith(`${PRIVATE_PRODUCT_DIR}${path2.sep}`) || !existsSync(filePath2)) {
         return res.status(410).json({ message: "The digital file is temporarily unavailable. Contact support." });
       }
       await db.insert(creatorProductDownloads).values({
@@ -14754,7 +16457,7 @@ ${config.settings.toolPrompts[tool]}` },
         purchaseId: purchase.id,
         userId: req.user.id
       });
-      res.download(filePath, safeFileName(product.originalFileName || product.title), (error) => {
+      res.download(filePath2, safeFileName(product.originalFileName || product.title), (error) => {
         if (error && !res.headersSent) res.status(500).json({ message: "Could not download the product file." });
       });
     } catch (error) {
@@ -14771,7 +16474,7 @@ ${config.settings.toolPrompts[tool]}` },
           title: creatorBooks.title,
           status: creatorBooks.status,
           updatedAt: creatorBooks.updatedAt
-        }).from(creatorBooks).where(eq9(creatorBooks.creatorId, req.user.id)).orderBy(desc7(creatorBooks.updatedAt)),
+        }).from(creatorBooks).where(eq10(creatorBooks.creatorId, req.user.id)).orderBy(desc8(creatorBooks.updatedAt)),
         db.select({
           id: creatorPublishingProducts.id,
           title: creatorPublishingProducts.title,
@@ -14781,7 +16484,7 @@ ${config.settings.toolPrompts[tool]}` },
           updatedAt: creatorPublishingProducts.updatedAt,
           bookId: creatorPublishingProducts.bookId,
           shopProductId: creatorPublishingProducts.shopProductId
-        }).from(creatorPublishingProducts).where(eq9(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc7(creatorPublishingProducts.updatedAt))
+        }).from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc8(creatorPublishingProducts.updatedAt))
       ]);
       const newestProductByBook = /* @__PURE__ */ new Map();
       for (const product of products) {
@@ -14848,7 +16551,7 @@ ${config.settings.toolPrompts[tool]}` },
   app2.get("/api/creator-studio/earnings", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const rows = await db.select().from(creatorProductEarnings).where(eq9(creatorProductEarnings.creatorId, req.user.id)).orderBy(desc7(creatorProductEarnings.createdAt));
+      const rows = await db.select().from(creatorProductEarnings).where(eq10(creatorProductEarnings.creatorId, req.user.id)).orderBy(desc8(creatorProductEarnings.createdAt));
       const sum = (key) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
       res.json({
         totalSales: rows.length,
@@ -14857,7 +16560,7 @@ ${config.settings.toolPrompts[tool]}` },
         referralFees: sum("referralFee").toFixed(2),
         processingFees: sum("processingFee").toFixed(2),
         netEarnings: sum("netAmount").toFixed(2),
-        availableBalance: String((await db.select({ balance: users.availableBalance }).from(users).where(eq9(users.id, req.user.id)).limit(1))[0]?.balance || "0.00"),
+        availableBalance: String((await db.select({ balance: users.availableBalance }).from(users).where(eq10(users.id, req.user.id)).limit(1))[0]?.balance || "0.00"),
         feePercent: await getPublishingFeePercent(),
         sales: rows
       });
@@ -14871,7 +16574,7 @@ ${config.settings.toolPrompts[tool]}` },
 // server/plugin-studio.ts
 init_db();
 import multer2 from "multer";
-import { and as and8, desc as desc9, eq as eq11, isNull, or } from "drizzle-orm";
+import { and as and9, desc as desc10, eq as eq12, isNull, or } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
 
@@ -14973,17 +16676,17 @@ function normalizeGeneratedEdition(input, project, edition) {
   const files = {};
   let totalChars = 0;
   for (const [rawPath, rawContent] of Object.entries(rawFiles)) {
-    const filePath = rawPath.replace(/\\/g, "/").trim();
-    const segments = filePath.split("/");
-    const extension = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-    if (!filePath || filePath.startsWith("/") || /[\u0000-\u001f\u007f]/.test(filePath) || segments.some((segment) => !segment || segment === "." || segment === "..") || !SAFE_SOURCE_EXTENSIONS.has(extension) || filePath.length > 140) {
+    const filePath2 = rawPath.replace(/\\/g, "/").trim();
+    const segments = filePath2.split("/");
+    const extension = filePath2.slice(filePath2.lastIndexOf(".")).toLowerCase();
+    if (!filePath2 || filePath2.startsWith("/") || /[\u0000-\u001f\u007f]/.test(filePath2) || segments.some((segment) => !segment || segment === "." || segment === "..") || !SAFE_SOURCE_EXTENSIONS.has(extension) || filePath2.length > 140) {
       throw new Error(`The generated ${edition} package contains an unsafe or unsupported file path.`);
     }
     if (typeof rawContent !== "string" || rawContent.length > MAX_FILE_CHARS) {
       const size = typeof rawContent === "string" ? `${rawContent.length} characters` : "not text";
-      throw new Error(`Generated ${edition} source file "${filePath}" is too large or invalid (${size}).`);
+      throw new Error(`Generated ${edition} source file "${filePath2}" is too large or invalid (${size}).`);
     }
-    files[filePath] = rawContent.replace(/\u0000/g, "");
+    files[filePath2] = rawContent.replace(/\u0000/g, "");
     totalChars += rawContent.length;
   }
   if (Object.keys(files).length > MAX_FILES || totalChars > MAX_EDITION_CHARS) {
@@ -15159,7 +16862,7 @@ Review licensing, generated source, WordPress compatibility, security, and the i
 `;
   }
   if (edition !== "core") {
-    const mainEntry = Object.entries(sourceFiles).find(([path6, source]) => !path6.includes("/") && path6.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
+    const mainEntry = Object.entries(sourceFiles).find(([path7, source]) => !path7.includes("/") && path7.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
     if (!mainEntry) throw new Error("The premium package is missing its root plugin entry file.");
     const standalonePaid = edition === "paid";
     const [sourceMainPath, rawSourceMain] = mainEntry;
@@ -17877,7 +19580,7 @@ function buildCourseBridgePaidEdition(project) {
 init_schema();
 init_db();
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes as randomBytes2, timingSafeEqual, hkdfSync } from "node:crypto";
-import { and as and7, desc as desc8, eq as eq10, inArray as inArray7, lte as lte2, sql as sql8 } from "drizzle-orm";
+import { and as and8, desc as desc9, eq as eq11, inArray as inArray7, lte as lte2, sql as sql8 } from "drizzle-orm";
 init_email_service();
 var DAY = 24 * 60 * 60 * 1e3;
 var MAX_SUPPORT_MESSAGE = 8e3;
@@ -17994,22 +19697,22 @@ function escapeHtml(value) {
   })[character]);
 }
 async function activatePluginLicenseForPurchase(purchaseId) {
-  const [purchase] = await db.select().from(purchases).where(eq10(purchases.id, purchaseId)).limit(1);
+  const [purchase] = await db.select().from(purchases).where(eq11(purchases.id, purchaseId)).limit(1);
   if (!purchase || !["paid", "approved", "delivered"].includes(purchase.status)) return { issued: false };
-  const [existingLicense] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq10(pluginLicenses.purchaseId, purchase.id)).limit(1);
+  const [existingLicense] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq11(pluginLicenses.purchaseId, purchase.id)).limit(1);
   if (existingLicense) return { issued: false, licenseId: existingLicense.id };
-  const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.shopProductId, purchase.productId)).limit(1);
+  const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.shopProductId, purchase.productId)).limit(1);
   if (!project) return { issued: false };
-  const [product] = await db.select().from(shopProducts).where(eq10(shopProducts.id, purchase.productId)).limit(1);
+  const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, purchase.productId)).limit(1);
   const selectedPlan = purchase.selectedAddons?.[0];
   const cadence = selectedPlan?.id === "plugin-monthly" ? "monthly" : selectedPlan?.id === "plugin-yearly" ? "yearly" : null;
   if (!product || !cadence) return { issued: false };
   const key = makeLicenseKey(project.slug);
   const now = /* @__PURE__ */ new Date();
-  const activeLicenses = await db.select().from(pluginLicenses).where(and7(
-    eq10(pluginLicenses.userId, purchase.userId),
-    eq10(pluginLicenses.projectId, project.id),
-    eq10(pluginLicenses.status, "active")
+  const activeLicenses = await db.select().from(pluginLicenses).where(and8(
+    eq11(pluginLicenses.userId, purchase.userId),
+    eq11(pluginLicenses.projectId, project.id),
+    eq11(pluginLicenses.status, "active")
   ));
   const existingExpiry = activeLicenses.reduce((latest, license) => license.expiresAt > now && (!latest || license.expiresAt > latest) ? license.expiresAt : latest, null);
   const startsAt = existingExpiry || now;
@@ -18018,10 +19721,10 @@ async function activatePluginLicenseForPurchase(purchaseId) {
   try {
     created = await db.transaction(async (tx) => {
       if (activeLicenses.length) {
-        await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and7(
-          eq10(pluginLicenses.userId, purchase.userId),
-          eq10(pluginLicenses.projectId, project.id),
-          eq10(pluginLicenses.status, "active")
+        await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and8(
+          eq11(pluginLicenses.userId, purchase.userId),
+          eq11(pluginLicenses.projectId, project.id),
+          eq11(pluginLicenses.status, "active")
         ));
       }
       const [license] = await tx.insert(pluginLicenses).values({
@@ -18047,11 +19750,11 @@ async function activatePluginLicenseForPurchase(purchaseId) {
       return license;
     });
   } catch (error) {
-    const [raced] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq10(pluginLicenses.purchaseId, purchase.id)).limit(1);
+    const [raced] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq11(pluginLicenses.purchaseId, purchase.id)).limit(1);
     if (raced) return { issued: false, licenseId: raced.id };
     throw error;
   }
-  const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq10(users.id, purchase.userId)).limit(1);
+  const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq11(users.id, purchase.userId)).limit(1);
   if (buyer?.email) {
     const appUrl = publicAppUrl();
     const orderUrl = `${appUrl}/orders/${encodeURIComponent(purchase.id)}`;
@@ -18145,9 +19848,9 @@ async function getPluginLicenseSummaryForPurchase(purchaseId, userId) {
     projectName: pluginStudioProjects.name,
     projectSlug: pluginStudioProjects.slug,
     projectVersion: pluginStudioProjects.version
-  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq10(pluginLicenses.projectId, pluginStudioProjects.id)).where(and7(
-    eq10(pluginLicenses.purchaseId, purchaseId),
-    eq10(pluginLicenses.userId, userId)
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).where(and8(
+    eq11(pluginLicenses.purchaseId, purchaseId),
+    eq11(pluginLicenses.userId, userId)
   )).limit(1);
   if (!row) return null;
   const status = row.license.status === "active" && row.license.expiresAt <= /* @__PURE__ */ new Date() ? "expired" : row.license.status;
@@ -18174,13 +19877,13 @@ async function sendExpiryReminders() {
     projectName: pluginStudioProjects.name,
     email: users.email,
     firstName: users.firstName
-  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq10(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(users, eq10(pluginLicenses.userId, users.id)).where(and7(inArray7(pluginLicenses.status, ["active", "expired"]), lte2(pluginLicenses.expiresAt, horizon)));
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(users, eq11(pluginLicenses.userId, users.id)).where(and8(inArray7(pluginLicenses.status, ["active", "expired"]), lte2(pluginLicenses.expiresAt, horizon)));
   for (const row of rows) {
     const daysLeft = Math.ceil((row.license.expiresAt.getTime() - now.getTime()) / DAY);
     const stage = daysLeft <= 0 ? "expired" : daysLeft <= 1 ? "1day" : "7day";
     if (row.license.reminderStage === stage || stage === "7day" && row.license.reminderStage) continue;
     if (daysLeft <= 0) {
-      await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq10(pluginLicenses.id, row.license.id));
+      await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq11(pluginLicenses.id, row.license.id));
     }
     const result = await sendEmail({
       to: row.email,
@@ -18190,7 +19893,7 @@ async function sendExpiryReminders() {
       html: stage === "expired" ? `<p>Your <strong>${row.projectName}</strong> license has expired and premium plugin features are locked.</p><p>Sign in to Taskdrip, open My Plugins, and renew the license.</p>` : `<p>Your <strong>${row.projectName}</strong> license expires in ${daysLeft} day(s).</p><p>Renew it from My Plugins to avoid interruption.</p>`
     });
     if (result.success) {
-      await db.update(pluginLicenses).set({ reminderStage: stage, updatedAt: now }).where(eq10(pluginLicenses.id, row.license.id));
+      await db.update(pluginLicenses).set({ reminderStage: stage, updatedAt: now }).where(eq11(pluginLicenses.id, row.license.id));
     }
   }
 }
@@ -18202,7 +19905,7 @@ function registerPluginLicenseRoutes(app2, options) {
         license: pluginLicenses,
         project: pluginStudioProjects,
         product: shopProducts
-      }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq10(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq10(pluginLicenses.productId, shopProducts.id)).where(eq10(pluginLicenses.userId, req.user.id)).orderBy(desc8(pluginLicenses.createdAt));
+      }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq11(pluginLicenses.productId, shopProducts.id)).where(eq11(pluginLicenses.userId, req.user.id)).orderBy(desc9(pluginLicenses.createdAt));
       const licenseIds = rows.map((row) => row.license.id);
       const sites = licenseIds.length ? await db.select().from(pluginLicenseSites).where(inArray7(pluginLicenseSites.licenseId, licenseIds)) : [];
       const events = licenseIds.length ? await db.select({
@@ -18210,7 +19913,7 @@ function registerPluginLicenseRoutes(app2, options) {
         eventType: pluginLicenseEvents.eventType,
         total: sql8`count(*)::int`
       }).from(pluginLicenseEvents).where(inArray7(pluginLicenseEvents.licenseId, licenseIds)).groupBy(pluginLicenseEvents.licenseId, pluginLicenseEvents.eventType) : [];
-      const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and7(eq10(pluginSupportThreads.userId, req.user.id), inArray7(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc8(pluginSupportThreads.updatedAt)) : [];
+      const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and8(eq11(pluginSupportThreads.userId, req.user.id), inArray7(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc9(pluginSupportThreads.updatedAt)) : [];
       const threadIds = threads.map((thread) => thread.id);
       const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray7(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
       const messageGroups = /* @__PURE__ */ new Map();
@@ -18246,9 +19949,9 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/reveal", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and7(
-        eq10(pluginLicenses.id, req.params.id),
-        eq10(pluginLicenses.userId, req.user.id)
+      const [license] = await db.select().from(pluginLicenses).where(and8(
+        eq11(pluginLicenses.id, req.params.id),
+        eq11(pluginLicenses.userId, req.user.id)
       )).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
@@ -18259,10 +19962,10 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and7(
-        eq10(pluginLicenses.id, req.params.id),
-        eq10(pluginLicenses.userId, req.user.id),
-        eq10(pluginLicenses.status, "active")
+      const [license] = await db.select().from(pluginLicenses).where(and8(
+        eq11(pluginLicenses.id, req.params.id),
+        eq11(pluginLicenses.userId, req.user.id),
+        eq11(pluginLicenses.status, "active")
       )).limit(1);
       if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) {
         return res.status(403).json({ message: "An active plugin license is required to download this package." });
@@ -18281,16 +19984,16 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/support", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and7(
-        eq10(pluginLicenses.id, req.params.id),
-        eq10(pluginLicenses.userId, req.user.id)
+      const [license] = await db.select().from(pluginLicenses).where(and8(
+        eq11(pluginLicenses.id, req.params.id),
+        eq11(pluginLicenses.userId, req.user.id)
       )).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       const content = String(req.body?.content || "").trim().slice(0, MAX_SUPPORT_MESSAGE);
       const subject = String(req.body?.subject || "").trim().slice(0, 180);
       const requestType = req.body?.requestType === "update_request" ? "update_request" : "support";
       if (content.length < 2 || !subject) return res.status(400).json({ message: "Add a subject and message." });
-      const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.id, license.projectId)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, license.projectId)).limit(1);
       const [thread] = await db.insert(pluginSupportThreads).values({
         licenseId: license.id,
         projectId: license.projectId,
@@ -18316,12 +20019,12 @@ function registerPluginLicenseRoutes(app2, options) {
       const projects = await db.select({
         project: pluginStudioProjects,
         product: shopProducts
-      }).from(pluginStudioProjects).leftJoin(shopProducts, eq10(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc8(pluginStudioProjects.createdAt));
+      }).from(pluginStudioProjects).leftJoin(shopProducts, eq11(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc9(pluginStudioProjects.createdAt));
       const licenses = await db.select({
         license: pluginLicenses,
         buyerEmail: users.email,
         projectName: pluginStudioProjects.name
-      }).from(pluginLicenses).innerJoin(users, eq10(pluginLicenses.userId, users.id)).innerJoin(pluginStudioProjects, eq10(pluginLicenses.projectId, pluginStudioProjects.id)).orderBy(desc8(pluginLicenses.createdAt));
+      }).from(pluginLicenses).innerJoin(users, eq11(pluginLicenses.userId, users.id)).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).orderBy(desc9(pluginLicenses.createdAt));
       const sites = await db.select().from(pluginLicenseSites);
       const events = await db.select({
         projectId: pluginLicenseEvents.projectId,
@@ -18333,7 +20036,7 @@ function registerPluginLicenseRoutes(app2, options) {
         productId: purchases.productId,
         amount: purchases.amount,
         selectedAddons: purchases.selectedAddons
-      }).from(purchases).where(and7(
+      }).from(purchases).where(and8(
         inArray7(purchases.productId, productIds),
         inArray7(purchases.status, ["paid", "approved", "delivered"])
       )) : [];
@@ -18404,7 +20107,7 @@ function registerPluginLicenseRoutes(app2, options) {
       if (!projectId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !validCadence(cadence)) {
         return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly or yearly license." });
       }
-      const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.id, projectId)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, projectId)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin not found." });
       let licenseServer = null;
       try {
@@ -18415,7 +20118,7 @@ function registerPluginLicenseRoutes(app2, options) {
         return res.status(409).json({ message: "Set a public HTTPS Taskdrip license server URL in this plugin's settings before issuing a WordPress key." });
       }
       if (!project.shopProductId) return res.status(409).json({ message: "This plugin has no linked shop product and cannot receive a license yet." });
-      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq10(shopProducts.id, project.shopProductId)).limit(1);
+      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq11(shopProducts.id, project.shopProductId)).limit(1);
       if (!product) return res.status(409).json({ message: "The plugin's shop product is missing. Repair the listing before issuing a license." });
       const [recipient] = await db.select({ id: users.id, email: users.email }).from(users).where(sql8`lower(${users.email}) = ${email}`).limit(1);
       if (!recipient) return res.status(404).json({ message: "No Taskdrip account uses that email. The customer must create an account before a license can be assigned." });
@@ -18471,7 +20174,7 @@ function registerPluginLicenseRoutes(app2, options) {
   app2.post("/api/admin/plugin-studio/licenses/:id/reveal", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
-      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq10(pluginLicenses.id, req.params.id)).limit(1);
+      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq11(pluginLicenses.id, req.params.id)).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
     } catch (error) {
@@ -18486,7 +20189,7 @@ function registerPluginLicenseRoutes(app2, options) {
         thread: pluginSupportThreads,
         projectName: pluginStudioProjects.name,
         buyerEmail: users.email
-      }).from(pluginSupportThreads).innerJoin(pluginStudioProjects, eq10(pluginSupportThreads.projectId, pluginStudioProjects.id)).innerJoin(users, eq10(pluginSupportThreads.userId, users.id)).orderBy(desc8(pluginSupportThreads.updatedAt));
+      }).from(pluginSupportThreads).innerJoin(pluginStudioProjects, eq11(pluginSupportThreads.projectId, pluginStudioProjects.id)).innerJoin(users, eq11(pluginSupportThreads.userId, users.id)).orderBy(desc9(pluginSupportThreads.updatedAt));
       const threadIds = threads.map((row) => row.thread.id);
       const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray7(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
       res.json(threads.map(({ thread, projectName, buyerEmail }) => ({
@@ -18503,10 +20206,10 @@ function registerPluginLicenseRoutes(app2, options) {
   app2.patch("/api/admin/plugin-studio/licenses/:id/revoke", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
-      const [license] = await db.select().from(pluginLicenses).where(eq10(pluginLicenses.id, req.params.id)).limit(1);
+      const [license] = await db.select().from(pluginLicenses).where(eq11(pluginLicenses.id, req.params.id)).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       if (license.status !== "active") return res.status(409).json({ message: "Only active licenses can be revoked." });
-      await db.update(pluginLicenses).set({ status: "revoked", updatedAt: /* @__PURE__ */ new Date() }).where(eq10(pluginLicenses.id, license.id));
+      await db.update(pluginLicenses).set({ status: "revoked", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pluginLicenses.id, license.id));
       await bumpEvent(license.projectId, "license_revoked", license.id);
       res.json({ success: true, status: "revoked" });
     } catch (error) {
@@ -18516,7 +20219,7 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/plugin-support/:threadId/messages", isAuthenticated, async (req, res) => {
     try {
-      const [thread] = await db.select().from(pluginSupportThreads).where(eq10(pluginSupportThreads.id, req.params.threadId)).limit(1);
+      const [thread] = await db.select().from(pluginSupportThreads).where(eq11(pluginSupportThreads.id, req.params.threadId)).limit(1);
       if (!thread || !isAdmin5(req.user) && thread.userId !== req.user.id) {
         return res.status(404).json({ message: "Support conversation not found." });
       }
@@ -18527,7 +20230,7 @@ function registerPluginLicenseRoutes(app2, options) {
         senderId: req.user.id,
         content
       }).returning();
-      await db.update(pluginSupportThreads).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq10(pluginSupportThreads.id, thread.id));
+      await db.update(pluginSupportThreads).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pluginSupportThreads.id, thread.id));
       res.status(201).json(message);
     } catch (error) {
       console.error("[plugin-license] Could not send support message:", error.message);
@@ -18541,31 +20244,31 @@ function registerPluginLicenseRoutes(app2, options) {
     }
     try {
       const slug = String(req.params.slug).slice(0, 80);
-      const [project] = await db.select().from(pluginStudioProjects).where(eq10(pluginStudioProjects.slug, slug)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.slug, slug)).limit(1);
       if (!project) return res.status(404).json({ valid: false, status: "plugin_not_found" });
       const key = String(req.body?.licenseKey || "").trim().toUpperCase().slice(0, 160);
       const installationId = String(req.body?.installationId || "").trim().slice(0, 120);
       if (!key || !/^[A-Za-z0-9_-]{12,120}$/.test(installationId)) {
         return res.status(400).json({ valid: false, status: "invalid_request" });
       }
-      const [license] = await db.select().from(pluginLicenses).where(and7(
-        eq10(pluginLicenses.keyHash, hashLicenseKey(key)),
-        eq10(pluginLicenses.projectId, project.id)
+      const [license] = await db.select().from(pluginLicenses).where(and8(
+        eq11(pluginLicenses.keyHash, hashLicenseKey(key)),
+        eq11(pluginLicenses.projectId, project.id)
       )).limit(1);
       const now = /* @__PURE__ */ new Date();
       if (!license) return res.status(200).json({ valid: false, status: "invalid_key" });
-      const [site] = await db.select().from(pluginLicenseSites).where(and7(
-        eq10(pluginLicenseSites.licenseId, license.id),
-        eq10(pluginLicenseSites.installationId, installationId)
+      const [site] = await db.select().from(pluginLicenseSites).where(and8(
+        eq11(pluginLicenseSites.licenseId, license.id),
+        eq11(pluginLicenseSites.installationId, installationId)
       )).limit(1);
       if (action === "deactivate") {
-        if (site) await db.update(pluginLicenseSites).set({ status: "inactive", updatedAt: now, lastSeenAt: now }).where(eq10(pluginLicenseSites.id, site.id));
+        if (site) await db.update(pluginLicenseSites).set({ status: "inactive", updatedAt: now, lastSeenAt: now }).where(eq11(pluginLicenseSites.id, site.id));
         await bumpEvent(project.id, "deactivated", license.id, installationId);
         return res.json({ valid: false, status: "deactivated" });
       }
       if (license.status !== "active") return res.status(200).json({ valid: false, status: license.status });
       if (license.expiresAt <= now) {
-        await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq10(pluginLicenses.id, license.id));
+        await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq11(pluginLicenses.id, license.id));
         return res.status(200).json({ valid: false, status: "expired", expiresAt: license.expiresAt });
       }
       const siteUrl = cleanSiteUrl(req.body?.siteUrl);
@@ -18574,9 +20277,9 @@ function registerPluginLicenseRoutes(app2, options) {
         return res.status(200).json({ valid: false, status: "not_activated" });
       }
       if (action === "activate" && (!site || site.status !== "active")) {
-        const activeSites = await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and7(
-          eq10(pluginLicenseSites.licenseId, license.id),
-          eq10(pluginLicenseSites.status, "active")
+        const activeSites = await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and8(
+          eq11(pluginLicenseSites.licenseId, license.id),
+          eq11(pluginLicenseSites.status, "active")
         ));
         if (activeSites.length >= license.maxActivations) {
           return res.status(200).json({ valid: false, status: "activation_limit", activeSites: activeSites.length, maxActivations: license.maxActivations });
@@ -18591,7 +20294,7 @@ function registerPluginLicenseRoutes(app2, options) {
         updatedAt: now
       };
       if (site) {
-        await db.update(pluginLicenseSites).set(values).where(eq10(pluginLicenseSites.id, site.id));
+        await db.update(pluginLicenseSites).set(values).where(eq11(pluginLicenseSites.id, site.id));
       } else {
         await db.insert(pluginLicenseSites).values({ licenseId: license.id, installationId, ...values });
       }
@@ -18605,9 +20308,9 @@ function registerPluginLicenseRoutes(app2, options) {
         status: "active",
         expiresAt: license.expiresAt.toISOString(),
         maxActivations: license.maxActivations,
-        activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and7(
-          eq10(pluginLicenseSites.licenseId, license.id),
-          eq10(pluginLicenseSites.status, "active")
+        activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and8(
+          eq11(pluginLicenseSites.licenseId, license.id),
+          eq11(pluginLicenseSites.status, "active")
         ))).length
       };
       if (action === "check-update") {
@@ -18639,18 +20342,18 @@ function registerPluginLicenseRoutes(app2, options) {
       if (!payload?.licenseId || !payload?.projectId || !payload?.installationId) {
         return res.status(403).json({ message: "This update link has expired. Check for updates again in WordPress." });
       }
-      const [license] = await db.select().from(pluginLicenses).where(and7(
-        eq10(pluginLicenses.id, String(payload.licenseId)),
-        eq10(pluginLicenses.projectId, String(payload.projectId)),
-        eq10(pluginLicenses.status, "active")
+      const [license] = await db.select().from(pluginLicenses).where(and8(
+        eq11(pluginLicenses.id, String(payload.licenseId)),
+        eq11(pluginLicenses.projectId, String(payload.projectId)),
+        eq11(pluginLicenses.status, "active")
       )).limit(1);
       if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) {
         return res.status(403).json({ message: "An active plugin license is required for this update." });
       }
-      const [site] = await db.select().from(pluginLicenseSites).where(and7(
-        eq10(pluginLicenseSites.licenseId, license.id),
-        eq10(pluginLicenseSites.installationId, String(payload.installationId)),
-        eq10(pluginLicenseSites.status, "active")
+      const [site] = await db.select().from(pluginLicenseSites).where(and8(
+        eq11(pluginLicenseSites.licenseId, license.id),
+        eq11(pluginLicenseSites.installationId, String(payload.installationId)),
+        eq11(pluginLicenseSites.status, "active")
       )).limit(1);
       if (!site) return res.status(403).json({ message: "This WordPress installation is no longer activated." });
       const archive = await options.buildPremiumArchive(license.projectId);
@@ -18699,7 +20402,7 @@ async function ensureStarterPlans(productId) {
   const [product] = await db.select({
     price: shopProducts.price,
     serviceAddons: shopProducts.serviceAddons
-  }).from(shopProducts).where(eq11(shopProducts.id, productId)).limit(1);
+  }).from(shopProducts).where(eq12(shopProducts.id, productId)).limit(1);
   if (!product) return;
   const plans = Array.isArray(product.serviceAddons) ? product.serviceAddons : [];
   const monthlyPrice = Number(plans.find((plan) => plan.id === "plugin-monthly")?.price) || Number(product.price) || STARTER_MONTHLY_PRICE;
@@ -18710,7 +20413,7 @@ async function ensureStarterPlans(productId) {
   await db.update(shopProducts).set({
     serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq11(shopProducts.id, productId));
+  }).where(eq12(shopProducts.id, productId));
 }
 function validateZipDirectory(data) {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
@@ -18782,7 +20485,7 @@ function adminOnly(req, res) {
   return true;
 }
 async function ensureStarterProject(adminId) {
-  const [existing] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+  const [existing] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
   const paidEdition = buildCourseBridgePaidEdition(STARTER);
   if (existing) {
     let shopProductId = existing.shopProductId || "";
@@ -18805,11 +20508,11 @@ async function ensureStarterProject(adminId) {
           isFree: false,
           createdBy: adminId
         }).returning();
-        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq11(shopProducts.id, product.id));
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq12(shopProducts.id, product.id));
         return product.id;
       });
     } else {
-      await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq11(shopProducts.id, shopProductId));
+      await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq12(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
     const refreshLegacyStarter = compareVersions2(existing.version, STARTER.version) < 0 || Object.keys(existing.coreFiles || {}).length > 0 || !existing.premiumFiles?.[`${STARTER.slug}.php`];
@@ -18835,9 +20538,9 @@ async function ensureStarterProject(adminId) {
         coreFiles: {},
         premiumFiles: paidEdition.files,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(pluginStudioProjects.id, existing.id));
+      }).where(eq12(pluginStudioProjects.id, existing.id));
     }
-    const [existingProduct] = await db.select().from(shopProducts).where(eq11(shopProducts.id, shopProductId)).limit(1);
+    const [existingProduct] = await db.select().from(shopProducts).where(eq12(shopProducts.id, shopProductId)).limit(1);
     const productMetadataNeedsSync = existingProduct && (existingProduct.title !== STARTER.name || existingProduct.shortDescription !== STARTER.shortDescription || existingProduct.description !== STARTER.description || existingProduct.featuredImage !== STARTER.featuredImage || JSON.stringify(existingProduct.features || []) !== JSON.stringify(paidEdition.features) || JSON.stringify(existingProduct.requirements || []) !== JSON.stringify(Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10)) || JSON.stringify(existingProduct.tags || []) !== JSON.stringify(["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"]));
     if (productMetadataNeedsSync) {
       await db.update(shopProducts).set({
@@ -18849,7 +20552,7 @@ async function ensureStarterProject(adminId) {
         requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
         tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(shopProducts.id, shopProductId));
+      }).where(eq12(shopProducts.id, shopProductId));
     }
     return;
   }
@@ -18884,10 +20587,10 @@ async function ensureStarterProject(adminId) {
         status: "draft",
         createdBy: adminId
       }).returning();
-      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq11(shopProducts.id, product.id));
+      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq12(shopProducts.id, product.id));
     });
   } catch (error) {
-    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq11(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq12(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
     if (!created) throw error;
   }
 }
@@ -18903,14 +20606,14 @@ function parseGeneratedPair(content) {
   }
 }
 async function getProjectFiles(id, edition) {
-  const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, id)).limit(1);
+  const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
   const singlePaid = project.templateKey === STARTER.templateKey;
   if (singlePaid && edition === "core" || !singlePaid && edition === "paid") return null;
   const packageEdition = singlePaid ? "paid" : edition;
   const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq11(shopProducts.id, project.shopProductId)).limit(1) : [];
+    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq12(shopProducts.id, project.shopProductId)).limit(1) : [];
     const release = buildPluginReleaseFiles(
       { ...project, features: product?.features || [] },
       packageEdition,
@@ -18963,7 +20666,7 @@ function registerPluginStudioRoutes(app2) {
       if (licenseApiBaseUrl) {
         await db.update(pluginStudioProjects).set({ licenseApiBaseUrl, updatedAt: /* @__PURE__ */ new Date() }).where(isNull(pluginStudioProjects.licenseApiBaseUrl));
       }
-      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq11(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc9(pluginStudioProjects.createdAt));
+      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq12(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc10(pluginStudioProjects.createdAt));
       res.json(rows.map(({ project, product }) => {
         const {
           sourcePrompt,
@@ -19016,7 +20719,7 @@ function registerPluginStudioRoutes(app2) {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 2) {
         return res.status(400).json({ message: "Use a WordPress-compatible slug containing lowercase letters, numbers, and hyphens." });
       }
-      const [existingProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq11(pluginStudioProjects.slug, slug)).limit(1);
+      const [existingProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq12(pluginStudioProjects.slug, slug)).limit(1);
       if (existingProject) return res.status(409).json({ message: "That plugin slug is already in use. Choose a different slug." });
       const config = await getCreatorStudioAIConfig();
       const ai = config.aiAvailable ? createStudioAIClient(config.model, config.provider, config.endpointUrl) : null;
@@ -19127,7 +20830,7 @@ ${description}`
           status: "draft",
           createdBy: req.user.id
         }).returning();
-        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq11(shopProducts.id, product.id));
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq12(shopProducts.id, product.id));
         created = {
           id: project.id,
           slug: project.slug,
@@ -19149,7 +20852,7 @@ ${description}`
   app2.patch("/api/admin/plugin-studio/projects/:id", isAuthenticated, async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
       const status = req.body?.status;
       if (status !== void 0 && !["draft", "published"].includes(status)) {
@@ -19197,7 +20900,7 @@ ${description}`
       }
       if (status) updates.status = status;
       const nextLicenseUrl = updates.licenseApiBaseUrl !== void 0 ? updates.licenseApiBaseUrl : project.licenseApiBaseUrl;
-      const nextPlans = updates.monthlyPrice !== void 0 ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice) : (await db.select({ serviceAddons: shopProducts.serviceAddons }).from(shopProducts).where(eq11(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
+      const nextPlans = updates.monthlyPrice !== void 0 ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice) : (await db.select({ serviceAddons: shopProducts.serviceAddons }).from(shopProducts).where(eq12(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
       if (status === "published" && (!nextLicenseUrl || !nextPlans.some((plan) => plan.id === "plugin-monthly") || !nextPlans.some((plan) => plan.id === "plugin-yearly"))) {
         return res.status(409).json({ message: "Set a public HTTPS license server URL and both monthly and yearly prices before publishing." });
       }
@@ -19205,19 +20908,19 @@ ${description}`
         const projectUpdates = { ...updates };
         delete projectUpdates.monthlyPrice;
         delete projectUpdates.yearlyPrice;
-        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq11(pluginStudioProjects.id, project.id));
+        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq12(pluginStudioProjects.id, project.id));
         if (projectUpdates.maxActivations !== void 0) {
-          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pluginLicenses.projectId, project.id));
+          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pluginLicenses.projectId, project.id));
         }
         if (project.shopProductId && updates.monthlyPrice !== void 0) {
           await tx.update(shopProducts).set({
             price: Number(updates.monthlyPrice).toFixed(2),
             serviceAddons: PLAN_ADDONS(Number(updates.monthlyPrice), Number(updates.yearlyPrice)),
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq11(shopProducts.id, project.shopProductId));
+          }).where(eq12(shopProducts.id, project.shopProductId));
         }
         if (project.shopProductId && status) {
-          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(shopProducts.id, project.shopProductId));
+          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(shopProducts.id, project.shopProductId));
         }
       });
       res.json({ success: true, status: status || project.status });
@@ -19257,10 +20960,10 @@ ${description}`
         featuredImage: shopProducts.featuredImage,
         price: shopProducts.price,
         isActive: shopProducts.isActive
-      }).from(pluginStudioProjects).innerJoin(shopProducts, eq11(pluginStudioProjects.shopProductId, shopProducts.id)).where(and8(
-        or(eq11(pluginStudioProjects.shopProductId, key), eq11(pluginStudioProjects.slug, key)),
-        eq11(pluginStudioProjects.status, "published"),
-        eq11(shopProducts.isActive, true)
+      }).from(pluginStudioProjects).innerJoin(shopProducts, eq12(pluginStudioProjects.shopProductId, shopProducts.id)).where(and9(
+        or(eq12(pluginStudioProjects.shopProductId, key), eq12(pluginStudioProjects.slug, key)),
+        eq12(pluginStudioProjects.status, "published"),
+        eq12(shopProducts.isActive, true)
       )).limit(1);
       res.json(project || null);
     } catch (error) {
@@ -19270,9 +20973,9 @@ ${description}`
   });
   app2.get("/api/plugin-studio/projects/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project || !project.shopProductId) return res.status(404).json({ message: "Plugin product not found." });
-      const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, project.shopProductId)).limit(1);
+      const [product] = await db.select().from(shopProducts).where(eq12(shopProducts.id, project.shopProductId)).limit(1);
       if (!product || !product.isActive || project.status !== "published") {
         return res.status(404).json({ message: "This plugin is not available for download." });
       }
@@ -19280,10 +20983,10 @@ ${description}`
       const admin2 = isAdmin6(user);
       let licenseId = null;
       if (!admin2) {
-        const [license] = await db.select().from(pluginLicenses).where(and8(
-          eq11(pluginLicenses.userId, user.id),
-          eq11(pluginLicenses.projectId, project.id),
-          eq11(pluginLicenses.status, "active")
+        const [license] = await db.select().from(pluginLicenses).where(and9(
+          eq12(pluginLicenses.userId, user.id),
+          eq12(pluginLicenses.projectId, project.id),
+          eq12(pluginLicenses.status, "active")
         )).limit(1);
         if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) return res.status(403).json({ message: "An active plugin license is required before downloading this package." });
         licenseId = license.id;
@@ -19311,7 +21014,7 @@ ${description}`
   app2.post("/api/admin/plugin-studio/projects/:id/release", isAuthenticated, releaseUpload.single("zip"), async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
       if (!req.file?.buffer) return res.status(400).json({ message: "Choose a premium plugin ZIP to release." });
       const version = String(req.body?.version || "").trim().slice(0, 30);
@@ -19328,11 +21031,11 @@ ${description}`
       } catch {
         return res.status(400).json({ message: "The premium update ZIP could not be opened." });
       }
-      const entries = Object.entries(filesInZip).filter(([path6]) => !path6.endsWith("/"));
+      const entries = Object.entries(filesInZip).filter(([path7]) => !path7.endsWith("/"));
       if (entries.length > 40) return res.status(400).json({ message: "The uploaded archive has too many files." });
-      const entryPaths = entries.map(([path6]) => path6.replace(/\\/g, "/"));
-      const hasRootFile = entryPaths.some((path6) => !path6.includes("/"));
-      const roots = new Set(entryPaths.map((path6) => path6.split("/")[0]));
+      const entryPaths = entries.map(([path7]) => path7.replace(/\\/g, "/"));
+      const hasRootFile = entryPaths.some((path7) => !path7.includes("/"));
+      const roots = new Set(entryPaths.map((path7) => path7.split("/")[0]));
       const zipRoot = !hasRootFile && roots.size === 1 ? Array.from(roots)[0] : null;
       const premiumFiles = {};
       let totalBytes = 0;
@@ -19348,7 +21051,7 @@ ${description}`
         premiumFiles[sourcePath] = strFromU8(contents);
         if (Object.keys(premiumFiles).length > 12) return res.status(400).json({ message: "A premium update may contain up to 12 PHP, JavaScript, or CSS files." });
       }
-      const hasEntry = Object.entries(premiumFiles).some(([path6, source]) => !path6.includes("/") && path6.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
+      const hasEntry = Object.entries(premiumFiles).some(([path7, source]) => !path7.includes("/") && path7.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
       if (!hasEntry || !Object.keys(premiumFiles).length) {
         return res.status(400).json({ message: "The ZIP must contain a root-level premium plugin PHP entry file." });
       }
@@ -19357,7 +21060,7 @@ ${description}`
         premiumFiles,
         releaseNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(pluginStudioProjects.id, project.id));
+      }).where(eq12(pluginStudioProjects.id, project.id));
       res.json({ success: true, version, releaseNotes });
     } catch (error) {
       console.error("[plugin-studio] Could not publish update:", error.message);
@@ -19380,8 +21083,8 @@ ${description}`
 import { z as z2 } from "zod";
 import multer3 from "multer";
 import bcrypt3 from "bcryptjs";
-import { nanoid as nanoid4 } from "nanoid";
-import path2 from "path";
+import { nanoid as nanoid5 } from "nanoid";
+import path3 from "path";
 import express from "express";
 import { ReplitConnectors as ReplitConnectors2 } from "@replit/connectors-sdk";
 
@@ -19711,7 +21414,7 @@ async function getShopProductByPublicKey(key) {
     const [project2] = await db.select({
       slug: pluginStudioProjects.slug,
       status: pluginStudioProjects.status
-    }).from(pluginStudioProjects).where(eq15(pluginStudioProjects.shopProductId, productById.id)).limit(1);
+    }).from(pluginStudioProjects).where(eq16(pluginStudioProjects.shopProductId, productById.id)).limit(1);
     return {
       ...productById,
       ...project2?.status === "published" && productById.isActive ? { pluginSlug: project2.slug } : {}
@@ -19720,9 +21423,9 @@ async function getShopProductByPublicKey(key) {
   const [project] = await db.select({
     slug: pluginStudioProjects.slug,
     shopProductId: pluginStudioProjects.shopProductId
-  }).from(pluginStudioProjects).where(and11(
-    eq15(pluginStudioProjects.slug, key),
-    eq15(pluginStudioProjects.status, "published")
+  }).from(pluginStudioProjects).where(and12(
+    eq16(pluginStudioProjects.slug, key),
+    eq16(pluginStudioProjects.status, "published")
   )).limit(1);
   if (!project?.shopProductId) return void 0;
   const product = await storage.getShopProductById(project.shopProductId);
@@ -19746,15 +21449,15 @@ var upload = multer3({
   storage: multer3.diskStorage({
     destination: "uploads/",
     filename: (_req, file, cb) => {
-      const raw = path2.extname(file.originalname || "").toLowerCase();
+      const raw = path3.extname(file.originalname || "").toLowerCase();
       const ext = /^\.[a-z0-9]{1,6}$/.test(raw) ? raw : "";
       if (DANGEROUS_EXTS.has(ext)) return cb(new Error("File type not allowed"), "");
-      cb(null, `${nanoid4()}${ext}`);
+      cb(null, `${nanoid5()}${ext}`);
     }
   }),
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const raw = path2.extname(file.originalname || "").toLowerCase();
+    const raw = path3.extname(file.originalname || "").toLowerCase();
     if (DANGEROUS_EXTS.has(raw)) return cb(new Error("File type not allowed"), false);
     cb(null, true);
   }
@@ -19889,7 +21592,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq15(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq16(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -19951,7 +21654,7 @@ async function enrichP2PListing(listing) {
 }
 async function enrichP2PTransaction(tx) {
   const [listing, buyer, seller, admin2] = await Promise.all([
-    db.select().from(p2pListings).where(eq15(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+    db.select().from(p2pListings).where(eq16(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -20178,7 +21881,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString(), uptime: process.uptime() });
   });
-  app2.use("/uploads", express.static(path2.join(process.cwd(), "uploads")));
+  app2.use("/uploads", express.static(path3.join(process.cwd(), "uploads")));
   app2.get("/api/creators", async (req, res) => {
     try {
       const creators = await storage.getCreators();
@@ -20579,7 +22282,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and11(eq15(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and12(eq16(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -20598,7 +22301,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and11(eq15(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and12(eq16(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -20608,8 +22311,8 @@ async function registerRoutes(app2, existingServer) {
           });
         }
       }
-      const { nanoid: nanoid5 } = await import("nanoid");
-      const id = `post_${nanoid5()}`;
+      const { nanoid: nanoid6 } = await import("nanoid");
+      const id = `post_${nanoid6()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       try {
@@ -20657,8 +22360,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid5 } = await import("nanoid");
-      const id = `post_${nanoid5()}`;
+      const { nanoid: nanoid6 } = await import("nanoid");
+      const id = `post_${nanoid6()}`;
       const finalImageUrl = req.file ? `/uploads/${req.file.filename}` : imageUrl || null;
       const post = await storage.createPost(id, req.user.id, content.trim(), finalImageUrl, videoUrl || null);
       res.status(201).json(post);
@@ -20737,8 +22440,8 @@ async function registerRoutes(app2, existingServer) {
       if (!content || content.trim().length === 0) {
         return res.status(400).json({ message: "Content is required" });
       }
-      const { nanoid: nanoid5 } = await import("nanoid");
-      const id = `cmt_${nanoid5()}`;
+      const { nanoid: nanoid6 } = await import("nanoid");
+      const id = `cmt_${nanoid6()}`;
       const comment = await storage.addPostComment(id, req.params.id, req.user.id, content.trim(), parentId);
       res.status(201).json(comment);
     } catch (error) {
@@ -20894,7 +22597,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq15(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq16(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -21865,7 +23568,7 @@ async function registerRoutes(app2, existingServer) {
       const attachments = files ? files.map((file) => ({
         filename: file.originalname,
         path: file.path,
-        url: `/uploads/${path2.basename(file.path)}`,
+        url: `/uploads/${path3.basename(file.path)}`,
         mimetype: file.mimetype,
         size: file.size
       })) : [];
@@ -22016,7 +23719,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq15(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq16(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -22116,10 +23819,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and11(eq15(campaignMicroTasks.campaignId, req.params.id), eq15(campaignMicroTasks.isActive, true))).orderBy(desc11(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and12(eq16(campaignMicroTasks.campaignId, req.params.id), eq16(campaignMicroTasks.isActive, true))).orderBy(desc12(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and11(eq15(microTaskSubmissions.campaignId, req.params.id), eq15(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.campaignId, req.params.id), eq16(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -22137,7 +23840,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq15(campaignMicroTasks.campaignId, campaigns.id)).where(eq15(campaignMicroTasks.brandId, userId)).orderBy(desc11(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq16(campaignMicroTasks.campaignId, campaigns.id)).where(eq16(campaignMicroTasks.brandId, userId)).orderBy(desc12(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -22195,7 +23898,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq15(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq16(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -22221,7 +23924,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and11(eq15(microTaskSubmissions.microTaskId, task.id), eq15(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.microTaskId, task.id), eq16(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -22245,7 +23948,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq15(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq16(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -22256,7 +23959,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq15(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq16(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -22265,11 +23968,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and11(eq15(microTaskSubmissions.microTaskId, task.id), eq15(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.microTaskId, task.id), eq16(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and11(eq15(microTaskSubmissions.microTaskId, task.id), eq15(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.microTaskId, task.id), eq16(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -22305,7 +24008,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq15(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq15(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq15(microTaskSubmissions.userId, users.id)).where(eq15(campaignMicroTasks.brandId, userId)).orderBy(desc11(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq16(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq16(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq16(microTaskSubmissions.userId, users.id)).where(eq16(campaignMicroTasks.brandId, userId)).orderBy(desc12(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -22321,14 +24024,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin2] = await db.select().from(users).where(eq15(users.id, userId));
+      const [admin2] = await db.select().from(users).where(eq16(users.id, userId));
       if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq15(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq15(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq15(microTaskSubmissions.userId, users.id)).orderBy(desc11(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq16(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq16(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq16(microTaskSubmissions.userId, users.id)).orderBy(desc12(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -22344,9 +24047,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq15(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq16(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq15(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq16(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -22361,7 +24064,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq16(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -22479,7 +24182,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and11(eq15(userReviews.referenceType, "campaign_participation"), eq15(userReviews.referenceId, participation.id))).orderBy(desc11(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "campaign_participation"), eq16(userReviews.referenceId, participation.id))).orderBy(desc12(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -22499,7 +24202,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and11(eq15(userReviews.referenceType, "campaign_participation"), eq15(userReviews.referenceId, participation.id), eq15(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "campaign_participation"), eq16(userReviews.referenceId, participation.id), eq16(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -22510,8 +24213,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq15(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq15(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq16(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -22644,7 +24347,7 @@ async function registerRoutes(app2, existingServer) {
       const { email, password, firstName, lastName, userType, isVerified } = req.body;
       const hashedPassword = await bcrypt3.hash(password, 10);
       const newUser = await storage.createUser({
-        id: nanoid4(),
+        id: nanoid5(),
         email,
         password: hashedPassword,
         firstName,
@@ -22875,8 +24578,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq21 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq21(transactions3.id, id));
+            const { eq: eq23 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq23(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -22907,7 +24610,7 @@ async function registerRoutes(app2, existingServer) {
       let courseRevenue = 0;
       for (const e of allEnrollmentRows) {
         if (e.status === "active" || e.paymentStatus === "approved") {
-          const course = await db.select({ price: courses.price }).from(courses).where(eq15(courses.id, e.courseId)).limit(1);
+          const course = await db.select({ price: courses.price }).from(courses).where(eq16(courses.id, e.courseId)).limit(1);
           courseRevenue += parseFloat(course[0]?.price || "0");
         }
       }
@@ -22952,7 +24655,7 @@ async function registerRoutes(app2, existingServer) {
       const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
       let courseTotal = 0;
       for (const e of approvedEnrollmentIds) {
-        const course = await db.select({ price: courses.price }).from(courses).where(eq15(courses.id, e.courseId)).limit(1);
+        const course = await db.select({ price: courses.price }).from(courses).where(eq16(courses.id, e.courseId)).limit(1);
         courseTotal += parseFloat(course[0]?.price || "0");
       }
       const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
@@ -23011,7 +24714,7 @@ async function registerRoutes(app2, existingServer) {
       if (!escrow) return res.status(404).json({ message: "Escrow payment not found" });
       await storage.updateEscrowPayment(escrow.id, { status: "verified", verifiedAt: /* @__PURE__ */ new Date(), verifiedBy: req.user.id });
       const activatedCampaign = await storage.updateCampaign(escrow.campaignId, { isActive: true, status: "active", paymentStatus: "completed" });
-      const { nanoid: nanoid5 } = await import("nanoid");
+      const { nanoid: nanoid6 } = await import("nanoid");
       await storage.createNotification({
         userId: escrow.brandId,
         type: "payment_received",
@@ -23082,13 +24785,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
-        db.select().from(transactions).orderBy(desc11(transactions.createdAt)),
-        db.select().from(p2pTransactions).orderBy(desc11(p2pTransactions.createdAt)),
-        db.select().from(purchases).orderBy(desc11(purchases.createdAt)),
-        db.select().from(escrowPayments).orderBy(desc11(escrowPayments.createdAt)),
-        db.select().from(paymentDeposits).orderBy(desc11(paymentDeposits.createdAt)),
-        db.select().from(subscriptions).orderBy(desc11(subscriptions.createdAt)),
-        db.select().from(directHireOffers).orderBy(desc11(directHireOffers.createdAt)),
+        db.select().from(transactions).orderBy(desc12(transactions.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt)),
+        db.select().from(purchases).orderBy(desc12(purchases.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc12(escrowPayments.createdAt)),
+        db.select().from(paymentDeposits).orderBy(desc12(paymentDeposits.createdAt)),
+        db.select().from(subscriptions).orderBy(desc12(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc12(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)
       ]);
       const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
@@ -23255,7 +24958,7 @@ async function registerRoutes(app2, existingServer) {
         approvedAt: courseEnrollments.approvedAt,
         createdAt: courseEnrollments.createdAt,
         courseTitle: courses.title
-      }).from(courseEnrollments).leftJoin(courses, eq15(courseEnrollments.courseId, courses.id)).orderBy(desc11(courseEnrollments.createdAt));
+      }).from(courseEnrollments).leftJoin(courses, eq16(courseEnrollments.courseId, courses.id)).orderBy(desc12(courseEnrollments.createdAt));
       for (const t of enrollmentRows) {
         const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
         unified.push({
@@ -23316,13 +25019,13 @@ async function registerRoutes(app2, existingServer) {
         allCourses,
         allProducts
       ] = await Promise.all([
-        safeSelect(db.select().from(subscriptions).orderBy(desc11(subscriptions.createdAt))),
-        safeSelect(db.select().from(purchases).orderBy(desc11(purchases.createdAt))),
-        safeSelect(db.select().from(courseEnrollments).orderBy(desc11(courseEnrollments.createdAt))),
-        safeSelect(db.select().from(directHireOffers).orderBy(desc11(directHireOffers.createdAt))),
-        safeSelect(db.select().from(escrowPayments).orderBy(desc11(escrowPayments.createdAt))),
-        safeSelect(db.select().from(p2pTransactions).orderBy(desc11(p2pTransactions.createdAt))),
-        safeSelect(db.select().from(payoutRequests).orderBy(desc11(payoutRequests.createdAt))),
+        safeSelect(db.select().from(subscriptions).orderBy(desc12(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc12(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc12(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc12(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc12(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc12(payoutRequests.createdAt))),
         safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
         safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
         safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts))
@@ -23674,23 +25377,23 @@ async function registerRoutes(app2, existingServer) {
       }
       let verifiedPurchaseId;
       const { creatorPublishingProducts: publishingProducts, purchases: shopPurchases } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and11(
-        eq15(publishingProducts.shopProductId, req.params.id),
-        eq15(publishingProducts.status, "published")
+      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and12(
+        eq16(publishingProducts.shopProductId, req.params.id),
+        eq16(publishingProducts.status, "published")
       )).limit(1);
       if (publishingProduct) {
-        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and11(
-          eq15(shopPurchases.productId, req.params.id),
-          eq15(shopPurchases.userId, user.id),
+        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and12(
+          eq16(shopPurchases.productId, req.params.id),
+          eq16(shopPurchases.userId, user.id),
           inArray11(shopPurchases.status, ["paid", "approved", "delivered"])
         )).limit(1);
         if (!verifiedPurchase) {
           return res.status(403).json({ message: "Only verified buyers can review this digital product." });
         }
         verifiedPurchaseId = verifiedPurchase.id;
-        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and11(
-          eq15(productReviews.productId, req.params.id),
-          eq15(productReviews.userId, user.id)
+        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and12(
+          eq16(productReviews.productId, req.params.id),
+          eq16(productReviews.userId, user.id)
         )).limit(1);
         if (existingReview) return res.status(409).json({ message: "You have already reviewed this product." });
       }
@@ -23730,7 +25433,7 @@ async function registerRoutes(app2, existingServer) {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq15(pluginStudioProjects.shopProductId, productId)).limit(1);
+      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq16(pluginStudioProjects.shopProductId, productId)).limit(1);
       if (pluginProject && !["plugin-monthly", "plugin-yearly"].includes(String(planId || ""))) {
         return res.status(400).json({ message: "Choose a monthly or yearly plugin license plan before checkout." });
       }
@@ -24317,7 +26020,7 @@ async function registerRoutes(app2, existingServer) {
       if (!contentType || !contentId || !reason) {
         return res.status(400).json({ message: "contentType, contentId and reason are required" });
       }
-      const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
+      const [report2] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
       const reporter = await storage.getUser(userId).catch(() => null);
       sendAdminActivityEmail({
         event: "contact",
@@ -24330,7 +26033,7 @@ async function registerRoutes(app2, existingServer) {
           phone: reporter?.phoneNumber || void 0
         },
         details: [
-          { label: "Report ID", value: report.id },
+          { label: "Report ID", value: report2.id },
           { label: "Content type", value: contentType },
           { label: "Content ID", value: contentId },
           { label: "Reason", value: reason },
@@ -24339,7 +26042,7 @@ async function registerRoutes(app2, existingServer) {
       }).catch(() => {
       });
       try {
-        const admins = await db.select().from(users).where(eq15(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq16(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -24353,7 +26056,7 @@ async function registerRoutes(app2, existingServer) {
         }
       } catch {
       }
-      res.status(201).json(report);
+      res.status(201).json(report2);
     } catch (error) {
       console.error("Error creating report:", error);
       res.status(500).json({ message: "Failed to submit report" });
@@ -24363,7 +26066,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const list = await db.select().from(contentReports).orderBy(desc11(contentReports.createdAt));
+      const list = await db.select().from(contentReports).orderBy(desc12(contentReports.createdAt));
       res.json(list);
     } catch (error) {
       res.status(500).json({ message: "Failed to list reports" });
@@ -24373,14 +26076,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq15(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq16(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq16(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -24402,13 +26105,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq15(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq16(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq16(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -24469,7 +26172,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq15(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq16(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -24503,7 +26206,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq15(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq16(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -24552,7 +26255,7 @@ async function registerRoutes(app2, existingServer) {
       const { status, adminNote } = req.body || {};
       const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
       if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(directHireOffers.id, req.params.id)).returning();
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(directHireOffers.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Hire request not found" });
       if (updated.brandId) {
         const statusLabels = {
@@ -24856,12 +26559,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq15(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq16(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq15(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -24897,8 +26600,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq15(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq15(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq16(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -24950,7 +26653,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq15(referralCommissions.referrerId, req.user.id)).orderBy(desc11(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, req.user.id)).orderBy(desc12(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -24992,7 +26695,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq15(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -25007,7 +26710,7 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq15(users.userType, "admin")).limit(3);
+      const adminUsers = await db.select().from(users).where(eq16(users.userType, "admin")).limit(3);
       for (const admin2 of adminUsers) {
         await storage.createNotification({
           userId: admin2.id,
@@ -25050,7 +26753,7 @@ async function registerRoutes(app2, existingServer) {
         commissionAmount: referralCommissions.commissionAmount,
         status: referralCommissions.status,
         createdAt: referralCommissions.createdAt
-      }).from(referralCommissions).leftJoin(referrerAlias, eq15(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc11(referralCommissions.createdAt)).limit(200);
+      }).from(referralCommissions).leftJoin(referrerAlias, eq16(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc12(referralCommissions.createdAt)).limit(200);
       const referralPayouts = await db.select({
         id: payoutRequests.id,
         userId: payoutRequests.userId,
@@ -25063,7 +26766,7 @@ async function registerRoutes(app2, existingServer) {
         lastName: users.lastName,
         username: users.username,
         email: users.email
-      }).from(payoutRequests).leftJoin(users, eq15(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc11(payoutRequests.createdAt)).limit(100);
+      }).from(payoutRequests).leftJoin(users, eq16(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc12(payoutRequests.createdAt)).limit(100);
       const filteredPayouts = referralPayouts.filter(
         (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
       );
@@ -25088,7 +26791,7 @@ async function registerRoutes(app2, existingServer) {
       const updateData = { status };
       if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
       if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(referralCommissions).set(updateData).where(eq15(referralCommissions.id, id)).returning();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq16(referralCommissions.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Commission not found" });
       res.json(updated);
     } catch (error) {
@@ -25101,9 +26804,9 @@ async function registerRoutes(app2, existingServer) {
       const isAdmin7 = req.user.userType === "admin";
       let allMessages;
       if (isAdmin7) {
-        allMessages = await db.select().from(messages).orderBy(desc11(messages.createdAt));
+        allMessages = await db.select().from(messages).orderBy(desc12(messages.createdAt));
       } else {
-        allMessages = await db.select().from(messages).where(sql13`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc11(messages.createdAt));
+        allMessages = await db.select().from(messages).where(sql13`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc12(messages.createdAt));
       }
       const convMap = {};
       for (const msg of allMessages) {
@@ -25308,7 +27011,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/admin/conversations", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const allMessages = await db.select().from(messages).orderBy(desc11(messages.createdAt));
+      const allMessages = await db.select().from(messages).orderBy(desc12(messages.createdAt));
       const convMap = {};
       for (const msg of allMessages) {
         if (!msg.campaignId) continue;
@@ -25336,7 +27039,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and11(eq15(blockedUsers.blockerId, blockerId), eq15(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and12(eq16(blockedUsers.blockerId, blockerId), eq16(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -25348,7 +27051,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and11(eq15(blockedUsers.blockerId, blockerId), eq15(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and12(eq16(blockedUsers.blockerId, blockerId), eq16(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -25358,8 +27061,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and11(eq15(blockedUsers.blockerId, myId), eq15(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and11(eq15(blockedUsers.blockerId, otherId), eq15(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and12(eq16(blockedUsers.blockerId, myId), eq16(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and12(eq16(blockedUsers.blockerId, otherId), eq16(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -25729,7 +27432,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -25856,7 +27559,7 @@ Instructions:
       });
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         let resolvedLinkedCourseId = pricing?.linkedCourseId || null;
         if (!resolvedLinkedCourseId && selectedCourseKey === "free_foundations") {
@@ -25865,9 +27568,9 @@ Instructions:
         }
         if (resolvedLinkedCourseId) {
           linkedCourseId = resolvedLinkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and11(
-            eq15(courseEnrollments.courseId, resolvedLinkedCourseId),
-            eq15(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and12(
+            eq16(courseEnrollments.courseId, resolvedLinkedCourseId),
+            eq16(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -25882,7 +27585,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq15(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq16(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -25965,7 +27668,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq15(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq16(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -25974,7 +27677,7 @@ Instructions:
   app2.get("/api/admin/breedskool/registrations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc11(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc12(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26037,30 +27740,30 @@ Instructions:
         if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: "Invalid payment status." });
         updateData.paymentStatus = String(paymentStatus);
       }
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq15(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq16(breedskoolRegistrations.id, req.params.id)).returning();
       if (!row) return res.status(404).json({ message: "Registration not found" });
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq15(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq16(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq15(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq16(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and11(
-              eq15(courseEnrollments.courseId, courseIdToActivate),
-              eq15(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and12(
+              eq16(courseEnrollments.courseId, courseIdToActivate),
+              eq16(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq15(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq16(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -26072,7 +27775,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq15(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq16(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -26189,7 +27892,7 @@ Instructions:
     { id: "ton", label: "Toncoin", currency: "TON", network: "ton", address: "", isActive: true }
   ];
   const readBreedSkoolDonationWallets = async () => {
-    const [walletRow] = await db.select().from(appSettings).where(eq15(appSettings.key, "breedskool_donation_wallets"));
+    const [walletRow] = await db.select().from(appSettings).where(eq16(appSettings.key, "breedskool_donation_wallets"));
     if (walletRow?.value) {
       try {
         const stored = JSON.parse(walletRow.value);
@@ -26220,7 +27923,7 @@ Instructions:
   };
   app2.get("/api/breedskool/campaign", async (_req, res) => {
     try {
-      const [row] = await db.select().from(appSettings).where(eq15(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq16(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       let storedConfig = null;
       if (row?.value) {
@@ -26247,7 +27950,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const [row] = await db.select().from(appSettings).where(eq15(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq16(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       if (row?.value) {
         try {
@@ -26397,7 +28100,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign/donations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc11(paymentDeposits.createdAt));
+      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc12(paymentDeposits.createdAt));
       res.json(deposits.map((deposit) => {
         let details = {};
         try {
@@ -26424,7 +28127,7 @@ Instructions:
       if (!["submitted", "verified", "approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Choose a valid donation status." });
       }
-      const [existing] = await db.select().from(paymentDeposits).where(eq15(paymentDeposits.id, req.params.id));
+      const [existing] = await db.select().from(paymentDeposits).where(eq16(paymentDeposits.id, req.params.id));
       if (!existing || !String(existing.adminNotes || "").includes("breedskool_campaign")) {
         return res.status(404).json({ message: "Donation not found." });
       }
@@ -26442,7 +28145,7 @@ Instructions:
         approvedBy: status === "approved" || status === "verified" ? req.user.id : null,
         approvedAt: status === "approved" || status === "verified" ? /* @__PURE__ */ new Date() : null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq16(paymentDeposits.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26450,7 +28153,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq15(courseAssignments.userId, req.user.id)).orderBy(desc11(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq16(courseAssignments.userId, req.user.id)).orderBy(desc12(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26458,7 +28161,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq15(breedskoolRegistrations.userId, req.user.id)).orderBy(desc11(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq16(breedskoolRegistrations.userId, req.user.id)).orderBy(desc12(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26627,9 +28330,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq15(courseEnrollments.userId, users.id)).where(and11(
-        eq15(courseEnrollments.courseId, courseId),
-        eq15(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq16(courseEnrollments.userId, users.id)).where(and12(
+        eq16(courseEnrollments.courseId, courseId),
+        eq16(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -26665,11 +28368,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq15(courseCommunityPosts.userId, users.id)).where(and11(
-        eq15(courseCommunityPosts.courseId, courseId),
-        eq15(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq16(courseCommunityPosts.userId, users.id)).where(and12(
+        eq16(courseCommunityPosts.courseId, courseId),
+        eq16(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq15(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq16(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -26712,25 +28415,25 @@ Instructions:
       const postId = req.params.postId;
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7) {
-        const [course] = await db.select().from(courses).where(eq15(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq16(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and11(eq15(courseEnrollments.courseId, courseId), eq15(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and12(eq16(courseEnrollments.courseId, courseId), eq16(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and11(eq15(courseCommunityPosts.id, postId), eq15(courseCommunityPosts.courseId, courseId), eq15(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and12(eq16(courseCommunityPosts.id, postId), eq16(courseCommunityPosts.courseId, courseId), eq16(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and11(eq15(courseCommunityLikes.postId, postId), eq15(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and12(eq16(courseCommunityLikes.postId, postId), eq16(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and11(
-          eq15(courseCommunityLikes.postId, postId),
-          eq15(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and12(
+          eq16(courseCommunityLikes.postId, postId),
+          eq16(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq15(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq16(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
         await db.execute(sql13`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
@@ -26746,15 +28449,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and11(eq15(courseCommunityPosts.id, postId), eq15(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and12(eq16(courseCommunityPosts.id, postId), eq16(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq15(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq16(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq15(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq16(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -26763,7 +28466,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq15(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq16(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -26779,8 +28482,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq15(courseCommunityPosts.userId, users.id)).where(and11(inArray11(courseCommunityPosts.courseId, courseIds), eq15(courseCommunityPosts.isDeleted, false))).orderBy(desc11(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq15(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq16(courseCommunityPosts.userId, users.id)).where(and12(inArray11(courseCommunityPosts.courseId, courseIds), eq16(courseCommunityPosts.isDeleted, false))).orderBy(desc12(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq16(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -26790,7 +28493,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq15(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq16(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -26801,7 +28504,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq15(courseEnrollments.userId, users.id)).where(and11(inArray11(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq16(courseEnrollments.userId, users.id)).where(and12(inArray11(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -27093,10 +28796,10 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and11(
-        eq15(courseAssignments.courseId, req.params.id),
-        eq15(courseAssignments.userId, req.user.id)
-      )).orderBy(desc11(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(and12(
+        eq16(courseAssignments.courseId, req.params.id),
+        eq16(courseAssignments.userId, req.user.id)
+      )).orderBy(desc12(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -27151,7 +28854,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq15(courseAssignments.userId, users.id)).orderBy(desc11(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq16(courseAssignments.userId, users.id)).orderBy(desc12(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -27163,7 +28866,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq15(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq16(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -27211,13 +28914,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, desc: desc12 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq21(courseMessages2.courseId, req.params.id)).orderBy(desc12(courseMessages2.createdAt));
+      const { eq: eq23, desc: desc13 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq23(courseMessages2.courseId, req.params.id)).orderBy(desc13(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq21(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq23(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq21(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq23(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -27250,8 +28953,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, and: and14 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and14(eq21(productLikes2.productId, req.params.id), eq21(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq23, and: and16 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and16(eq23(productLikes2.productId, req.params.id), eq23(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -27261,26 +28964,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, and: and14, sql: sql17 } = await import("drizzle-orm");
+      const { eq: eq23, and: and16, sql: sql17 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and14(eq21(productLikes2.productId, req.params.id), eq21(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and16(eq23(productLikes2.productId, req.params.id), eq23(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq21(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq23(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             [type === "like" ? "likesCount" : "dislikesCount"]: sql17`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq21(shopProducts2.id, req.params.id));
+          }).where(eq23(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq21(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq23(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             likesCount: sql17`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
             dislikesCount: sql17`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq21(shopProducts2.id, req.params.id));
+          }).where(eq23(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -27291,7 +28994,7 @@ Instructions:
         });
         await db2.update(shopProducts2).set({
           [type === "like" ? "likesCount" : "dislikesCount"]: sql17`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq21(shopProducts2.id, req.params.id));
+        }).where(eq23(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -27664,8 +29367,8 @@ Instructions:
         return res.status(403).json({ message: "Forbidden" });
       }
       const expectedAmount = Number(offer.budget || 0);
-      const report = await verifyBlockchainTransaction(offer.paymentNetwork, offer.transactionHash, expectedAmount);
-      res.json(report);
+      const report2 = await verifyBlockchainTransaction(offer.paymentNetwork, offer.transactionHash, expectedAmount);
+      res.json(report2);
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
@@ -27677,7 +29380,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and11(eq15(messages.referenceType, "direct_hire"), eq15(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and12(eq16(messages.referenceType, "direct_hire"), eq16(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27785,7 +29488,7 @@ Instructions:
         totalEarned: sql13`${users.totalEarned} + ${payout}`,
         completedCampaigns: sql13`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(users.id, offer.influencerId));
+      }).where(eq16(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -27814,7 +29517,7 @@ Instructions:
           availableBalance: sql13`${users.availableBalance} + ${platformRevenue}`,
           totalEarned: sql13`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq15(users.id, primaryAdmin.id));
+        }).where(eq16(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -27854,7 +29557,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and11(eq15(userReviews.referenceType, "direct_hire"), eq15(userReviews.referenceId, offer.id))).orderBy(desc11(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "direct_hire"), eq16(userReviews.referenceId, offer.id))).orderBy(desc12(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -27870,7 +29573,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and11(eq15(userReviews.referenceType, "direct_hire"), eq15(userReviews.referenceId, offer.id), eq15(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "direct_hire"), eq16(userReviews.referenceId, offer.id), eq16(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -27880,8 +29583,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq15(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq15(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq16(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28046,7 +29749,7 @@ Instructions:
       await db.update(users).set({
         pendingBalance: sql13`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(users.id, offer.influencerId));
+      }).where(eq16(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -28240,8 +29943,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq15(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq15(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq16(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq16(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -28252,7 +29955,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq15(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq16(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -28261,7 +29964,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq15(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq16(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -28618,7 +30321,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and11(eq15(p2pListings.status, "approved"), eq15(p2pListings.isFeatured, true))).orderBy(desc11(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and12(eq16(p2pListings.status, "approved"), eq16(p2pListings.isFeatured, true))).orderBy(desc12(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28626,7 +30329,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -28643,12 +30346,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq15(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq15(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq15(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq15(p2pListings.country, country));
-      if (currency) conditions.push(eq15(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and11(...conditions)).orderBy(desc11(p2pListings.createdAt));
+      let conditions = [eq16(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq16(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq16(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq16(p2pListings.country, country));
+      if (currency) conditions.push(eq16(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and12(...conditions)).orderBy(desc12(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -28725,7 +30428,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -28741,7 +30444,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and11(eq15(p2pTaskAddonSubmissions.listingId, req.params.id), eq15(p2pTaskAddonSubmissions.userId, req.user.id), eq15(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and12(eq16(p2pTaskAddonSubmissions.listingId, req.params.id), eq16(p2pTaskAddonSubmissions.userId, req.user.id), eq16(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -28775,12 +30478,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq15(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc11(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq16(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc12(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28788,7 +30491,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq15(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc11(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq16(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc12(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28796,9 +30499,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq15(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq16(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -28811,7 +30514,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq16(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -28832,13 +30535,13 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq15(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq16(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
       const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
         inArray11(p2pTaskAddonSubmissions.listingId, listingIds)
-      ).orderBy(desc11(p2pTaskAddonSubmissions.createdAt));
+      ).orderBy(desc12(p2pTaskAddonSubmissions.createdAt));
       const submissionsWithTitle = submissions.map((s) => ({ ...s, listingTitle: listingTitleMap[s.listingId] || "" }));
       res.json(submissionsWithTitle);
     } catch (e) {
@@ -28863,7 +30566,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
@@ -28937,7 +30640,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions", isAuthenticated, async (req, res) => {
     try {
-      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc11(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc11(p2pTransactions.createdAt));
+      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc12(p2pTransactions.createdAt));
       res.json(await Promise.all(rows.map(enrichP2PTransaction)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28945,7 +30648,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -28955,10 +30658,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq15(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq16(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28966,7 +30669,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -28984,7 +30687,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -28993,7 +30696,7 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -29007,10 +30710,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -29020,11 +30723,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -29034,11 +30737,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -29051,11 +30754,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -29069,11 +30772,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -29086,10 +30789,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -29110,7 +30813,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq15(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq16(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -29136,7 +30839,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq15(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq16(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -29153,14 +30856,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq15(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq15(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq15(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq16(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -29187,7 +30890,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq15(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq16(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -29198,7 +30901,7 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-listings", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = (await db.select().from(p2pListings).orderBy(desc11(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = (await db.select().from(p2pListings).orderBy(desc12(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const enriched = await Promise.all(rows.map(enrichP2PListing));
       res.json(enriched);
     } catch (e) {
@@ -29208,8 +30911,8 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-transactions", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = await db.select().from(p2pTransactions).orderBy(desc11(p2pTransactions.createdAt));
-      const allListings = (await db.select().from(p2pListings).orderBy(desc11(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = await db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt));
+      const allListings = (await db.select().from(p2pListings).orderBy(desc12(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const revenue = rows.filter((r) => r.status === "completed").reduce((sum, r) => sum + Number(r.fee || 0), 0);
       res.json({
         stats: {
@@ -29258,7 +30961,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq15(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq16(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29268,7 +30971,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq15(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq16(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -29280,9 +30983,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq15(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq16(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq15(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq16(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29415,7 +31118,7 @@ Notes: ${adminNotes}` : ""}`
         return res.status(400).json({ message: `Please complete: ${missing.join(", ")}.`, missingFields: missing });
       }
       const featureImagePath = req.file ? `/uploads/${req.file.filename}` : req.body.featureImage || null;
-      const campaignId = `campaign_${Date.now()}_${nanoid4(9)}`;
+      const campaignId = `campaign_${Date.now()}_${nanoid5(9)}`;
       const campaign = await storage.createCampaign({
         id: campaignId,
         title,
@@ -29564,7 +31267,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/all-submissions", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const submissions = await db.select().from(taskSubmissions).orderBy(desc11(taskSubmissions.submittedAt));
+      const submissions = await db.select().from(taskSubmissions).orderBy(desc12(taskSubmissions.submittedAt));
       const enriched = await Promise.all(submissions.map(async (s) => {
         const [creator, campaign] = await Promise.all([
           storage.getUser(s.userId),
@@ -29647,7 +31350,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq15(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq16(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -29872,7 +31575,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq15(adAnalytics.adId, req.params.id)).orderBy(desc11(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq16(adAnalytics.adId, req.params.id)).orderBy(desc12(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -30025,7 +31728,7 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const apps = await storage.getAllAdvertiseApplications();
-      const payments = await db.select().from(paymentDeposits).where(sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc11(paymentDeposits.createdAt));
+      const payments = await db.select().from(paymentDeposits).where(sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc12(paymentDeposits.createdAt));
       res.json(apps.map((app22) => ({
         ...app22,
         payment: payments.find((payment) => String(payment.adminNotes || "").includes(`ads_application:${app22.id}`)) || null
@@ -30069,8 +31772,8 @@ ${body}`,
       const status = String(req.query.status || "").trim();
       const search = String(req.query.search || "").trim();
       const conditions = [];
-      if (eventType && eventType !== "all") conditions.push(eq15(activityLogs.eventType, eventType));
-      if (status && status !== "all") conditions.push(eq15(activityLogs.status, status));
+      if (eventType && eventType !== "all") conditions.push(eq16(activityLogs.eventType, eventType));
+      if (status && status !== "all") conditions.push(eq16(activityLogs.status, status));
       if (search) {
         const pattern = `%${search.slice(0, 100)}%`;
         conditions.push(or2(
@@ -30081,9 +31784,9 @@ ${body}`,
           ilike2(activityLogs.entityId, pattern)
         ));
       }
-      const where = conditions.length ? and11(...conditions) : void 0;
+      const where = conditions.length ? and12(...conditions) : void 0;
       const [items, totalRows] = await Promise.all([
-        db.select().from(activityLogs).where(where).orderBy(desc11(activityLogs.createdAt)).limit(limit).offset(offset),
+        db.select().from(activityLogs).where(where).orderBy(desc12(activityLogs.createdAt)).limit(limit).offset(offset),
         db.select({ count: count4() }).from(activityLogs).where(where)
       ]);
       res.json({
@@ -30508,7 +32211,7 @@ ${body}`,
       const allUsers = await storage.getAllUsers?.() || [];
       const { courseEnrollments: courseEnrollments2, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
       const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const { eq: eq21, sql: sqlFn } = await import("drizzle-orm");
+      const { eq: eq23, sql: sqlFn } = await import("drizzle-orm");
       const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
       const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
       const studentUserIds = /* @__PURE__ */ new Set([
@@ -30694,7 +32397,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq15(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq16(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -30984,8 +32687,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21, and: and14 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and14(eq21(pageHeroBackgrounds2.page, req.params.page), eq21(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq23, and: and16 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and16(eq23(pageHeroBackgrounds2.page, req.params.page), eq23(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31007,12 +32710,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21 } = await import("drizzle-orm");
+      const { eq: eq23 } = await import("drizzle-orm");
       const page2 = req.params.page;
       const data = { ...req.body, page: page2, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq21(pageHeroBackgrounds2.page, page2));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq23(pageHeroBackgrounds2.page, page2));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq21(pageHeroBackgrounds2.page, page2)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq23(pageHeroBackgrounds2.page, page2)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -31026,8 +32729,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq21 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq21(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq23 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq23(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31133,7 +32836,7 @@ ${body}`,
       if (!user) return res.status(404).json({ message: "User not found" });
       const shopOrders = await storage.getUserPurchases(userId);
       const courseOrders = await storage.getMyEnrollments(userId);
-      const p2pRows = await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc11(p2pTransactions.createdAt));
+      const p2pRows = await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc12(p2pTransactions.createdAt));
       const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
       let escrowOrders = [];
       if (user.userType === "brand" || user.userType === "admin") {
@@ -31157,12 +32860,12 @@ ${body}`,
       const directHireOrders = Array.from(hireMap.values()).sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
-      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql13`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc11(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and11(
-        eq15(paymentDeposits.brandId, userId),
+      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql13`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc12(advertiseApplications.createdAt)) : [];
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and12(
+        eq16(paymentDeposits.brandId, userId),
         sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
-      )).orderBy(desc11(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq15(subscriptions.userId, userId)).orderBy(desc11(subscriptions.createdAt));
+      )).orderBy(desc12(paymentDeposits.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq16(subscriptions.userId, userId)).orderBy(desc12(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -31184,14 +32887,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq15(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq16(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq15(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq16(users.id, sellerId));
         seller = s || null;
       }
       const pluginLicense = isBuyer ? await getPluginLicenseSummaryForPurchase(purchase.id, req.user.id) : null;
@@ -31204,7 +32907,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq15(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq16(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -31299,7 +33002,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq15(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq16(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -31396,7 +33099,7 @@ ${body}`,
       "Content-Disposition": asset.contentType === "application/pdf" ? "inline" : "inline",
       "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=3600"
-    }).sendFile(path2.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
+    }).sendFile(path3.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
       if (error && !res.headersSent) res.status(error.statusCode || 404).json({ message: "Portfolio asset not found" });
     });
   });
@@ -31510,7 +33213,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq15(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq16(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -31527,7 +33230,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq15(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq16(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -31544,7 +33247,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq15(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq16(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -31574,7 +33277,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq15(pageSeoSettings.pageSlug, req.params.slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq16(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page2 || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31585,9 +33288,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq15(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq16(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -31652,7 +33355,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq15(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq16(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31661,133 +33364,21 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq15(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq16(footerColumns.id, req.params.id));
       res.json({ success: true });
-    } catch (e) {
-      res.status(500).json({ message: e.message });
-    }
-  });
-  app2.get("/robots.txt", async (_req, res) => {
-    try {
-      const domain = "https://taskdrip.online";
-      res.type("text/plain");
-      res.send([
-        "# Taskdrip robots.txt",
-        "User-agent: *",
-        "Allow: /",
-        "Disallow: /admin",
-        "Disallow: /admin/",
-        "Disallow: /api/",
-        "Disallow: /dashboard",
-        "Disallow: /dashboard/",
-        "Disallow: /profile/",
-        "Disallow: /user-profile/",
-        "Disallow: /brand-dashboard",
-        "",
-        "# Crawl delay for respectful crawling",
-        "Crawl-delay: 1",
-        "",
-        `Sitemap: ${domain}/sitemap.xml`,
-        ""
-      ].join("\n"));
-    } catch {
-      res.type("text/plain");
-      res.send("User-agent: *\nAllow: /\n");
-    }
-  });
-  app2.get("/sitemap.xml", async (req, res) => {
-    try {
-      const proto = req.headers["x-forwarded-proto"] || req.protocol || "https";
-      const host = req.headers["x-forwarded-host"] || req.headers.host;
-      const domain = host ? `${proto}://${host}` : process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://taskdrip.online";
-      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-      const staticPages = [
-        { path: "", priority: "1.0", changefreq: "daily" },
-        { path: "/tasks", priority: "0.9", changefreq: "daily" },
-        { path: "/p2p-hub", priority: "0.9", changefreq: "daily" },
-        { path: "/shop", priority: "0.9", changefreq: "daily" },
-        { path: "/influencers", priority: "0.9", changefreq: "daily" },
-        { path: "/brands", priority: "0.9", changefreq: "daily" },
-        { path: "/feed", priority: "0.8", changefreq: "hourly" },
-        { path: "/blog", priority: "0.8", changefreq: "daily" },
-        { path: "/breedskool", priority: "0.8", changefreq: "weekly" },
-        { path: "/leaderboard", priority: "0.7", changefreq: "daily" },
-        { path: "/advertise", priority: "0.7", changefreq: "monthly" },
-        { path: "/about", priority: "0.6", changefreq: "monthly" },
-        { path: "/contact", priority: "0.6", changefreq: "monthly" },
-        { path: "/tdrip", priority: "0.7", changefreq: "weekly" },
-        { path: "/signup", priority: "0.7", changefreq: "monthly" },
-        { path: "/login", priority: "0.5", changefreq: "monthly" },
-        { path: "/terms", priority: "0.3", changefreq: "yearly" },
-        { path: "/privacy", priority: "0.3", changefreq: "yearly" },
-        { path: "/cookies", priority: "0.3", changefreq: "yearly" },
-        { path: "/disclaimer", priority: "0.3", changefreq: "yearly" }
-      ];
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-`;
-      for (const p of staticPages) {
-        xml += `  <url><loc>${domain}${p.path}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>
-`;
-      }
-      try {
-        const blogPostsList = await db.select({ slug: posts.slug, updatedAt: posts.updatedAt }).from(posts).where(eq15(posts.status, "published")).limit(500);
-        for (const post of blogPostsList) {
-          if (post.slug) {
-            const lm = post.updatedAt ? new Date(post.updatedAt).toISOString().split("T")[0] : today;
-            xml += `  <url><loc>${domain}/blog/${post.slug}</loc><lastmod>${lm}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-`;
-          }
-        }
-      } catch {
-      }
-      try {
-        const productList = await db.select({
-          id: shopProducts.id,
-          pluginSlug: pluginStudioProjects.slug
-        }).from(shopProducts).leftJoin(pluginStudioProjects, eq15(pluginStudioProjects.shopProductId, shopProducts.id)).where(and11(
-          eq15(shopProducts.isActive, true),
-          or2(isNull2(pluginStudioProjects.id), eq15(pluginStudioProjects.status, "published"))
-        )).limit(500);
-        for (const p of productList) {
-          xml += `  <url><loc>${domain}/shop/product/${encodeURIComponent(p.pluginSlug || p.id)}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-`;
-        }
-      } catch {
-      }
-      try {
-        const creatorList = await db.select({ id: users.id }).from(users).where(eq15(users.userType, "influencer")).limit(500);
-        for (const c of creatorList) {
-          xml += `  <url><loc>${domain}/influencers/${c.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-`;
-        }
-      } catch {
-      }
-      try {
-        const brandList = await db.select({ id: users.id }).from(users).where(eq15(users.userType, "brand")).limit(500);
-        for (const b of brandList) {
-          xml += `  <url><loc>${domain}/brand/${b.id}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-`;
-        }
-      } catch {
-      }
-      xml += `</urlset>`;
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.type("application/xml");
-      res.send(xml);
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
   });
   app2.post("/api/analytics/track", async (req, res) => {
     try {
-      const { path: path6, referrer, sessionId } = req.body || {};
-      if (!path6 || typeof path6 !== "string") return res.status(400).json({ message: "path required" });
-      if (path6.startsWith("/api") || path6.startsWith("/admin")) return res.json({ ok: true, skipped: true });
+      const { path: path7, referrer, sessionId } = req.body || {};
+      if (!path7 || typeof path7 !== "string") return res.status(400).json({ message: "path required" });
+      if (path7.startsWith("/api") || path7.startsWith("/admin")) return res.json({ ok: true, skipped: true });
       const ua = (req.headers["user-agent"] || "").toString().slice(0, 255);
       const device = /mobile|iphone|ipad|android/i.test(ua) ? "mobile" : "desktop";
       await db.insert(pageViews).values({
-        path: path6.slice(0, 255),
+        path: path7.slice(0, 255),
         referrer: referrer ? String(referrer).slice(0, 255) : null,
         userId: req.user?.id || null,
         sessionId: sessionId ? String(sessionId).slice(0, 64) : null,
@@ -31869,12 +33460,12 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq15(leads.kind, String(kind)));
+      if (kind) conds.push(eq16(leads.kind, String(kind)));
       if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
       if (businessType) conds.push(sql13`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq15(leads.country, String(country)));
+      if (country) conds.push(eq16(leads.country, String(country)));
       if (city) conds.push(sql13`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq15(leads.status, String(status)));
+      if (status) conds.push(eq16(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
         conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -31883,8 +33474,8 @@ ${body}`,
       if (hasPhone === "true") conds.push(sql13`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
       if (hasWebsite === "true") conds.push(sql13`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
       if (hasEmail === "true") conds.push(sql13`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and11(...conds) : void 0;
-      const rows = await db.select().from(leads).where(where).orderBy(desc11(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
+      const where = conds.length ? and12(...conds) : void 0;
+      const rows = await db.select().from(leads).where(where).orderBy(desc12(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count4() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
     } catch (e) {
@@ -31913,9 +33504,9 @@ ${body}`,
   });
   app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq15(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq16(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq15(leadMessages.leadId, lead.id)).orderBy(desc11(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq16(leadMessages.leadId, lead.id)).orderBy(desc12(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31927,7 +33518,7 @@ ${body}`,
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq15(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq16(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -31935,8 +33526,8 @@ ${body}`,
   });
   app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq15(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq15(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq16(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq16(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31976,7 +33567,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq15(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq16(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -32005,10 +33596,10 @@ ${body}`,
   });
   app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin2, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq15(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq16(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -32018,7 +33609,7 @@ ${body}`,
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq15(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq16(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -32043,7 +33634,7 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq15(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
@@ -32058,9 +33649,9 @@ ${body}`,
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
         if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq15(leads.country, String(country)));
-        if (kind) conds.push(eq15(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and11(...conds)).limit(2e3);
+        if (country) conds.push(eq16(leads.country, String(country)));
+        if (kind) conds.push(eq16(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and12(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -32076,7 +33667,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq15(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq16(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -32089,13 +33680,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq15(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq16(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq15(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq15(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq16(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32150,10 +33741,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq15(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq16(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq15(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq16(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           sendAdminActivityEmail({
@@ -32190,7 +33781,7 @@ ${body}`,
   app2.get("/api/admin/newsletter-subscribers", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const rows = await db.select().from(newsletterSubscribers).orderBy(desc11(newsletterSubscribers.subscribedAt));
+      const rows = await db.select().from(newsletterSubscribers).orderBy(desc12(newsletterSubscribers.subscribedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32201,7 +33792,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq15(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq16(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32394,10 +33985,10 @@ ${body}`,
     app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
         const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
-        const conds = [eq15(leads.kind, "influencer")];
+        const conds = [eq16(leads.kind, "influencer")];
         if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq15(leads.country, String(country)));
-        if (status) conds.push(eq15(leads.status, String(status)));
+        if (country) conds.push(eq16(leads.country, String(country)));
+        if (status) conds.push(eq16(leads.status, String(status)));
         if (search) {
           const s = `%${String(search).toLowerCase()}%`;
           conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -32414,8 +34005,8 @@ ${body}`,
             conds.push(sql13`${leads.followers} IS NULL OR ${leads.followers} = 0`);
           }
         }
-        const rows = await db.select().from(leads).where(and11(...conds)).orderBy(desc11(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
-        const totalRow = await db.select({ c: count4() }).from(leads).where(and11(...conds));
+        const rows = await db.select().from(leads).where(and12(...conds)).orderBy(desc12(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
+        const totalRow = await db.select({ c: count4() }).from(leads).where(and12(...conds));
         const items = rows.map((r) => ({ ...r, computedTier: classifyTier2(r.followers) }));
         res.json({ items, total: Number(totalRow[0]?.c || 0) });
       } catch (e) {
@@ -32458,7 +34049,7 @@ ${body}`,
         const fields = ["name", "niche", "country", "city", "email", "website", "phone", "whatsapp", "socialLinks", "followers", "description", "tags", "status", "aiSummary", "aiReport"];
         for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
         allowed.updatedAt = /* @__PURE__ */ new Date();
-        const [updated] = await db.update(leads).set(allowed).where(and11(eq15(leads.id, req.params.id), eq15(leads.kind, "influencer"))).returning();
+        const [updated] = await db.update(leads).set(allowed).where(and12(eq16(leads.id, req.params.id), eq16(leads.kind, "influencer"))).returning();
         res.json(updated);
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -32466,8 +34057,8 @@ ${body}`,
     });
     app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
-        await db.delete(leadMessages).where(eq15(leadMessages.leadId, req.params.id));
-        await db.delete(leads).where(eq15(leads.id, req.params.id));
+        await db.delete(leadMessages).where(eq16(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq16(leads.id, req.params.id));
         res.json({ ok: true });
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -32477,7 +34068,7 @@ ${body}`,
       try {
         const { subject, body, channel } = req.body || {};
         if (!body) return res.status(400).json({ message: "body required" });
-        const [lead] = await db.select().from(leads).where(and11(eq15(leads.id, req.params.id), eq15(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select().from(leads).where(and12(eq16(leads.id, req.params.id), eq16(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         if (channel === "email" || !channel) {
           const result = await sendInfluencerOutreach2({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
@@ -32492,7 +34083,7 @@ ${body}`,
           provider: "manual",
           sentBy: req.user?.id || null
         }).returning();
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq15(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id));
         res.json({ success: true, channel, message: msg });
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -32500,7 +34091,7 @@ ${body}`,
     });
     app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
       try {
-        const msgs = await db.select().from(leadMessages).where(eq15(leadMessages.leadId, req.params.id)).orderBy(desc11(leadMessages.createdAt));
+        const msgs = await db.select().from(leadMessages).where(eq16(leadMessages.leadId, req.params.id)).orderBy(desc12(leadMessages.createdAt));
         res.json(msgs);
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -32510,7 +34101,7 @@ ${body}`,
       try {
         const body = String(req.body?.body || "").trim();
         if (!body) return res.status(400).json({ message: "Note body required" });
-        const [lead] = await db.select({ id: leads.id }).from(leads).where(and11(eq15(leads.id, req.params.id), eq15(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select({ id: leads.id }).from(leads).where(and12(eq16(leads.id, req.params.id), eq16(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         const [message] = await db.insert(leadMessages).values({
           leadId: lead.id,
@@ -32532,7 +34123,7 @@ ${body}`,
         if (!body) return res.status(400).json({ message: "body required" });
         let ids = Array.isArray(leadIds) ? leadIds : [];
         if (!ids.length) {
-          const conds = [eq15(leads.kind, "influencer")];
+          const conds = [eq16(leads.kind, "influencer")];
           if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
           if (tier && tier !== "all") {
             const tierDef = TIERS2.find((t) => t.id === String(tier));
@@ -32542,7 +34133,7 @@ ${body}`,
               conds.push(sql13`${leads.followers} >= ${tierDef.min}`);
             }
           }
-          const rows = await db.select({ id: leads.id }).from(leads).where(and11(...conds)).limit(500);
+          const rows = await db.select({ id: leads.id }).from(leads).where(and12(...conds)).limit(500);
           ids = rows.map((r) => r.id);
         }
         if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
@@ -32559,15 +34150,126 @@ ${body}`,
   return httpServer;
 }
 
+// server/public-seo-routes.ts
+init_schema();
+init_db();
+import { and as and13, eq as eq17, isNull as isNull3, or as or3 } from "drizzle-orm";
+var SITE_ORIGIN = "https://taskdrip.online";
+var STATIC_SITEMAP_PATHS = [
+  { path: "", priority: "1.0", changefreq: "daily" },
+  { path: "/tasks", priority: "0.9", changefreq: "daily" },
+  { path: "/p2p-hub", priority: "0.9", changefreq: "daily" },
+  { path: "/shop", priority: "0.9", changefreq: "daily" },
+  { path: "/influencers", priority: "0.9", changefreq: "daily" },
+  { path: "/brands", priority: "0.9", changefreq: "daily" },
+  { path: "/blog", priority: "0.8", changefreq: "daily" },
+  { path: "/realtrainai-ai-training-guide", priority: "0.7", changefreq: "monthly" },
+  { path: "/breedskool", priority: "0.8", changefreq: "weekly" },
+  { path: "/leaderboard", priority: "0.7", changefreq: "daily" },
+  { path: "/advertise", priority: "0.7", changefreq: "monthly" },
+  { path: "/about", priority: "0.6", changefreq: "monthly" },
+  { path: "/contact", priority: "0.6", changefreq: "monthly" },
+  { path: "/tdrip", priority: "0.7", changefreq: "weekly" },
+  { path: "/docs", priority: "0.5", changefreq: "monthly" },
+  { path: "/hire-developer", priority: "0.6", changefreq: "monthly" },
+  { path: "/roadmap", priority: "0.5", changefreq: "monthly" },
+  { path: "/terms", priority: "0.3", changefreq: "yearly" },
+  { path: "/privacy", priority: "0.3", changefreq: "yearly" },
+  { path: "/cookies", priority: "0.3", changefreq: "yearly" },
+  { path: "/disclaimer", priority: "0.3", changefreq: "yearly" }
+];
+function registerPublicSeoRoutes(app2) {
+  app2.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").set("Cache-Control", "public, max-age=3600").send([
+      "# Taskdrip robots.txt",
+      "User-agent: *",
+      "Allow: /",
+      "Disallow: /admin",
+      "Disallow: /api/",
+      "Disallow: /dashboard",
+      "Disallow: /profile/",
+      "Disallow: /user-profile/",
+      "Disallow: /brand-dashboard",
+      "",
+      `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
+      ""
+    ].join("\n"));
+  });
+  app2.get("/sitemap.xml", async (_req, res) => {
+    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    const urls = /* @__PURE__ */ new Map();
+    for (const page2 of STATIC_SITEMAP_PATHS) {
+      urls.set(`${SITE_ORIGIN}${page2.path}`, {
+        lastmod: today,
+        priority: page2.priority,
+        changefreq: page2.changefreq
+      });
+    }
+    const addUrl = (url, lastmod) => {
+      urls.set(url, { lastmod, changefreq: "weekly", priority: "0.6" });
+    };
+    try {
+      const publishedPosts = await db.select({
+        slug: blogPosts.slug,
+        updatedAt: blogPosts.updatedAt
+      }).from(blogPosts).where(eq17(blogPosts.isPublished, true)).limit(5e4);
+      for (const post of publishedPosts) {
+        if (post.slug) {
+          const lastmod = post.updatedAt ? new Date(post.updatedAt).toISOString().slice(0, 10) : today;
+          addUrl(`${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`, lastmod);
+        }
+      }
+    } catch {
+    }
+    try {
+      const products = await db.select({
+        id: shopProducts.id,
+        pluginSlug: pluginStudioProjects.slug
+      }).from(shopProducts).leftJoin(pluginStudioProjects, eq17(pluginStudioProjects.shopProductId, shopProducts.id)).where(and13(
+        eq17(shopProducts.isActive, true),
+        or3(isNull3(pluginStudioProjects.id), eq17(pluginStudioProjects.status, "published"))
+      )).limit(500);
+      for (const product of products) {
+        addUrl(`${SITE_ORIGIN}/shop/product/${encodeURIComponent(product.pluginSlug || product.id)}`);
+      }
+    } catch {
+    }
+    for (const userType of ["influencer", "brand"]) {
+      try {
+        const profiles = await db.select({ id: users.id }).from(users).where(eq17(users.userType, userType)).limit(500);
+        const path7 = userType === "brand" ? "brand" : "influencers";
+        for (const profile of profiles) {
+          addUrl(`${SITE_ORIGIN}/${path7}/${encodeURIComponent(profile.id)}`);
+        }
+      } catch {
+      }
+    }
+    const escapeXml = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    const entries = Array.from(urls.entries()).map(([url, meta]) => {
+      const fields = [
+        `<loc>${escapeXml(url)}</loc>`,
+        meta.lastmod ? `<lastmod>${meta.lastmod}</lastmod>` : "",
+        meta.changefreq ? `<changefreq>${meta.changefreq}</changefreq>` : "",
+        meta.priority ? `<priority>${meta.priority}</priority>` : ""
+      ].filter(Boolean).join("");
+      return `  <url>${fields}</url>`;
+    });
+    res.status(200).set("Cache-Control", "public, max-age=3600").type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.join("\n")}
+</urlset>`);
+  });
+}
+
 // server/vite.ts
 import express2 from "express";
 import fs from "fs";
-import path4 from "path";
+import path5 from "path";
 
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { and as and12, eq as eq16, or as or3 } from "drizzle-orm";
+import { and as and14, eq as eq18, or as or4 } from "drizzle-orm";
 var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
@@ -32645,6 +34347,24 @@ var STATIC_DEFAULTS = {
     canonicalUrl: "https://taskdrip.online/blog",
     type: "website"
   },
+  "/realtrainai-ai-training-guide": {
+    title: "RealTrainAI Guide: AI Trainer Jobs, Pay & How to Apply | Taskdrip",
+    description: "An independent guide to RealTrainAI: AI trainer work, application steps, pay claims, matching uncertainty, location caveats and safer ways to evaluate the opportunity.",
+    keywords: "AI trainer jobs, AI training jobs, remote AI training work, AI data annotation, RealTrainAI",
+    canonicalUrl: "https://taskdrip.online/realtrainai-ai-training-guide",
+    type: "article",
+    structuredData: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: "RealTrainAI Guide: AI Trainer Jobs, Pay & How to Apply",
+      description: "An independent, practical guide to AI training work, RealTrainAI's application process, reported pay, project matching, location limits and safety.",
+      author: { "@type": "Organization", name: "Taskdrip" },
+      publisher: { "@type": "Organization", name: "Taskdrip", url: "https://taskdrip.online" },
+      mainEntityOfPage: "https://taskdrip.online/realtrainai-ai-training-guide",
+      datePublished: "2026-10-12",
+      dateModified: "2026-10-12"
+    })
+  },
   "/breedskool": {
     title: "BreedSkool \u2014 Learn Tech Skills & Earn | Taskdrip Training",
     description: "BreedSkool offers tech training in Web Development, AI Content Creation, Social Media Monetization, Trading, and more. Learn skills and earn crypto rewards.",
@@ -32675,6 +34395,51 @@ var STATIC_DEFAULTS = {
     keywords: "contact taskdrip, taskdrip support, brand partnership inquiry",
     canonicalUrl: "https://taskdrip.online/contact"
   },
+  "/privacy": {
+    title: "Privacy Policy | Taskdrip",
+    description: "Read how Taskdrip handles account, usage, cookie, analytics, and advertising information.",
+    canonicalUrl: "https://taskdrip.online/privacy"
+  },
+  "/terms": {
+    title: "Terms of Service | Taskdrip",
+    description: "Review the terms that apply when using Taskdrip's creator and brand services.",
+    canonicalUrl: "https://taskdrip.online/terms"
+  },
+  "/cookies": {
+    title: "Cookie Policy | Taskdrip",
+    description: "Learn how Taskdrip uses essential, analytics, and advertising cookies and how to manage them.",
+    canonicalUrl: "https://taskdrip.online/cookies"
+  },
+  "/disclaimer": {
+    title: "Disclaimer | Taskdrip",
+    description: "Read important information about Taskdrip's services, earnings, digital assets, and third-party links.",
+    canonicalUrl: "https://taskdrip.online/disclaimer"
+  },
+  "/docs": {
+    title: "Taskdrip Documentation",
+    description: "Guides to Taskdrip accounts, campaigns, creator profiles, payouts, and platform tools.",
+    canonicalUrl: "https://taskdrip.online/docs"
+  },
+  "/documentation": {
+    title: "Taskdrip Documentation",
+    description: "Guides to Taskdrip accounts, campaigns, creator profiles, payouts, and platform tools.",
+    canonicalUrl: "https://taskdrip.online/docs"
+  },
+  "/hire-developer": {
+    title: "Hire a Developer | Taskdrip",
+    description: "Find a developer for your project through Taskdrip. Review the hiring process and submit a project request.",
+    canonicalUrl: "https://taskdrip.online/hire-developer"
+  },
+  "/roadmap": {
+    title: "Taskdrip Roadmap",
+    description: "Explore planned product updates and the development direction for Taskdrip.",
+    canonicalUrl: "https://taskdrip.online/roadmap"
+  },
+  "/tokenomics": {
+    title: "Taskdrip Roadmap",
+    description: "Explore planned product updates and the development direction for Taskdrip.",
+    canonicalUrl: "https://taskdrip.online/roadmap"
+  },
   "/tdrip": {
     title: "$TDRIP Token \u2014 Taskdrip's Reward Points & Future Crypto Token",
     description: "Learn about $TDRIP, Taskdrip's points and future crypto token. Earn $TDRIP completing tasks, climbing the leaderboard, and referring friends.",
@@ -32704,7 +34469,9 @@ async function lookupRoute(origin, pathname) {
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug2 = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(eq16(blogPosts.slug, slug2));
+    const [post] = await db.select().from(blogPosts).where(
+      and14(eq18(blogPosts.slug, slug2), eq18(blogPosts.isPublished, true))
+    );
     if (post) {
       const image = post.featuredImage || ogImageFromHtml(post.content);
       return {
@@ -32714,11 +34481,16 @@ async function lookupRoute(origin, pathname) {
         type: "article"
       };
     }
+    return {
+      title: "Blog post not found | Taskdrip",
+      description: "This Taskdrip blog post is unavailable.",
+      noIndex: true
+    };
   }
   const campaignMatch = pathname.match(/^\/campaigns\/([^/?#]+)/);
   if (campaignMatch) {
     const id = decodeURIComponent(campaignMatch[1]);
-    const [c] = await db.select().from(campaigns).where(eq16(campaigns.id, id));
+    const [c] = await db.select().from(campaigns).where(eq18(campaigns.id, id));
     if (c) {
       return {
         title: `${c.title} | Taskdrip`,
@@ -32733,10 +34505,10 @@ async function lookupRoute(origin, pathname) {
     const [pluginListing] = await db.select({
       project: pluginStudioProjects,
       product: shopProducts
-    }).from(pluginStudioProjects).innerJoin(shopProducts, eq16(pluginStudioProjects.shopProductId, shopProducts.id)).where(and12(
-      or3(eq16(pluginStudioProjects.slug, key), eq16(pluginStudioProjects.shopProductId, key)),
-      eq16(pluginStudioProjects.status, "published"),
-      eq16(shopProducts.isActive, true)
+    }).from(pluginStudioProjects).innerJoin(shopProducts, eq18(pluginStudioProjects.shopProductId, shopProducts.id)).where(and14(
+      or4(eq18(pluginStudioProjects.slug, key), eq18(pluginStudioProjects.shopProductId, key)),
+      eq18(pluginStudioProjects.status, "published"),
+      eq18(shopProducts.isActive, true)
     )).limit(1);
     if (pluginListing) {
       const canonicalUrl = `${origin}/shop/product/${encodeURIComponent(pluginListing.project.slug)}`;
@@ -32749,11 +34521,11 @@ async function lookupRoute(origin, pathname) {
         canonicalUrl
       };
     }
-    const [p] = await db.select().from(shopProducts).where(eq16(shopProducts.id, key)) || [];
+    const [p] = await db.select().from(shopProducts).where(eq18(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
       try {
-        const [bySlug] = await db.select().from(shopProducts).where(eq16(shopProducts.slug, key));
+        const [bySlug] = await db.select().from(shopProducts).where(eq18(shopProducts.slug, key));
         product = bySlug;
       } catch {
       }
@@ -32766,18 +34538,18 @@ async function lookupRoute(origin, pathname) {
       };
     }
   }
-  const profileMatch = pathname.match(/^\/influencers\/([^/?#]+)/) || pathname.match(/^\/brand\/([^/?#]+)/) || pathname.match(/^\/user-profile\/([^/?#]+)/);
+  const profileMatch = pathname.match(/^\/influencers\/([^/?#]+)/) || pathname.match(/^\/p\/([^/?#]+)/) || pathname.match(/^\/u\/([^/?#]+)/) || pathname.match(/^\/brand\/([^/?#]+)/) || pathname.match(/^\/user-profile\/([^/?#]+)/);
   if (profileMatch) {
     const key = decodeURIComponent(profileMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq16(users.id, key));
+      const [byId] = await db.select().from(users).where(eq18(users.id, key));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq16(users.username, key));
+        const [byUsername] = await db.select().from(users).where(eq18(users.username, key));
         user = byUsername || null;
       } catch {
       }
@@ -32791,30 +34563,39 @@ async function lookupRoute(origin, pathname) {
           origin,
           user.seoOgImage || user.profileImageUrl || user.profileImage
         ),
-        type: "profile"
+        type: "profile",
+        canonicalUrl: user.userType === "brand" ? `${origin}/brand/${encodeURIComponent(user.id)}` : user.userType === "admin" ? `${origin}/profile/${encodeURIComponent(user.id)}` : `${origin}/influencers/${encodeURIComponent(user.id)}`,
+        noIndex: user.userType === "admin"
       };
     }
   }
   const courseMatch = pathname.match(/^\/breedskool\/([^/?#]+)/);
-  if (courseMatch) {
+  if (courseMatch && !["campaign", "onsite"].includes(courseMatch[1])) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
-      const [course] = await db.select().from(courseEnrollments).where(eq16(courseEnrollments.id, key));
+      const [course] = await db.select().from(courses).where(
+        and14(eq18(courses.id, key), eq18(courses.isPublished, true))
+      );
       if (course) {
         return {
-          title: `${course.title || "Course"} | BreedSkool`,
-          description: trimText(course.description || course.summary || ""),
-          image: absolutize(origin, course.coverImage || course.thumbnail)
+          title: `${course.title} | BreedSkool`,
+          description: trimText(course.shortDescription || course.description || ""),
+          image: absolutize(origin, course.thumbnail)
         };
       }
     } catch {
     }
+    return {
+      title: "Course not found | BreedSkool",
+      description: "This BreedSkool course is unavailable.",
+      noIndex: true
+    };
   }
   const p2pMatch = pathname.match(/^\/p2p\/([^/?#]+)/);
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, id));
       if (listing) {
         return {
           title: `${listing.title || "P2P listing"} | Taskdrip`,
@@ -32828,7 +34609,7 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq16(pageSeoSettings.pageSlug, slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq18(pageSeoSettings.pageSlug, slug));
       if (page2) {
         return {
           title: page2.metaTitle || page2.pageTitle,
@@ -32855,7 +34636,7 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
   const title = meta.title;
   const description = meta.description;
   const type = meta.type || "website";
-  let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "").replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/gi, "");
+  let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
   if (title) {
     out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml2(title)}</title>`);
   }
@@ -32869,8 +34650,6 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
     `<meta property="og:type" content="${escapeHtml2(type)}" />`,
     `<meta property="og:url" content="${escapeHtml2(fullUrl)}" />`,
     image ? `<meta property="og:image" content="${escapeHtml2(image)}" />` : "",
-    image ? `<meta property="og:image:width" content="1200" />` : "",
-    image ? `<meta property="og:image:height" content="630" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:site" content="@taskdrip" />`,
@@ -32883,8 +34662,9 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
   if (meta.structuredData) {
     try {
       JSON.parse(meta.structuredData);
+      const safeStructuredData = meta.structuredData.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
       const ldTag = `
-  <script type="application/ld+json">${meta.structuredData}</script>`;
+  <script type="application/ld+json" data-seo-ld="true">${safeStructuredData}</script>`;
       result = result.replace(/<\/head>/i, `${ldTag}
   </head>`);
     } catch {
@@ -32894,17 +34674,66 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
 }
 async function buildSeoHtml(html, req) {
   try {
-    const host = req.get("host") || "localhost";
-    const proto = req.get("x-forwarded-proto") || req.protocol || "http";
-    const origin = `${proto}://${host}`;
+    const origin = "https://taskdrip.online";
     const pathname = (req.originalUrl || "/").split("?")[0];
     const fallbackImage = await defaultOgImage(origin);
     const meta = await lookupRoute(origin, pathname) || { image: fallbackImage };
+    if (isPrivateRoute(pathname)) meta.noIndex = true;
     return injectMeta(html, origin, req.originalUrl || "/", meta, fallbackImage);
   } catch (err) {
     console.error("SEO meta injection failed:", err);
     return html;
   }
+}
+var NOINDEX_EXACT_PATHS = /* @__PURE__ */ new Set([
+  "/login",
+  "/signup",
+  "/admin",
+  "/admin-login",
+  "/admin-dashboard",
+  "/forgot-password",
+  "/dashboard",
+  "/brand-dashboard",
+  "/profile",
+  "/user-profile",
+  "/messages",
+  "/chat",
+  "/wallet",
+  "/ledger",
+  "/payout-requests",
+  "/payment-deposit",
+  "/escrow-payment",
+  "/subscription",
+  "/my-orders",
+  "/my-plugins",
+  "/my-digital-library",
+  "/my-training",
+  "/referrals",
+  "/campaigns",
+  "/my-campaigns",
+  "/creator-studio",
+  "/p2p-deals",
+  "/profile-edit",
+  "/short-links"
+]);
+var NOINDEX_PATH_PREFIXES = [
+  "/admin/",
+  "/dashboard/",
+  "/brand-dashboard/",
+  "/profile/",
+  "/user-profile/",
+  "/campaigns/",
+  "/direct-hire/",
+  "/orders/",
+  "/shop/checkout/",
+  "/my-campaigns/",
+  "/certificates/",
+  "/short-links/",
+  "/p2p-deals/",
+  "/payout-requests/"
+];
+function isPrivateRoute(pathname) {
+  return NOINDEX_EXACT_PATHS.has(pathname) || NOINDEX_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix)) || /^\/breedskool\/[^/]+\/(?:learn|certificate)(?:\/|$)/.test(pathname);
 }
 
 // server/vite.ts
@@ -32922,7 +34751,7 @@ function log(message, source = "express") {
 async function setupVite(app2, server2) {
   const { createServer: createViteServer, createLogger } = await import("vite");
   const { default: viteConfig } = await Promise.resolve().then(() => (init_vite_config(), vite_config_exports));
-  const { nanoid: nanoid5 } = await import("nanoid");
+  const { nanoid: nanoid6 } = await import("nanoid");
   const viteLogger = createLogger();
   const vite = await createViteServer({
     ...viteConfig,
@@ -32945,11 +34774,11 @@ async function setupVite(app2, server2) {
   app2.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path4.resolve(PROJECT_ROOT, "client", "index.html");
+      const clientTemplate = path5.resolve(PROJECT_ROOT, "client", "index.html");
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid5()}"`
+        `src="/src/main.tsx?v=${nanoid6()}"`
       );
       let page2 = await vite.transformIndexHtml(url, template);
       page2 = await buildSeoHtml(page2, req);
@@ -32962,7 +34791,7 @@ async function setupVite(app2, server2) {
   });
 }
 function serveStatic(app2) {
-  const distPath = path4.resolve(PROJECT_ROOT, "dist", "public");
+  const distPath = path5.resolve(PROJECT_ROOT, "dist", "public");
   console.log(`[static] Serving frontend from: ${distPath}`);
   if (!fs.existsSync(distPath)) {
     const msg = `[static] Build directory not found: ${distPath}. Run 'npm run build' first.`;
@@ -32973,12 +34802,12 @@ function serveStatic(app2) {
   app2.use(express2.static(distPath));
   app2.use("*", async (req, res) => {
     try {
-      const html = await fs.promises.readFile(path4.resolve(distPath, "index.html"), "utf-8");
+      const html = await fs.promises.readFile(path5.resolve(distPath, "index.html"), "utf-8");
       let page2 = await buildSeoHtml(html, req);
       page2 = await injectAnalytics(page2);
       res.status(200).set({ "Content-Type": "text/html" }).end(page2);
     } catch {
-      res.sendFile(path4.resolve(distPath, "index.html"));
+      res.sendFile(path5.resolve(distPath, "index.html"));
     }
   });
 }
@@ -32986,7 +34815,7 @@ function serveStatic(app2) {
 // server/seed-demo.ts
 init_db();
 init_schema();
-import { eq as eq17, sql as sql14 } from "drizzle-orm";
+import { eq as eq19, sql as sql14 } from "drizzle-orm";
 import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
@@ -33743,7 +35572,7 @@ async function seedDemoData(adminUserId) {
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
     }
-    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq17(p2pListings.sellerId, adminUserId)).limit(1);
+    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq19(p2pListings.sellerId, adminUserId)).limit(1);
     if (existingP2P.length === 0) {
       console.log("[seed] Seeding demo P2P listings...");
       for (const listing of DEMO_P2P_LISTINGS) {
@@ -33869,7 +35698,7 @@ async function seedDemoData(adminUserId) {
     }
     let networksCreated = 0;
     for (const net of PAYMENT_NETWORKS_DATA) {
-      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq17(paymentNetworks.networkKey, net.networkKey)).limit(1);
+      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq19(paymentNetworks.networkKey, net.networkKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net);
         networksCreated++;
@@ -34174,7 +36003,7 @@ async function seedCmsContent() {
 // server/seed-legal.ts
 init_db();
 init_schema();
-import { eq as eq18 } from "drizzle-orm";
+import { eq as eq20 } from "drizzle-orm";
 var LEGAL_CONTENT = [
   {
     slug: "terms",
@@ -34527,10 +36356,14 @@ Email: <a href="mailto:legal@taskdrip.online">legal@taskdrip.online</a><br>
 Website: <a href="https://taskdrip.online">taskdrip.online</a></p>`
   }
 ];
+var ADSENSE_PRIVACY_DISCLOSURE = `
+<h3>Google AdSense and Third-Party Advertising</h3>
+<p>When Google AdSense ads are displayed on Taskdrip, Google and its partners may use cookies or similar technologies to collect or receive information from this site and other sites and use that information to provide, measure, and personalize advertising. You can review or change Google's advertising personalization settings at <a href="https://adssettings.google.com/">Google Ads Settings</a>. For more information about Google's data practices, see <a href="https://policies.google.com/technologies/partner-sites">How Google uses information from sites or apps that use its services</a>.</p>
+`;
 async function seedLegalPages() {
   try {
     for (const page2 of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq18(legalPages.slug, page2.slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq20(legalPages.slug, page2.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
           slug: page2.slug,
@@ -34538,9 +36371,16 @@ async function seedLegalPages() {
           content: page2.content
         });
         console.log(`[seed-legal] Seeded legal page: ${page2.slug}`);
+      } else if (page2.slug === "privacy" && !existing[0].content.includes("Google AdSense and Third-Party Advertising")) {
+        await db.update(legalPages).set({
+          content: `${existing[0].content}
+${ADSENSE_PRIVACY_DISCLOSURE}`,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq20(legalPages.slug, "privacy"));
+        console.log("[seed-legal] Added Google AdSense disclosure to the privacy policy");
       }
     }
-    const demoSub = await db.select().from(newsletterSubscribers).where(eq18(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
+    const demoSub = await db.select().from(newsletterSubscribers).where(eq20(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
     if (!demoSub.length) {
       await db.insert(newsletterSubscribers).values({
         email: "newsletter.demo@taskdrip.online",
@@ -34562,7 +36402,7 @@ init_seed_breedskool_courses();
 // server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq19, sql as sql15, and as and13 } from "drizzle-orm";
+import { eq as eq21, sql as sql15, and as and15 } from "drizzle-orm";
 import bcrypt5 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
@@ -34640,7 +36480,7 @@ async function seedSaasCourseDemo() {
   let enrollmentsCreated = 0;
   let reviewsCreated = 0;
   try {
-    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq19(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
+    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq21(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
     const courseId = pricing?.linkedCourseId;
     if (!courseId) {
       console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
@@ -34651,7 +36491,7 @@ async function seedSaasCourseDemo() {
     const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
     for (const student of DEMO_STUDENTS) {
       try {
-        const [existing] = await db.select({ id: users.id }).from(users).where(eq19(users.email, student.email)).limit(1);
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq21(users.email, student.email)).limit(1);
         let userId;
         if (existing) {
           userId = existing.id;
@@ -34669,9 +36509,9 @@ async function seedSaasCourseDemo() {
           userId = newUser.id;
           studentsCreated++;
         }
-        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and13(
-          eq19(courseEnrollments.courseId, courseId),
-          eq19(courseEnrollments.userId, userId)
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and15(
+          eq21(courseEnrollments.courseId, courseId),
+          eq21(courseEnrollments.userId, userId)
         )).limit(1);
         if (!existingEnroll) {
           const paidAt = randomDate(purchaseStart, purchaseEnd);
@@ -34692,19 +36532,19 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
     }
-    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and13(
-      eq19(courseEnrollments.courseId, courseId),
-      eq19(courseEnrollments.isPaid, true),
-      eq19(courseEnrollments.status, "active")
+    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and15(
+      eq21(courseEnrollments.courseId, courseId),
+      eq21(courseEnrollments.isPaid, true),
+      eq21(courseEnrollments.status, "active")
     ));
-    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq19(courses.id, courseId));
+    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq21(courses.id, courseId));
     for (const rev of DEMO_REVIEWS) {
       try {
-        const [userRow] = await db.select({ id: users.id }).from(users).where(eq19(users.email, rev.email)).limit(1);
+        const [userRow] = await db.select({ id: users.id }).from(users).where(eq21(users.email, rev.email)).limit(1);
         if (!userRow) continue;
-        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and13(
-          eq19(courseReviews.courseId, courseId),
-          eq19(courseReviews.userId, userRow.id)
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and15(
+          eq21(courseReviews.courseId, courseId),
+          eq21(courseReviews.userId, userRow.id)
         )).limit(1);
         if (!existingReview) {
           const reviewDate = randomDate(/* @__PURE__ */ new Date("2025-09-15"), /* @__PURE__ */ new Date("2026-07-28"));
@@ -34721,16 +36561,16 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for review ${rev.email}:`, e?.message);
       }
     }
-    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq19(courseReviews.courseId, courseId));
+    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq21(courseReviews.courseId, courseId));
     if (allReviews.length > 0) {
       const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
       await db.update(courses).set({
         reviewsCount: allReviews.length,
         averageRating: avg.toFixed(2),
         isFeatured: true
-      }).where(eq19(courses.id, courseId));
+      }).where(eq21(courses.id, courseId));
     } else {
-      await db.update(courses).set({ isFeatured: true }).where(eq19(courses.id, courseId));
+      await db.update(courses).set({ isFeatured: true }).where(eq21(courses.id, courseId));
     }
   } catch (e) {
     console.error("[seed-saas-demo] Fatal error:", e?.message);
@@ -34741,11 +36581,11 @@ async function seedSaasCourseDemo() {
 // server/seed-lawcolab.ts
 init_db();
 init_schema();
-import { eq as eq20 } from "drizzle-orm";
+import { eq as eq22 } from "drizzle-orm";
 var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
 async function seedLawcolab() {
   try {
-    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq20(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq22(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
     if (existing.length > 0) {
       return { inserted: false, skipped: true };
     }
@@ -35954,6 +37794,24 @@ var REQUIRED_TABLES = [
   `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_progress" integer NOT NULL DEFAULT 0`,
   `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_message" text`,
   `ALTER TABLE "creator_books" ADD COLUMN IF NOT EXISTS "generation_error" text`,
+  `CREATE TABLE IF NOT EXISTS "creator_notebook_projects" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "owner_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "title" varchar(240) NOT NULL DEFAULT 'Untitled notebook',
+    "settings" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "cover_design" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    "status" varchar(32) NOT NULL DEFAULT 'draft',
+    "generation_status" varchar(24) NOT NULL DEFAULT 'idle',
+    "interior_file_key" text,
+    "cover_file_key" text,
+    "preview_file_key" text,
+    "validation" jsonb,
+    "last_generated_at" timestamp,
+    "created_at" timestamp DEFAULT now(),
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "creator_notebook_projects_owner_updated_idx" ON "creator_notebook_projects" ("owner_id", "updated_at")`,
+  `CREATE INDEX IF NOT EXISTS "creator_notebook_projects_status_idx" ON "creator_notebook_projects" ("status")`,
   `CREATE TABLE IF NOT EXISTS "creator_publishing_products" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "creator_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
@@ -36082,7 +37940,15 @@ if (isProd) {
         useDefaults: false,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "blob:",
+            "https://pagead2.googlesyndication.com",
+            "https://googleads.g.doubleclick.net",
+            "https://tpc.googlesyndication.com"
+          ],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
           imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
@@ -36170,6 +38036,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+registerPublicSeoRoutes(app);
 var LEGACY_UPLOAD_MIME = [
   [Buffer.from([255, 216, 255]), "image/jpeg"],
   [Buffer.from([137, 80, 78, 71]), "image/png"],
@@ -36178,7 +38045,7 @@ var LEGACY_UPLOAD_MIME = [
   [Buffer.from("RIFF"), "image/webp"]
 ];
 app.use("/uploads", async (req, res, next) => {
-  const ext = path5.extname(req.path).toLowerCase();
+  const ext = path6.extname(req.path).toLowerCase();
   const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".mp4", ".mov", ".pdf", ""];
   if (!allowed.includes(ext)) {
     return res.status(403).json({ message: "Forbidden" });
@@ -36186,7 +38053,7 @@ app.use("/uploads", async (req, res, next) => {
   if (ext === "") {
     try {
       const fs2 = await import("fs/promises");
-      const full = path5.resolve("uploads", path5.basename(req.path));
+      const full = path6.resolve("uploads", path6.basename(req.path));
       const fh = await fs2.open(full, "r");
       const buf = Buffer.alloc(12);
       await fh.read(buf, 0, 12, 0);
@@ -36201,7 +38068,7 @@ app.use("/uploads", async (req, res, next) => {
     }
   }
   next();
-}, express3.static(path5.resolve("uploads"), {
+}, express3.static(path6.resolve("uploads"), {
   setHeaders: (res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=86400");

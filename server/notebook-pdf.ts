@@ -1,10 +1,13 @@
 import { deflateSync, inflateSync } from "node:zlib";
 import {
+  notebookBlankPageCount,
   notebookDiaryPageDate,
   notebookIntroPageCount,
+  notebookOutroPageCount,
   notebookTotalPageCount,
   type NotebookCoverDesign,
   type NotebookIntroPageType,
+  type NotebookOutroPageType,
   type NotebookSettings,
 } from "@shared/notebook-studio";
 
@@ -48,6 +51,10 @@ export function validateNotebook(
   const { width, height } = notebookTrim(settings);
   const totalPages = notebookTotalPageCount(settings);
   const introPages = notebookIntroPageCount(settings);
+  const outroPages = notebookOutroPageCount(settings);
+  const blankPages = notebookBlankPageCount(settings);
+  const frontBlanks = settings.frontBlankPageCount || 0;
+  const backBlanks = settings.backBlankPageCount || 0;
   const items: Array<{ status: "ready" | "warning" | "failed" | "manual"; label: string; message: string }> = [];
   const supportedTrims = new Set(["5x8", "5.5x8.5", "6x9", "8.27x11.69"]);
   const exactTrimSupported = settings.trimSize !== "custom" && supportedTrims.has(settings.trimSize);
@@ -67,9 +74,40 @@ export function validateNotebook(
     status: validPageCount ? "ready" : "failed",
     label: "Page count",
     message: validPageCount
-      ? `${totalPages} total pages (${settings.pageCount} writing${introPages ? ` + ${introPages} introductory` : ""}) is within the ${minimumPages}–${maxPages} page range used for this trim and print selection.`
+      ? `${totalPages} physical pages: ${frontBlanks} front blank, ${introPages} introductory, ${settings.pageCount} writing, ${outroPages} closing, and ${backBlanks} end blank. This is within the ${minimumPages}–${maxPages} page range for this print selection.`
       : `${settings.binding} books at this trim and print selection allow ${minimumPages}–${maxPages} total pages; the project is set to ${totalPages}.`,
   });
+  const addReferenceCheck = <T extends object>(
+    enabled: boolean,
+    label: string,
+    entries: T[],
+    requiredFields: (keyof T)[],
+  ) => {
+    if (!enabled) return;
+    const populatedEntries = entries.filter((entry) => Object.values(entry).some(Boolean));
+    const incomplete = populatedEntries.some((entry) => requiredFields.some((field) => !entry[field]));
+    items.push({
+      status: incomplete ? "warning" : populatedEntries.length ? "ready" : "warning",
+      label: `${label} references`,
+      message: incomplete
+        ? "Some entries are missing a date, source, or key reference details. Complete and fact-check them before publishing."
+        : populatedEntries.length
+          ? `${populatedEntries.length} publisher-supplied entries include the details needed for a sourced reference page. Recheck them before release.`
+          : "No live facts are prefilled. Add dated, sourced entries in the editor or keep the page as a guided research worksheet.",
+    });
+  };
+  addReferenceCheck(
+    settings.introPages.includes("world-presidents"),
+    "World leader",
+    settings.worldLeaderEntries || [],
+    ["country", "leader", "office", "checkedDate", "source"],
+  );
+  addReferenceCheck(
+    settings.introPages.includes("current-affairs"),
+    "Current affairs",
+    settings.currentAffairsEntries || [],
+    ["headline", "date", "source", "whyItMatters"],
+  );
 
   const dimsValid = Number.isFinite(width) && Number.isFinite(height)
     && width >= 4 && width <= 8.5 && height >= 6 && height <= 11.69;
@@ -153,6 +191,8 @@ export function validateNotebook(
     pageCount: totalPages,
     writingPageCount: settings.pageCount,
     introPageCount: introPages,
+    outroPageCount: outroPages,
+    blankPageCount: blankPages,
     trimWidth: width,
     trimHeight: height,
     coverWidth,
@@ -338,7 +378,7 @@ function fixedPageText(
     parts.push(lineCommand(inch(xLeft), inch(height - 2.72), inch(xRight), inch(height - 2.72), settings.lineColor, settings.lineThickness));
     parts.push(textCommand(settings.authorName || "Write your name here", inch(xLeft), inch(height - 3.1), 9, "F1", "0.36 0.39 0.41"));
     parts.push(lineCommand(inch(xLeft), inch(height - 3.32), inch(xRight), inch(height - 3.32), settings.lineColor, settings.lineThickness));
-    pageContentTop = Math.max(yTop, height - 3.85);
+    pageContentTop = Math.min(pageContentTop, height - 3.75);
   }
   if (isDiary) {
     const isoDate = notebookDiaryPageDate(settings.diaryStartMonth, pageNumber);
@@ -351,12 +391,12 @@ function fixedPageText(
       parts.push(textCommand(weekday, inch(xLeft), inch(height - 0.66), 8, "F2", "0.32 0.36 0.40"));
       parts.push(textCommand(fullDate, inch(xLeft), inch(height - 1.02), 15, "F2", "0.12 0.24 0.29"));
       parts.push(lineCommand(inch(xLeft), inch(height - 1.16), inch(xRight), inch(height - 1.16), settings.lineColor, settings.lineThickness));
-      pageContentTop = Math.min(pageContentTop, height - 1.3);
+      pageContentTop = Math.min(pageContentTop, height - 1.38);
     }
   }
   if (settings.headerText) {
     parts.push(textCommand(settings.headerText, inch(xLeft), inch(height - 0.42), 8, "F2"));
-    if (!isDiary) pageContentTop = Math.max(pageContentTop, height - 0.58);
+    if (!isDiary) pageContentTop = Math.min(pageContentTop, height - 0.78);
   }
   if (!isDiary && (settings.showDateField || settings.showSubjectField)) {
     const rowY = height - 0.72;
@@ -372,7 +412,7 @@ function fixedPageText(
       x += 0.48;
       parts.push(lineCommand(inch(x), inch(rowY - 0.04), inch(xRight), inch(rowY - 0.04), settings.lineColor, settings.lineThickness));
     }
-    pageContentTop = Math.max(pageContentTop, rowY - 0.25);
+    pageContentTop = Math.min(pageContentTop, rowY - 0.24);
   }
 
   if (settings.footerText) {
@@ -457,9 +497,34 @@ function introPolygon(
 }
 
 function introHeading(parts: string[], title: string, subtitle: string, x: number, top: number, right: number, accent: string) {
-  introText(parts, title, x, top - 0.28, 16, true, "0.16 0.24 0.22");
-  introText(parts, subtitle, x, top - 0.49, 7, false, "0.40 0.43 0.40");
-  introRule(parts, x, top - 0.62, right, top - 0.62, accent, 0.8);
+  introText(parts, title, x, top - 0.3, 15, true, "0.16 0.24 0.22");
+  introText(parts, subtitle, x, top - 0.52, 7.2, false, "0.40 0.43 0.40");
+  introRule(parts, x, top - 0.68, right, top - 0.68, "#dedfd4", 0.7);
+  introRule(parts, x, top - 0.68, x + Math.min(0.72, (right - x) * 0.22), top - 0.68, accent, 2.1);
+  const markX = right - 0.11;
+  const markY = top - 0.31;
+  parts.push(`${rgb(accent)} RG 0.75 w ${pdfCirclePath(inch(markX), inch(markY), inch(0.09))} S\n`);
+  parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(markX), inch(markY), inch(0.025))} f\n`);
+}
+
+function introSunburst(parts: string[], cx: number, cy: number, radius: number, accent: string) {
+  parts.push(`${rgb(accent)} RG 0.85 w ${pdfCirclePath(inch(cx), inch(cy), inch(radius))} S\n`);
+  parts.push(`${rgb(accent)} RG 0.5 w ${pdfCirclePath(inch(cx), inch(cy), inch(radius * 0.72))} S\n`);
+  for (let index = 0; index < 12; index++) {
+    const angle = index * Math.PI / 6;
+    const inner = radius * 1.12;
+    const outer = radius * (index % 3 === 0 ? 1.42 : 1.28);
+    introRule(
+      parts,
+      cx + Math.cos(angle) * inner,
+      cy + Math.sin(angle) * inner,
+      cx + Math.cos(angle) * outer,
+      cy + Math.sin(angle) * outer,
+      accent,
+      0.8,
+    );
+  }
+  parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(cx), inch(cy), inch(radius * 0.12))} f\n`);
 }
 
 function notebookIntroPage(
@@ -481,7 +546,49 @@ function notebookIntroPage(
   const contentTop = top - 0.76;
   const contentHeight = contentTop - bottom - 0.1;
 
-  if (type === "world-map") {
+  if (type === "welcome") {
+    introText(parts, "A JOURNAL FOR YOUR NEXT CHAPTER", x, contentTop - 0.05, 6.2, true, "0.42 0.49 0.43");
+    introSunburst(parts, x + pageWidth / 2, contentTop - 1.17, Math.min(0.34, pageWidth * 0.085), accent);
+    introText(parts, "A place to pause.", x, contentTop - 2.12, 21, true, "0.16 0.24 0.22");
+    introText(parts, "A place to begin again.", x, contentTop - 2.48, 15, false, "0.35 0.43 0.37");
+    introText(parts, "Use these pages to notice what matters, make room for new ideas,", x, contentTop - 2.98, 8, false, textColor);
+    introText(parts, "and keep the thoughts you want to return to.", x, contentTop - 3.18, 8, false, textColor);
+    introBox(parts, x + 0.08, contentTop - 4.57, pageWidth - 0.16, 0.92, pale, 0.65);
+    introText(parts, "THIS JOURNAL BELONGS TO", x + 0.2, contentTop - 3.91, 6.4, true, textColor);
+    introRule(parts, x + 0.2, contentTop - 4.29, right - 0.12, contentTop - 4.29, accent, 0.55);
+    introText(parts, settings.authorName ? `Made for ${settings.authorName}` : "One thought I want to carry with me:", x + 0.08, bottom + 0.44, 7, false, textColor);
+    introRule(parts, x + 2.15, bottom + 0.42, right, bottom + 0.42, accent, 0.45);
+  } else if (type === "journal-guide") {
+    introHeading(parts, "MAKE THIS JOURNAL YOURS", "A simple rhythm for pages that grow with you.", x, top, right, accent);
+    const steps = [
+      ["01", "Begin anywhere", "A date, a sentence, or a quick sketch is enough to start."],
+      ["02", "Keep it honest", "Write for yourself. There is no perfect way to fill a page."],
+      ["03", "Return often", "Small notes made regularly become a record worth keeping."],
+      ["04", "Look back kindly", "Notice what changed, what stayed, and what you learned."],
+    ];
+    const gap = 0.15;
+    const cardH = Math.min(1.16, (contentHeight - 0.2 - gap * 3) / 4);
+    steps.forEach(([number, heading, detail], index) => {
+      const cardTop = contentTop - index * (cardH + gap);
+      introBox(parts, x, cardTop - cardH, pageWidth, cardH, pale, 0.55);
+      parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(x + 0.28), inch(cardTop - cardH / 2), inch(0.13))} f\n`);
+      introText(parts, number, x + 0.19, cardTop - cardH / 2 - 0.025, 6, true, "1 1 1");
+      introText(parts, heading, x + 0.55, cardTop - 0.31, 8, true, textColor);
+      introText(parts, detail, x + 0.55, cardTop - 0.56, 6.2, false, "0.40 0.43 0.40");
+    });
+  } else if (type === "intentions") {
+    introHeading(parts, "SET YOUR INTENTIONS", "Choose a few things to give your time and attention to.", x, top, right, accent);
+    const prompts = ["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"];
+    const cardH = Math.min(1.63, (contentHeight - 0.35) / 3);
+    prompts.forEach((prompt, index) => {
+      const cardTop = contentTop - index * (cardH + 0.14);
+      introBox(parts, x, cardTop - cardH, pageWidth, cardH, pale, 0.6);
+      introText(parts, `${String(index + 1).padStart(2, "0")}  ${prompt.toUpperCase()}`, x + 0.12, cardTop - 0.22, 6.1, true, textColor);
+      introRule(parts, x + 0.12, cardTop - 0.61, right - 0.12, cardTop - 0.61, accent, 0.45);
+      introRule(parts, x + 0.12, cardTop - 0.94, right - 0.12, cardTop - 0.94, "#cdd2c8", 0.45);
+      introRule(parts, x + 0.12, cardTop - 1.27, right - 0.12, cardTop - 1.27, "#cdd2c8", 0.45);
+    });
+  } else if (type === "world-map") {
     introHeading(parts, "WORLD MAP", "Explore the continents and oceans. Add labels or notes.", x, top, right, accent);
     const mapX = x + 0.03;
     const mapTop = contentTop - 0.05;
@@ -553,37 +660,81 @@ function notebookIntroPage(
     });
     parts.push(`${rgb(settings.ink === "color" ? "#e5b45a" : "#777777")} rg ${inch(centerX - 0.1).toFixed(2)} ${inch(centerY - 0.1).toFixed(2)} ${inch(0.2).toFixed(2)} ${inch(0.2).toFixed(2)} re f\n`);
   } else if (type === "world-presidents") {
-    introHeading(parts, "WORLD LEADERS TRACKER", "Record the source and date checked; offices and officeholders can change.", x, top, right, accent);
-    const tableTop = contentTop - 0.06;
-    const rowH = Math.min(0.73, (contentHeight - 0.3) / 6);
-    const columns = [x, x + pageWidth * 0.33, x + pageWidth * 0.69, right];
-    ["COUNTRY / REGION", "PRESIDENT / LEADER", "SOURCE · DATE"].forEach((label, index) => {
-      introText(parts, label, columns[index] + 0.04, tableTop - 0.18, 5.4, true, textColor);
+    introHeading(parts, "WORLD LEADERS", "Record each country's official title and verify names before publication.", x, top, right, accent);
+    introText(parts, "Not every country is led by a president. Use a dated official source for each entry.", x, contentTop - 0.04, 6.3, false, "0.40 0.43 0.40");
+    const tableTop = contentTop - 0.14;
+    const entries = (settings.worldLeaderEntries || []).slice(0, 8);
+    const rows = entries.length || 6;
+    const rowH = Math.min(0.84, (contentHeight - 0.52) / rows);
+    const columns = [x, x + pageWidth * 0.25, x + pageWidth * 0.49, x + pageWidth * 0.70, right];
+    ["COUNTRY", "LEADER", "OFFICE", "CHECKED · SOURCE"].forEach((label, index) => {
+      introText(parts, label, columns[index] + 0.04, tableTop - 0.18, 5.2, true, textColor);
     });
     introRule(parts, x, tableTop - 0.25, right, tableTop - 0.25, accent, 0.8);
-    for (let row = 0; row < 6; row++) {
+    for (let row = 0; row < rows; row++) {
       const y = tableTop - 0.25 - rowH * (row + 1);
+      const entry = entries[row];
+      if (entry) {
+        [entry.country, entry.leader, entry.office].forEach((value, column) => {
+          wrapPdfText(value, column === 2 ? 17 : 19, 2).forEach((line, lineIndex) => {
+            introText(parts, line, columns[column] + 0.04, y + rowH - 0.18 - lineIndex * 0.12, 5.4, false, textColor);
+          });
+        });
+        wrapPdfText([entry.checkedDate, entry.source].filter(Boolean).join(" · "), 25, 2).forEach((line, index) => {
+          introText(parts, line, columns[3] + 0.04, y + rowH - 0.18 - index * 0.12, 5, false, "0.35 0.39 0.36");
+        });
+      } else {
+        ["Country / region", "Leader's name", "Official title", "Date · source"].forEach((label, column) => {
+          introText(parts, label, columns[column] + 0.04, y + rowH - 0.23, 5.2, false, "0.45 0.48 0.44");
+        });
+      }
       introRule(parts, x, y, right, y, pale, 0.6);
     }
-    [columns[1], columns[2]].forEach((columnX) => introRule(parts, columnX, tableTop, columnX, tableTop - 0.25 - rowH * 6, pale, 0.5));
-    introText(parts, "Check a current, reliable source before filling this page.", x, bottom + 0.12, 6, false, "0.40 0.43 0.40");
+    [columns[1], columns[2], columns[3]].forEach((columnX) =>
+      introRule(parts, columnX, tableTop - 0.02, columnX, tableTop - 0.25 - rowH * rows, pale, 0.5));
+    introText(parts, entries.length
+      ? "Reference details supplied by the publisher. Recheck every source before release."
+      : "Use official government websites or a trusted current reference. Add the check date beside every source.",
+    x, bottom + 0.12, 5.7, false, "0.40 0.43 0.40");
   } else if (type === "current-affairs") {
-    introHeading(parts, "CURRENT AFFAIRS", "Capture what happened, where, and how you verified it.", x, top, right, accent);
+    introHeading(parts, "CURRENT AFFAIRS", "A source-led record of events, context, and why they matter.", x, top, right, accent);
     const cardGap = 0.14;
-    const cardH = (contentHeight - cardGap * 2) / 3;
-    for (let card = 0; card < 3; card++) {
+    const entries = (settings.currentAffairsEntries || []).slice(0, 4);
+    const count = entries.length || 3;
+    const cardH = (contentHeight - cardGap * (count - 1) - 0.08) / count;
+    for (let card = 0; card < count; card++) {
       const cardTop = contentTop - card * (cardH + cardGap);
       const cardBottom = cardTop - cardH;
+      const entry = entries[card];
       introBox(parts, x, cardBottom, pageWidth, cardH, pale, 0.6);
-      introText(parts, `${String(card + 1).padStart(2, "0")}  HEADLINE`, x + 0.1, cardTop - 0.2, 6.5, true, textColor);
-      introRule(parts, x + 0.78, cardTop - 0.21, right - 0.1, cardTop - 0.21, accent, 0.45);
-      introText(parts, "DATE", x + 0.1, cardTop - 0.4, 5.5, true, textColor);
-      introRule(parts, x + 0.45, cardTop - 0.41, x + 1.2, cardTop - 0.41, accent, 0.45);
-      introText(parts, "PLACE", x + 1.32, cardTop - 0.4, 5.5, true, textColor);
-      introRule(parts, x + 1.72, cardTop - 0.41, right - 0.1, cardTop - 0.41, accent, 0.45);
-      introText(parts, "SOURCE", x + 0.1, cardTop - 0.59, 5.5, true, textColor);
-      introRule(parts, x + 0.58, cardTop - 0.6, right - 0.1, cardTop - 0.6, accent, 0.45);
-      introText(parts, "Why it matters:", x + 0.1, cardBottom + 0.12, 5.5, false, textColor);
+      parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(x + 0.21), inch(cardTop - 0.2), inch(0.07))} f\n`);
+      introText(parts, String(card + 1).padStart(2, "0"), x + 0.185, cardTop - 0.22, 5, true, "1 1 1");
+      if (entry) {
+        wrapPdfText(entry.headline, Math.floor(pageWidth * 15), 2).forEach((line, index) => {
+          introText(parts, line, x + 0.39, cardTop - 0.2 - index * 0.13, 6.2, true, textColor);
+        });
+        introText(parts, [entry.date, entry.location].filter(Boolean).join(" · ") || "DATE · LOCATION",
+          x + 0.12, cardTop - 0.53, 5.4, false, "0.38 0.43 0.39");
+        introText(parts, "WHY IT MATTERS", x + 0.12, cardTop - 0.74, 5.1, true, textColor);
+        wrapPdfText(entry.whyItMatters || "Publisher note not supplied.", Math.floor(pageWidth * 15), 2).forEach((line, index) => {
+          introText(parts, line, x + 0.12, cardTop - 0.91 - index * 0.12, 5.5, false, textColor);
+        });
+        introText(parts, "SOURCE", x + 0.12, cardBottom + 0.12, 5, true, textColor);
+        wrapPdfText(entry.source, Math.floor(pageWidth * 18), 2).forEach((line, index) => {
+          introText(parts, line, x + 0.57, cardBottom + 0.12 - index * 0.11, 4.8, false, "0.35 0.39 0.36");
+        });
+      } else {
+        introText(parts, "HEADLINE", x + 0.39, cardTop - 0.2, 6, true, textColor);
+        introRule(parts, x + 0.91, cardTop - 0.21, right - 0.1, cardTop - 0.21, accent, 0.45);
+        introText(parts, "DATE", x + 0.12, cardTop - 0.43, 5.1, true, textColor);
+        introRule(parts, x + 0.45, cardTop - 0.44, x + 1.22, cardTop - 0.44, accent, 0.45);
+        introText(parts, "PLACE", x + 1.35, cardTop - 0.43, 5.1, true, textColor);
+        introRule(parts, x + 1.73, cardTop - 0.44, right - 0.1, cardTop - 0.44, accent, 0.45);
+        introText(parts, "SOURCE", x + 0.12, cardTop - 0.64, 5.1, true, textColor);
+        introRule(parts, x + 0.57, cardTop - 0.65, right - 0.1, cardTop - 0.65, accent, 0.45);
+        introText(parts, "Why it matters:", x + 0.12, cardBottom + 0.12, 5.1, false, textColor);
+        introRule(parts, x + 0.98, cardBottom + 0.1, right - 0.1, cardBottom + 0.1, "#cdd2c8", 0.45);
+      }
     }
   } else if (type === "calendar-2027") {
     introHeading(parts, "2027 YEAR CALENDAR", "All twelve months · Monday to Sunday", x, top, right, accent);
@@ -621,12 +772,85 @@ function notebookIntroPage(
   return parts.join("");
 }
 
+function notebookOutroPage(
+  type: NotebookOutroPageType,
+  settings: NotebookSettings,
+  pageWidth: number,
+  pageHeight: number,
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+) {
+  const parts: string[] = [];
+  const accent = settings.ink === "color" ? settings.lineColor : "#64716b";
+  const pale = settings.ink === "color" ? "#e8efeb" : "#eeeeeb";
+  const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
+  const contentTop = top - 0.8;
+  const contentHeight = contentTop - bottom - 0.1;
+
+  if (type === "year-reflection") {
+    introHeading(parts, "LOOKING BACK", "Give the season you have lived a thoughtful ending.", left, top, right, accent);
+    introSunburst(parts, right - 0.5, contentTop - 0.45, 0.22, accent);
+    const prompts = [
+      "A moment I want to remember",
+      "Something I learned about myself",
+      "A person or small thing I am grateful for",
+      "What I want to carry into the next chapter",
+    ];
+    const gap = 0.12;
+    const cardH = (contentHeight - 0.1 - gap * (prompts.length - 1)) / prompts.length;
+    prompts.forEach((prompt, index) => {
+      const cardTop = contentTop - index * (cardH + gap);
+      introBox(parts, left, cardTop - cardH, right - left, cardH, pale, 0.55);
+      introText(parts, `${String(index + 1).padStart(2, "0")}  ${prompt.toUpperCase()}`, left + 0.12, cardTop - 0.2, 5.8, true, textColor);
+      introRule(parts, left + 0.12, cardTop - cardH + 0.15, right - 0.12, cardTop - cardH + 0.15, "#cdd2c8", 0.45);
+    });
+  } else if (type === "future-letter") {
+    introHeading(parts, "A NOTE TO MY FUTURE SELF", "Write a few honest words to meet again later.", left, top, right, accent);
+    introSunburst(parts, right - 0.47, contentTop - 0.42, 0.2, accent);
+    introText(parts, "Dear future me,", left + 0.04, contentTop - 0.55, 9, true, textColor);
+    const writingTop = contentTop - 0.9;
+    for (let index = 0; index < 11; index++) {
+      const y = writingTop - index * Math.min(0.48, contentHeight * 0.057);
+      if (y > bottom + 0.72) introRule(parts, left, y, right, y, index % 3 === 2 ? accent : "#d3d6cc", index % 3 === 2 ? 0.5 : 0.38);
+    }
+    introText(parts, "OPEN THIS AGAIN ON", left, bottom + 0.42, 5.7, true, textColor);
+    introRule(parts, left + 1.08, bottom + 0.4, right, bottom + 0.4, accent, 0.55);
+  } else if (type === "next-chapter") {
+    introHeading(parts, "THE NEXT CHAPTER", "You do not need the whole plan. Choose your next kind step.", left, top, right, accent);
+    const prompts = [
+      ["01", "I hope to make more room for", "A person, practice, or possibility"],
+      ["02", "One step I can take soon", "Keep it small enough to begin"],
+      ["03", "A reminder for the days ahead", "Write something you will need to hear"],
+    ];
+    const gap = 0.16;
+    const cardH = (contentHeight - 0.16 - gap * 2) / prompts.length;
+    prompts.forEach(([number, heading, detail], index) => {
+      const cardTop = contentTop - index * (cardH + gap);
+      introBox(parts, left, cardTop - cardH, right - left, cardH, pale, 0.6);
+      parts.push(`${rgb(accent)} rg ${pdfCirclePath(inch(left + 0.25), inch(cardTop - 0.26), inch(0.12))} f\n`);
+      introText(parts, number, left + 0.205, cardTop - 0.28, 5.3, true, "1 1 1");
+      introText(parts, heading, left + 0.5, cardTop - 0.25, 7, true, textColor);
+      introText(parts, detail, left + 0.5, cardTop - 0.46, 5.5, false, "0.4 0.43 0.4");
+      introRule(parts, left + 0.12, cardTop - cardH + 0.18, right - 0.12, cardTop - cardH + 0.18, "#cdd2c8", 0.45);
+    });
+  }
+  return parts.join("");
+}
+
 export function createNotebookInteriorPdf(title: string, settings: NotebookSettings) {
   const trim = notebookTrim(settings);
   const pageWidth = trim.width + (settings.bleed ? BLEED_INCHES : 0);
   const pageHeight = trim.height + (settings.bleed ? BLEED_INCHES * 2 : 0);
   const introCount = settings.introPages?.length || 0;
-  const totalPages = settings.pageCount + introCount;
+  const outroCount = notebookOutroPageCount(settings);
+  const frontBlankCount = settings.frontBlankPageCount || 0;
+  const backBlankCount = settings.backBlankPageCount || 0;
+  const introEndPage = frontBlankCount + introCount;
+  const writingEndPage = introEndPage + settings.pageCount;
+  const outroEndPage = writingEndPage + outroCount;
+  const totalPages = notebookTotalPageCount(settings);
   const gutter = gutterMargin(totalPages);
   const outer = 0.375;
   const top = 0.55;
@@ -646,20 +870,27 @@ export function createNotebookInteriorPdf(title: string, settings: NotebookSetti
     const xLeft = left;
     const xRight = pageWidth - right;
     const yTop = pageHeight - top;
-    const introType = settings.introPages?.[page - 1];
-    const content = introType
-      ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom)
-      : fixedPageText(
+    const introType = settings.introPages?.[page - frontBlankCount - 1];
+    const outroType = settings.outroPages?.[page - writingEndPage - 1];
+    const content = page <= frontBlankCount || page > outroEndPage
+      ? ""
+      : page <= introEndPage && introType
+        ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom)
+        : page <= writingEndPage
+          ? fixedPageText(
         settings,
         title,
-        page - introCount,
+        page - introEndPage,
         pageWidth,
         pageHeight,
         xLeft,
         xRight,
         yTop,
         bottom,
-      );
+          )
+          : outroType
+            ? notebookOutroPage(outroType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom)
+            : "";
     const pageObjectNumber = objects.length + 1;
     const contentObjectNumber = pageObjectNumber + 1;
     pageObjectNumbers.push(pageObjectNumber);
