@@ -15,6 +15,7 @@ import {
   notebookTotalPageCount,
 } from "../shared/notebook-studio";
 import {
+  createPlanner2027PagePreview,
   createNotebookInteriorPdf,
   inspectNotebookPageImage,
   prependPlanner2027Pages,
@@ -210,6 +211,30 @@ test("disabled pages are omitted from KDP output and page edits can replace an i
   assert.equal(validation.pageCount, 30);
   assert.equal(validation.introPageCount, 28);
   assert.equal(validation.writingPageCount, 2);
+});
+
+test("planner page previews work before the project toggle is saved and use the current trim", async () => {
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    use2027PlannerPdf: false,
+    trimSize: "8.27x11.69",
+    customWidth: 8.27,
+    customHeight: 11.69,
+  };
+  const source = await PDFDocument.create();
+  for (let index = 0; index < 32; index++) source.addPage([595.5, 842.25]);
+
+  const preview = await createPlanner2027PagePreview(
+    Buffer.from(await source.save({ useObjectStreams: false })),
+    1,
+    settings,
+  );
+  const document = await PDFDocument.load(preview);
+  const dimensions = document.getPage(0).getSize();
+
+  assert.equal(document.getPageCount(), 1);
+  assert.ok(Math.abs(dimensions.width - 8.27 * 72) < 0.1);
+  assert.ok(Math.abs(dimensions.height - 11.69 * 72) < 0.1);
 });
 
 test("excluded writing pages reflow writing-page numbers and reduce the physical PDF count", () => {

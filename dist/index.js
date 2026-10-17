@@ -3720,8 +3720,8 @@ async function generateAiReport(lead) {
     lines.push("");
     lines.push("### Suggested first outreach");
     lines.push(`Hi ${lead.name.split(" ")[0]}, we'd love to help you reach a wider crypto-native audience through Taskdrip's verified influencer marketplace. Open to a 15-min chat?`);
-    const report2 = lines.join("\n");
-    return { summary: lines[0], report: report2 };
+    const report = lines.join("\n");
+    return { summary: lines[0], report };
   }
   const sys = "You are a senior growth strategist at Taskdrip, a Web3 SocialFi influencer marketplace. Produce concise, action-oriented growth reports for a prospect.";
   const usr = `Prospect (${lead.kind}): ${JSON.stringify({
@@ -12245,7 +12245,7 @@ init_db();
 import { and as and7, count as count3, desc as desc8, eq as eq10, gt, inArray as inArray6, sql as sql7 } from "drizzle-orm";
 import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import path2 from "node:path";
-import multer from "multer";
+import multer2 from "multer";
 import OpenAI3 from "openai";
 import { nanoid as nanoid4 } from "nanoid";
 
@@ -12944,7 +12944,8 @@ ${storyWinks[stories.indexOf(story)]}`
 // server/notebook-studio.ts
 init_schema();
 import { and as and6, desc as desc7, eq as eq9 } from "drizzle-orm";
-import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import multer from "multer";
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { nanoid as nanoid3 } from "nanoid";
 
@@ -12965,6 +12966,93 @@ var NOTEBOOK_OUTRO_PAGE_OPTIONS = [
   { value: "future-letter", label: "A note to my future self", description: "A closing letter page with a place to set a date to revisit it." },
   { value: "next-chapter", label: "The next chapter", description: "A forward-looking page for hopes, next steps, and a fresh start." }
 ];
+var NOTEBOOK_2027_PLANNER_PAGE_COUNT = 30;
+var DEFAULT_NOTEBOOK_PAGE_COPY = {
+  "intro-welcome": {
+    title: "A place to pause",
+    subtitle: "Capture the small moments, brave ideas, and lessons you want to remember. Begin with what is true today; the rest can take shape here.",
+    prompts: []
+  },
+  "intro-journal-guide": {
+    title: "Make this journal yours",
+    subtitle: "A simple rhythm for pages that grow with you.",
+    prompts: ["Begin anywhere", "Keep it honest", "Return often", "Look back kindly"]
+  },
+  "intro-intentions": {
+    title: "Set your intentions",
+    subtitle: "Name what matters, then make it easier to begin.",
+    prompts: ["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"]
+  },
+  "intro-world-map": {
+    title: "Explore the world",
+    subtitle: "Trace the places, people, and possibilities that make our world remarkable.",
+    prompts: []
+  },
+  "intro-continents": {
+    title: "Seven continents, one curious world",
+    subtitle: "Add a country, a landmark, or one surprising fact to each region.",
+    prompts: []
+  },
+  "intro-planets": {
+    title: "A tour of our solar system",
+    subtitle: "Meet the eight planets in order, then note what makes each one extraordinary.",
+    prompts: []
+  },
+  "intro-world-presidents": {
+    title: "World leaders",
+    subtitle: "A snapshot of leadership. Record each official title and check every entry against a dated source.",
+    prompts: []
+  },
+  "intro-current-affairs": {
+    title: "The stories shaping our time",
+    subtitle: "Keep a thoughtful record of the events, context, and sources worth revisiting.",
+    prompts: []
+  },
+  "intro-calendar-2027": {
+    title: "A year at a glance",
+    subtitle: "Twelve months of open space for the plans and moments you want to remember.",
+    prompts: []
+  },
+  "outro-year-reflection": {
+    title: "Looking back",
+    subtitle: "Gather the moments, lessons, and people that shaped this season.",
+    prompts: ["A moment I want to remember", "Something I learned about myself", "A person or small thing I am grateful for", "What I want to carry into the next chapter"]
+  },
+  "outro-future-letter": {
+    title: "A note to my future self",
+    subtitle: "Leave a few honest words for the person you are still becoming.",
+    prompts: []
+  },
+  "outro-next-chapter": {
+    title: "The next chapter",
+    subtitle: "You do not need the whole plan. Choose one kind, possible next step.",
+    prompts: ["I hope to make more room for", "One step I can take soon", "A reminder for the days ahead"]
+  }
+};
+function notebookPageArtKey(group, type) {
+  return `${group}-${type}`;
+}
+function notebookPageCopy(settings, key) {
+  return {
+    ...DEFAULT_NOTEBOOK_PAGE_COPY[key] || { title: "", subtitle: "", prompts: [] },
+    ...settings.pageCopy?.[key] || {}
+  };
+}
+function notebookPrintArtPixels(settings, dpi = 300) {
+  const [presetWidth, presetHeight] = String(settings.trimSize).split("x").map(Number);
+  const trimWidth = settings.trimSize === "custom" ? Number(settings.customWidth) : presetWidth;
+  const trimHeight = settings.trimSize === "custom" ? Number(settings.customHeight) : presetHeight;
+  const bleed = settings.bleed ? 0.125 : 0;
+  return {
+    width: Math.ceil((trimWidth + bleed) * dpi),
+    height: Math.ceil((trimHeight + bleed * 2) * dpi)
+  };
+}
+function normalizeNotebookLineSpacing(value) {
+  const parsed = Number(value);
+  const spacing = Number.isFinite(parsed) ? parsed : 0.32;
+  return Math.round(Math.max(0.16, Math.min(0.75, spacing)) * 100) / 100;
+}
 var DEFAULT_NOTEBOOK_SETTINGS = {
   subtitle: "",
   authorName: "",
@@ -12980,6 +13068,11 @@ var DEFAULT_NOTEBOOK_SETTINGS = {
   lineStyle: "classic",
   introPages: [],
   outroPages: [],
+  use2027PlannerPdf: false,
+  pageCopy: DEFAULT_NOTEBOOK_PAGE_COPY,
+  pageArtwork: {},
+  pageEdits: {},
+  disabledPages: [],
   frontBlankPageCount: 0,
   backBlankPageCount: 0,
   worldLeaderEntries: [],
@@ -12987,7 +13080,7 @@ var DEFAULT_NOTEBOOK_SETTINGS = {
   diaryStartMonth: "",
   lineSpacing: 0.32,
   lineColor: "#9db5c8",
-  lineThickness: 0.55,
+  lineThickness: 0.75,
   showPageNumbers: true,
   ownershipPage: false,
   showDateField: false,
@@ -12996,19 +13089,31 @@ var DEFAULT_NOTEBOOK_SETTINGS = {
   footerText: ""
 };
 function notebookIntroPageCount(settings) {
+  if (settings.use2027PlannerPdf) return NOTEBOOK_2027_PLANNER_PAGE_COUNT;
   return Array.isArray(settings.introPages) ? settings.introPages.length : 0;
 }
 function notebookOutroPageCount(settings) {
+  if (settings.use2027PlannerPdf) return 0;
   return Array.isArray(settings.outroPages) ? settings.outroPages.length : 0;
 }
 function notebookBlankPageCount(settings) {
-  return Math.max(0, Number(settings.frontBlankPageCount) || 0) + Math.max(0, Number(settings.backBlankPageCount) || 0);
+  const front = Math.max(0, Number(settings.frontBlankPageCount) || 0);
+  const back = settings.use2027PlannerPdf ? 0 : Math.max(0, Number(settings.backBlankPageCount) || 0);
+  return front + back;
+}
+function notebookLogicalPageCount(settings) {
+  return settings.pageCount + notebookIntroPageCount(settings) + notebookOutroPageCount({ outroPages: settings.outroPages || [], use2027PlannerPdf: settings.use2027PlannerPdf }) + notebookBlankPageCount({
+    frontBlankPageCount: settings.frontBlankPageCount || 0,
+    backBlankPageCount: settings.backBlankPageCount || 0,
+    use2027PlannerPdf: settings.use2027PlannerPdf
+  });
 }
 function notebookTotalPageCount(settings) {
-  return settings.pageCount + notebookIntroPageCount(settings) + notebookOutroPageCount({ outroPages: settings.outroPages || [] }) + notebookBlankPageCount({
-    frontBlankPageCount: settings.frontBlankPageCount || 0,
-    backBlankPageCount: settings.backBlankPageCount || 0
-  });
+  const logicalPages = notebookLogicalPageCount(settings);
+  const disabled = new Set((settings.disabledPages || []).filter(
+    (page2) => Number.isInteger(page2) && page2 >= 1 && page2 <= logicalPages
+  ));
+  return logicalPages - disabled.size;
 }
 var NOTEBOOK_DIARY_LAST_DAY = Date.UTC(2027, 11, 31);
 function currentNotebookDiaryStartMonth(now = /* @__PURE__ */ new Date()) {
@@ -13046,6 +13151,7 @@ init_db();
 
 // server/notebook-pdf.ts
 import { deflateSync, inflateSync } from "node:zlib";
+import { PDFDocument } from "pdf-lib";
 var POINTS_PER_INCH = 72;
 var BLEED_INCHES = 0.125;
 function notebookTrim(settings) {
@@ -13067,11 +13173,29 @@ function pageLimit(settings, width, height) {
 function validateNotebook(title, settings, files) {
   const { width, height } = notebookTrim(settings);
   const totalPages = notebookTotalPageCount(settings);
+  const logicalPages = notebookLogicalPageCount(settings);
   const introPages = notebookIntroPageCount(settings);
   const outroPages = notebookOutroPageCount(settings);
-  const blankPages = notebookBlankPageCount(settings);
   const frontBlanks = settings.frontBlankPageCount || 0;
-  const backBlanks = settings.backBlankPageCount || 0;
+  const backBlanks = settings.use2027PlannerPdf ? 0 : settings.backBlankPageCount || 0;
+  const introStartPage = frontBlanks + 1;
+  const writingStartPage = introStartPage + introPages;
+  const outroStartPage = writingStartPage + settings.pageCount;
+  const disabledPages = new Set((settings.disabledPages || []).filter(
+    (page2) => Number.isInteger(page2) && page2 >= 1 && page2 <= logicalPages
+  ));
+  const activePageCount = (start, end) => {
+    let active = 0;
+    for (let page2 = start; page2 <= end; page2++) if (!disabledPages.has(page2)) active++;
+    return active;
+  };
+  const activeFrontBlanks = activePageCount(1, frontBlanks);
+  const activeIntroPages = activePageCount(introStartPage, writingStartPage - 1);
+  const activeWritingPages = activePageCount(writingStartPage, outroStartPage - 1);
+  const activeOutroPages = activePageCount(outroStartPage, outroStartPage + outroPages - 1);
+  const activeBackBlanks = activePageCount(logicalPages - backBlanks + 1, logicalPages);
+  const blankPages = activeFrontBlanks + activeBackBlanks;
+  const disabledPageCount = disabledPages.size;
   const items = [];
   const supportedTrims = /* @__PURE__ */ new Set(["5x8", "5.5x8.5", "6x9", "8.27x11.69"]);
   const exactTrimSupported = settings.trimSize !== "custom" && supportedTrims.has(settings.trimSize);
@@ -13086,7 +13210,7 @@ function validateNotebook(title, settings, files) {
   items.push({
     status: validPageCount ? "ready" : "failed",
     label: "Page count",
-    message: validPageCount ? `${totalPages} physical pages: ${frontBlanks} front blank, ${introPages} introductory, ${settings.pageCount} writing, ${outroPages} closing, and ${backBlanks} end blank. This is within the ${minimumPages}\u2013${maxPages} page range for this print selection.` : `${settings.binding} books at this trim and print selection allow ${minimumPages}\u2013${maxPages} total pages; the project is set to ${totalPages}.`
+    message: validPageCount ? `${totalPages} active physical pages: ${activeFrontBlanks} front blank, ${activeIntroPages} introductory, ${activeWritingPages} writing, ${activeOutroPages} closing, and ${activeBackBlanks} end blank${disabledPageCount ? `; ${disabledPageCount} page${disabledPageCount === 1 ? " is" : "s are"} excluded` : ""}. This is within the ${minimumPages}\u2013${maxPages} page range for this print selection.` : `${settings.binding} books at this trim and print selection allow ${minimumPages}\u2013${maxPages} total pages; the project is set to ${totalPages}.`
   });
   const addReferenceCheck = (enabled, label, entries, requiredFields) => {
     if (!enabled) return;
@@ -13099,13 +13223,13 @@ function validateNotebook(title, settings, files) {
     });
   };
   addReferenceCheck(
-    settings.introPages.includes("world-presidents"),
+    !settings.use2027PlannerPdf && settings.introPages.includes("world-presidents"),
     "World leader",
     settings.worldLeaderEntries || [],
     ["country", "leader", "office", "checkedDate", "source"]
   );
   addReferenceCheck(
-    settings.introPages.includes("current-affairs"),
+    !settings.use2027PlannerPdf && settings.introPages.includes("current-affairs"),
     "Current affairs",
     settings.currentAffairsEntries || [],
     ["headline", "date", "source", "whyItMatters"]
@@ -13115,6 +13239,26 @@ function validateNotebook(title, settings, files) {
     status: dimsValid ? exactTrimSupported ? "ready" : "warning" : "failed",
     label: "Trim size",
     message: !dimsValid ? "KDP paperback trim dimensions must be 4\u20138.5 inches wide and 6\u201311.69 inches high." : exactTrimSupported ? `${width.toFixed(2)} \xD7 ${height.toFixed(2)} inches is a listed KDP trim size.` : settings.trimSize === "custom" && Math.abs(width - 8.3) < 0.05 && Math.abs(height - 11.6) < 0.1 ? "8.3 \xD7 11.6 inches is not an exact KDP trim preset. A4 (8.27 \xD7 11.69 inches) is supported and is the closest option." : "This custom trim is within the KDP paperback dimension limits, but it is not a listed KDP preset. Verify it in KDP before upload."
+  });
+  if (settings.use2027PlannerPdf) {
+    const plannerTrimValid = settings.trimSize === "8.27x11.69" && !settings.bleed;
+    const plannerSourceStatus = files.plannerPdfAvailable === false ? "failed" : files.plannerPdfAvailable === true ? "ready" : "manual";
+    items.push({
+      status: !plannerTrimValid ? "failed" : plannerSourceStatus,
+      label: "Imported 2027 planner pages",
+      message: !plannerTrimValid ? "The supplied planner pages are A4. Use the 8.27 \xD7 11.69 inch A4 trim preset and turn bleed off." : files.plannerPdfAvailable === false ? "The supplied 2027 planner PDF is not available. Restore the attached interior PDF before generating." : files.plannerPdfAvailable === true ? "The 30 interior pages from the supplied PDF are ready; its front and back cover pages are excluded." : "The 30 interior pages from the supplied PDF will be checked during generation; its cover pages are excluded."
+    });
+  }
+  const lineWeightValid = Number(settings.lineThickness) >= 0.75;
+  items.push({
+    status: lineWeightValid ? "ready" : "failed",
+    label: "Printed rule weight",
+    message: lineWeightValid ? `${Number(settings.lineThickness).toFixed(2)} pt meets KDP's 0.75 pt minimum for printed lines.` : "Increase the ruled-line weight to at least 0.75 pt before generating a KDP interior."
+  });
+  items.push({
+    status: "manual",
+    label: "Font embedding",
+    message: "Inspect the generated pages in KDP's Print Previewer. The generated pages use standard PDF Helvetica fonts; KDP's preview is the final check for font compatibility."
   });
   const minGutter = totalPages <= 150 ? 0.375 : totalPages <= 300 ? 0.5 : totalPages <= 500 ? 0.625 : totalPages <= 700 ? 0.75 : 0.875;
   const insideMargin = minGutter + 0.05;
@@ -13165,9 +13309,9 @@ function validateNotebook(title, settings, files) {
     status,
     checkedAt: (/* @__PURE__ */ new Date()).toISOString(),
     pageCount: totalPages,
-    writingPageCount: settings.pageCount,
-    introPageCount: introPages,
-    outroPageCount: outroPages,
+    writingPageCount: activeWritingPages,
+    introPageCount: activeIntroPages,
+    outroPageCount: activeOutroPages,
     blankPageCount: blankPages,
     trimWidth: width,
     trimHeight: height,
@@ -13393,8 +13537,8 @@ function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight
   const lineBottom = Math.max(yBottom, 0.67);
   const availableHeight = pageContentTop - lineBottom;
   const style = settings.lineStyle;
+  const spacing = normalizeNotebookLineSpacing(settings.lineSpacing);
   if (style === "graph") {
-    const spacing = Math.max(0.16, Math.min(0.6, settings.lineSpacing));
     for (let x = xLeft; x <= xRight + 1e-3; x += spacing) {
       parts.push(lineCommand(inch(x), inch(lineBottom), inch(x), inch(pageContentTop), settings.lineColor, settings.lineThickness * 0.65));
     }
@@ -13402,7 +13546,6 @@ function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness * 0.65));
     }
   } else if (style === "dot") {
-    const spacing = Math.max(0.16, Math.min(0.6, settings.lineSpacing));
     const dotSize = Math.max(0.45, settings.lineThickness);
     parts.push(`${rgb(settings.lineColor)} rg
 `);
@@ -13413,22 +13556,47 @@ function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight
       }
     }
   } else if (style === "lined-journal") {
-    const spacing = Math.max(0.16, Math.min(0.75, settings.lineSpacing));
     for (let y = pageContentTop - spacing; y >= lineBottom; y -= spacing) {
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
     }
   } else {
-    const spacingForStyle = style === "wide" ? Math.max(settings.lineSpacing, 0.38) : style === "college" ? Math.min(settings.lineSpacing, 0.3) : settings.lineSpacing;
-    const spacing = Math.max(0.2, Math.min(0.75, spacingForStyle));
-    let lineIndex = 0;
-    for (let y = pageContentTop - spacing; y >= lineBottom && lineIndex < 70; y -= spacing) {
+    for (let y = pageContentTop - spacing; y >= lineBottom; y -= spacing) {
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
-      if (style === "business" && lineIndex % 4 === 0) {
-        parts.push(lineCommand(inch(xLeft), inch(y - spacing * 0.13), inch(xRight), inch(y - spacing * 0.13), settings.lineColor, settings.lineThickness * 0.5));
-      }
-      lineIndex += 1;
     }
   }
+  return parts.join("");
+}
+function editableNotebookPage(edit, settings, pageNumber, width, height, xLeft, xRight, yTop, yBottom) {
+  const parts = [];
+  const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.16 0.18 0.17";
+  const title = edit.title.trim() || "Untitled page";
+  parts.push(textCommand(title, inch(xLeft), inch(yTop - 0.32), 17, "F2", textColor));
+  const subtitleLines = wrapPdfText(edit.subtitle, Math.max(36, Math.floor((xRight - xLeft) * 11)), 2);
+  let bodyTop = yTop - 0.62;
+  subtitleLines.forEach((line, index2) => {
+    parts.push(textCommand(line, inch(xLeft), inch(bodyTop - index2 * 0.16), 8, "F1", "0.36 0.39 0.37"));
+  });
+  if (subtitleLines.length) bodyTop -= subtitleLines.length * 0.18;
+  parts.push(lineCommand(inch(xLeft), inch(bodyTop - 0.08), inch(xRight), inch(bodyTop - 0.08), settings.lineColor, settings.lineThickness));
+  const bodyLines = [];
+  const maxCharacters = Math.max(32, Math.floor((xRight - xLeft) * 12));
+  for (const paragraph of edit.body.split(/\r?\n/)) {
+    const wrapped = wrapPdfText(paragraph, maxCharacters, 60);
+    bodyLines.push(...wrapped.length ? wrapped : [""]);
+  }
+  const bodyLineHeight = 0.15;
+  const maximumBodyLines = Math.max(0, Math.floor((bodyTop - yBottom - 1.05) / bodyLineHeight));
+  bodyLines.slice(0, maximumBodyLines).forEach((line, index2) => {
+    parts.push(textCommand(line, inch(xLeft), inch(bodyTop - 0.3 - index2 * bodyLineHeight), 7.2, "F1", "0.24 0.27 0.25"));
+  });
+  const rulesTop = bodyTop - 0.36 - Math.min(bodyLines.length, maximumBodyLines) * bodyLineHeight;
+  const lineBottom = Math.max(yBottom, 0.67);
+  const spacing = normalizeNotebookLineSpacing(settings.lineSpacing);
+  for (let y = rulesTop; y >= lineBottom; y -= spacing) {
+    parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
+  }
+  if (settings.footerText) parts.push(textCommand(settings.footerText, inch(xLeft), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+  if (settings.showPageNumbers) parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
   return parts.join("");
 }
 function introText(parts, text3, x, y, size = 8, bold = false, color = "0.20 0.26 0.24") {
@@ -13495,26 +13663,30 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
   const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
   const contentTop = top - 0.76;
   const contentHeight = contentTop - bottom - 0.1;
+  const copy = notebookPageCopy(settings, notebookPageArtKey("intro", type));
   if (type === "welcome") {
     introText(parts, "A JOURNAL FOR YOUR NEXT CHAPTER", x, contentTop - 0.05, 6.2, true, "0.42 0.49 0.43");
     introSunburst(parts, x + pageWidth / 2, contentTop - 1.17, Math.min(0.34, pageWidth * 0.085), accent);
-    introText(parts, "A place to pause.", x, contentTop - 2.12, 21, true, "0.16 0.24 0.22");
-    introText(parts, "A place to begin again.", x, contentTop - 2.48, 15, false, "0.35 0.43 0.37");
-    introText(parts, "Use these pages to notice what matters, make room for new ideas,", x, contentTop - 2.98, 8, false, textColor);
-    introText(parts, "and keep the thoughts you want to return to.", x, contentTop - 3.18, 8, false, textColor);
+    wrapPdfText(copy.title, Math.max(18, Math.floor(pageWidth * 7.5)), 2).forEach((line, index2) => introText(parts, line, x, contentTop - 2.12 - index2 * 0.31, 21, true, "0.16 0.24 0.22"));
+    wrapPdfText(copy.subtitle, Math.max(20, Math.floor(pageWidth * 15)), 2).forEach((line, index2) => introText(parts, line, x, contentTop - 2.9 - index2 * 0.17, 7.7, false, textColor));
     introBox(parts, x + 0.08, contentTop - 4.57, pageWidth - 0.16, 0.92, pale, 0.65);
     introText(parts, "THIS JOURNAL BELONGS TO", x + 0.2, contentTop - 3.91, 6.4, true, textColor);
     introRule(parts, x + 0.2, contentTop - 4.29, right - 0.12, contentTop - 4.29, accent, 0.55);
     introText(parts, settings.authorName ? `Made for ${settings.authorName}` : "One thought I want to carry with me:", x + 0.08, bottom + 0.44, 7, false, textColor);
     introRule(parts, x + 2.15, bottom + 0.42, right, bottom + 0.42, accent, 0.45);
   } else if (type === "journal-guide") {
-    introHeading(parts, "MAKE THIS JOURNAL YOURS", "A simple rhythm for pages that grow with you.", x, top, right, accent);
-    const steps = [
-      ["01", "Begin anywhere", "A date, a sentence, or a quick sketch is enough to start."],
-      ["02", "Keep it honest", "Write for yourself. There is no perfect way to fill a page."],
-      ["03", "Return often", "Small notes made regularly become a record worth keeping."],
-      ["04", "Look back kindly", "Notice what changed, what stayed, and what you learned."]
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
+    const stepDetails = [
+      "A date, a sentence, or a quick sketch is enough to start.",
+      "Write for yourself. There is no perfect way to fill a page.",
+      "Small notes made regularly become a record worth keeping.",
+      "Notice what changed, what stayed, and what you learned."
     ];
+    const steps = stepDetails.map((detail, index2) => [
+      String(index2 + 1).padStart(2, "0"),
+      copy.prompts[index2] || DEFAULT_NOTEBOOK_PAGE_COPY["intro-journal-guide"].prompts[index2],
+      detail
+    ]);
     const gap = 0.15;
     const cardH = Math.min(1.16, (contentHeight - 0.2 - gap * 3) / 4);
     steps.forEach(([number, heading, detail], index2) => {
@@ -13527,8 +13699,8 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
       introText(parts, detail, x + 0.55, cardTop - 0.56, 6.2, false, "0.40 0.43 0.40");
     });
   } else if (type === "intentions") {
-    introHeading(parts, "SET YOUR INTENTIONS", "Choose a few things to give your time and attention to.", x, top, right, accent);
-    const prompts = ["A goal that matters to me", "Why I want to make room for it", "One small step I can take this week"];
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
+    const prompts = copy.prompts.slice(0, 3);
     const cardH = Math.min(1.63, (contentHeight - 0.35) / 3);
     prompts.forEach((prompt, index2) => {
       const cardTop = contentTop - index2 * (cardH + 0.14);
@@ -13539,7 +13711,7 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
       introRule(parts, x + 0.12, cardTop - 1.27, right - 0.12, cardTop - 1.27, "#cdd2c8", 0.45);
     });
   } else if (type === "world-map") {
-    introHeading(parts, "WORLD MAP", "Explore the continents and oceans. Add labels or notes.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const mapX = x + 0.03;
     const mapTop = contentTop - 0.05;
     const mapW = pageWidth - 0.06;
@@ -13572,7 +13744,7 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
     introText(parts, "Ocean or place to remember:", x, bottom + 0.45, 7, true, textColor);
     introRule(parts, x + 1.55, bottom + 0.43, right, bottom + 0.43, accent, 0.5);
   } else if (type === "continents") {
-    introHeading(parts, "THE CONTINENTS", "Seven regions to explore \u2014 add a country or a fact to each.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const names = ["ASIA", "AFRICA", "NORTH AMERICA", "SOUTH AMERICA", "ANTARCTICA", "EUROPE", "AUSTRALIA"];
     const cols = 2;
     const gap = 0.13;
@@ -13590,7 +13762,7 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
       introRule(parts, cardX + 0.1, cardTop - 0.82, cardX + cardW - 0.1, cardTop - 0.82, accent, 0.45);
     });
   } else if (type === "planets") {
-    introHeading(parts, "OUR SOLAR SYSTEM", "The eight planets, shown in order from the Sun.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const centerX = x + pageWidth * 0.5;
     const centerY = contentTop - contentHeight * 0.43;
     const orbitRadiusMax = Math.min(pageWidth * 0.41, contentHeight * 0.35);
@@ -13611,7 +13783,7 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
     parts.push(`${rgb(settings.ink === "color" ? "#e5b45a" : "#777777")} rg ${inch(centerX - 0.1).toFixed(2)} ${inch(centerY - 0.1).toFixed(2)} ${inch(0.2).toFixed(2)} ${inch(0.2).toFixed(2)} re f
 `);
   } else if (type === "world-presidents") {
-    introHeading(parts, "WORLD LEADERS", "Record each country's official title and verify names before publication.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     introText(parts, "Not every country is led by a president. Use a dated official source for each entry.", x, contentTop - 0.04, 6.3, false, "0.40 0.43 0.40");
     const tableTop = contentTop - 0.14;
     const entries = (settings.worldLeaderEntries || []).slice(0, 8);
@@ -13652,7 +13824,7 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
       "0.40 0.43 0.40"
     );
   } else if (type === "current-affairs") {
-    introHeading(parts, "CURRENT AFFAIRS", "A source-led record of events, context, and why they matter.", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const cardGap = 0.14;
     const entries = (settings.currentAffairsEntries || []).slice(0, 4);
     const count5 = entries.length || 3;
@@ -13700,7 +13872,7 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
       }
     }
   } else if (type === "calendar-2027") {
-    introHeading(parts, "2027 YEAR CALENDAR", "All twelve months \xB7 Monday to Sunday", x, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, x, top, right, accent);
     const gridTop = contentTop - 0.02;
     const cols = 4;
     const rows = 3;
@@ -13741,15 +13913,11 @@ function notebookOutroPage(type, settings, pageWidth, pageHeight, left, right, t
   const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.20 0.22 0.21";
   const contentTop = top - 0.8;
   const contentHeight = contentTop - bottom - 0.1;
+  const copy = notebookPageCopy(settings, notebookPageArtKey("outro", type));
   if (type === "year-reflection") {
-    introHeading(parts, "LOOKING BACK", "Give the season you have lived a thoughtful ending.", left, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, left, top, right, accent);
     introSunburst(parts, right - 0.5, contentTop - 0.45, 0.22, accent);
-    const prompts = [
-      "A moment I want to remember",
-      "Something I learned about myself",
-      "A person or small thing I am grateful for",
-      "What I want to carry into the next chapter"
-    ];
+    const prompts = copy.prompts.slice(0, 4);
     const gap = 0.12;
     const cardH = (contentHeight - 0.1 - gap * (prompts.length - 1)) / prompts.length;
     prompts.forEach((prompt, index2) => {
@@ -13759,7 +13927,7 @@ function notebookOutroPage(type, settings, pageWidth, pageHeight, left, right, t
       introRule(parts, left + 0.12, cardTop - cardH + 0.15, right - 0.12, cardTop - cardH + 0.15, "#cdd2c8", 0.45);
     });
   } else if (type === "future-letter") {
-    introHeading(parts, "A NOTE TO MY FUTURE SELF", "Write a few honest words to meet again later.", left, top, right, accent);
+    introHeading(parts, copy.title, copy.subtitle, left, top, right, accent);
     introSunburst(parts, right - 0.47, contentTop - 0.42, 0.2, accent);
     introText(parts, "Dear future me,", left + 0.04, contentTop - 0.55, 9, true, textColor);
     const writingTop = contentTop - 0.9;
@@ -13770,12 +13938,17 @@ function notebookOutroPage(type, settings, pageWidth, pageHeight, left, right, t
     introText(parts, "OPEN THIS AGAIN ON", left, bottom + 0.42, 5.7, true, textColor);
     introRule(parts, left + 1.08, bottom + 0.4, right, bottom + 0.4, accent, 0.55);
   } else if (type === "next-chapter") {
-    introHeading(parts, "THE NEXT CHAPTER", "You do not need the whole plan. Choose your next kind step.", left, top, right, accent);
-    const prompts = [
-      ["01", "I hope to make more room for", "A person, practice, or possibility"],
-      ["02", "One step I can take soon", "Keep it small enough to begin"],
-      ["03", "A reminder for the days ahead", "Write something you will need to hear"]
+    introHeading(parts, copy.title, copy.subtitle, left, top, right, accent);
+    const promptDetails = [
+      "A person, practice, or possibility",
+      "Keep it small enough to begin",
+      "Write something you will need to hear"
     ];
+    const prompts = promptDetails.map((detail, index2) => [
+      String(index2 + 1).padStart(2, "0"),
+      copy.prompts[index2] || DEFAULT_NOTEBOOK_PAGE_COPY["outro-next-chapter"].prompts[index2],
+      detail
+    ]);
     const gap = 0.16;
     const cardH = (contentHeight - 0.16 - gap * 2) / prompts.length;
     prompts.forEach(([number, heading, detail], index2) => {
@@ -13791,11 +13964,11 @@ function notebookOutroPage(type, settings, pageWidth, pageHeight, left, right, t
   }
   return parts.join("");
 }
-function createNotebookInteriorPdf(title, settings) {
+function createNotebookInteriorPdf(title, settings, pageArtwork = {}) {
   const trim = notebookTrim(settings);
   const pageWidth = trim.width + (settings.bleed ? BLEED_INCHES : 0);
   const pageHeight = trim.height + (settings.bleed ? BLEED_INCHES * 2 : 0);
-  const introCount = settings.introPages?.length || 0;
+  const introCount = settings.use2027PlannerPdf ? NOTEBOOK_2027_PLANNER_PAGE_COUNT : settings.introPages?.length || 0;
   const outroCount = notebookOutroPageCount(settings);
   const frontBlankCount = settings.frontBlankPageCount || 0;
   const backBlankCount = settings.backBlankPageCount || 0;
@@ -13803,6 +13976,8 @@ function createNotebookInteriorPdf(title, settings) {
   const writingEndPage = introEndPage + settings.pageCount;
   const outroEndPage = writingEndPage + outroCount;
   const totalPages = notebookTotalPageCount(settings);
+  const logicalPages = notebookLogicalPageCount(settings);
+  const disabledPages = new Set(settings.disabledPages || []);
   const gutter = gutterMargin(totalPages);
   const outer = 0.375;
   const top = 0.55;
@@ -13814,20 +13989,44 @@ function createNotebookInteriorPdf(title, settings) {
     Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>", "ascii")
   ];
   const pageObjectNumbers = [];
-  for (let page2 = 1; page2 <= totalPages; page2++) {
-    const isOdd = page2 % 2 === 1;
+  let writingPageNumber = 0;
+  let disabledPagesBefore = 0;
+  for (let page2 = 1; page2 <= logicalPages; page2++) {
+    const isDisabled = disabledPages.has(page2);
+    const outputPageNumber = page2 - disabledPagesBefore;
+    const isWritingPage = page2 > introEndPage && page2 <= writingEndPage;
+    if (isWritingPage && !isDisabled) writingPageNumber += 1;
+    if (isDisabled) {
+      disabledPagesBefore += 1;
+      if (!settings.use2027PlannerPdf) continue;
+    }
+    const isOdd = outputPageNumber % 2 === 1;
     const inside = gutter + 0.05;
     const left = isOdd ? inside : outer;
     const right = isOdd ? outer : inside;
     const xLeft = left;
     const xRight = pageWidth - right;
     const yTop = pageHeight - top;
-    const introType = settings.introPages?.[page2 - frontBlankCount - 1];
+    const pageEdit = settings.pageEdits?.[String(page2)];
+    const introType = settings.use2027PlannerPdf ? void 0 : settings.introPages?.[page2 - frontBlankCount - 1];
     const outroType = settings.outroPages?.[page2 - writingEndPage - 1];
-    const content = page2 <= frontBlankCount || page2 > outroEndPage ? "" : page2 <= introEndPage && introType ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : page2 <= writingEndPage ? fixedPageText(
+    const artworkKey = introType ? notebookPageArtKey("intro", introType) : outroType ? notebookPageArtKey("outro", outroType) : "";
+    const image = artworkKey ? readUploadedImage(pageArtwork[artworkKey] || null) : null;
+    const content = isDisabled ? "" : pageEdit?.replace ? editableNotebookPage(
+      pageEdit,
+      settings,
+      isWritingPage ? writingPageNumber : page2,
+      pageWidth,
+      pageHeight,
+      xLeft,
+      xRight,
+      yTop,
+      bottom
+    ) : image ? `q 0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)} re W n ${inch(pageWidth).toFixed(2)} 0 0 ${inch(pageHeight).toFixed(2)} 0 0 cm /Im0 Do Q
+` : page2 <= frontBlankCount || page2 > outroEndPage ? "" : settings.use2027PlannerPdf && page2 <= introEndPage ? "" : page2 <= introEndPage && introType ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : page2 <= writingEndPage ? fixedPageText(
       settings,
       title,
-      page2 - introEndPage,
+      writingPageNumber,
       pageWidth,
       pageHeight,
       xLeft,
@@ -13835,20 +14034,86 @@ function createNotebookInteriorPdf(title, settings) {
       yTop,
       bottom
     ) : outroType ? notebookOutroPage(outroType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : "";
+    const imageObjectNumber = image ? objects.length + 1 : 0;
+    if (image) {
+      objects.push(streamObject(
+        image.data,
+        `/Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /${image.colorSpace} /BitsPerComponent 8 /Filter /${image.filter}`
+      ));
+    }
     const pageObjectNumber = objects.length + 1;
     const contentObjectNumber = pageObjectNumber + 1;
     pageObjectNumbers.push(pageObjectNumber);
     objects.push(Buffer.from(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${image ? ` /XObject << /Im0 ${imageObjectNumber} 0 R >>` : ""} >> /Contents ${contentObjectNumber} 0 R >>`,
       "ascii"
     ));
     objects.push(streamObject(content));
   }
   objects[1] = Buffer.from(
-    `<< /Type /Pages /Kids [${pageObjectNumbers.map((number) => `${number} 0 R`).join(" ")}] /Count ${totalPages} >>`,
+    `<< /Type /Pages /Kids [${pageObjectNumbers.map((number) => `${number} 0 R`).join(" ")}] /Count ${pageObjectNumbers.length} >>`,
     "ascii"
   );
   return buildPdf(objects);
+}
+function fitPlannerPageToTrim(page2, settings) {
+  const trim = notebookTrim(settings);
+  const targetWidth = inch(trim.width);
+  const targetHeight = inch(trim.height);
+  const sourceWidth = page2.getWidth();
+  const sourceHeight = page2.getHeight();
+  const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  page2.scaleContent(scale, scale);
+  page2.translateContent((targetWidth - sourceWidth * scale) / 2, (targetHeight - sourceHeight * scale) / 2);
+  page2.setSize(targetWidth, targetHeight);
+}
+async function loadPlannerPages(sourcePdf) {
+  const source = await PDFDocument.load(sourcePdf);
+  const pageIndices = Array.from({ length: NOTEBOOK_2027_PLANNER_PAGE_COUNT }, (_, index2) => index2 + 2);
+  if (source.getPageCount() <= pageIndices[pageIndices.length - 1]) {
+    throw new Error("The supplied 2027 planner PDF is incomplete; its 30 interior pages could not be imported.");
+  }
+  return { source, pageIndices };
+}
+async function createPlanner2027PagePreview(sourcePdf, pageNumber, settings) {
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > NOTEBOOK_2027_PLANNER_PAGE_COUNT) {
+    throw new Error("Choose a 2027 planner page from 1 to 30.");
+  }
+  const { source, pageIndices } = await loadPlannerPages(sourcePdf);
+  const output = await PDFDocument.create();
+  const [page2] = await output.copyPages(source, [pageIndices[pageNumber - 1]]);
+  fitPlannerPageToTrim(page2, settings);
+  output.addPage(page2);
+  return Buffer.from(await output.save({ useObjectStreams: false }));
+}
+async function prependPlanner2027Pages(interiorPdf, sourcePdf, settings) {
+  if (!settings.use2027PlannerPdf) return interiorPdf;
+  const generated = await PDFDocument.load(interiorPdf);
+  const { source, pageIndices } = await loadPlannerPages(sourcePdf);
+  const output = await PDFDocument.create();
+  const generatedPages = await output.copyPages(generated, generated.getPageIndices());
+  const plannerPages = await output.copyPages(source, pageIndices);
+  const frontBlanks = Math.max(0, Number(settings.frontBlankPageCount) || 0);
+  const disabledPages = new Set(settings.disabledPages || []);
+  for (let index2 = 0; index2 < generatedPages.length; index2++) {
+    const printedPageNumber = index2 + 1;
+    if (disabledPages.has(printedPageNumber)) continue;
+    if (index2 >= frontBlanks && index2 < frontBlanks + plannerPages.length) {
+      const edit = settings.pageEdits?.[String(printedPageNumber)];
+      if (edit?.replace) {
+        output.addPage(generatedPages[index2]);
+      } else {
+        const plannerPage = plannerPages[index2 - frontBlanks];
+        fitPlannerPageToTrim(plannerPage, settings);
+        output.addPage(plannerPage);
+      }
+    } else {
+      output.addPage(generatedPages[index2]);
+    }
+  }
+  output.setTitle(settings.subtitle ? `${settings.subtitle} \xB7 2027 planner` : "2027 planner journal");
+  if (settings.authorName) output.setAuthor(settings.authorName);
+  return Buffer.from(await output.save({ useObjectStreams: false }));
 }
 function xmlEscape(value) {
   return String(value ?? "").replace(/[<>&"']/g, (character) => ({
@@ -13993,6 +14258,15 @@ function readUploadedImage(raw) {
     return null;
   }
 }
+function inspectNotebookPageImage(raw) {
+  const image = readUploadedImage(raw);
+  if (!image) return null;
+  return {
+    width: image.width,
+    height: image.height,
+    format: image.filter === "FlateDecode" ? "png" : "jpeg"
+  };
+}
 function createNotebookCoverPdf(title, settings, design, uploadedCoverBytes = null) {
   if (settings.binding !== "paperback") throw new Error("A KDP paperback wrap is only generated for paperback projects.");
   const trim = notebookTrim(settings);
@@ -14093,6 +14367,11 @@ function createNotebookCoverPdf(title, settings, design, uploadedCoverBytes = nu
 // server/notebook-studio.ts
 var PROJECT_FILES_DIR = path.resolve(process.cwd(), ".private-notebook-files");
 var PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+var TASKDRIP_2027_PLANNER_PDF = path.resolve(process.cwd(), "attached_assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf");
+var pageArtUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024, files: 1 }
+});
 var ADMIN_ROLES = /* @__PURE__ */ new Set(["admin", "store_manager", "moderator", "content_editor"]);
 var BINDINGS = /* @__PURE__ */ new Set(["paperback", "hardcover", "spiral"]);
 var INKS = /* @__PURE__ */ new Set(["black", "color"]);
@@ -14145,6 +14424,89 @@ function requirePublishingAdmin(req, res, next) {
 function cleanText(value, max, fallback = "") {
   return String(value ?? fallback).replace(/\u0000/g, "").trim().slice(0, max);
 }
+var NOTEBOOK_PAGE_ART_KEYS = /* @__PURE__ */ new Set([
+  ...NOTEBOOK_INTRO_PAGE_OPTIONS.map((page2) => notebookPageArtKey("intro", page2.value)),
+  ...NOTEBOOK_OUTRO_PAGE_OPTIONS.map((page2) => notebookPageArtKey("outro", page2.value))
+]);
+function normalizePageCopy(input, previous) {
+  if (input !== void 0 && (!input || typeof input !== "object" || Array.isArray(input))) {
+    throw Object.assign(new Error("Page copy must be an object."), { statusCode: 400 });
+  }
+  const source = input;
+  return Object.fromEntries(Object.entries(DEFAULT_NOTEBOOK_PAGE_COPY).map(([key, defaults]) => {
+    const value = source?.[key];
+    const saved = previous?.[key] || defaults;
+    if (value !== void 0 && (!value || typeof value !== "object" || Array.isArray(value))) {
+      throw Object.assign(new Error(`Copy for ${key} must be an object.`), { statusCode: 400 });
+    }
+    const prompts = value?.prompts ?? saved.prompts ?? defaults.prompts;
+    if (!Array.isArray(prompts) || prompts.length > 8) {
+      throw Object.assign(new Error(`Prompts for ${key} must be a list of up to eight lines.`), { statusCode: 400 });
+    }
+    return [key, {
+      title: cleanText(value?.title ?? saved.title ?? defaults.title, 100),
+      subtitle: cleanText(value?.subtitle ?? saved.subtitle ?? defaults.subtitle, 300),
+      prompts: prompts.map((prompt) => cleanText(prompt, 120)).filter(Boolean)
+    }];
+  }));
+}
+function normalizePageArtwork(input, previous) {
+  if (input !== void 0 && (!input || typeof input !== "object" || Array.isArray(input))) {
+    throw Object.assign(new Error("Page artwork references must be an object."), { statusCode: 400 });
+  }
+  const source = input;
+  const artwork = {};
+  for (const [key, rawFilename] of Object.entries(source ?? previous ?? {})) {
+    if (!NOTEBOOK_PAGE_ART_KEYS.has(key)) continue;
+    const filename = cleanText(rawFilename, 100);
+    if (!new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.(?:png|jpe?g)$`, "i").test(filename)) {
+      throw Object.assign(new Error(`The uploaded image reference for ${key} is invalid.`), { statusCode: 400 });
+    }
+    artwork[key] = filename;
+  }
+  return artwork;
+}
+function normalizePageEdits(input, previous) {
+  if (input !== void 0 && (!input || typeof input !== "object" || Array.isArray(input))) {
+    throw Object.assign(new Error("Page edits must be an object keyed by printed page number."), { statusCode: 400 });
+  }
+  const source = input ?? previous ?? {};
+  const edits = {};
+  for (const [rawPage, rawEdit] of Object.entries(source)) {
+    if (!/^[1-9]\d{0,2}$/.test(rawPage)) {
+      throw Object.assign(new Error("Page edit keys must be printed page numbers."), { statusCode: 400 });
+    }
+    if (!rawEdit || typeof rawEdit !== "object" || Array.isArray(rawEdit)) {
+      throw Object.assign(new Error(`Edit for page ${rawPage} must be an object.`), { statusCode: 400 });
+    }
+    const edit = rawEdit;
+    edits[rawPage] = {
+      title: cleanText(edit.title, 120),
+      subtitle: cleanText(edit.subtitle, 300),
+      body: cleanText(edit.body, 2400),
+      replace: edit.replace === true
+    };
+  }
+  return edits;
+}
+function normalizeDisabledPages(input, previous, logicalPages) {
+  if (input !== void 0 && !Array.isArray(input)) {
+    throw Object.assign(new Error("Excluded pages must be a list of printed page numbers."), { statusCode: 400 });
+  }
+  const source = input ?? previous ?? [];
+  if (source.length > 900) {
+    throw Object.assign(new Error("A notebook can exclude up to 900 pages."), { statusCode: 400 });
+  }
+  const pages = /* @__PURE__ */ new Set();
+  for (const rawPage of source) {
+    const page2 = Number(rawPage);
+    if (!Number.isInteger(page2) || page2 < 1) {
+      throw Object.assign(new Error("Excluded pages must use positive whole-number page numbers."), { statusCode: 400 });
+    }
+    if (page2 <= logicalPages) pages.add(page2);
+  }
+  return Array.from(pages).sort((a, b) => a - b);
+}
 function normalizeReferenceEntries(value, fields, label, limit) {
   if (!Array.isArray(value) || value.length > limit) {
     throw Object.assign(new Error(`${label} must be a list of up to ${limit} entries.`), { statusCode: 400 });
@@ -14171,6 +14533,11 @@ function normalizeSettings(input, previous = DEFAULT_NOTEBOOK_SETTINGS) {
   }
   const raw = input;
   const settings = { ...previous };
+  settings.use2027PlannerPdf = raw.use2027PlannerPdf === void 0 ? Boolean(previous.use2027PlannerPdf) : raw.use2027PlannerPdf === true;
+  settings.pageCopy = normalizePageCopy(raw.pageCopy, previous.pageCopy || DEFAULT_NOTEBOOK_PAGE_COPY);
+  settings.pageArtwork = normalizePageArtwork(raw.pageArtwork, previous.pageArtwork || {});
+  settings.pageEdits = normalizePageEdits(raw.pageEdits, previous.pageEdits || {});
+  settings.lineSpacing = normalizeNotebookLineSpacing(raw.lineSpacing ?? previous.lineSpacing);
   if (raw.subtitle !== void 0) settings.subtitle = cleanText(raw.subtitle, 300);
   if (raw.authorName !== void 0) settings.authorName = cleanText(raw.authorName, 160);
   if (raw.seriesName !== void 0) settings.seriesName = cleanText(raw.seriesName, 160);
@@ -14304,6 +14671,14 @@ function normalizeSettings(input, previous = DEFAULT_NOTEBOOK_SETTINGS) {
   }
   if (raw.headerText !== void 0) settings.headerText = cleanText(raw.headerText, 100);
   if (raw.footerText !== void 0) settings.footerText = cleanText(raw.footerText, 100);
+  settings.disabledPages = normalizeDisabledPages(
+    raw.disabledPages,
+    previous.disabledPages || [],
+    notebookLogicalPageCount(settings)
+  );
+  settings.pageEdits = Object.fromEntries(
+    Object.entries(settings.pageEdits).filter(([page2]) => Number(page2) <= notebookLogicalPageCount(settings))
+  );
   return settings;
 }
 async function uploadedCoverExists(url) {
@@ -14358,6 +14733,20 @@ function projectDirectory(id) {
 function filePath(id, kind) {
   return path.join(projectDirectory(id), `${kind}.pdf`);
 }
+function pageArtDirectory(id) {
+  return path.join(projectDirectory(id), "page-art");
+}
+function pageArtPath(id, key, filename) {
+  if (!NOTEBOOK_PAGE_ART_KEYS.has(key) || !new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.(?:png|jpe?g)$`, "i").test(filename)) {
+    throw Object.assign(new Error("Invalid notebook page artwork reference."), { statusCode: 400 });
+  }
+  const directory = pageArtDirectory(id);
+  const target = path.resolve(directory, filename);
+  if (!target.startsWith(`${directory}${path.sep}`)) {
+    throw Object.assign(new Error("Invalid notebook page artwork path."), { statusCode: 400 });
+  }
+  return target;
+}
 function serialize(row) {
   return {
     ...row,
@@ -14378,12 +14767,12 @@ async function exists(file) {
     return false;
   }
 }
-function report(project, files) {
-  return validateNotebook(
-    project.title,
-    project.settings,
-    files || { interiorExists: Boolean(project.interiorFileKey), coverExists: Boolean(project.coverFileKey) }
-  );
+async function readTaskdrip2027PlannerPdf() {
+  try {
+    return await readFile(TASKDRIP_2027_PLANNER_PDF);
+  } catch {
+    throw Object.assign(new Error("The supplied 2027 planner PDF is unavailable in this app build."), { statusCode: 503 });
+  }
 }
 async function sendProjectFile(res, file, title, extension, inline = false) {
   if (!await exists(file)) return res.status(404).json({ message: "Generate this file before downloading it." });
@@ -14457,6 +14846,145 @@ function registerNotebookStudioRoutes(app2) {
       res.status(500).json({ message: "Could not save this notebook project." });
     }
   });
+  app2.post(`${base}/:id/page-art/:group/:type`, isAuthenticated, requirePublishingAdmin, (req, res, next) => {
+    pageArtUpload.single("image")(req, res, (error) => {
+      if (error) return res.status(400).json({ message: error.message || "The image could not be uploaded." });
+      next();
+    });
+  }, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const group = String(req.params.group);
+      const type = String(req.params.type);
+      const validType = group === "intro" ? NOTEBOOK_INTRO_PAGE_OPTIONS.some((page2) => page2.value === type) : group === "outro" && NOTEBOOK_OUTRO_PAGE_OPTIONS.some((page2) => page2.value === type);
+      if (!validType) return res.status(400).json({ message: "Choose a valid intro or outro page." });
+      if (!req.file?.buffer) return res.status(400).json({ message: "Choose a PNG or JPEG image to upload." });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const pages = group === "intro" ? settings.introPages : settings.outroPages;
+      if (!pages.includes(type)) {
+        return res.status(409).json({ message: "Select this page in the notebook settings before uploading its artwork." });
+      }
+      const key = notebookPageArtKey(group, type);
+      const imageInfo = inspectNotebookPageImage(req.file.buffer);
+      if (!imageInfo) {
+        return res.status(400).json({ message: "This image is not supported. Upload a non-interlaced RGB/RGBA PNG or JPEG under 20 megapixels." });
+      }
+      const recommended = notebookPrintArtPixels(settings, 300);
+      if (imageInfo.width < recommended.width || imageInfo.height < recommended.height) {
+        return res.status(400).json({
+          message: `This image is too small for print. Upload at least ${recommended.width} \xD7 ${recommended.height} pixels (300 DPI) for this notebook.`
+        });
+      }
+      const expectedRatio = recommended.width / recommended.height;
+      const imageRatio = imageInfo.width / imageInfo.height;
+      if (Math.abs(imageRatio / expectedRatio - 1) > 0.015) {
+        return res.status(400).json({
+          message: `Match the notebook page shape before uploading. Recommended canvas: ${recommended.width} \xD7 ${recommended.height} pixels.`
+        });
+      }
+      const filename = `${key}.${imageInfo.format === "jpeg" ? "jpg" : "png"}`;
+      const target = pageArtPath(project.id, key, filename);
+      await mkdir(pageArtDirectory(project.id), { recursive: true });
+      const temporary = `${target}.${nanoid3(8)}.tmp`;
+      await writeFile(temporary, req.file.buffer, { mode: 384 });
+      await rename(temporary, target);
+      const previousFilename = settings.pageArtwork[key];
+      if (previousFilename && previousFilename !== filename) {
+        await rm(pageArtPath(project.id, key, previousFilename), { force: true }).catch(() => {
+        });
+      }
+      const nextSettings = normalizeSettings({
+        ...settings,
+        pageArtwork: { ...settings.pageArtwork, [key]: filename }
+      }, settings);
+      const [updated] = await db.update(creatorNotebookProjects).set({
+        settings: nextSettings,
+        status: "editing",
+        generationStatus: "stale",
+        validation: null,
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      res.json({ project: serialize(updated), image: imageInfo, recommended });
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not upload page artwork:", error);
+      res.status(500).json({ message: "Could not save page artwork." });
+    }
+  });
+  app2.get(`${base}/:id/files/page-art/:key`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const key = String(req.params.key);
+      const filename = settings.pageArtwork[key];
+      if (!filename) return res.status(404).json({ message: "No replacement artwork is saved for this page." });
+      const file = pageArtPath(project.id, key, filename);
+      const imageInfo = inspectNotebookPageImage(await readFile(file));
+      if (!imageInfo) return res.status(404).json({ message: "Saved page artwork is no longer available." });
+      res.setHeader("Content-Type", imageInfo.format === "png" ? "image/png" : "image/jpeg");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.sendFile(file);
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not serve page artwork:", error);
+      res.status(500).json({ message: "Could not load page artwork." });
+    }
+  });
+  app2.get(`${base}/:id/files/planner-2027/page/:page`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const savedSettings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const settings = normalizeSettings({
+        trimSize: req.query.trimSize,
+        customWidth: req.query.customWidth,
+        customHeight: req.query.customHeight
+      }, savedSettings);
+      const sourcePdf = await readTaskdrip2027PlannerPdf();
+      const previewPdf = await createPlanner2027PagePreview(sourcePdf, Number(req.params.page), settings);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", 'inline; filename="taskdrip-2027-planner-page.pdf"');
+      res.setHeader("Cache-Control", "private, no-store");
+      res.send(previewPdf);
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not render imported planner preview:", error);
+      res.status(500).json({ message: "Could not preview the imported 2027 planner page." });
+    }
+  });
+  app2.delete(`${base}/:id/page-art/:group/:type`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const group = String(req.params.group);
+      const type = String(req.params.type);
+      const validType = group === "intro" ? NOTEBOOK_INTRO_PAGE_OPTIONS.some((page2) => page2.value === type) : group === "outro" && NOTEBOOK_OUTRO_PAGE_OPTIONS.some((page2) => page2.value === type);
+      if (!validType) return res.status(400).json({ message: "Choose a valid intro or outro page." });
+      const key = notebookPageArtKey(group, type);
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const filename = settings.pageArtwork[key];
+      const nextArtwork = { ...settings.pageArtwork };
+      delete nextArtwork[key];
+      const nextSettings = { ...settings, pageArtwork: nextArtwork };
+      const [updated] = await db.update(creatorNotebookProjects).set({
+        settings: nextSettings,
+        status: "editing",
+        generationStatus: "stale",
+        validation: null,
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      if (filename) await rm(pageArtPath(project.id, key, filename), { force: true }).catch(() => {
+      });
+      res.json({ project: serialize(updated) });
+    } catch (error) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not reset page artwork:", error);
+      res.status(500).json({ message: "Could not restore the designed page." });
+    }
+  });
   app2.post(`${base}/:id/duplicate`, isAuthenticated, requirePublishingAdmin, async (req, res) => {
     try {
       const source = await getOwnedProject(req.params.id, req.user.id);
@@ -14469,6 +14997,24 @@ function registerNotebookStudioRoutes(app2) {
         status: "draft",
         generationStatus: "idle"
       }).returning();
+      const sourceSettings = normalizeSettings(source.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const copiedArtwork = {};
+      for (const [key, filename] of Object.entries(sourceSettings.pageArtwork)) {
+        try {
+          const from = pageArtPath(source.id, key, filename);
+          const to = pageArtPath(copy.id, key, filename);
+          await mkdir(pageArtDirectory(copy.id), { recursive: true });
+          await copyFile(from, to);
+          copiedArtwork[key] = filename;
+        } catch {
+        }
+      }
+      if (Object.keys(copiedArtwork).length !== Object.keys(sourceSettings.pageArtwork).length) {
+        const settings = { ...sourceSettings, pageArtwork: copiedArtwork };
+        const [withArt] = await db.update(creatorNotebookProjects).set({ settings }).where(eq9(creatorNotebookProjects.id, copy.id)).returning();
+        res.status(201).json(serialize(withArt || { ...copy, settings }));
+        return;
+      }
       res.status(201).json(serialize(copy));
     } catch (error) {
       console.error("[notebook-studio] Could not duplicate project:", error);
@@ -14496,7 +15042,9 @@ function registerNotebookStudioRoutes(app2) {
         exists(filePath(project.id, "interior")),
         exists(filePath(project.id, "cover"))
       ]);
-      const validation = report(project, { interiorExists, coverExists });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
       await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id)));
       res.json({ validation });
     } catch (error) {
@@ -14509,7 +15057,12 @@ function registerNotebookStudioRoutes(app2) {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      const previousReport = validateNotebook(project.title, settings, { interiorExists: false, coverExists: false });
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const previousReport = validateNotebook(project.title, settings, {
+        interiorExists: false,
+        coverExists: false,
+        plannerPdfAvailable
+      });
       const fatalIssues = previousReport.items.filter((item) => item.status === "failed");
       if (fatalIssues.length) {
         await db.update(creatorNotebookProjects).set({
@@ -14528,7 +15081,12 @@ function registerNotebookStudioRoutes(app2) {
       let interiorKey = project.interiorFileKey;
       let coverKey = project.coverFileKey;
       if (requestedKind === "all" || requestedKind === "interior") {
-        const interiorBytes = createNotebookInteriorPdf(project.title, settings);
+        const pageArtwork = {};
+        for (const [key, filename] of Object.entries(settings.pageArtwork || {})) {
+          pageArtwork[key] = await readFile(pageArtPath(project.id, key, filename));
+        }
+        const generatedInterior = createNotebookInteriorPdf(project.title, settings, pageArtwork);
+        const interiorBytes = settings.use2027PlannerPdf ? await prependPlanner2027Pages(generatedInterior, await readTaskdrip2027PlannerPdf(), settings) : generatedInterior;
         const interiorPath = filePath(project.id, "interior");
         const temporary = `${interiorPath}.${nanoid3(8)}.tmp`;
         await writeFile(temporary, interiorBytes, { mode: 384 });
@@ -14562,7 +15120,7 @@ function registerNotebookStudioRoutes(app2) {
         exists(filePath(project.id, "interior")),
         exists(filePath(project.id, "cover"))
       ]);
-      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists });
+      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
       const [updated] = await db.update(creatorNotebookProjects).set({
         settings,
         interiorFileKey: interiorKey,
@@ -14763,8 +15321,8 @@ var ALLOWED_FILE_EXTENSIONS = /* @__PURE__ */ new Set([
   ".mp4",
   ".mov"
 ]);
-var privateProductUpload = multer({
-  storage: multer.diskStorage({
+var privateProductUpload = multer2({
+  storage: multer2.diskStorage({
     destination: (_req, _file, cb) => cb(null, PRIVATE_PRODUCT_DIR),
     filename: (_req, file, cb) => {
       const ext = path2.extname(file.originalname || "").toLowerCase();
@@ -14780,8 +15338,8 @@ var privateProductUpload = multer({
     cb(null, true);
   }
 });
-var studioPaymentProofUpload = multer({
-  storage: multer.diskStorage({
+var studioPaymentProofUpload = multer2({
+  storage: multer2.diskStorage({
     destination: (_req, _file, cb) => cb(null, PRIVATE_STUDIO_PAYMENT_DIR),
     filename: (_req, file, cb) => {
       const ext = path2.extname(file.originalname || "").toLowerCase();
@@ -16573,7 +17131,7 @@ ${config.settings.toolPrompts[tool]}` },
 
 // server/plugin-studio.ts
 init_db();
-import multer2 from "multer";
+import multer3 from "multer";
 import { and as and9, desc as desc10, eq as eq12, isNull, or } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
@@ -20377,7 +20935,7 @@ function registerPluginLicenseRoutes(app2, options) {
 }
 
 // server/plugin-studio.ts
-var releaseUpload = multer2({ storage: multer2.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 } });
+var releaseUpload = multer3({ storage: multer3.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 } });
 var PLAN_ADDONS = (monthly, yearly) => [
   { id: "plugin-monthly", title: "Monthly license", description: "One month of premium plugin access and updates.", price: monthly },
   { id: "plugin-yearly", title: "Yearly license", description: "One year of premium plugin access and updates.", price: yearly }
@@ -21081,7 +21639,7 @@ ${description}`
 
 // server/routes.ts
 import { z as z2 } from "zod";
-import multer3 from "multer";
+import multer4 from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid as nanoid5 } from "nanoid";
 import path3 from "path";
@@ -21445,8 +22003,8 @@ function makeTtlCache(fn, maxAge) {
   };
 }
 var DANGEROUS_EXTS = /* @__PURE__ */ new Set([".exe", ".bat", ".cmd", ".sh", ".ps1", ".scr", ".vbs", ".jar", ".msi", ".com", ".dll", ".app"]);
-var upload = multer3({
-  storage: multer3.diskStorage({
+var upload = multer4({
+  storage: multer4.diskStorage({
     destination: "uploads/",
     filename: (_req, file, cb) => {
       const raw = path3.extname(file.originalname || "").toLowerCase();
@@ -26020,7 +26578,7 @@ async function registerRoutes(app2, existingServer) {
       if (!contentType || !contentId || !reason) {
         return res.status(400).json({ message: "contentType, contentId and reason are required" });
       }
-      const [report2] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
+      const [report] = await db.insert(contentReports).values({ reporterId: userId, contentType, contentId, reason, details }).returning();
       const reporter = await storage.getUser(userId).catch(() => null);
       sendAdminActivityEmail({
         event: "contact",
@@ -26033,7 +26591,7 @@ async function registerRoutes(app2, existingServer) {
           phone: reporter?.phoneNumber || void 0
         },
         details: [
-          { label: "Report ID", value: report2.id },
+          { label: "Report ID", value: report.id },
           { label: "Content type", value: contentType },
           { label: "Content ID", value: contentId },
           { label: "Reason", value: reason },
@@ -26056,7 +26614,7 @@ async function registerRoutes(app2, existingServer) {
         }
       } catch {
       }
-      res.status(201).json(report2);
+      res.status(201).json(report);
     } catch (error) {
       console.error("Error creating report:", error);
       res.status(500).json({ message: "Failed to submit report" });
@@ -29367,8 +29925,8 @@ Instructions:
         return res.status(403).json({ message: "Forbidden" });
       }
       const expectedAmount = Number(offer.budget || 0);
-      const report2 = await verifyBlockchainTransaction(offer.paymentNetwork, offer.transactionHash, expectedAmount);
-      res.json(report2);
+      const report = await verifyBlockchainTransaction(offer.paymentNetwork, offer.transactionHash, expectedAmount);
+      res.json(report);
     } catch (e) {
       res.status(500).json({ message: e.message });
     }

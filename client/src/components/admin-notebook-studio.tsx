@@ -207,6 +207,7 @@ function normalizeProject(project: NotebookProject): NotebookProject {
     settings: {
       ...DEFAULT_SETTINGS,
       ...(project.settings || {}),
+      use2027PlannerPdf: project.settings?.use2027PlannerPdf === true,
       pageCopy: Object.fromEntries(Object.entries(DEFAULT_NOTEBOOK_PAGE_COPY).map(([key, defaults]) => [
         key,
         { ...defaults, ...(project.settings?.pageCopy?.[key] || {}) },
@@ -1393,7 +1394,7 @@ export default function AdminNotebookStudio() {
           >
             <iframe
               title={`2027 planner page ${plannerPage}`}
-              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?trimSize=${encodeURIComponent(String(draft!.settings.trimSize))}&customWidth=${encodeURIComponent(String(draft!.settings.customWidth))}&customHeight=${encodeURIComponent(String(draft!.settings.customHeight))}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
               className="h-full w-full border-0"
             />
           </article>

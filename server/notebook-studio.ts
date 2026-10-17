@@ -642,8 +642,12 @@ export function registerNotebookStudioRoutes(app: Express) {
     try {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
-      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      if (!settings.use2027PlannerPdf) return res.status(404).json({ message: "The imported 2027 planner is not enabled." });
+      const savedSettings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const settings = normalizeSettings({
+        trimSize: req.query.trimSize,
+        customWidth: req.query.customWidth,
+        customHeight: req.query.customHeight,
+      }, savedSettings);
       const sourcePdf = await readTaskdrip2027PlannerPdf();
       const previewPdf = await createPlanner2027PagePreview(sourcePdf, Number(req.params.page), settings);
       res.setHeader("Content-Type", "application/pdf");
