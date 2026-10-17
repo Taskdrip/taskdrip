@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   ClipboardList,
   CircleHelp,
   Clock3,
@@ -354,7 +355,17 @@ const NOTEBOOK_2027_PAGE_LABELS = [
   "Year-end closing",
 ];
 
-export default function AdminNotebookStudio() {
+function calculateFitZoom(aspect: number, spread: boolean, viewportWidth: number, viewportHeight: number) {
+  const pageWidth = spread ? 350 : 500;
+  const availableHeight = Math.max(220, viewportHeight - 468);
+  const availableWidth = spread
+    ? Math.max(160, (viewportWidth - 480) / 2)
+    : Math.max(180, viewportWidth - 460);
+  const fittedWidth = Math.min(pageWidth, availableHeight * aspect, availableWidth);
+  return Math.max(32, Math.min(120, Math.round((fittedWidth / pageWidth) * 82)));
+}
+
+export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } = {}) {
   const [projects, setProjects] = useState<NotebookProject[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState<NotebookProject | null>(null);
@@ -430,6 +441,22 @@ export default function AdminNotebookStudio() {
     }
   }, [page, logicalPageCount]);
 
+  useEffect(() => {
+    const fit = () => {
+      const settings = draft?.settings;
+      const trim = settings?.trimSize === "custom"
+        ? [Number(settings.customWidth), Number(settings.customHeight)]
+        : String(settings?.trimSize || "6x9").split("x").map(Number);
+      const aspect = trim.length === 2 && trim.every((dimension) => Number.isFinite(dimension) && dimension > 0)
+        ? trim[0] / trim[1]
+        : 2 / 3;
+      setZoom(calculateFitZoom(aspect, spread, window.innerWidth, window.innerHeight));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [draft?.settings.trimSize, draft?.settings.customWidth, draft?.settings.customHeight, spread]);
+
   const updateDraft = (transform: (project: NotebookProject) => NotebookProject) => {
     setDraft((current) => current ? transform(current) : current);
   };
@@ -450,34 +477,44 @@ export default function AdminNotebookStudio() {
   };
   const toggleIntroPage = (value: NotebookIntroPageType, checked: boolean) => {
     updateDraft((project) => {
-      const selected = new Set(project.settings.introPages || []);
-      if (checked) selected.add(value);
-      else selected.delete(value);
+      const selected = (project.settings.introPages || []).filter((pageType) => pageType !== value);
+      if (checked) selected.push(value);
       return {
         ...project,
-        settings: {
-          ...project.settings,
-          introPages: NOTEBOOK_INTRO_PAGE_OPTIONS
-            .filter((option) => selected.has(option.value))
-            .map((option) => option.value),
-        },
+        settings: { ...project.settings, introPages: selected },
       };
     });
   };
   const toggleOutroPage = (value: NotebookOutroPageType, checked: boolean) => {
     updateDraft((project) => {
-      const selected = new Set(project.settings.outroPages || []);
-      if (checked) selected.add(value);
-      else selected.delete(value);
+      const selected = (project.settings.outroPages || []).filter((pageType) => pageType !== value);
+      if (checked) selected.push(value);
       return {
         ...project,
-        settings: {
-          ...project.settings,
-          outroPages: NOTEBOOK_OUTRO_PAGE_OPTIONS
-            .filter((option) => selected.has(option.value))
-            .map((option) => option.value),
-        },
+        settings: { ...project.settings, outroPages: selected },
       };
+    });
+  };
+  const moveSelectedPage = (
+    group: NotebookPageArtGroup,
+    type: NotebookIntroPageType | NotebookOutroPageType,
+    direction: -1 | 1,
+  ) => {
+    updateDraft((project) => {
+      if (group === "intro") {
+        const pages = [...project.settings.introPages];
+        const index = pages.indexOf(type as NotebookIntroPageType);
+        const nextIndex = index + direction;
+        if (index < 0 || nextIndex < 0 || nextIndex >= pages.length) return project;
+        [pages[index], pages[nextIndex]] = [pages[nextIndex], pages[index]];
+        return { ...project, settings: { ...project.settings, introPages: pages } };
+      }
+      const pages = [...project.settings.outroPages];
+      const index = pages.indexOf(type as NotebookOutroPageType);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= pages.length) return project;
+      [pages[index], pages[nextIndex]] = [pages[nextIndex], pages[index]];
+      return { ...project, settings: { ...project.settings, outroPages: pages } };
     });
   };
   const toggle2027PlannerPdf = (enabled: boolean) => {
@@ -833,9 +870,9 @@ export default function AdminNotebookStudio() {
       if (isPlannerPage && key === "replace" && value === true && !current.title.trim()) {
         nextEdit.title = NOTEBOOK_2027_PAGE_LABELS[plannerIndex];
       }
-      if (isPlannerPage && ["title", "subtitle", "body"].includes(key)) {
+      if (["title", "subtitle", "body"].includes(key)) {
         nextEdit.replace = true;
-        if (key !== "title" && !current.title.trim()) {
+        if (isPlannerPage && key !== "title" && !current.title.trim()) {
           nextEdit.title = NOTEBOOK_2027_PAGE_LABELS[plannerIndex];
         }
       }
@@ -1304,14 +1341,19 @@ export default function AdminNotebookStudio() {
     const artwork = draft.settings.pageArtwork[key];
     const target = { group, type } as NotebookPageArtTarget;
     const dimensions = notebookPrintArtPixels(draft.settings, 300);
+    const order: Array<NotebookIntroPageType | NotebookOutroPageType> = group === "intro"
+      ? [...draft.settings.introPages]
+      : [...draft.settings.outroPages];
+    const orderIndex = order.indexOf(type);
     return (
-      <details key={key} className="overflow-hidden rounded-xl border border-[#e8e2d7] bg-[#faf8f2]">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[11px] font-semibold text-[#4d554c] hover:bg-[#f3f0e8]">
-          <span>{label}</span>
-          <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] ${artwork ? "bg-[#e6efe6] text-[#41634b]" : "bg-[#f0ede5] text-[#77776b]"}`}>
-            {artwork ? "Uploaded artwork" : "Designed page"}
-          </span>
-        </summary>
+      <div key={key} className="flex items-start gap-1.5">
+        <details className="min-w-0 flex-1 overflow-hidden rounded-xl border border-[#e8e2d7] bg-[#faf8f2]">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[11px] font-semibold text-[#4d554c] hover:bg-[#f3f0e8]">
+            <span className="min-w-0 truncate">{label}<span className="ml-2 text-[9px] font-normal text-[#858477]">{orderIndex + 1} of {order.length}</span></span>
+            <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] ${artwork ? "bg-[#e6efe6] text-[#41634b]" : "bg-[#f0ede5] text-[#77776b]"}`}>
+              {artwork ? "Uploaded artwork" : "Designed page"}
+            </span>
+          </summary>
         <div className="space-y-3 border-t border-[#e8e2d7] p-3">
           <Field label="Page title">
             <input value={copy.title} maxLength={100} onChange={(event) => updatePageCopy(key, { title: event.target.value })} className={inputClass} />
@@ -1363,7 +1405,26 @@ export default function AdminNotebookStudio() {
             </div>
           </div>
         </div>
-      </details>
+        </details>
+        <div className="flex shrink-0 flex-col gap-1 pt-0.5">
+          <button
+            type="button"
+            aria-label={`Move ${label} earlier`}
+            title="Move earlier"
+            onClick={() => moveSelectedPage(group, type, -1)}
+            disabled={orderIndex <= 0}
+            className="grid h-7 w-7 place-items-center rounded-md text-[#647365] hover:bg-[#e9eee6] disabled:cursor-not-allowed disabled:opacity-30"
+          ><ChevronUp size={13} /></button>
+          <button
+            type="button"
+            aria-label={`Move ${label} later`}
+            title="Move later"
+            onClick={() => moveSelectedPage(group, type, 1)}
+            disabled={orderIndex < 0 || orderIndex >= order.length - 1}
+            className="grid h-7 w-7 place-items-center rounded-md text-[#647365] hover:bg-[#e9eee6] disabled:cursor-not-allowed disabled:opacity-30"
+          ><ChevronDown size={13} /></button>
+        </div>
+      </div>
     );
   };
 
@@ -1375,6 +1436,11 @@ export default function AdminNotebookStudio() {
       ? `${trim[0]} / ${trim[1]}`
       : "2 / 3";
   })();
+  const fitPreviewToViewport = () => {
+    const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
+    const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
+    setZoom(calculateFitZoom(aspect, spread, window.innerWidth, window.innerHeight));
+  };
 
   const currentPageEdit = draft?.settings.pageEdits[String(page)] || EMPTY_NOTEBOOK_PAGE_EDIT;
   const currentPageExcluded = Boolean(draft?.settings.disabledPages.includes(page));
@@ -1646,7 +1712,7 @@ export default function AdminNotebookStudio() {
   );
 
   return (
-    <main className="notebook-studio min-h-[100dvh] bg-[#f3efe5] text-[#30372f]" aria-label="Admin notebook studio">
+    <main className={`notebook-studio min-h-[100dvh] bg-[#f3efe5] text-[#30372f] ${draft ? "flex h-[100dvh] min-h-[560px] flex-col overflow-hidden" : ""}`} aria-label="Admin notebook studio">
       <style>{`
         .notebook-studio { font-family: ui-sans-serif, system-ui, sans-serif; }
         .notebook-studio button, .notebook-studio input, .notebook-studio select, .notebook-studio textarea { -webkit-tap-highlight-color: transparent; }
@@ -1656,8 +1722,13 @@ export default function AdminNotebookStudio() {
         @media (prefers-reduced-motion: reduce) { .notebook-studio .nb-enter { animation: none; } }
       `}</style>
       <header className="border-b border-[#ddd6c7] bg-[#faf7ef]">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
+            {onExit && (
+              <button type="button" onClick={onExit} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#ded8ca] bg-[#fffdf8] px-2.5 text-[10px] font-semibold text-[#59685a] transition hover:bg-[#f0ede4] sm:px-3" aria-label="Exit Notebook Studio">
+                <ArrowLeft size={14} /><span className="hidden sm:inline">Creator Studio</span><span className="sm:hidden">Back</span>
+              </button>
+            )}
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] bg-[#315a51] text-[#f7f2e7] shadow-[inset_0_1px_0_rgba(255,255,255,.18)]">
               <BookOpen size={21} strokeWidth={1.7} />
             </div>
@@ -1681,22 +1752,22 @@ export default function AdminNotebookStudio() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
+      <div className={`mx-auto w-full max-w-[1800px] px-3 py-3 sm:px-5 lg:px-8 ${draft ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "sm:py-6"}`}>
         {notice && (
-          <div role={notice.kind === "error" ? "alert" : "status"} className={`nb-enter mb-4 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-[13px] ${notice.kind === "error" ? "border-[#e6c6bb] bg-[#fff5ef] text-[#8c4539]" : "border-[#cbd9ca] bg-[#edf4eb] text-[#365d4a]"}`}>
+          <div role={notice.kind === "error" ? "alert" : "status"} className={`nb-enter mb-3 flex shrink-0 items-start gap-2.5 rounded-xl border px-4 py-2.5 text-[13px] ${notice.kind === "error" ? "border-[#e6c6bb] bg-[#fff5ef] text-[#8c4539]" : "border-[#cbd9ca] bg-[#edf4eb] text-[#365d4a]"}`}>
             {notice.kind === "error" ? <AlertCircle size={17} className="mt-0.5 shrink-0" /> : <Check size={17} className="mt-0.5 shrink-0" />}
             <span className="min-w-0 flex-1">{notice.text}</span>
             <button type="button" aria-label="Dismiss notice" onClick={() => setNotice(null)} className="rounded-md p-1 opacity-70 hover:opacity-100"><X size={15} /></button>
           </div>
         )}
         {loadError && projects.length > 0 && (
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-[#e6c6bb] bg-[#fff5ef] px-4 py-3 text-[13px] text-[#8c4539]" role="alert">
+          <div className="mb-3 flex shrink-0 items-center justify-between rounded-xl border border-[#e6c6bb] bg-[#fff5ef] px-4 py-3 text-[13px] text-[#8c4539]" role="alert">
             <span>{loadError}</span><button type="button" onClick={() => void refreshProjects()} className="font-semibold underline underline-offset-2">Retry</button>
           </div>
         )}
 
-        <div className={`grid items-start gap-4 transition-[grid-template-columns] duration-300 lg:gap-5 ${listCollapsed ? "lg:grid-cols-[68px_minmax(0,1fr)]" : "lg:grid-cols-[292px_minmax(0,1fr)]"}`}>
-          <aside className="overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
+        <div className={`grid gap-4 transition-[grid-template-columns] duration-300 lg:gap-5 ${draft ? "min-h-0 flex-1 grid-rows-[minmax(0,1fr)] items-stretch" : "items-start"} ${listCollapsed ? "lg:grid-cols-[68px_minmax(0,1fr)]" : "lg:grid-cols-[292px_minmax(0,1fr)]"}`}>
+          <aside className={`overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${draft ? "hidden h-full min-h-0 flex-col lg:flex" : ""}`}>
             <div className={`flex items-center justify-between border-b border-[#e5dfd2] px-4 py-4 ${listCollapsed ? "lg:justify-center lg:px-2" : ""}`}>
               {!listCollapsed && <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">Your shelf</p><h2 className="mt-1 text-sm font-semibold">Notebook projects</h2></div>}
               <button type="button" aria-label={listCollapsed ? "Expand project list" : "Collapse project list"} onClick={() => setListCollapsed((value) => !value)} className="hidden h-9 w-9 items-center justify-center rounded-lg text-[#6c7168] hover:bg-[#f0ece2] lg:flex">
@@ -1711,7 +1782,7 @@ export default function AdminNotebookStudio() {
                     <input value={listSearch} onChange={(event) => setListSearch(event.target.value)} placeholder="Find a notebook" aria-label="Find a notebook" className={`${inputClass} h-9 pl-9 text-xs`} />
                   </div>
                 </div>
-                <div className="max-h-[calc(100dvh-290px)] min-h-[260px] space-y-1.5 overflow-y-auto p-2.5">
+                <div className={`space-y-1.5 overflow-y-auto p-2.5 ${draft ? "min-h-0 flex-1" : "max-h-[calc(100dvh-290px)] min-h-[260px]"}`}>
                   {loading && projects.length > 0 && <p className="px-2 py-2 text-[11px] text-[#858477]">Refreshing shelf…</p>}
                   {filteredProjects.map((project, index) => {
                     const selected = project.id === activeId;
@@ -1783,7 +1854,7 @@ export default function AdminNotebookStudio() {
               <button type="button" onClick={() => void createProject()} disabled={busy === "create"} className={`${primaryButton} mt-6`}><Plus size={16} /> Create notebook</button>
             </section>
           ) : (
-            <section className="min-w-0 space-y-4 nb-enter">
+            <section className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 nb-enter">
               <div className="rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] p-4 shadow-[0_10px_34px_rgba(65,55,38,.045)] sm:p-5">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
@@ -1831,9 +1902,9 @@ export default function AdminNotebookStudio() {
                 </div>
               </div>
 
-              <div className={`grid items-start gap-4 ${tab === "kdp" ? "" : "2xl:grid-cols-[minmax(310px,.72fr)_minmax(520px,1.28fr)]"}`}>
-                <div className="space-y-4">
-                  <section className="overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
+              <div className={`grid h-full min-h-0 gap-4 ${tab === "kdp" ? "items-start overflow-y-auto" : "grid-rows-[auto_auto] items-start overflow-y-auto lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:overflow-hidden lg:grid-cols-[minmax(280px,.78fr)_minmax(0,1.22fr)]"}`}>
+                <div className={`space-y-4 ${tab === "kdp" ? "" : "min-h-0 overflow-y-auto"}`}>
+                  <section className="flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
                     <div className="border-b border-[#e5dfd2] px-4 pt-4 sm:px-5">
                       <p className="text-[9px] font-bold uppercase tracking-[.19em] text-[#927958]">Print specification</p>
                       <div className="mt-3 flex gap-4 overflow-x-auto">
@@ -2401,7 +2472,7 @@ export default function AdminNotebookStudio() {
                   )}
                 </div>
 
-                {tab !== "kdp" && <section className="min-w-0 overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
+                {tab !== "kdp" && <section className="flex h-full min-h-0 min-w-0 flex-col overflow-y-auto rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d8d1c3] bg-[#f8f5ed] px-4 py-3.5 sm:px-5">
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">{tab === "cover" ? "Cover proof" : tab === "validation" ? "Print checks" : "Interior proof"}</p>
@@ -2410,9 +2481,10 @@ export default function AdminNotebookStudio() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {tab === "interior" && (
                         <>
-                          <button type="button" onClick={() => setZoom((value) => Math.max(55, value - 10))} disabled={zoom <= 55} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
+                          <button type="button" onClick={() => setZoom((value) => Math.max(32, value - 10))} disabled={zoom <= 32} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
                           <span className="w-10 text-center text-[10px] tabular-nums text-[#727367]">{zoom}%</span>
                           <button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))} disabled={zoom >= 120} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom in"><ZoomIn size={15} /></button>
+                          <button type="button" onClick={fitPreviewToViewport} className="rounded-lg px-2.5 py-2 text-[10px] font-semibold text-[#45634d] hover:bg-[#ece8dd]" aria-label="Fit page to screen">Fit</button>
                           <span className="mx-1 h-5 w-px bg-[#d8d1c3]" />
                           <button type="button" onClick={() => setSpread((value) => !value)} className={`rounded-lg px-2.5 py-2 text-[10px] font-semibold ${spread ? "bg-[#dfe8dc] text-[#385c47]" : "text-[#727367] hover:bg-[#ece8dd]"}`}>{spread ? "Spread" : "Single"}</button>
                         </>
@@ -2423,9 +2495,9 @@ export default function AdminNotebookStudio() {
                   </div>
 
                   {tab === "interior" && (
-                    <div className="min-h-[640px]">
+                    <div className="flex min-h-[360px] flex-1 flex-col">
                       {remoteSvgUrl && hasInterior ? (
-                        <div className="flex min-h-[500px] flex-col items-center justify-center gap-3 p-4 sm:p-8">
+                        <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-3 overflow-auto p-4 sm:p-8">
                           <div className="flex w-full max-w-2xl items-center justify-between rounded-xl border border-[#d8d1c3] bg-[#f8f5ed] px-3 py-2 text-[10px] text-[#74766b]">
                             <span className="flex items-center gap-2"><FileText size={13} />Generated SVG preview</span>
                             <button type="button" onClick={() => setRemoteSvgUrl("")} className="rounded-md p-1 hover:bg-[#ece8dd]" aria-label="Close SVG preview"><X size={14} /></button>
@@ -2435,7 +2507,7 @@ export default function AdminNotebookStudio() {
                       ) : (
                         <>
                           {remoteSvgError && <div role="status" className="mx-4 mt-4 rounded-lg border border-[#e3d3b7] bg-[#fbf4e5] px-3 py-2 text-[10px] text-[#806741]">{remoteSvgError}</div>}
-                          <div className="flex min-h-[520px] items-center justify-center overflow-auto px-3 py-7 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
+                          <div className="flex min-h-[240px] flex-1 items-center justify-center overflow-auto px-3 py-4 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
                             <div className={`flex items-center justify-center gap-3 transition-transform duration-200 ${spread ? "flex-row" : "flex-col"}`} style={{ width: "100%" }}>
                               <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: spread ? `${Math.round(350 * zoom / 82)}px` : `${Math.round(500 * zoom / 82)}px` }}>{renderInteriorPage(page)}</div>
                               {spread && page < logicalPageCount && <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: `${Math.round(350 * zoom / 82)}px` }}>{renderInteriorPage(page + 1)}</div>}
@@ -2458,7 +2530,7 @@ export default function AdminNotebookStudio() {
                             </div>
                           </div>
                           {!remoteSvgUrl && (
-                            <section className="border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-4 sm:px-5" aria-label="Advanced page editor">
+                            <section className="max-h-[30dvh] shrink-0 overflow-y-auto border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-3 sm:px-5" aria-label="Advanced page editor">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div>
                                   <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">{currentPlannerPage ? "Planner page editor" : "Advanced page editor"}</p>

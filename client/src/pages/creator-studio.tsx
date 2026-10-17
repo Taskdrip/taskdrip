@@ -587,6 +587,7 @@ export default function CreatorStudioPage() {
     books: "My Books",
     products: "Digital Products",
     earnings: "Sales & Earnings",
+    notebooks: "Notebook Studio",
   }[section]), [section]);
 
   if (authLoading || (isAuthenticated && accessQuery.isLoading)) {
@@ -707,6 +708,10 @@ export default function CreatorStudioPage() {
     );
   }
 
+  if (section === "notebooks" && isStudioAdmin) {
+    return <AdminNotebookStudio onExit={() => setSection("overview")} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <NavigationFixed />
@@ -754,8 +759,6 @@ export default function CreatorStudioPage() {
             <Button key={value} size="sm" variant={section === value ? "default" : "outline"} onClick={() => setSection(value)}>{label}</Button>
           ))}
         </nav>
-
-        {section === "notebooks" && isStudioAdmin && <AdminNotebookStudio />}
 
         {section === "overview" && (
           <div className="grid lg:grid-cols-3 gap-4">
