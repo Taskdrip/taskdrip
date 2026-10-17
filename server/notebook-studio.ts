@@ -40,7 +40,11 @@ import {
 
 const PROJECT_FILES_DIR = path.resolve(process.cwd(), ".private-notebook-files");
 const PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
-const TASKDRIP_2027_PLANNER_PDF = path.resolve(process.cwd(), "attached_assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf");
+const TASKDRIP_2027_PLANNER_PDF_FILENAME = "taskdrip_2027_Notebook_Journal_1792270834126.pdf";
+const TASKDRIP_2027_PLANNER_PDF_CANDIDATES = [
+  path.resolve(process.cwd(), "dist", "assets", TASKDRIP_2027_PLANNER_PDF_FILENAME),
+  path.resolve(process.cwd(), "attached_assets", TASKDRIP_2027_PLANNER_PDF_FILENAME),
+];
 const pageArtUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 1 },
@@ -449,12 +453,19 @@ async function exists(file: string) {
   }
 }
 
+async function taskdrip2027PlannerPdfPath() {
+  for (const candidate of TASKDRIP_2027_PLANNER_PDF_CANDIDATES) {
+    if (await exists(candidate)) return candidate;
+  }
+  return null;
+}
+
 async function readTaskdrip2027PlannerPdf() {
-  try {
-    return await readFile(TASKDRIP_2027_PLANNER_PDF);
-  } catch {
+  const plannerPdfPath = await taskdrip2027PlannerPdfPath();
+  if (!plannerPdfPath) {
     throw Object.assign(new Error("The supplied 2027 planner PDF is unavailable in this app build."), { statusCode: 503 });
   }
+  return readFile(plannerPdfPath);
 }
 
 function report(project: any, files?: { interiorExists: boolean; coverExists: boolean; plannerPdfAvailable?: boolean }) {
@@ -755,7 +766,7 @@ export function registerNotebookStudioRoutes(app: Express) {
         exists(filePath(project.id, "cover")),
       ]);
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || Boolean(await taskdrip2027PlannerPdfPath());
       const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
       await db.update(creatorNotebookProjects).set({ validation, updatedAt: new Date() })
         .where(and(eq(creatorNotebookProjects.id, project.id), eq(creatorNotebookProjects.ownerId, req.user.id)));
@@ -771,7 +782,7 @@ export function registerNotebookStudioRoutes(app: Express) {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || Boolean(await taskdrip2027PlannerPdfPath());
       const previousReport = validateNotebook(project.title, settings, {
         interiorExists: false,
         coverExists: false,

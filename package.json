@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development node_modules/.bin/tsx server/index.ts",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && mkdir -p dist/assets && cp attached_assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf dist/assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "test:coursebridge": "tsx --test scripts/coursebridge-plugin.test.ts",

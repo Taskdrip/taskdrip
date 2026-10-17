@@ -32,7 +32,10 @@ RUN NODE_OPTIONS='--max-old-space-size=4096' \
       --packages=external \
       --bundle \
       --format=esm \
-      --outdir=dist
+      --outdir=dist && \
+    mkdir -p dist/assets && \
+    cp attached_assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf \
+      dist/assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf
 
 # ── Stage 2: Production runtime ────────────────────────────────────────────────
 FROM node:20-slim
