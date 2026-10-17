@@ -330,6 +330,19 @@ const selectClass = `${inputClass} cursor-pointer`;
 const textareaClass = "min-h-[92px] w-full resize-y rounded-xl border border-[#d9d4c8] bg-[#fffdf8] px-3 py-2.5 text-[13px] leading-5 text-[#30372f] outline-none transition focus:border-[#597c67] focus:ring-2 focus:ring-[#597c67]/15";
 const primaryButton = "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#315a51] px-4 text-[13px] font-semibold text-[#fbf8ef] shadow-sm transition hover:bg-[#26483f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#75947e] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 const secondaryButton = "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#d8d4c8] bg-[#fffdf8] px-3.5 text-[13px] font-semibold text-[#42473f] transition hover:border-[#bdb9ab] hover:bg-[#f2efe7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#75947e] disabled:cursor-not-allowed disabled:opacity-50";
+const NOTEBOOK_2027_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const NOTEBOOK_2027_PAGE_LABELS = [
+  "Yearly planner",
+  "Yearly motivation",
+  "Personal details",
+  "Annual calendar",
+  "Goals & dreams",
+  ...NOTEBOOK_2027_MONTHS.flatMap((month) => [`${month} · Monthly plan`, `${month} · Notes & tasks`]),
+  "Year-end closing",
+];
 
 export default function AdminNotebookStudio() {
   const [projects, setProjects] = useState<NotebookProject[]>([]);
@@ -346,6 +359,7 @@ export default function AdminNotebookStudio() {
   const [page, setPage] = useState(1);
   const [jumpValue, setJumpValue] = useState("1");
   const [spread, setSpread] = useState(false);
+  const [expandedPlannerPage, setExpandedPlannerPage] = useState<number | null>(null);
   const [remoteSvgUrl, setRemoteSvgUrl] = useState("");
   const [remoteSvgError, setRemoteSvgError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -393,6 +407,7 @@ export default function AdminNotebookStudio() {
     setDraft(activeProject ? normalizeProject(activeProject) : null);
     setPage(1);
     setJumpValue("1");
+    setExpandedPlannerPage(null);
     setPageArtTarget(null);
     setRemoteSvgUrl("");
     setRemoteSvgError("");
@@ -796,9 +811,9 @@ export default function AdminNotebookStudio() {
     setPage(clamped);
     setJumpValue(String(clamped));
   };
-  const updateCurrentPageEdit = (key: keyof NotebookPageEdit, value: string | boolean) => {
+  const updatePageEditAt = (pageNumber: number, key: keyof NotebookPageEdit, value: string | boolean) => {
     updateDraft((project) => {
-      const pageKey = String(page);
+      const pageKey = String(pageNumber);
       const current = project.settings.pageEdits[pageKey] || { title: "", subtitle: "", body: "", replace: false };
       return {
         ...project,
@@ -809,13 +824,22 @@ export default function AdminNotebookStudio() {
       };
     });
   };
+  const updateCurrentPageEdit = (key: keyof NotebookPageEdit, value: string | boolean) => {
+    updatePageEditAt(page, key, value);
+  };
+  const togglePageExcludedAt = (pageNumber: number, excluded: boolean) => {
+    updateDraft((project) => {
+      const disabledPages = new Set(project.settings.disabledPages);
+      if (excluded) disabledPages.add(pageNumber);
+      else disabledPages.delete(pageNumber);
+      return {
+        ...project,
+        settings: { ...project.settings, disabledPages: Array.from(disabledPages).sort((a, b) => a - b) },
+      };
+    });
+  };
   const toggleCurrentPageExcluded = (excluded: boolean) => {
-    updateSettings(
-      "disabledPages",
-      excluded
-        ? Array.from(new Set([...draft!.settings.disabledPages, page])).sort((a, b) => a - b)
-        : draft!.settings.disabledPages.filter((item) => item !== page),
-    );
+    togglePageExcludedAt(page, excluded);
   };
   const setTrimPreset = (value: string) => {
     updateSettings("trimSize", value);
@@ -1860,6 +1884,119 @@ export default function AdminNotebookStudio() {
                             <p className="px-2 pb-1 text-[10px] leading-4 text-[#667267]">
                               When enabled, those pages print first and your evenly ruled writing pages follow December through the final page. It selects A4 trim with no bleed and at least 0.75 pt rule weight; other custom intro/outro designs are retained but paused.
                             </p>
+                            {draft.settings.use2027PlannerPdf && (
+                              <div className="mt-3 border-t border-[#e2e8df] pt-3">
+                                <div className="mb-2 flex items-center justify-between gap-3 px-2">
+                                  <div>
+                                    <p className="text-[11px] font-semibold text-[#4d554c]">Opening-page settings</p>
+                                    <p className="text-[9px] text-[#858477]">Edit, replace, or omit any page before printing.</p>
+                                  </div>
+                                  <span className="shrink-0 rounded-full bg-[#e9efe6] px-2.5 py-1 text-[9px] font-semibold text-[#45634d]">
+                                    {NOTEBOOK_2027_PAGE_LABELS.filter((_, index) => !draft.settings.disabledPages.includes(draft.settings.frontBlankPageCount + index + 1)).length} of {NOTEBOOK_2027_PAGE_LABELS.length} included
+                                  </span>
+                                </div>
+                                <div className="max-h-[440px] divide-y divide-[#eee9df] overflow-y-auto rounded-xl border border-[#e5e0d6] bg-[#fffdf8]">
+                                  {NOTEBOOK_2027_PAGE_LABELS.map((label, index) => {
+                                    const plannerPage = index + 1;
+                                    const printedPage = draft.settings.frontBlankPageCount + plannerPage;
+                                    const pageEdit = draft.settings.pageEdits[String(printedPage)] || { title: "", subtitle: "", body: "", replace: false };
+                                    const excluded = draft.settings.disabledPages.includes(printedPage);
+                                    const expanded = expandedPlannerPage === plannerPage;
+                                    const status = excluded ? "Omitted" : pageEdit.replace ? "Custom page" : "Original";
+                                    return (
+                                      <div key={plannerPage} className={excluded ? "bg-[#fbf5f1]" : ""}>
+                                        <div className="flex items-center gap-2 px-2 py-1.5">
+                                          <button
+                                            type="button"
+                                            aria-expanded={expanded}
+                                            onClick={() => setExpandedPlannerPage(expanded ? null : plannerPage)}
+                                            className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 text-left transition hover:bg-[#f5f2eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#78917b]"
+                                          >
+                                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#f0ede5] text-[9px] font-bold tabular-nums text-[#65695f]">{String(plannerPage).padStart(2, "0")}</span>
+                                            <span className="min-w-0 flex-1">
+                                              <span className="block truncate text-[10px] font-semibold text-[#4d554c]">{label}</span>
+                                              <span className="block text-[9px] text-[#858477]">Printed page {printedPage}</span>
+                                            </span>
+                                            <span className={`hidden shrink-0 rounded-full px-2 py-1 text-[8px] font-semibold sm:inline-flex ${excluded ? "bg-[#f5e6df] text-[#934b3a]" : pageEdit.replace ? "bg-[#e9efe6] text-[#45634d]" : "bg-[#f1efe9] text-[#77776b]"}`}>{status}</span>
+                                            <ChevronDown size={14} className={`shrink-0 text-[#77776b] transition-transform ${expanded ? "rotate-180" : ""}`} />
+                                          </button>
+                                          <label className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-2 text-[9px] font-semibold ${excluded ? "text-[#934b3a]" : "text-[#536651]"}`}>
+                                            <input
+                                              type="checkbox"
+                                              aria-label={`${excluded ? "Include" : "Omit"} ${label}`}
+                                              checked={!excluded}
+                                              onChange={(event) => togglePageExcludedAt(printedPage, !event.target.checked)}
+                                              className="h-4 w-4 accent-[#456e5a]"
+                                            />
+                                            {excluded ? "Off" : "On"}
+                                          </label>
+                                        </div>
+                                        {expanded && (
+                                          <div className="space-y-3 border-t border-[#eee9df] bg-[#faf8f2] px-3 py-3">
+                                            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-[#e4dfd4] bg-[#fffdf8] px-3 py-2.5">
+                                              <input
+                                                id={`planner-replace-${plannerPage}`}
+                                                type="checkbox"
+                                                checked={pageEdit.replace}
+                                                onChange={(event) => updatePageEditAt(printedPage, "replace", event.target.checked)}
+                                                className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
+                                              />
+                                              <span>
+                                                <span className="block text-[10px] font-semibold text-[#4d554c]">Use a custom replacement page</span>
+                                                <span className="block text-[9px] leading-4 text-[#858477]">The original design stays untouched. This page prints with your text and the notebook’s writing rules.</span>
+                                              </span>
+                                            </label>
+                                            <div className={`grid gap-2 sm:grid-cols-2 ${pageEdit.replace ? "" : "opacity-55"}`}>
+                                              <Field label="Custom heading">
+                                                <input
+                                                  aria-label={`${label} custom heading`}
+                                                  value={pageEdit.title}
+                                                  maxLength={120}
+                                                  disabled={!pageEdit.replace}
+                                                  onChange={(event) => updatePageEditAt(printedPage, "title", event.target.value)}
+                                                  placeholder={label}
+                                                  className={`${inputClass} disabled:cursor-not-allowed`}
+                                                />
+                                              </Field>
+                                              <Field label="Supporting text">
+                                                <input
+                                                  aria-label={`${label} supporting text`}
+                                                  value={pageEdit.subtitle}
+                                                  maxLength={300}
+                                                  disabled={!pageEdit.replace}
+                                                  onChange={(event) => updatePageEditAt(printedPage, "subtitle", event.target.value)}
+                                                  placeholder="Optional"
+                                                  className={`${inputClass} disabled:cursor-not-allowed`}
+                                                />
+                                              </Field>
+                                              <Field label="Page text" className="sm:col-span-2">
+                                                <textarea
+                                                  aria-label={`${label} custom page text`}
+                                                  value={pageEdit.body}
+                                                  maxLength={2400}
+                                                  rows={3}
+                                                  disabled={!pageEdit.replace}
+                                                  onChange={(event) => updatePageEditAt(printedPage, "body", event.target.value)}
+                                                  placeholder="Add prompts, notes, or instructions"
+                                                  className={`${textareaClass} min-h-[72px] disabled:cursor-not-allowed`}
+                                                />
+                                              </Field>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => setPageNumber(printedPage)}
+                                              className="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-2 text-[9px] font-semibold text-[#45634d] transition hover:bg-[#edf2e9]"
+                                            >
+                                              <FileText size={13} /> Preview page {plannerPage}
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </fieldset>
                           <fieldset
                             disabled={draft.settings.use2027PlannerPdf}
