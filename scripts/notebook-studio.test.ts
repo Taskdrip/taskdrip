@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { deflateSync } from "node:zlib";
+import { PDFDocument } from "pdf-lib";
 import {
   DEFAULT_NOTEBOOK_PAGE_COPY,
   DEFAULT_NOTEBOOK_SETTINGS,
@@ -10,9 +11,15 @@ import {
   normalizeNotebookLineSpacing,
   notebookPageArtKey,
   notebookPrintArtPixels,
+  notebookLogicalPageCount,
   notebookTotalPageCount,
 } from "../shared/notebook-studio";
-import { createNotebookInteriorPdf, inspectNotebookPageImage, validateNotebook } from "../server/notebook-pdf";
+import {
+  createNotebookInteriorPdf,
+  inspectNotebookPageImage,
+  prependPlanner2027Pages,
+  validateNotebook,
+} from "../server/notebook-pdf";
 
 function pngChunk(type: string, data: Buffer) {
   const length = Buffer.alloc(4);
@@ -162,6 +169,69 @@ test("front blanks, closing designs, and end blanks are physically ordered and c
   assert.equal(validation.blankPageCount, 3);
 });
 
+test("disabled pages are omitted from KDP output and page edits can replace an imported planner page", async () => {
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    pageCount: 2,
+    trimSize: "8.27x11.69",
+    customWidth: 8.27,
+    customHeight: 11.69,
+    bleed: false,
+    lineThickness: 0.75,
+    use2027PlannerPdf: true,
+    introPages: [],
+    outroPages: [],
+    disabledPages: [3, 30],
+    pageEdits: {
+      "4": {
+        title: "My custom opening page",
+        subtitle: "A page tailored to this notebook.",
+        body: "Write down what matters most.",
+        replace: true,
+      },
+    },
+  };
+  const source = await PDFDocument.create();
+  for (let index = 0; index < 32; index++) source.addPage([595.5, 842.25]);
+  const generated = createNotebookInteriorPdf("Page controls", settings);
+  const generatedText = generated.toString("latin1");
+  const finalPdf = await prependPlanner2027Pages(
+    generated,
+    Buffer.from(await source.save({ useObjectStreams: false })),
+    settings,
+  );
+  const finalDocument = await PDFDocument.load(finalPdf);
+  const validation = validateNotebook("Page controls", settings, { interiorExists: true, coverExists: false, plannerPdfAvailable: true });
+
+  assert.equal(notebookLogicalPageCount(settings), 32);
+  assert.equal(notebookTotalPageCount(settings), 30);
+  assert.match(generatedText, /\(My custom opening page\) Tj/);
+  assert.equal(finalDocument.getPageCount(), 30, "excluded planner pages do not appear in the downloaded PDF");
+  assert.equal(validation.pageCount, 30);
+  assert.equal(validation.introPageCount, 28);
+  assert.equal(validation.writingPageCount, 2);
+});
+
+test("excluded writing pages reflow writing-page numbers and reduce the physical PDF count", () => {
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    pageCount: 3,
+    introPages: [],
+    disabledPages: [2],
+    ownershipPage: false,
+    showPageNumbers: true,
+  };
+  const pdf = createNotebookInteriorPdf("Excluded writing page", settings).toString("latin1");
+  const validation = validateNotebook("Excluded writing page", settings, { interiorExists: true, coverExists: false });
+
+  assert.equal(notebookLogicalPageCount(settings), 3);
+  assert.equal(notebookTotalPageCount(settings), 2);
+  assert.match(pdf, /\/Count 2/);
+  assert.match(pdf, /\(1\) Tj/);
+  assert.match(pdf, /\(2\) Tj/);
+  assert.equal(validation.writingPageCount, 2);
+});
+
 test("each available outro option produces its own complete closing design", () => {
   const settings = {
     ...DEFAULT_NOTEBOOK_SETTINGS,
@@ -264,11 +334,11 @@ test("page copy edits are used in the generated introduction and closing pages",
   for (const copy of [
     "A season with purpose",
     "Write what you want to protect and grow.",
-    "Make room for rest",
+    "MAKE ROOM FOR REST",
     "What I am taking with me",
-    "A kindness I received",
+    "A KINDNESS I RECEIVED",
   ]) {
-    assert.ok(pdf.includes(`(${copy}) Tj`), `the PDF includes saved page copy: ${copy}`);
+    assert.ok(pdf.includes(copy), `the PDF includes saved page copy: ${copy}`);
   }
 });
 

@@ -17,11 +17,13 @@ import {
   notebookPrintArtPixels,
   currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
+  notebookLogicalPageCount,
   notebookTotalPageCount,
   type NotebookIntroPageType,
   type NotebookOutroPageType,
   type NotebookPageArtGroup,
   type NotebookCoverDesign,
+  type NotebookPageEdit,
   type NotebookSettings,
 } from "@shared/notebook-studio";
 import { db } from "./db";
@@ -122,6 +124,49 @@ function normalizePageArtwork(input: unknown, previous: NotebookSettings["pageAr
   return artwork;
 }
 
+function normalizePageEdits(input: unknown, previous: NotebookSettings["pageEdits"]) {
+  if (input !== undefined && (!input || typeof input !== "object" || Array.isArray(input))) {
+    throw Object.assign(new Error("Page edits must be an object keyed by printed page number."), { statusCode: 400 });
+  }
+  const source = (input as Record<string, unknown> | undefined) ?? previous ?? {};
+  const edits: Record<string, NotebookPageEdit> = {};
+  for (const [rawPage, rawEdit] of Object.entries(source)) {
+    if (!/^[1-9]\d{0,2}$/.test(rawPage)) {
+      throw Object.assign(new Error("Page edit keys must be printed page numbers."), { statusCode: 400 });
+    }
+    if (!rawEdit || typeof rawEdit !== "object" || Array.isArray(rawEdit)) {
+      throw Object.assign(new Error(`Edit for page ${rawPage} must be an object.`), { statusCode: 400 });
+    }
+    const edit = rawEdit as Record<string, unknown>;
+    edits[rawPage] = {
+      title: cleanText(edit.title, 120),
+      subtitle: cleanText(edit.subtitle, 300),
+      body: cleanText(edit.body, 2400),
+      replace: edit.replace === true,
+    };
+  }
+  return edits;
+}
+
+function normalizeDisabledPages(input: unknown, previous: NotebookSettings["disabledPages"], logicalPages: number) {
+  if (input !== undefined && !Array.isArray(input)) {
+    throw Object.assign(new Error("Excluded pages must be a list of printed page numbers."), { statusCode: 400 });
+  }
+  const source = (input as unknown[] | undefined) ?? previous ?? [];
+  if (source.length > 900) {
+    throw Object.assign(new Error("A notebook can exclude up to 900 pages."), { statusCode: 400 });
+  }
+  const pages = new Set<number>();
+  for (const rawPage of source) {
+    const page = Number(rawPage);
+    if (!Number.isInteger(page) || page < 1) {
+      throw Object.assign(new Error("Excluded pages must use positive whole-number page numbers."), { statusCode: 400 });
+    }
+    if (page <= logicalPages) pages.add(page);
+  }
+  return Array.from(pages).sort((a, b) => a - b);
+}
+
 function normalizeReferenceEntries<T>(
   value: unknown,
   fields: Record<keyof T, number>,
@@ -159,6 +204,7 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
     : raw.use2027PlannerPdf === true;
   settings.pageCopy = normalizePageCopy(raw.pageCopy, previous.pageCopy || DEFAULT_NOTEBOOK_PAGE_COPY);
   settings.pageArtwork = normalizePageArtwork(raw.pageArtwork, previous.pageArtwork || {});
+  settings.pageEdits = normalizePageEdits(raw.pageEdits, previous.pageEdits || {});
   settings.lineSpacing = normalizeNotebookLineSpacing(raw.lineSpacing ?? previous.lineSpacing);
   if (raw.subtitle !== undefined) settings.subtitle = cleanText(raw.subtitle, 300);
   if (raw.authorName !== undefined) settings.authorName = cleanText(raw.authorName, 160);
@@ -293,6 +339,14 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
   }
   if (raw.headerText !== undefined) settings.headerText = cleanText(raw.headerText, 100);
   if (raw.footerText !== undefined) settings.footerText = cleanText(raw.footerText, 100);
+  settings.disabledPages = normalizeDisabledPages(
+    raw.disabledPages,
+    previous.disabledPages || [],
+    notebookLogicalPageCount(settings),
+  );
+  settings.pageEdits = Object.fromEntries(
+    Object.entries(settings.pageEdits).filter(([page]) => Number(page) <= notebookLogicalPageCount(settings)),
+  );
   return settings;
 }
 

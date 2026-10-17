@@ -43,6 +43,13 @@ export type NotebookPageCopy = {
   prompts: string[];
 };
 
+export type NotebookPageEdit = {
+  title: string;
+  subtitle: string;
+  body: string;
+  replace: boolean;
+};
+
 export type NotebookPageArtGroup = "intro" | "outro";
 export type NotebookPageArtKey = `${NotebookPageArtGroup}-${NotebookIntroPageType | NotebookOutroPageType}`;
 export const NOTEBOOK_2027_PLANNER_PAGE_COUNT = 30;
@@ -182,6 +189,8 @@ export type NotebookSettings = {
   use2027PlannerPdf: boolean;
   pageCopy: Record<string, NotebookPageCopy>;
   pageArtwork: Record<string, string>;
+  pageEdits: Record<string, NotebookPageEdit>;
+  disabledPages: number[];
   frontBlankPageCount: number;
   backBlankPageCount: number;
   worldLeaderEntries: NotebookLeaderEntry[];
@@ -247,6 +256,8 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   use2027PlannerPdf: false,
   pageCopy: DEFAULT_NOTEBOOK_PAGE_COPY,
   pageArtwork: {},
+  pageEdits: {},
+  disabledPages: [],
   frontBlankPageCount: 0,
   backBlankPageCount: 0,
   worldLeaderEntries: [],
@@ -279,8 +290,9 @@ export function notebookBlankPageCount(settings: Pick<NotebookSettings, "frontBl
   return front + back;
 }
 
-export function notebookTotalPageCount(
-  settings: Pick<NotebookSettings, "pageCount" | "introPages"> & Partial<Pick<NotebookSettings, "outroPages" | "frontBlankPageCount" | "backBlankPageCount" | "use2027PlannerPdf">>,
+export function notebookLogicalPageCount(
+  settings: Pick<NotebookSettings, "pageCount" | "introPages"> &
+    Partial<Pick<NotebookSettings, "outroPages" | "frontBlankPageCount" | "backBlankPageCount" | "use2027PlannerPdf">>,
 ) {
   return settings.pageCount
     + notebookIntroPageCount(settings)
@@ -290,6 +302,17 @@ export function notebookTotalPageCount(
       backBlankPageCount: settings.backBlankPageCount || 0,
       use2027PlannerPdf: settings.use2027PlannerPdf,
     });
+}
+
+export function notebookTotalPageCount(
+  settings: Pick<NotebookSettings, "pageCount" | "introPages"> &
+    Partial<Pick<NotebookSettings, "outroPages" | "frontBlankPageCount" | "backBlankPageCount" | "use2027PlannerPdf" | "disabledPages">>,
+) {
+  const logicalPages = notebookLogicalPageCount(settings);
+  const disabled = new Set((settings.disabledPages || []).filter(
+    (page) => Number.isInteger(page) && page >= 1 && page <= logicalPages,
+  ));
+  return logicalPages - disabled.size;
 }
 
 const NOTEBOOK_DIARY_LAST_DAY = Date.UTC(2027, 11, 31);

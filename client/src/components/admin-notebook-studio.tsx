@@ -48,6 +48,7 @@ import {
   notebookIntroPageCount,
   notebookOutroPageCount,
   notebookTotalPageCount,
+  notebookLogicalPageCount,
   notebookDiaryPageCount,
   notebookDiaryPageDate,
   type NotebookCurrentAffairsEntry,
@@ -56,6 +57,7 @@ import {
   type NotebookOutroPageType,
   type NotebookPageArtGroup,
   type NotebookPageCopy,
+  type NotebookPageEdit,
 } from "@shared/notebook-studio";
 import NotebookKdpListingGuide from "./notebook-kdp-listing-guide";
 
@@ -77,6 +79,8 @@ type NotebookSettings = {
   use2027PlannerPdf: boolean;
   pageCopy: Record<string, NotebookPageCopy>;
   pageArtwork: Record<string, string>;
+  pageEdits: Record<string, NotebookPageEdit>;
+  disabledPages: number[];
   frontBlankPageCount: number;
   backBlankPageCount: number;
   worldLeaderEntries: NotebookLeaderEntry[];
@@ -126,19 +130,21 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   authorName: "",
   seriesName: "",
   pageCount: 160,
-  trimSize: "6x9",
+  trimSize: "8.27x11.69",
   customWidth: 6,
   customHeight: 9,
   binding: "paperback",
   ink: "black",
-  paper: "cream",
+  paper: "white",
   bleed: false,
-  lineStyle: "classic",
+  lineStyle: "lined-journal",
   introPages: [],
   outroPages: [],
-  use2027PlannerPdf: false,
+  use2027PlannerPdf: true,
   pageCopy: DEFAULT_NOTEBOOK_PAGE_COPY,
   pageArtwork: {},
+  pageEdits: {},
+  disabledPages: [],
   frontBlankPageCount: 0,
   backBlankPageCount: 0,
   worldLeaderEntries: [],
@@ -206,6 +212,8 @@ function normalizeProject(project: NotebookProject): NotebookProject {
         { ...defaults, ...(project.settings?.pageCopy?.[key] || {}) },
       ])),
       pageArtwork: { ...(project.settings?.pageArtwork || {}) },
+      pageEdits: { ...(project.settings?.pageEdits || {}) },
+      disabledPages: Array.isArray(project.settings?.disabledPages) ? project.settings.disabledPages : [],
       introPages: Array.isArray(project.settings?.introPages) ? project.settings.introPages : [],
       outroPages: Array.isArray(project.settings?.outroPages) ? project.settings.outroPages : [],
       worldLeaderEntries: Array.isArray(project.settings?.worldLeaderEntries) ? project.settings.worldLeaderEntries : [],
@@ -349,6 +357,7 @@ export default function AdminNotebookStudio() {
   const mainPageCount = Math.max(1, Number(draft?.settings.pageCount) || 160);
   const introPageCount = draft ? notebookIntroPageCount(draft.settings) : 0;
   const outroPageCount = draft ? notebookOutroPageCount(draft.settings) : 0;
+  const logicalPageCount = draft ? notebookLogicalPageCount(draft.settings) : mainPageCount;
   const pageCount = draft ? notebookTotalPageCount(draft.settings) : mainPageCount;
   const filteredProjects = useMemo(() => {
     const needle = listSearch.trim().toLowerCase();
@@ -389,11 +398,11 @@ export default function AdminNotebookStudio() {
   }, [activeProject]);
 
   useEffect(() => {
-    if (page > pageCount) {
-      setPage(pageCount);
-      setJumpValue(String(pageCount));
+    if (page > logicalPageCount) {
+      setPage(logicalPageCount);
+      setJumpValue(String(logicalPageCount));
     }
-  }, [page, pageCount]);
+  }, [page, logicalPageCount]);
 
   const updateDraft = (transform: (project: NotebookProject) => NotebookProject) => {
     setDraft((current) => current ? transform(current) : current);
@@ -782,9 +791,30 @@ export default function AdminNotebookStudio() {
   }, [remoteSvgUrl]);
 
   const setPageNumber = (next: number) => {
-    const clamped = Math.min(pageCount, Math.max(1, Math.round(next)));
+    const clamped = Math.min(logicalPageCount, Math.max(1, Math.round(next)));
     setPage(clamped);
     setJumpValue(String(clamped));
+  };
+  const updateCurrentPageEdit = (key: keyof NotebookPageEdit, value: string | boolean) => {
+    updateDraft((project) => {
+      const pageKey = String(page);
+      const current = project.settings.pageEdits[pageKey] || { title: "", subtitle: "", body: "", replace: false };
+      return {
+        ...project,
+        settings: {
+          ...project.settings,
+          pageEdits: { ...project.settings.pageEdits, [pageKey]: { ...current, [key]: value } },
+        },
+      };
+    });
+  };
+  const toggleCurrentPageExcluded = (excluded: boolean) => {
+    updateSettings(
+      "disabledPages",
+      excluded
+        ? Array.from(new Set([...draft!.settings.disabledPages, page])).sort((a, b) => a - b)
+        : draft!.settings.disabledPages.filter((item) => item !== page),
+    );
   };
   const setTrimPreset = (value: string) => {
     updateSettings("trimSize", value);
@@ -1281,7 +1311,26 @@ export default function AdminNotebookStudio() {
       : "2 / 3";
   })();
 
-  const renderInteriorPage = (pageNumber: number) => {
+  const currentPageEdit = draft?.settings.pageEdits[String(page)] || { title: "", subtitle: "", body: "", replace: false };
+  const currentPageExcluded = Boolean(draft?.settings.disabledPages.includes(page));
+  const currentPageSection = (() => {
+    if (!draft) return "Page";
+    const frontBlanks = draft.settings.frontBlankPageCount || 0;
+    const openingCount = draft.settings.use2027PlannerPdf
+      ? NOTEBOOK_2027_PLANNER_PAGE_COUNT
+      : draft.settings.introPages.length;
+    if (page <= frontBlanks) return "Front blank";
+    if (page <= frontBlanks + openingCount) {
+      return draft.settings.use2027PlannerPdf
+        ? `2027 planner page ${page - frontBlanks}`
+        : NOTEBOOK_INTRO_PAGE_OPTIONS.find((option) => option.value === draft.settings.introPages[page - frontBlanks - 1])?.label || "Intro page";
+    }
+    if (page <= frontBlanks + openingCount + mainPageCount) return `Writing page ${page - frontBlanks - openingCount}`;
+    const outroIndex = page - frontBlanks - openingCount - mainPageCount - 1;
+    return NOTEBOOK_OUTRO_PAGE_OPTIONS.find((option) => option.value === draft.settings.outroPages[outroIndex])?.label || "End page";
+  })();
+
+  const renderInteriorPageContent = (pageNumber: number) => {
     const selectedIntroPages = draft?.settings.introPages || [];
     const selectedOutroPages = draft?.settings.outroPages || [];
     const frontBlankCount = draft?.settings.frontBlankPageCount || 0;
@@ -1292,6 +1341,36 @@ export default function AdminNotebookStudio() {
     const writingEndPage = introEndPage + mainPageCount;
     const outroEndPage = writingEndPage + activeOutroCount;
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
+    const writingPageNumber = pageNumber - introEndPage - (draft?.settings.disabledPages || [])
+      .filter((excludedPage) => excludedPage > introEndPage && excludedPage < pageNumber).length;
+    const pageEdit = draft?.settings.pageEdits[String(pageNumber)];
+    if (pageEdit?.replace) {
+      return (
+        <article
+          key={`editable-${pageNumber}`}
+          className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          style={{ aspectRatio: trimAspect, backgroundColor: background }}
+          aria-label={`Custom edited page ${pageNumber} preview`}
+        >
+          <div className="absolute inset-[8%] flex flex-col">
+            <h2 className="shrink-0 font-serif text-[clamp(15px,2.6vw,25px)] leading-tight text-[#30372f]">
+              {pageEdit.title || "Editable page"}
+            </h2>
+            {pageEdit.subtitle && <p className="mt-2 shrink-0 text-[clamp(7px,1vw,10px)] leading-relaxed text-[#667066]">{pageEdit.subtitle}</p>}
+            {pageEdit.body && <p className="mt-2 max-h-[34%] shrink-0 overflow-hidden whitespace-pre-line text-[clamp(6px,.85vw,9px)] leading-[1.45] text-[#42473f]">{pageEdit.body}</p>}
+            <div
+              className="mt-3 min-h-0 flex-1"
+              style={{
+                backgroundImage: `linear-gradient(to bottom, transparent calc(100% - ${Math.max(0.5, Number(draft?.settings.lineThickness || 0.75))}px), ${draft?.settings.lineColor || "#c9d0c8"} calc(100% - ${Math.max(0.5, Number(draft?.settings.lineThickness || 0.75))}px))`,
+                backgroundSize: `100% ${Math.max(12, normalizeNotebookLineSpacing(draft?.settings.lineSpacing) * 96)}px`,
+              }}
+              aria-label="Ruled area on the custom page"
+            />
+            {draft?.settings.showPageNumbers && <span className="shrink-0 pt-1 text-right text-[clamp(6px,.75vw,9px)] tabular-nums text-[#71766c]">{pageNumber > introEndPage && pageNumber <= writingEndPage ? writingPageNumber : pageNumber}</span>}
+          </div>
+        </article>
+      );
+    }
     if (pageNumber <= frontBlankCount || pageNumber > outroEndPage) {
       return (
         <article
@@ -1325,7 +1404,7 @@ export default function AdminNotebookStudio() {
     if (pageNumber > writingEndPage) {
       return renderOutroPage(selectedOutroPages[pageNumber - writingEndPage - 1], pageNumber);
     }
-    const contentPageNumber = pageNumber - introEndPage;
+    const contentPageNumber = writingPageNumber;
     const style = draft?.settings.lineStyle || "classic";
     const isDot = style === "dot";
     const isGraph = style === "graph";
@@ -1404,6 +1483,23 @@ export default function AdminNotebookStudio() {
         </div>
         {draft?.settings.bleed && <div className="pointer-events-none absolute inset-[2.5%] border border-dashed border-[#b87958]/55" aria-hidden="true" />}
       </article>
+    );
+  };
+
+  const renderInteriorPage = (pageNumber: number) => {
+    const excluded = draft?.settings.disabledPages.includes(pageNumber);
+    return (
+      <div key={`page-frame-${pageNumber}`} className="relative w-full max-w-[420px] shrink-0">
+        {renderInteriorPageContent(pageNumber)}
+        {excluded && (
+          <div className="absolute inset-0 grid place-items-center rounded-sm bg-[#202720]/55 p-5 text-center">
+            <div className="rounded-xl border border-white/30 bg-[#fffdf8] px-4 py-3 shadow-xl">
+              <p className="text-[12px] font-bold text-[#8e4136]">Excluded from print file</p>
+              <p className="mt-1 text-[10px] leading-4 text-[#69685f]">This page will be omitted from the downloaded interior PDF.</p>
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -2089,7 +2185,7 @@ export default function AdminNotebookStudio() {
                           <div className="flex min-h-[520px] items-center justify-center overflow-auto px-3 py-7 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
                             <div className={`flex items-center justify-center gap-3 transition-transform duration-200 ${spread ? "flex-row" : "flex-col"}`} style={{ width: "100%" }}>
                               <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: spread ? `${Math.round(350 * zoom / 82)}px` : `${Math.round(500 * zoom / 82)}px` }}>{renderInteriorPage(page)}</div>
-                              {spread && page < pageCount && <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: `${Math.round(350 * zoom / 82)}px` }}>{renderInteriorPage(page + 1)}</div>}
+                              {spread && page < logicalPageCount && <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: `${Math.round(350 * zoom / 82)}px` }}>{renderInteriorPage(page + 1)}</div>}
                             </div>
                           </div>
                           <div className="flex flex-col gap-3 border-t border-[#d8d1c3] bg-[#f8f5ed] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -2098,16 +2194,78 @@ export default function AdminNotebookStudio() {
                               <button type="button" onClick={() => setPageNumber(page - (spread ? 2 : 1))} disabled={page === 1} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Previous page"><ChevronLeft size={16} /></button>
                               <form className="flex items-center gap-1.5" onSubmit={(event) => { event.preventDefault(); setPageNumber(Number(jumpValue) || 1); }}>
                                 <input aria-label="Jump to page" inputMode="numeric" value={jumpValue} onChange={(event) => setJumpValue(event.target.value.replace(/[^\d]/g, ""))} onBlur={() => setPageNumber(Number(jumpValue) || page)} className="h-8 w-12 rounded-lg border border-[#d9d4c8] bg-[#fffdf8] text-center text-[11px] tabular-nums outline-none focus:border-[#597c67]" />
-                                <span className="text-[10px] text-[#858477]">of {pageCount}</span>
+                                <span className="text-[10px] text-[#858477]">of {logicalPageCount}</span>
                               </form>
-                              <button type="button" onClick={() => setPageNumber(page + (spread ? 2 : 1))} disabled={page >= pageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Next page"><ChevronRight size={16} /></button>
-                              <button type="button" onClick={() => setPageNumber(pageCount)} disabled={page === pageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Last page"><ChevronRight size={15} /><ChevronRight className="-ml-3" size={15} /></button>
+                              <button type="button" onClick={() => setPageNumber(page + (spread ? 2 : 1))} disabled={page >= logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Next page"><ChevronRight size={16} /></button>
+                              <button type="button" onClick={() => setPageNumber(logicalPageCount)} disabled={page === logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Last page"><ChevronRight size={15} /><ChevronRight className="-ml-3" size={15} /></button>
                             </div>
                             <div className="flex items-center justify-center gap-2">
                               <span className="text-[10px] text-[#858477]">{LINE_STYLES.find(([value]) => value === draft.settings.lineStyle)?.[1]} · {draft.settings.trimSize === "custom" ? `${draft.settings.customWidth} × ${draft.settings.customHeight} in` : draft.settings.trimSize}</span>
                               <button type="button" onClick={() => void fetchFile("interior", "open")} disabled={!hasInterior || busy === "file:interior"} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#315a51] px-3 text-[10px] font-semibold text-[#fbf8ef] hover:bg-[#26483f] disabled:cursor-not-allowed disabled:opacity-45">{busy === "file:interior" ? <LoaderCircle size={12} className="animate-spin" /> : <Maximize2 size={12} />} Open PDF</button>
                             </div>
                           </div>
+                          {!remoteSvgUrl && (
+                            <section className="border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-4 sm:px-5" aria-label="Advanced page editor">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">Advanced page editor</p>
+                                  <h3 className="mt-1 text-[13px] font-semibold text-[#3f463e]">{currentPageSection} <span className="font-normal text-[#858477]">· page {page} of {logicalPageCount}</span></h3>
+                                  <p className="mt-1 max-w-2xl text-[10px] leading-4 text-[#77776b]">Edit this page’s text, replace its layout with a custom ruled page, or exclude only this page from the downloaded interior.</p>
+                                </div>
+                                <label className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-semibold ${currentPageExcluded ? "border-[#e2b9a9] bg-[#fff0e9] text-[#934432]" : "border-[#d3ddce] bg-[#edf3ea] text-[#42634d]"}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={!currentPageExcluded}
+                                    onChange={(event) => toggleCurrentPageExcluded(!event.target.checked)}
+                                    className="h-4 w-4 accent-[#456e5a]"
+                                  />
+                                  Include in download
+                                </label>
+                              </div>
+                              {currentPageExcluded && <p role="status" className="mt-3 rounded-lg border border-[#e4c5b8] bg-[#fff4ee] px-3 py-2 text-[10px] text-[#8c4736]">This page is excluded from the KDP interior. Turn on “Include in download” to restore it.</p>}
+                              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                <Field label="Custom page title">
+                                  <input
+                                    aria-label="Custom page title"
+                                    value={currentPageEdit.title}
+                                    maxLength={120}
+                                    onChange={(event) => updateCurrentPageEdit("title", event.target.value)}
+                                    className={inputClass}
+                                  />
+                                </Field>
+                                <Field label="Supporting text">
+                                  <input
+                                    aria-label="Custom page supporting text"
+                                    value={currentPageEdit.subtitle}
+                                    maxLength={300}
+                                    onChange={(event) => updateCurrentPageEdit("subtitle", event.target.value)}
+                                    className={inputClass}
+                                  />
+                                </Field>
+                                <div className="sm:col-span-2">
+                                  <Field label="Page content" hint="Add a short note or prompt. The exported page keeps the selected writing rules below it.">
+                                    <textarea
+                                      aria-label="Custom page content"
+                                      value={currentPageEdit.body}
+                                      maxLength={2400}
+                                      rows={4}
+                                      onChange={(event) => updateCurrentPageEdit("body", event.target.value)}
+                                      className={textareaClass}
+                                    />
+                                  </Field>
+                                </div>
+                              </div>
+                              <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-[#e4dfd4] bg-[#fffdf8] px-3 py-2.5 text-[10px] text-[#62665d]">
+                                <input
+                                  type="checkbox"
+                                  checked={currentPageEdit.replace}
+                                  onChange={(event) => updateCurrentPageEdit("replace", event.target.checked)}
+                                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
+                                />
+                                <span><strong className="text-[#42473f]">Replace this page’s current layout with my custom content.</strong> When off, the original page design is preserved. Save changes and generate files to apply edits to the PDF.</span>
+                              </label>
+                            </section>
+                          )}
                         </>
                       )}
                       {!hasInterior && !remoteSvgUrl && (

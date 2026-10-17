@@ -11,9 +11,11 @@ import {
   NOTEBOOK_2027_PLANNER_PAGE_COUNT,
   notebookPageArtKey,
   notebookPageCopy,
+  notebookLogicalPageCount,
   type NotebookCoverDesign,
   type NotebookIntroPageType,
   type NotebookOutroPageType,
+  type NotebookPageEdit,
   type NotebookPageArtGroup,
   type NotebookSettings,
 } from "@shared/notebook-studio";
@@ -57,11 +59,29 @@ export function validateNotebook(
 ) {
   const { width, height } = notebookTrim(settings);
   const totalPages = notebookTotalPageCount(settings);
+  const logicalPages = notebookLogicalPageCount(settings);
   const introPages = notebookIntroPageCount(settings);
   const outroPages = notebookOutroPageCount(settings);
-  const blankPages = notebookBlankPageCount(settings);
   const frontBlanks = settings.frontBlankPageCount || 0;
   const backBlanks = settings.use2027PlannerPdf ? 0 : settings.backBlankPageCount || 0;
+  const introStartPage = frontBlanks + 1;
+  const writingStartPage = introStartPage + introPages;
+  const outroStartPage = writingStartPage + settings.pageCount;
+  const disabledPages = new Set((settings.disabledPages || []).filter(
+    (page) => Number.isInteger(page) && page >= 1 && page <= logicalPages,
+  ));
+  const activePageCount = (start: number, end: number) => {
+    let active = 0;
+    for (let page = start; page <= end; page++) if (!disabledPages.has(page)) active++;
+    return active;
+  };
+  const activeFrontBlanks = activePageCount(1, frontBlanks);
+  const activeIntroPages = activePageCount(introStartPage, writingStartPage - 1);
+  const activeWritingPages = activePageCount(writingStartPage, outroStartPage - 1);
+  const activeOutroPages = activePageCount(outroStartPage, outroStartPage + outroPages - 1);
+  const activeBackBlanks = activePageCount(logicalPages - backBlanks + 1, logicalPages);
+  const blankPages = activeFrontBlanks + activeBackBlanks;
+  const disabledPageCount = disabledPages.size;
   const items: Array<{ status: "ready" | "warning" | "failed" | "manual"; label: string; message: string }> = [];
   const supportedTrims = new Set(["5x8", "5.5x8.5", "6x9", "8.27x11.69"]);
   const exactTrimSupported = settings.trimSize !== "custom" && supportedTrims.has(settings.trimSize);
@@ -81,7 +101,7 @@ export function validateNotebook(
     status: validPageCount ? "ready" : "failed",
     label: "Page count",
     message: validPageCount
-      ? `${totalPages} physical pages: ${frontBlanks} front blank, ${introPages} introductory, ${settings.pageCount} writing, ${outroPages} closing, and ${backBlanks} end blank. This is within the ${minimumPages}–${maxPages} page range for this print selection.`
+      ? `${totalPages} active physical pages: ${activeFrontBlanks} front blank, ${activeIntroPages} introductory, ${activeWritingPages} writing, ${activeOutroPages} closing, and ${activeBackBlanks} end blank${disabledPageCount ? `; ${disabledPageCount} page${disabledPageCount === 1 ? " is" : "s are"} excluded` : ""}. This is within the ${minimumPages}–${maxPages} page range for this print selection.`
       : `${settings.binding} books at this trim and print selection allow ${minimumPages}–${maxPages} total pages; the project is set to ${totalPages}.`,
   });
   const addReferenceCheck = <T extends object>(
@@ -231,9 +251,9 @@ export function validateNotebook(
     status,
     checkedAt: new Date().toISOString(),
     pageCount: totalPages,
-    writingPageCount: settings.pageCount,
-    introPageCount: introPages,
-    outroPageCount: outroPages,
+    writingPageCount: activeWritingPages,
+    introPageCount: activeIntroPages,
+    outroPageCount: activeOutroPages,
     blankPageCount: blankPages,
     trimWidth: width,
     trimHeight: height,
@@ -492,6 +512,51 @@ function fixedPageText(
       parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
     }
   }
+  return parts.join("");
+}
+
+function editableNotebookPage(
+  edit: NotebookPageEdit,
+  settings: NotebookSettings,
+  pageNumber: number,
+  width: number,
+  height: number,
+  xLeft: number,
+  xRight: number,
+  yTop: number,
+  yBottom: number,
+) {
+  const parts: string[] = [];
+  const textColor = settings.ink === "color" ? "0.20 0.31 0.28" : "0.16 0.18 0.17";
+  const title = edit.title.trim() || "Untitled page";
+  parts.push(textCommand(title, inch(xLeft), inch(yTop - 0.32), 17, "F2", textColor));
+  const subtitleLines = wrapPdfText(edit.subtitle, Math.max(36, Math.floor((xRight - xLeft) * 11)), 2);
+  let bodyTop = yTop - 0.62;
+  subtitleLines.forEach((line, index) => {
+    parts.push(textCommand(line, inch(xLeft), inch(bodyTop - index * 0.16), 8, "F1", "0.36 0.39 0.37"));
+  });
+  if (subtitleLines.length) bodyTop -= subtitleLines.length * 0.18;
+  parts.push(lineCommand(inch(xLeft), inch(bodyTop - 0.08), inch(xRight), inch(bodyTop - 0.08), settings.lineColor, settings.lineThickness));
+
+  const bodyLines: string[] = [];
+  const maxCharacters = Math.max(32, Math.floor((xRight - xLeft) * 12));
+  for (const paragraph of edit.body.split(/\r?\n/)) {
+    const wrapped = wrapPdfText(paragraph, maxCharacters, 60);
+    bodyLines.push(...(wrapped.length ? wrapped : [""]));
+  }
+  const bodyLineHeight = 0.15;
+  const maximumBodyLines = Math.max(0, Math.floor((bodyTop - yBottom - 1.05) / bodyLineHeight));
+  bodyLines.slice(0, maximumBodyLines).forEach((line, index) => {
+    parts.push(textCommand(line, inch(xLeft), inch(bodyTop - 0.3 - index * bodyLineHeight), 7.2, "F1", "0.24 0.27 0.25"));
+  });
+  const rulesTop = bodyTop - 0.36 - Math.min(bodyLines.length, maximumBodyLines) * bodyLineHeight;
+  const lineBottom = Math.max(yBottom, 0.67);
+  const spacing = normalizeNotebookLineSpacing(settings.lineSpacing);
+  for (let y = rulesTop; y >= lineBottom; y -= spacing) {
+    parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
+  }
+  if (settings.footerText) parts.push(textCommand(settings.footerText, inch(xLeft), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+  if (settings.showPageNumbers) parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
   return parts.join("");
 }
 
@@ -895,6 +960,8 @@ export function createNotebookInteriorPdf(
   const writingEndPage = introEndPage + settings.pageCount;
   const outroEndPage = writingEndPage + outroCount;
   const totalPages = notebookTotalPageCount(settings);
+  const logicalPages = notebookLogicalPageCount(settings);
+  const disabledPages = new Set(settings.disabledPages || []);
   const gutter = gutterMargin(totalPages);
   const outer = 0.375;
   const top = 0.55;
@@ -906,14 +973,25 @@ export function createNotebookInteriorPdf(
     Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>", "ascii"),
   ];
   const pageObjectNumbers: number[] = [];
-  for (let page = 1; page <= totalPages; page++) {
-    const isOdd = page % 2 === 1;
+  let writingPageNumber = 0;
+  let disabledPagesBefore = 0;
+  for (let page = 1; page <= logicalPages; page++) {
+    const isDisabled = disabledPages.has(page);
+    const outputPageNumber = page - disabledPagesBefore;
+    const isWritingPage = page > introEndPage && page <= writingEndPage;
+    if (isWritingPage && !isDisabled) writingPageNumber += 1;
+    if (isDisabled) {
+      disabledPagesBefore += 1;
+      if (!settings.use2027PlannerPdf) continue;
+    }
+    const isOdd = outputPageNumber % 2 === 1;
     const inside = gutter + 0.05;
     const left = isOdd ? inside : outer;
     const right = isOdd ? outer : inside;
     const xLeft = left;
     const xRight = pageWidth - right;
     const yTop = pageHeight - top;
+    const pageEdit = settings.pageEdits?.[String(page)];
     const introType = settings.use2027PlannerPdf ? undefined : settings.introPages?.[page - frontBlankCount - 1];
     const outroType = settings.outroPages?.[page - writingEndPage - 1];
     const artworkKey = introType
@@ -922,7 +1000,21 @@ export function createNotebookInteriorPdf(
         ? notebookPageArtKey("outro", outroType)
         : "";
     const image = artworkKey ? readUploadedImage(pageArtwork[artworkKey] || null) : null;
-    const content = image
+    const content = isDisabled
+      ? ""
+      : pageEdit?.replace
+        ? editableNotebookPage(
+          pageEdit,
+          settings,
+          isWritingPage ? writingPageNumber : page,
+          pageWidth,
+          pageHeight,
+          xLeft,
+          xRight,
+          yTop,
+          bottom,
+        )
+      : image
       ? `q 0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)} re W n ${inch(pageWidth).toFixed(2)} 0 0 ${inch(pageHeight).toFixed(2)} 0 0 cm /Im0 Do Q\n`
       : page <= frontBlankCount || page > outroEndPage
       ? ""
@@ -934,7 +1026,7 @@ export function createNotebookInteriorPdf(
           ? fixedPageText(
         settings,
         title,
-        page - introEndPage,
+        writingPageNumber,
         pageWidth,
         pageHeight,
         xLeft,
@@ -962,7 +1054,7 @@ export function createNotebookInteriorPdf(
     objects.push(streamObject(content));
   }
   objects[1] = Buffer.from(
-    `<< /Type /Pages /Kids [${pageObjectNumbers.map((number) => `${number} 0 R`).join(" ")}] /Count ${totalPages} >>`,
+    `<< /Type /Pages /Kids [${pageObjectNumbers.map((number) => `${number} 0 R`).join(" ")}] /Count ${pageObjectNumbers.length} >>`,
     "ascii",
   );
   return buildPdf(objects);
@@ -1009,12 +1101,20 @@ export async function prependPlanner2027Pages(interiorPdf: Buffer, sourcePdf: Bu
   const generatedPages = await output.copyPages(generated, generated.getPageIndices());
   const plannerPages = await output.copyPages(source, pageIndices);
   const frontBlanks = Math.max(0, Number(settings.frontBlankPageCount) || 0);
+  const disabledPages = new Set(settings.disabledPages || []);
 
   for (let index = 0; index < generatedPages.length; index++) {
+    const printedPageNumber = index + 1;
+    if (disabledPages.has(printedPageNumber)) continue;
     if (index >= frontBlanks && index < frontBlanks + plannerPages.length) {
-      const plannerPage = plannerPages[index - frontBlanks];
-      fitPlannerPageToTrim(plannerPage, settings);
-      output.addPage(plannerPage);
+      const edit = settings.pageEdits?.[String(printedPageNumber)];
+      if (edit?.replace) {
+        output.addPage(generatedPages[index]);
+      } else {
+        const plannerPage = plannerPages[index - frontBlanks];
+        fitPlannerPageToTrim(plannerPage, settings);
+        output.addPage(plannerPage);
+      }
     } else {
       output.addPage(generatedPages[index]);
     }
