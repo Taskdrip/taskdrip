@@ -160,6 +160,16 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   headerText: "",
   footerText: "",
 };
+const EMPTY_NOTEBOOK_PAGE_EDIT: NotebookPageEdit = {
+  title: "",
+  subtitle: "",
+  body: "",
+  replace: false,
+  fitMode: "fit",
+  scale: 100,
+  offsetX: 0,
+  offsetY: 0,
+};
 const DEFAULT_COVER: CoverDesign = {
   style: "minimal",
   background: "#e7e2d4",
@@ -811,20 +821,34 @@ export default function AdminNotebookStudio() {
     setPage(clamped);
     setJumpValue(String(clamped));
   };
-  const updatePageEditAt = (pageNumber: number, key: keyof NotebookPageEdit, value: string | boolean) => {
+  const updatePageEditAt = (pageNumber: number, key: keyof NotebookPageEdit, value: string | boolean | number) => {
     updateDraft((project) => {
       const pageKey = String(pageNumber);
-      const current = project.settings.pageEdits[pageKey] || { title: "", subtitle: "", body: "", replace: false };
+      const current = project.settings.pageEdits[pageKey] || EMPTY_NOTEBOOK_PAGE_EDIT;
+      const plannerIndex = pageNumber - (project.settings.frontBlankPageCount || 0) - 1;
+      const isPlannerPage = project.settings.use2027PlannerPdf
+        && plannerIndex >= 0
+        && plannerIndex < NOTEBOOK_2027_PAGE_LABELS.length;
+      const nextEdit = { ...current, [key]: value } as NotebookPageEdit;
+      if (isPlannerPage && key === "replace" && value === true && !current.title.trim()) {
+        nextEdit.title = NOTEBOOK_2027_PAGE_LABELS[plannerIndex];
+      }
+      if (isPlannerPage && ["title", "subtitle", "body"].includes(key)) {
+        nextEdit.replace = true;
+        if (key !== "title" && !current.title.trim()) {
+          nextEdit.title = NOTEBOOK_2027_PAGE_LABELS[plannerIndex];
+        }
+      }
       return {
         ...project,
         settings: {
           ...project.settings,
-          pageEdits: { ...project.settings.pageEdits, [pageKey]: { ...current, [key]: value } },
+          pageEdits: { ...project.settings.pageEdits, [pageKey]: nextEdit },
         },
       };
     });
   };
-  const updateCurrentPageEdit = (key: keyof NotebookPageEdit, value: string | boolean) => {
+  const updateCurrentPageEdit = (key: keyof NotebookPageEdit, value: string | boolean | number) => {
     updatePageEditAt(page, key, value);
   };
   const togglePageExcludedAt = (pageNumber: number, excluded: boolean) => {
@@ -840,6 +864,22 @@ export default function AdminNotebookStudio() {
   };
   const toggleCurrentPageExcluded = (excluded: boolean) => {
     togglePageExcludedAt(page, excluded);
+  };
+  const resetPlannerPageLayoutAt = (pageNumber: number) => {
+    updateDraft((project) => {
+      const key = String(pageNumber);
+      const current = project.settings.pageEdits[key] || EMPTY_NOTEBOOK_PAGE_EDIT;
+      return {
+        ...project,
+        settings: {
+          ...project.settings,
+          pageEdits: {
+            ...project.settings.pageEdits,
+            [key]: { ...current, fitMode: "fit", scale: 100, offsetX: 0, offsetY: 0 },
+          },
+        },
+      };
+    });
   };
   const setTrimPreset = (value: string) => {
     updateSettings("trimSize", value);
@@ -1008,7 +1048,7 @@ export default function AdminNotebookStudio() {
       return (
         <article
           key={`intro-${pageNumber}`}
-          className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          className="relative mx-auto w-full shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
           style={{ aspectRatio: trimAspect }}
           aria-label={`${label} uploaded page preview`}
         >
@@ -1023,7 +1063,7 @@ export default function AdminNotebookStudio() {
     return (
       <article
         key={`intro-${pageNumber}`}
-        className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+        className="relative mx-auto w-full shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
         style={{ aspectRatio: trimAspect, backgroundColor: background }}
         aria-label={`${label} introductory page preview`}
       >
@@ -1197,7 +1237,7 @@ export default function AdminNotebookStudio() {
       return (
         <article
           key={`outro-${pageNumber}`}
-          className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          className="relative mx-auto w-full shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
           style={{ aspectRatio: trimAspect }}
           aria-label={`${label} uploaded page preview`}
         >
@@ -1209,7 +1249,7 @@ export default function AdminNotebookStudio() {
     return (
       <article
         key={`outro-${pageNumber}`}
-        className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+        className="relative mx-auto w-full shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
         style={{ aspectRatio: trimAspect, backgroundColor: background }}
         aria-label={`${label} closing page preview`}
       >
@@ -1336,8 +1376,13 @@ export default function AdminNotebookStudio() {
       : "2 / 3";
   })();
 
-  const currentPageEdit = draft?.settings.pageEdits[String(page)] || { title: "", subtitle: "", body: "", replace: false };
+  const currentPageEdit = draft?.settings.pageEdits[String(page)] || EMPTY_NOTEBOOK_PAGE_EDIT;
   const currentPageExcluded = Boolean(draft?.settings.disabledPages.includes(page));
+  const currentPlannerPage = Boolean(
+    draft?.settings.use2027PlannerPdf
+    && page > (draft.settings.frontBlankPageCount || 0)
+    && page <= (draft.settings.frontBlankPageCount || 0) + NOTEBOOK_2027_PLANNER_PAGE_COUNT,
+  );
   const currentPageSection = (() => {
     if (!draft) return "Page";
     const frontBlanks = draft.settings.frontBlankPageCount || 0;
@@ -1355,6 +1400,63 @@ export default function AdminNotebookStudio() {
     return NOTEBOOK_OUTRO_PAGE_OPTIONS.find((option) => option.value === draft.settings.outroPages[outroIndex])?.label || "End page";
   })();
 
+  const renderPlannerPageLayout = (pageNumber: number, edit: NotebookPageEdit) => (
+    <div className="rounded-xl border border-[#e4dfd4] bg-[#fffdf8] p-3">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-semibold text-[#4d554c]">Original page fit</p>
+          <p className="text-[9px] leading-4 text-[#858477]">These settings affect the imported artwork and the printed PDF.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => resetPlannerPageLayoutAt(pageNumber)}
+          className="shrink-0 rounded-lg px-2 py-1.5 text-[9px] font-semibold text-[#45634d] hover:bg-[#edf2e9]"
+        >
+          Reset fit
+        </button>
+      </div>
+      <label className="mb-3 block text-[9px] font-semibold text-[#64665d]">
+        Fit method
+        <select
+          aria-label={`Fit method for printed page ${pageNumber}`}
+          value={edit.fitMode || "fit"}
+          onChange={(event) => updatePageEditAt(pageNumber, "fitMode", event.target.value as "fit" | "fill")}
+          className={`${inputClass} mt-1`}
+        >
+          <option value="fit">Fit whole page · no cropping</option>
+          <option value="fill">Fill trim · crop edges</option>
+        </select>
+      </label>
+      <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+        {([
+          ["scale", "Scale", 50, 160, "%"],
+          ["offsetX", "Horizontal position", -25, 25, "%"],
+          ["offsetY", "Vertical position", -25, 25, "%"],
+        ] as const).map(([key, label, min, max, suffix]) => {
+          const value = Number(edit[key] ?? (key === "scale" ? 100 : 0));
+          return (
+            <label key={key} className="block text-[9px] font-semibold text-[#64665d]">
+              <span className="mb-1 flex items-center justify-between gap-2">
+                <span>{label}</span>
+                <span className="tabular-nums text-[#45634d]">{value > 0 && key !== "scale" ? "+" : ""}{value}{suffix}</span>
+              </span>
+              <input
+                aria-label={`${label} for printed page ${pageNumber}`}
+                type="range"
+                min={min}
+                max={max}
+                step={key === "scale" ? 1 : 1}
+                value={value}
+                onChange={(event) => updatePageEditAt(pageNumber, key, Number(event.target.value))}
+                className="w-full accent-[#456e5a]"
+              />
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const renderInteriorPageContent = (pageNumber: number) => {
     const selectedIntroPages = draft?.settings.introPages || [];
     const selectedOutroPages = draft?.settings.outroPages || [];
@@ -1368,12 +1470,12 @@ export default function AdminNotebookStudio() {
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
     const writingPageNumber = pageNumber - introEndPage - (draft?.settings.disabledPages || [])
       .filter((excludedPage) => excludedPage > introEndPage && excludedPage < pageNumber).length;
-    const pageEdit = draft?.settings.pageEdits[String(pageNumber)];
+    const pageEdit = draft?.settings.pageEdits[String(pageNumber)] || EMPTY_NOTEBOOK_PAGE_EDIT;
     if (pageEdit?.replace) {
       return (
         <article
           key={`editable-${pageNumber}`}
-          className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          className="relative mx-auto w-full shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
           style={{ aspectRatio: trimAspect, backgroundColor: background }}
           aria-label={`Custom edited page ${pageNumber} preview`}
         >
@@ -1400,7 +1502,7 @@ export default function AdminNotebookStudio() {
       return (
         <article
           key={`blank-${pageNumber}`}
-          className="relative mx-auto w-full max-w-[420px] shrink-0 border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+          className="relative mx-auto w-full shrink-0 border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
           style={{ aspectRatio: trimAspect, backgroundColor: background }}
           aria-label="Intentional blank page preview"
         />
@@ -1409,16 +1511,26 @@ export default function AdminNotebookStudio() {
     if (pageNumber <= introEndPage) {
       if (usePlanner2027) {
         const plannerPage = pageNumber - frontBlankCount;
+        const previewParams = new URLSearchParams({
+          trimSize: String(draft!.settings.trimSize),
+          customWidth: String(draft!.settings.customWidth),
+          customHeight: String(draft!.settings.customHeight),
+          frontBlankPageCount: String(frontBlankCount),
+          fitMode: pageEdit.fitMode || "fit",
+          scale: String(pageEdit.scale ?? 100),
+          offsetX: String(pageEdit.offsetX ?? 0),
+          offsetY: String(pageEdit.offsetY ?? 0),
+        });
         return (
           <article
             key={`planner-2027-${pageNumber}`}
-            className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+            className="relative mx-auto w-full shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
             style={{ aspectRatio: trimAspect }}
             aria-label={`2027 planner opening page ${plannerPage} of ${NOTEBOOK_2027_PLANNER_PAGE_COUNT}`}
           >
             <iframe
               title={`2027 planner page ${plannerPage}`}
-              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?trimSize=${encodeURIComponent(String(draft!.settings.trimSize))}&customWidth=${encodeURIComponent(String(draft!.settings.customWidth))}&customHeight=${encodeURIComponent(String(draft!.settings.customHeight))}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?${previewParams.toString()}#toolbar=0&navpanes=0&scrollbar=0&view=Fit&zoom=page-fit`}
               className="h-full w-full border-0"
             />
           </article>
@@ -1466,7 +1578,7 @@ export default function AdminNotebookStudio() {
     return (
       <article
         key={pageNumber}
-        className="relative w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+        className="relative w-full shrink-0 overflow-hidden border border-[#d4cbb9] shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
         style={{ aspectRatio: trimAspect, backgroundColor: background, containerType: "inline-size" }}
         aria-label={`Writing page ${contentPageNumber} preview`}
       >
@@ -1514,7 +1626,7 @@ export default function AdminNotebookStudio() {
   const renderInteriorPage = (pageNumber: number) => {
     const excluded = draft?.settings.disabledPages.includes(pageNumber);
     return (
-      <div key={`page-frame-${pageNumber}`} className="relative w-full max-w-[420px] shrink-0">
+      <div key={`page-frame-${pageNumber}`} className="relative w-full shrink-0">
         {renderInteriorPageContent(pageNumber)}
         {excluded && (
           <div className="absolute inset-0 grid place-items-center rounded-sm bg-[#202720]/55 p-5 text-center">
@@ -1899,10 +2011,14 @@ export default function AdminNotebookStudio() {
                                   {NOTEBOOK_2027_PAGE_LABELS.map((label, index) => {
                                     const plannerPage = index + 1;
                                     const printedPage = draft.settings.frontBlankPageCount + plannerPage;
-                                    const pageEdit = draft.settings.pageEdits[String(printedPage)] || { title: "", subtitle: "", body: "", replace: false };
+                                    const pageEdit = draft.settings.pageEdits[String(printedPage)] || EMPTY_NOTEBOOK_PAGE_EDIT;
                                     const excluded = draft.settings.disabledPages.includes(printedPage);
                                     const expanded = expandedPlannerPage === plannerPage;
-                                    const status = excluded ? "Omitted" : pageEdit.replace ? "Custom page" : "Original";
+                                    const isAdjusted = pageEdit.fitMode === "fill"
+                                      || Number(pageEdit.scale ?? 100) !== 100
+                                      || Number(pageEdit.offsetX ?? 0) !== 0
+                                      || Number(pageEdit.offsetY ?? 0) !== 0;
+                                    const status = excluded ? "Omitted" : pageEdit.replace ? "Edited" : isAdjusted ? "Adjusted" : "Original";
                                     return (
                                       <div key={plannerPage} className={excluded ? "bg-[#fbf5f1]" : ""}>
                                         <div className="flex items-center gap-2 px-2 py-1.5">
@@ -1917,7 +2033,7 @@ export default function AdminNotebookStudio() {
                                               <span className="block truncate text-[10px] font-semibold text-[#4d554c]">{label}</span>
                                               <span className="block text-[9px] text-[#858477]">Printed page {printedPage}</span>
                                             </span>
-                                            <span className={`hidden shrink-0 rounded-full px-2 py-1 text-[8px] font-semibold sm:inline-flex ${excluded ? "bg-[#f5e6df] text-[#934b3a]" : pageEdit.replace ? "bg-[#e9efe6] text-[#45634d]" : "bg-[#f1efe9] text-[#77776b]"}`}>{status}</span>
+                                             <span className={`hidden shrink-0 rounded-full px-2 py-1 text-[8px] font-semibold sm:inline-flex ${excluded ? "bg-[#f5e6df] text-[#934b3a]" : pageEdit.replace || isAdjusted ? "bg-[#e9efe6] text-[#45634d]" : "bg-[#f1efe9] text-[#77776b]"}`}>{status}</span>
                                             <ChevronDown size={14} className={`shrink-0 text-[#77776b] transition-transform ${expanded ? "rotate-180" : ""}`} />
                                           </button>
                                           <label className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-2 text-[9px] font-semibold ${excluded ? "text-[#934b3a]" : "text-[#536651]"}`}>
@@ -1932,7 +2048,8 @@ export default function AdminNotebookStudio() {
                                           </label>
                                         </div>
                                         {expanded && (
-                                          <div className="space-y-3 border-t border-[#eee9df] bg-[#faf8f2] px-3 py-3">
+                                           <div className="space-y-3 border-t border-[#eee9df] bg-[#faf8f2] px-3 py-3">
+                                             {renderPlannerPageLayout(printedPage, pageEdit)}
                                             <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-[#e4dfd4] bg-[#fffdf8] px-3 py-2.5">
                                               <input
                                                 id={`planner-replace-${plannerPage}`}
@@ -1942,20 +2059,20 @@ export default function AdminNotebookStudio() {
                                                 className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
                                               />
                                               <span>
-                                                <span className="block text-[10px] font-semibold text-[#4d554c]">Use a custom replacement page</span>
-                                                <span className="block text-[9px] leading-4 text-[#858477]">The original design stays untouched. This page prints with your text and the notebook’s writing rules.</span>
+                                                 <span className="block text-[10px] font-semibold text-[#4d554c]">Use editable page content</span>
+                                                 <span className="block text-[9px] leading-4 text-[#858477]">This replaces the source layout with your editable text and notebook rules. Turn it off to restore the original artwork.</span>
                                               </span>
                                             </label>
-                                            <div className={`grid gap-2 sm:grid-cols-2 ${pageEdit.replace ? "" : "opacity-55"}`}>
+                                             <p className="px-1 text-[9px] leading-4 text-[#77776b]">Type below to switch on the editable version automatically and see it in the proof.</p>
+                                             <div className="grid gap-2 sm:grid-cols-2">
                                               <Field label="Custom heading">
                                                 <input
                                                   aria-label={`${label} custom heading`}
                                                   value={pageEdit.title}
                                                   maxLength={120}
-                                                  disabled={!pageEdit.replace}
                                                   onChange={(event) => updatePageEditAt(printedPage, "title", event.target.value)}
                                                   placeholder={label}
-                                                  className={`${inputClass} disabled:cursor-not-allowed`}
+                                                   className={inputClass}
                                                 />
                                               </Field>
                                               <Field label="Supporting text">
@@ -1963,10 +2080,9 @@ export default function AdminNotebookStudio() {
                                                   aria-label={`${label} supporting text`}
                                                   value={pageEdit.subtitle}
                                                   maxLength={300}
-                                                  disabled={!pageEdit.replace}
                                                   onChange={(event) => updatePageEditAt(printedPage, "subtitle", event.target.value)}
                                                   placeholder="Optional"
-                                                  className={`${inputClass} disabled:cursor-not-allowed`}
+                                                   className={inputClass}
                                                 />
                                               </Field>
                                               <Field label="Page text" className="sm:col-span-2">
@@ -1975,10 +2091,9 @@ export default function AdminNotebookStudio() {
                                                   value={pageEdit.body}
                                                   maxLength={2400}
                                                   rows={3}
-                                                  disabled={!pageEdit.replace}
                                                   onChange={(event) => updatePageEditAt(printedPage, "body", event.target.value)}
                                                   placeholder="Add prompts, notes, or instructions"
-                                                  className={`${textareaClass} min-h-[72px] disabled:cursor-not-allowed`}
+                                                   className={`${textareaClass} min-h-[72px]`}
                                                 />
                                               </Field>
                                             </div>
@@ -2346,9 +2461,9 @@ export default function AdminNotebookStudio() {
                             <section className="border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-4 sm:px-5" aria-label="Advanced page editor">
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">Advanced page editor</p>
+                                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">{currentPlannerPage ? "Planner page editor" : "Advanced page editor"}</p>
                                   <h3 className="mt-1 text-[13px] font-semibold text-[#3f463e]">{currentPageSection} <span className="font-normal text-[#858477]">· page {page} of {logicalPageCount}</span></h3>
-                                  <p className="mt-1 max-w-2xl text-[10px] leading-4 text-[#77776b]">Edit this page’s text, replace its layout with a custom ruled page, or exclude only this page from the downloaded interior.</p>
+                                  <p className="mt-1 max-w-2xl text-[10px] leading-4 text-[#77776b]">{currentPlannerPage ? "Adjust the imported page’s fit, scale, and position for print. Type in the fields below to create an editable replacement that updates this proof." : "Edit this page’s text, replace its layout with a custom ruled page, or exclude only this page from the downloaded interior."}</p>
                                 </div>
                                 <label className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-semibold ${currentPageExcluded ? "border-[#e2b9a9] bg-[#fff0e9] text-[#934432]" : "border-[#d3ddce] bg-[#edf3ea] text-[#42634d]"}`}>
                                   <input
@@ -2361,13 +2476,15 @@ export default function AdminNotebookStudio() {
                                 </label>
                               </div>
                               {currentPageExcluded && <p role="status" className="mt-3 rounded-lg border border-[#e4c5b8] bg-[#fff4ee] px-3 py-2 text-[10px] text-[#8c4736]">This page is excluded from the KDP interior. Turn on “Include in download” to restore it.</p>}
+                              {currentPlannerPage && <div className="mt-4">{renderPlannerPageLayout(page, currentPageEdit)}</div>}
                               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                                <Field label="Custom page title">
+                                <Field label={currentPlannerPage ? "Page title" : "Custom page title"}>
                                   <input
                                     aria-label="Custom page title"
                                     value={currentPageEdit.title}
                                     maxLength={120}
                                     onChange={(event) => updateCurrentPageEdit("title", event.target.value)}
+                                    placeholder={currentPlannerPage ? NOTEBOOK_2027_PAGE_LABELS[page - (draft?.settings.frontBlankPageCount || 0) - 1] : ""}
                                     className={inputClass}
                                   />
                                 </Field>
@@ -2381,7 +2498,7 @@ export default function AdminNotebookStudio() {
                                   />
                                 </Field>
                                 <div className="sm:col-span-2">
-                                  <Field label="Page content" hint="Add a short note or prompt. The exported page keeps the selected writing rules below it.">
+                                  <Field label={currentPlannerPage ? "Page content" : "Page content"} hint={currentPlannerPage ? "Typing here switches to an editable ruled page; your original remains available by turning this off." : "Add a short note or prompt. The exported page keeps the selected writing rules below it."}>
                                     <textarea
                                       aria-label="Custom page content"
                                       value={currentPageEdit.body}
@@ -2400,7 +2517,7 @@ export default function AdminNotebookStudio() {
                                   onChange={(event) => updateCurrentPageEdit("replace", event.target.checked)}
                                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
                                 />
-                                <span><strong className="text-[#42473f]">Replace this page’s current layout with my custom content.</strong> When off, the original page design is preserved. Save changes and generate files to apply edits to the PDF.</span>
+                                <span><strong className="text-[#42473f]">{currentPlannerPage ? "Show editable page content" : "Replace this page’s current layout with my custom content."}</strong> When off, the original page design is preserved. Text edits switch this on automatically. Save changes and generate files to apply edits to the PDF.</span>
                               </label>
                             </section>
                           )}

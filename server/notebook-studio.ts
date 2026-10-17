@@ -142,11 +142,18 @@ function normalizePageEdits(input: unknown, previous: NotebookSettings["pageEdit
       throw Object.assign(new Error(`Edit for page ${rawPage} must be an object.`), { statusCode: 400 });
     }
     const edit = rawEdit as Record<string, unknown>;
+    const scale = Number(edit.scale);
+    const offsetX = Number(edit.offsetX);
+    const offsetY = Number(edit.offsetY);
     edits[rawPage] = {
       title: cleanText(edit.title, 120),
       subtitle: cleanText(edit.subtitle, 300),
       body: cleanText(edit.body, 2400),
       replace: edit.replace === true,
+      fitMode: edit.fitMode === "fill" ? "fill" : "fit",
+      scale: Number.isFinite(scale) ? Math.max(50, Math.min(160, scale)) : 100,
+      offsetX: Number.isFinite(offsetX) ? Math.max(-25, Math.min(25, offsetX)) : 0,
+      offsetY: Number.isFinite(offsetY) ? Math.max(-25, Math.min(25, offsetY)) : 0,
     };
   }
   return edits;
@@ -654,10 +661,27 @@ export function registerNotebookStudioRoutes(app: Express) {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
       const savedSettings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const plannerPageNumber = Number(req.params.page);
+      if (!Number.isInteger(plannerPageNumber) || plannerPageNumber < 1 || plannerPageNumber > NOTEBOOK_2027_PLANNER_PAGE_COUNT) {
+        return res.status(400).json({ message: "Choose a 2027 planner page from 1 to 30." });
+      }
+      const printedPageNumber = savedSettings.frontBlankPageCount + plannerPageNumber;
+      const pageKey = String(printedPageNumber);
+      const savedEdit = savedSettings.pageEdits[pageKey] || { title: "", subtitle: "", body: "", replace: false };
       const settings = normalizeSettings({
         trimSize: req.query.trimSize,
         customWidth: req.query.customWidth,
         customHeight: req.query.customHeight,
+        pageEdits: {
+          ...savedSettings.pageEdits,
+          [pageKey]: {
+            ...savedEdit,
+            fitMode: req.query.fitMode ?? savedEdit.fitMode,
+            scale: req.query.scale ?? savedEdit.scale,
+            offsetX: req.query.offsetX ?? savedEdit.offsetX,
+            offsetY: req.query.offsetY ?? savedEdit.offsetY,
+          },
+        },
       }, savedSettings);
       const sourcePdf = await readTaskdrip2027PlannerPdf();
       const previewPdf = await createPlanner2027PagePreview(sourcePdf, Number(req.params.page), settings);

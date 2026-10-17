@@ -1060,15 +1060,24 @@ export function createNotebookInteriorPdf(
   return buildPdf(objects);
 }
 
-function fitPlannerPageToTrim(page: PDFPage, settings: NotebookSettings) {
+function fitPlannerPageToTrim(page: PDFPage, settings: NotebookSettings, edit?: NotebookPageEdit) {
   const trim = notebookTrim(settings);
   const targetWidth = inch(trim.width);
   const targetHeight = inch(trim.height);
   const sourceWidth = page.getWidth();
   const sourceHeight = page.getHeight();
-  const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  const fitScale = edit?.fitMode === "fill"
+    ? Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight)
+    : Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  const zoom = Math.max(50, Math.min(160, Number(edit?.scale ?? 100))) / 100;
+  const scale = fitScale * (Number.isFinite(zoom) ? zoom : 1);
+  const offsetX = Math.max(-25, Math.min(25, Number(edit?.offsetX ?? 0))) * targetWidth / 100;
+  const offsetY = Math.max(-25, Math.min(25, Number(edit?.offsetY ?? 0))) * targetHeight / 100;
   page.scaleContent(scale, scale);
-  page.translateContent((targetWidth - sourceWidth * scale) / 2, (targetHeight - sourceHeight * scale) / 2);
+  page.translateContent(
+    (targetWidth - sourceWidth * scale) / 2 + offsetX,
+    (targetHeight - sourceHeight * scale) / 2 + offsetY,
+  );
   page.setSize(targetWidth, targetHeight);
 }
 
@@ -1088,7 +1097,8 @@ export async function createPlanner2027PagePreview(sourcePdf: Buffer, pageNumber
   const { source, pageIndices } = await loadPlannerPages(sourcePdf);
   const output = await PDFDocument.create();
   const [page] = await output.copyPages(source, [pageIndices[pageNumber - 1]]);
-  fitPlannerPageToTrim(page, settings);
+  const printedPageNumber = Math.max(0, Number(settings.frontBlankPageCount) || 0) + pageNumber;
+  fitPlannerPageToTrim(page, settings, settings.pageEdits?.[String(printedPageNumber)]);
   output.addPage(page);
   return Buffer.from(await output.save({ useObjectStreams: false }));
 }
@@ -1112,7 +1122,7 @@ export async function prependPlanner2027Pages(interiorPdf: Buffer, sourcePdf: Bu
         output.addPage(generatedPages[index]);
       } else {
         const plannerPage = plannerPages[index - frontBlanks];
-        fitPlannerPageToTrim(plannerPage, settings);
+        fitPlannerPageToTrim(plannerPage, settings, settings.pageEdits?.[String(printedPageNumber)]);
         output.addPage(plannerPage);
       }
     } else {

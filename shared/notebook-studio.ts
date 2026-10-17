@@ -48,6 +48,10 @@ export type NotebookPageEdit = {
   subtitle: string;
   body: string;
   replace: boolean;
+  fitMode?: "fit" | "fill";
+  scale?: number;
+  offsetX?: number;
+  offsetY?: number;
 };
 
 export type NotebookPageArtGroup = "intro" | "outro";
