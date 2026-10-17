@@ -1,4 +1,5 @@
 import { deflateSync, inflateSync } from "node:zlib";
+import { PDFDocument, type PDFPage } from "pdf-lib";
 import {
   notebookBlankPageCount,
   notebookDiaryPageDate,
@@ -7,6 +8,7 @@ import {
   notebookOutroPageCount,
   notebookTotalPageCount,
   DEFAULT_NOTEBOOK_PAGE_COPY,
+  NOTEBOOK_2027_PLANNER_PAGE_COUNT,
   notebookPageArtKey,
   notebookPageCopy,
   type NotebookCoverDesign,
@@ -51,7 +53,7 @@ function pageLimit(settings: NotebookSettings, width: number, height: number) {
 export function validateNotebook(
   title: string,
   settings: NotebookSettings,
-  files: { interiorExists: boolean; coverExists: boolean },
+  files: { interiorExists: boolean; coverExists: boolean; plannerPdfAvailable?: boolean },
 ) {
   const { width, height } = notebookTrim(settings);
   const totalPages = notebookTotalPageCount(settings);
@@ -59,7 +61,7 @@ export function validateNotebook(
   const outroPages = notebookOutroPageCount(settings);
   const blankPages = notebookBlankPageCount(settings);
   const frontBlanks = settings.frontBlankPageCount || 0;
-  const backBlanks = settings.backBlankPageCount || 0;
+  const backBlanks = settings.use2027PlannerPdf ? 0 : settings.backBlankPageCount || 0;
   const items: Array<{ status: "ready" | "warning" | "failed" | "manual"; label: string; message: string }> = [];
   const supportedTrims = new Set(["5x8", "5.5x8.5", "6x9", "8.27x11.69"]);
   const exactTrimSupported = settings.trimSize !== "custom" && supportedTrims.has(settings.trimSize);
@@ -102,13 +104,13 @@ export function validateNotebook(
     });
   };
   addReferenceCheck(
-    settings.introPages.includes("world-presidents"),
+    !settings.use2027PlannerPdf && settings.introPages.includes("world-presidents"),
     "World leader",
     settings.worldLeaderEntries || [],
     ["country", "leader", "office", "checkedDate", "source"],
   );
   addReferenceCheck(
-    settings.introPages.includes("current-affairs"),
+    !settings.use2027PlannerPdf && settings.introPages.includes("current-affairs"),
     "Current affairs",
     settings.currentAffairsEntries || [],
     ["headline", "date", "source", "whyItMatters"],
@@ -126,6 +128,41 @@ export function validateNotebook(
         : settings.trimSize === "custom" && Math.abs(width - 8.3) < 0.05 && Math.abs(height - 11.6) < 0.1
           ? "8.3 × 11.6 inches is not an exact KDP trim preset. A4 (8.27 × 11.69 inches) is supported and is the closest option."
           : "This custom trim is within the KDP paperback dimension limits, but it is not a listed KDP preset. Verify it in KDP before upload.",
+  });
+
+  if (settings.use2027PlannerPdf) {
+    const plannerTrimValid = settings.trimSize === "8.27x11.69" && !settings.bleed;
+    const plannerSourceStatus = files.plannerPdfAvailable === false
+      ? "failed"
+      : files.plannerPdfAvailable === true
+        ? "ready"
+        : "manual";
+    items.push({
+      status: !plannerTrimValid ? "failed" : plannerSourceStatus,
+      label: "Imported 2027 planner pages",
+      message: !plannerTrimValid
+        ? "The supplied planner pages are A4. Use the 8.27 × 11.69 inch A4 trim preset and turn bleed off."
+        : files.plannerPdfAvailable === false
+          ? "The supplied 2027 planner PDF is not available. Restore the attached interior PDF before generating."
+          : files.plannerPdfAvailable === true
+            ? "The 30 interior pages from the supplied PDF are ready; its front and back cover pages are excluded."
+            : "The 30 interior pages from the supplied PDF will be checked during generation; its cover pages are excluded.",
+    });
+  }
+
+  const lineWeightValid = Number(settings.lineThickness) >= 0.75;
+  items.push({
+    status: lineWeightValid ? "ready" : "failed",
+    label: "Printed rule weight",
+    message: lineWeightValid
+      ? `${Number(settings.lineThickness).toFixed(2)} pt meets KDP's 0.75 pt minimum for printed lines.`
+      : "Increase the ruled-line weight to at least 0.75 pt before generating a KDP interior.",
+  });
+
+  items.push({
+    status: "manual",
+    label: "Font embedding",
+    message: "Inspect the generated pages in KDP's Print Previewer. The generated pages use standard PDF Helvetica fonts; KDP's preview is the final check for font compatibility.",
   });
 
   const minGutter = totalPages <= 150 ? 0.375
@@ -848,7 +885,9 @@ export function createNotebookInteriorPdf(
   const trim = notebookTrim(settings);
   const pageWidth = trim.width + (settings.bleed ? BLEED_INCHES : 0);
   const pageHeight = trim.height + (settings.bleed ? BLEED_INCHES * 2 : 0);
-  const introCount = settings.introPages?.length || 0;
+  const introCount = settings.use2027PlannerPdf
+    ? NOTEBOOK_2027_PLANNER_PAGE_COUNT
+    : settings.introPages?.length || 0;
   const outroCount = notebookOutroPageCount(settings);
   const frontBlankCount = settings.frontBlankPageCount || 0;
   const backBlankCount = settings.backBlankPageCount || 0;
@@ -875,7 +914,7 @@ export function createNotebookInteriorPdf(
     const xLeft = left;
     const xRight = pageWidth - right;
     const yTop = pageHeight - top;
-    const introType = settings.introPages?.[page - frontBlankCount - 1];
+    const introType = settings.use2027PlannerPdf ? undefined : settings.introPages?.[page - frontBlankCount - 1];
     const outroType = settings.outroPages?.[page - writingEndPage - 1];
     const artworkKey = introType
       ? notebookPageArtKey("intro", introType)
@@ -887,6 +926,8 @@ export function createNotebookInteriorPdf(
       ? `q 0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)} re W n ${inch(pageWidth).toFixed(2)} 0 0 ${inch(pageHeight).toFixed(2)} 0 0 cm /Im0 Do Q\n`
       : page <= frontBlankCount || page > outroEndPage
       ? ""
+      : settings.use2027PlannerPdf && page <= introEndPage
+        ? ""
       : page <= introEndPage && introType
         ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom)
         : page <= writingEndPage
@@ -925,6 +966,63 @@ export function createNotebookInteriorPdf(
     "ascii",
   );
   return buildPdf(objects);
+}
+
+function fitPlannerPageToTrim(page: PDFPage, settings: NotebookSettings) {
+  const trim = notebookTrim(settings);
+  const targetWidth = inch(trim.width);
+  const targetHeight = inch(trim.height);
+  const sourceWidth = page.getWidth();
+  const sourceHeight = page.getHeight();
+  const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  page.scaleContent(scale, scale);
+  page.translateContent((targetWidth - sourceWidth * scale) / 2, (targetHeight - sourceHeight * scale) / 2);
+  page.setSize(targetWidth, targetHeight);
+}
+
+async function loadPlannerPages(sourcePdf: Buffer) {
+  const source = await PDFDocument.load(sourcePdf);
+  const pageIndices = Array.from({ length: NOTEBOOK_2027_PLANNER_PAGE_COUNT }, (_, index) => index + 2);
+  if (source.getPageCount() <= pageIndices[pageIndices.length - 1]) {
+    throw new Error("The supplied 2027 planner PDF is incomplete; its 30 interior pages could not be imported.");
+  }
+  return { source, pageIndices };
+}
+
+export async function createPlanner2027PagePreview(sourcePdf: Buffer, pageNumber: number, settings: NotebookSettings) {
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > NOTEBOOK_2027_PLANNER_PAGE_COUNT) {
+    throw new Error("Choose a 2027 planner page from 1 to 30.");
+  }
+  const { source, pageIndices } = await loadPlannerPages(sourcePdf);
+  const output = await PDFDocument.create();
+  const [page] = await output.copyPages(source, [pageIndices[pageNumber - 1]]);
+  fitPlannerPageToTrim(page, settings);
+  output.addPage(page);
+  return Buffer.from(await output.save({ useObjectStreams: false }));
+}
+
+export async function prependPlanner2027Pages(interiorPdf: Buffer, sourcePdf: Buffer, settings: NotebookSettings) {
+  if (!settings.use2027PlannerPdf) return interiorPdf;
+  const generated = await PDFDocument.load(interiorPdf);
+  const { source, pageIndices } = await loadPlannerPages(sourcePdf);
+  const output = await PDFDocument.create();
+  const generatedPages = await output.copyPages(generated, generated.getPageIndices());
+  const plannerPages = await output.copyPages(source, pageIndices);
+  const frontBlanks = Math.max(0, Number(settings.frontBlankPageCount) || 0);
+
+  for (let index = 0; index < generatedPages.length; index++) {
+    if (index >= frontBlanks && index < frontBlanks + plannerPages.length) {
+      const plannerPage = plannerPages[index - frontBlanks];
+      fitPlannerPageToTrim(plannerPage, settings);
+      output.addPage(plannerPage);
+    } else {
+      output.addPage(generatedPages[index]);
+    }
+  }
+
+  output.setTitle(settings.subtitle ? `${settings.subtitle} · 2027 planner` : "2027 planner journal");
+  if (settings.authorName) output.setAuthor(settings.authorName);
+  return Buffer.from(await output.save({ useObjectStreams: false }));
 }
 
 function xmlEscape(value: unknown) {

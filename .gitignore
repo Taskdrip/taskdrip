@@ -11,6 +11,7 @@ uploads/*
 !uploads/.gitkeep
 .private-product-files/
 .private-notebook-files/
+.agents/outputs/taskdrip_journal_reference/
 *.log
 .cache
 .upm

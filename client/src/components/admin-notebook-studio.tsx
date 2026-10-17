@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import {
   DEFAULT_NOTEBOOK_PAGE_COPY,
+  NOTEBOOK_2027_PLANNER_PAGE_COUNT,
   NOTEBOOK_INTRO_PAGE_OPTIONS,
   NOTEBOOK_LINE_SPACING_PRESETS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
@@ -44,6 +45,9 @@ import {
   notebookPageArtKey,
   notebookPageCopy,
   notebookPrintArtPixels,
+  notebookIntroPageCount,
+  notebookOutroPageCount,
+  notebookTotalPageCount,
   notebookDiaryPageCount,
   notebookDiaryPageDate,
   type NotebookCurrentAffairsEntry,
@@ -70,6 +74,7 @@ type NotebookSettings = {
   lineStyle: string;
   introPages: NotebookIntroPageType[];
   outroPages: NotebookOutroPageType[];
+  use2027PlannerPdf: boolean;
   pageCopy: Record<string, NotebookPageCopy>;
   pageArtwork: Record<string, string>;
   frontBlankPageCount: number;
@@ -131,6 +136,7 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   lineStyle: "classic",
   introPages: [],
   outroPages: [],
+  use2027PlannerPdf: false,
   pageCopy: DEFAULT_NOTEBOOK_PAGE_COPY,
   pageArtwork: {},
   frontBlankPageCount: 0,
@@ -140,7 +146,7 @@ const DEFAULT_SETTINGS: NotebookSettings = {
   diaryStartMonth: "",
   lineSpacing: 0.32,
   lineColor: "#c9d0c8",
-  lineThickness: 0.55,
+  lineThickness: 0.75,
   showPageNumbers: true,
   ownershipPage: true,
   showDateField: false,
@@ -341,10 +347,9 @@ export default function AdminNotebookStudio() {
 
   const activeProject = useMemo(() => projects.find((project) => project.id === activeId) || null, [projects, activeId]);
   const mainPageCount = Math.max(1, Number(draft?.settings.pageCount) || 160);
-  const introPageCount = draft?.settings.introPages?.length || 0;
-  const outroPageCount = draft?.settings.outroPages?.length || 0;
-  const pageCount = mainPageCount + introPageCount + outroPageCount
-    + (draft?.settings.frontBlankPageCount || 0) + (draft?.settings.backBlankPageCount || 0);
+  const introPageCount = draft ? notebookIntroPageCount(draft.settings) : 0;
+  const outroPageCount = draft ? notebookOutroPageCount(draft.settings) : 0;
+  const pageCount = draft ? notebookTotalPageCount(draft.settings) : mainPageCount;
   const filteredProjects = useMemo(() => {
     const needle = listSearch.trim().toLowerCase();
     return needle ? projects.filter((project) => project.title.toLowerCase().includes(needle)) : projects;
@@ -439,6 +444,22 @@ export default function AdminNotebookStudio() {
         },
       };
     });
+  };
+  const toggle2027PlannerPdf = (enabled: boolean) => {
+    updateDraft((project) => ({
+      ...project,
+      settings: {
+        ...project.settings,
+        use2027PlannerPdf: enabled,
+        ...(enabled ? {
+          trimSize: "8.27x11.69",
+          customWidth: 8.27,
+          customHeight: 11.69,
+          bleed: false,
+          lineThickness: Math.max(0.75, Number(project.settings.lineThickness) || 0.75),
+        } : {}),
+      },
+    }));
   };
   const updateLeaderEntry = (index: number, key: keyof NotebookLeaderEntry, value: string) => {
     updateDraft((project) => {
@@ -1264,9 +1285,12 @@ export default function AdminNotebookStudio() {
     const selectedIntroPages = draft?.settings.introPages || [];
     const selectedOutroPages = draft?.settings.outroPages || [];
     const frontBlankCount = draft?.settings.frontBlankPageCount || 0;
-    const introEndPage = frontBlankCount + selectedIntroPages.length;
+    const usePlanner2027 = !!draft?.settings.use2027PlannerPdf;
+    const activeIntroCount = usePlanner2027 ? NOTEBOOK_2027_PLANNER_PAGE_COUNT : selectedIntroPages.length;
+    const activeOutroCount = usePlanner2027 ? 0 : selectedOutroPages.length;
+    const introEndPage = frontBlankCount + activeIntroCount;
     const writingEndPage = introEndPage + mainPageCount;
-    const outroEndPage = writingEndPage + selectedOutroPages.length;
+    const outroEndPage = writingEndPage + activeOutroCount;
     const background = draft?.settings.paper === "white" ? "#fffefa" : "#fbf6e9";
     if (pageNumber <= frontBlankCount || pageNumber > outroEndPage) {
       return (
@@ -1279,6 +1303,23 @@ export default function AdminNotebookStudio() {
       );
     }
     if (pageNumber <= introEndPage) {
+      if (usePlanner2027) {
+        const plannerPage = pageNumber - frontBlankCount;
+        return (
+          <article
+            key={`planner-2027-${pageNumber}`}
+            className="relative mx-auto w-full max-w-[420px] shrink-0 overflow-hidden border border-[#d4cbb9] bg-white shadow-[0_24px_58px_rgba(67,57,39,.18),0_3px_8px_rgba(67,57,39,.08)]"
+            style={{ aspectRatio: trimAspect }}
+            aria-label={`2027 planner opening page ${plannerPage} of ${NOTEBOOK_2027_PLANNER_PAGE_COUNT}`}
+          >
+            <iframe
+              title={`2027 planner page ${plannerPage}`}
+              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+              className="h-full w-full border-0"
+            />
+          </article>
+        );
+      }
       return renderIntroPage(selectedIntroPages[pageNumber - frontBlankCount - 1], pageNumber);
     }
     if (pageNumber > writingEndPage) {
@@ -1703,10 +1744,33 @@ export default function AdminNotebookStudio() {
                               </div>
                             </div>
                           </fieldset>
-                          <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">
+                          <fieldset className="rounded-xl border border-[#d6dfd5] bg-[#f8fbf6] p-3">
+                            <legend className="px-1 text-[11px] font-semibold text-[#4d5f50]">2027 planner pages from the supplied PDF</legend>
+                            <label className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-[#eff4ed]">
+                              <input
+                                type="checkbox"
+                                checked={draft.settings.use2027PlannerPdf}
+                                onChange={(event) => toggle2027PlannerPdf(event.target.checked)}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
+                              />
+                              <span>
+                                <span className="block text-[11px] font-semibold text-[#4d554c]">Include the imported 2027 opening section</span>
+                                <span className="block text-[9px] leading-4 text-[#858477]">
+                                  Uses {NOTEBOOK_2027_PLANNER_PAGE_COUNT} interior pages: the year opening, annual and monthly planners, notes/tasks, and December closing page. The source PDF’s front and back covers are excluded.
+                                </span>
+                              </span>
+                            </label>
+                            <p className="px-2 pb-1 text-[10px] leading-4 text-[#667267]">
+                              When enabled, those pages print first and your evenly ruled writing pages follow December through the final page. It selects A4 trim with no bleed and at least 0.75 pt rule weight; other custom intro/outro designs are retained but paused.
+                            </p>
+                          </fieldset>
+                          <fieldset
+                            disabled={draft.settings.use2027PlannerPdf}
+                            className={`rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3 ${draft.settings.use2027PlannerPdf ? "opacity-60" : ""}`}
+                          >
                             <legend className="px-1 text-[11px] font-semibold text-[#595b52]">Intro pages before the writing pages</legend>
                             <p className="mb-2 text-[10px] leading-4 text-[#858477]">
-                              Choose any designs to print first. They are separate from the writing-page count; the 2027 calendar includes every date.
+                              Choose standard designs to print first. They are separate from the writing-page count.
                             </p>
                             <div className="grid gap-1 sm:grid-cols-2">
                               {NOTEBOOK_INTRO_PAGE_OPTIONS.map((option) => (
@@ -1725,7 +1789,9 @@ export default function AdminNotebookStudio() {
                               ))}
                             </div>
                             <p className="mt-2 border-t border-[#ece7dc] pt-2 text-[10px] text-[#6d7167]">
-                              {introPageCount} intro {introPageCount === 1 ? "page" : "pages"} selected · {pageCount} total printed pages
+                              {draft.settings.use2027PlannerPdf
+                                ? `${NOTEBOOK_2027_PLANNER_PAGE_COUNT} imported planner pages`
+                                : `${introPageCount} intro ${introPageCount === 1 ? "page" : "pages"} selected`} · {pageCount} total printed pages
                             </p>
                           </fieldset>
                           <fieldset className="rounded-xl border border-[#e2dccf] bg-[#fffdf8] p-3">

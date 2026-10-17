@@ -12,6 +12,7 @@ import {
   NOTEBOOK_INTRO_PAGE_OPTIONS,
   NOTEBOOK_OUTRO_PAGE_OPTIONS,
   DEFAULT_NOTEBOOK_PAGE_COPY,
+  NOTEBOOK_2027_PLANNER_PAGE_COUNT,
   notebookPageArtKey,
   notebookPrintArtPixels,
   currentNotebookDiaryStartMonth,
@@ -25,10 +26,19 @@ import {
 } from "@shared/notebook-studio";
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
-import { createNotebookCoverPdf, createNotebookCoverSvg, createNotebookInteriorPdf, inspectNotebookPageImage, validateNotebook } from "./notebook-pdf";
+import {
+  createNotebookCoverPdf,
+  createNotebookCoverSvg,
+  createNotebookInteriorPdf,
+  createPlanner2027PagePreview,
+  inspectNotebookPageImage,
+  prependPlanner2027Pages,
+  validateNotebook,
+} from "./notebook-pdf";
 
 const PROJECT_FILES_DIR = path.resolve(process.cwd(), ".private-notebook-files");
 const PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+const TASKDRIP_2027_PLANNER_PDF = path.resolve(process.cwd(), "attached_assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf");
 const pageArtUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 1 },
@@ -144,6 +154,9 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
   }
   const raw = input as Record<string, any>;
   const settings = { ...previous };
+  settings.use2027PlannerPdf = raw.use2027PlannerPdf === undefined
+    ? Boolean(previous.use2027PlannerPdf)
+    : raw.use2027PlannerPdf === true;
   settings.pageCopy = normalizePageCopy(raw.pageCopy, previous.pageCopy || DEFAULT_NOTEBOOK_PAGE_COPY);
   settings.pageArtwork = normalizePageArtwork(raw.pageArtwork, previous.pageArtwork || {});
   settings.lineSpacing = normalizeNotebookLineSpacing(raw.lineSpacing ?? previous.lineSpacing);
@@ -382,7 +395,15 @@ async function exists(file: string) {
   }
 }
 
-function report(project: any, files?: { interiorExists: boolean; coverExists: boolean }) {
+async function readTaskdrip2027PlannerPdf() {
+  try {
+    return await readFile(TASKDRIP_2027_PLANNER_PDF);
+  } catch {
+    throw Object.assign(new Error("The supplied 2027 planner PDF is unavailable in this app build."), { statusCode: 503 });
+  }
+}
+
+function report(project: any, files?: { interiorExists: boolean; coverExists: boolean; plannerPdfAvailable?: boolean }) {
   return validateNotebook(
     project.title,
     project.settings as NotebookSettings,
@@ -563,6 +584,25 @@ export function registerNotebookStudioRoutes(app: Express) {
     }
   });
 
+  app.get(`${base}/:id/files/planner-2027/page/:page`, isAuthenticated, requirePublishingAdmin, async (req: any, res) => {
+    try {
+      const project = await getOwnedProject(req.params.id, req.user.id);
+      if (!project) return res.status(404).json({ message: "Notebook project not found." });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      if (!settings.use2027PlannerPdf) return res.status(404).json({ message: "The imported 2027 planner is not enabled." });
+      const sourcePdf = await readTaskdrip2027PlannerPdf();
+      const previewPdf = await createPlanner2027PagePreview(sourcePdf, Number(req.params.page), settings);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "inline; filename=\"taskdrip-2027-planner-page.pdf\"");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.send(previewPdf);
+    } catch (error: any) {
+      if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
+      console.error("[notebook-studio] Could not render imported planner preview:", error);
+      res.status(500).json({ message: "Could not preview the imported 2027 planner page." });
+    }
+  });
+
   app.delete(`${base}/:id/page-art/:group/:type`, isAuthenticated, requirePublishingAdmin, async (req: any, res) => {
     try {
       const project = await getOwnedProject(req.params.id, req.user.id);
@@ -656,7 +696,9 @@ export function registerNotebookStudioRoutes(app: Express) {
         exists(filePath(project.id, "interior")),
         exists(filePath(project.id, "cover")),
       ]);
-      const validation = report(project, { interiorExists, coverExists });
+      const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
       await db.update(creatorNotebookProjects).set({ validation, updatedAt: new Date() })
         .where(and(eq(creatorNotebookProjects.id, project.id), eq(creatorNotebookProjects.ownerId, req.user.id)));
       res.json({ validation });
@@ -671,7 +713,12 @@ export function registerNotebookStudioRoutes(app: Express) {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      const previousReport = validateNotebook(project.title, settings, { interiorExists: false, coverExists: false });
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const previousReport = validateNotebook(project.title, settings, {
+        interiorExists: false,
+        coverExists: false,
+        plannerPdfAvailable,
+      });
       const fatalIssues = previousReport.items.filter((item) => item.status === "failed");
       if (fatalIssues.length) {
         await db.update(creatorNotebookProjects).set({
@@ -696,7 +743,10 @@ export function registerNotebookStudioRoutes(app: Express) {
         for (const [key, filename] of Object.entries(settings.pageArtwork || {})) {
           pageArtwork[key] = await readFile(pageArtPath(project.id, key, filename));
         }
-        const interiorBytes = createNotebookInteriorPdf(project.title, settings, pageArtwork);
+        const generatedInterior = createNotebookInteriorPdf(project.title, settings, pageArtwork);
+        const interiorBytes = settings.use2027PlannerPdf
+          ? await prependPlanner2027Pages(generatedInterior, await readTaskdrip2027PlannerPdf(), settings)
+          : generatedInterior;
         const interiorPath = filePath(project.id, "interior");
         const temporary = `${interiorPath}.${nanoid(8)}.tmp`;
         await writeFile(temporary, interiorBytes, { mode: 0o600 });
@@ -739,7 +789,7 @@ export function registerNotebookStudioRoutes(app: Express) {
         exists(filePath(project.id, "interior")),
         exists(filePath(project.id, "cover")),
       ]);
-      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists });
+      const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
       const [updated] = await db.update(creatorNotebookProjects).set({
         settings,
         interiorFileKey: interiorKey,

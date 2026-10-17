@@ -45,6 +45,7 @@ export type NotebookPageCopy = {
 
 export type NotebookPageArtGroup = "intro" | "outro";
 export type NotebookPageArtKey = `${NotebookPageArtGroup}-${NotebookIntroPageType | NotebookOutroPageType}`;
+export const NOTEBOOK_2027_PLANNER_PAGE_COUNT = 30;
 
 export const DEFAULT_NOTEBOOK_PAGE_COPY: Record<string, NotebookPageCopy> = {
   "intro-welcome": {
@@ -178,6 +179,7 @@ export type NotebookSettings = {
   lineStyle: NotebookLineStyle;
   introPages: NotebookIntroPageType[];
   outroPages: NotebookOutroPageType[];
+  use2027PlannerPdf: boolean;
   pageCopy: Record<string, NotebookPageCopy>;
   pageArtwork: Record<string, string>;
   frontBlankPageCount: number;
@@ -242,6 +244,7 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   lineStyle: "classic",
   introPages: [],
   outroPages: [],
+  use2027PlannerPdf: false,
   pageCopy: DEFAULT_NOTEBOOK_PAGE_COPY,
   pageArtwork: {},
   frontBlankPageCount: 0,
@@ -251,7 +254,7 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   diaryStartMonth: "",
   lineSpacing: 0.32,
   lineColor: "#9db5c8",
-  lineThickness: 0.55,
+  lineThickness: 0.75,
   showPageNumbers: true,
   ownershipPage: false,
   showDateField: false,
@@ -260,27 +263,32 @@ export const DEFAULT_NOTEBOOK_SETTINGS: NotebookSettings = {
   footerText: "",
 };
 
-export function notebookIntroPageCount(settings: Pick<NotebookSettings, "introPages">) {
+export function notebookIntroPageCount(settings: Pick<NotebookSettings, "introPages"> & Partial<Pick<NotebookSettings, "use2027PlannerPdf">>) {
+  if (settings.use2027PlannerPdf) return NOTEBOOK_2027_PLANNER_PAGE_COUNT;
   return Array.isArray(settings.introPages) ? settings.introPages.length : 0;
 }
 
-export function notebookOutroPageCount(settings: Pick<NotebookSettings, "outroPages">) {
+export function notebookOutroPageCount(settings: Pick<NotebookSettings, "outroPages"> & Partial<Pick<NotebookSettings, "use2027PlannerPdf">>) {
+  if (settings.use2027PlannerPdf) return 0;
   return Array.isArray(settings.outroPages) ? settings.outroPages.length : 0;
 }
 
-export function notebookBlankPageCount(settings: Pick<NotebookSettings, "frontBlankPageCount" | "backBlankPageCount">) {
-  return Math.max(0, Number(settings.frontBlankPageCount) || 0) + Math.max(0, Number(settings.backBlankPageCount) || 0);
+export function notebookBlankPageCount(settings: Pick<NotebookSettings, "frontBlankPageCount" | "backBlankPageCount"> & Partial<Pick<NotebookSettings, "use2027PlannerPdf">>) {
+  const front = Math.max(0, Number(settings.frontBlankPageCount) || 0);
+  const back = settings.use2027PlannerPdf ? 0 : Math.max(0, Number(settings.backBlankPageCount) || 0);
+  return front + back;
 }
 
 export function notebookTotalPageCount(
-  settings: Pick<NotebookSettings, "pageCount" | "introPages"> & Partial<Pick<NotebookSettings, "outroPages" | "frontBlankPageCount" | "backBlankPageCount">>,
+  settings: Pick<NotebookSettings, "pageCount" | "introPages"> & Partial<Pick<NotebookSettings, "outroPages" | "frontBlankPageCount" | "backBlankPageCount" | "use2027PlannerPdf">>,
 ) {
   return settings.pageCount
     + notebookIntroPageCount(settings)
-    + notebookOutroPageCount({ outroPages: settings.outroPages || [] })
+    + notebookOutroPageCount({ outroPages: settings.outroPages || [], use2027PlannerPdf: settings.use2027PlannerPdf })
     + notebookBlankPageCount({
       frontBlankPageCount: settings.frontBlankPageCount || 0,
       backBlankPageCount: settings.backBlankPageCount || 0,
+      use2027PlannerPdf: settings.use2027PlannerPdf,
     });
 }
 
