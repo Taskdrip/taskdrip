@@ -1685,8 +1685,8 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
           >
             <iframe
               title={`2027 planner page ${plannerPage}`}
-              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?${previewParams.toString()}#toolbar=0&navpanes=0&scrollbar=0&view=Fit&zoom=page-fit`}
-              className="h-full w-full border-0"
+              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?${previewParams.toString()}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-width`}
+              className="block h-full w-full border-0"
             />
           </article>
         );
