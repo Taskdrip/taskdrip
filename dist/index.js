@@ -13093,12 +13093,11 @@ function notebookIntroPageCount(settings) {
   return Array.isArray(settings.introPages) ? settings.introPages.length : 0;
 }
 function notebookOutroPageCount(settings) {
-  if (settings.use2027PlannerPdf) return 0;
   return Array.isArray(settings.outroPages) ? settings.outroPages.length : 0;
 }
 function notebookBlankPageCount(settings) {
   const front = Math.max(0, Number(settings.frontBlankPageCount) || 0);
-  const back = settings.use2027PlannerPdf ? 0 : Math.max(0, Number(settings.backBlankPageCount) || 0);
+  const back = Math.max(0, Number(settings.backBlankPageCount) || 0);
   return front + back;
 }
 function notebookLogicalPageCount(settings) {
@@ -13128,6 +13127,12 @@ function notebookDiaryPageCount(startMonth) {
   const firstDay = Date.UTC(year, month - 1, 1);
   if (firstDay > NOTEBOOK_DIARY_LAST_DAY) return 0;
   return Math.floor((NOTEBOOK_DIARY_LAST_DAY - firstDay) / 864e5) + 1;
+}
+function resolveNotebookDiaryStartMonth(lineStyle, value, previous = "", now = /* @__PURE__ */ new Date()) {
+  if (lineStyle !== "diary") return "";
+  const requested = String(value ?? "").trim();
+  const startMonth = requested || previous || currentNotebookDiaryStartMonth(now);
+  return notebookDiaryPageCount(startMonth) ? startMonth : null;
 }
 function notebookDiaryPageDate(startMonth, pageNumber) {
   const pageCount = notebookDiaryPageCount(startMonth);
@@ -13177,7 +13182,7 @@ function validateNotebook(title, settings, files) {
   const introPages = notebookIntroPageCount(settings);
   const outroPages = notebookOutroPageCount(settings);
   const frontBlanks = settings.frontBlankPageCount || 0;
-  const backBlanks = settings.use2027PlannerPdf ? 0 : settings.backBlankPageCount || 0;
+  const backBlanks = settings.backBlankPageCount || 0;
   const introStartPage = frontBlanks + 1;
   const writingStartPage = introStartPage + introPages;
   const outroStartPage = writingStartPage + settings.pageCount;
@@ -13241,12 +13246,11 @@ function validateNotebook(title, settings, files) {
     message: !dimsValid ? "KDP paperback trim dimensions must be 4\u20138.5 inches wide and 6\u201311.69 inches high." : exactTrimSupported ? `${width.toFixed(2)} \xD7 ${height.toFixed(2)} inches is a listed KDP trim size.` : settings.trimSize === "custom" && Math.abs(width - 8.3) < 0.05 && Math.abs(height - 11.6) < 0.1 ? "8.3 \xD7 11.6 inches is not an exact KDP trim preset. A4 (8.27 \xD7 11.69 inches) is supported and is the closest option." : "This custom trim is within the KDP paperback dimension limits, but it is not a listed KDP preset. Verify it in KDP before upload."
   });
   if (settings.use2027PlannerPdf) {
-    const plannerTrimValid = settings.trimSize === "8.27x11.69" && !settings.bleed;
     const plannerSourceStatus = files.plannerPdfAvailable === false ? "failed" : files.plannerPdfAvailable === true ? "ready" : "manual";
     items.push({
-      status: !plannerTrimValid ? "failed" : plannerSourceStatus,
+      status: plannerSourceStatus,
       label: "Imported 2027 planner pages",
-      message: !plannerTrimValid ? "The supplied planner pages are A4. Use the 8.27 \xD7 11.69 inch A4 trim preset and turn bleed off." : files.plannerPdfAvailable === false ? "The supplied 2027 planner PDF is not available. Restore the attached interior PDF before generating." : files.plannerPdfAvailable === true ? "The 30 interior pages from the supplied PDF are ready; its front and back cover pages are excluded." : "The 30 interior pages from the supplied PDF will be checked during generation; its cover pages are excluded."
+      message: files.plannerPdfAvailable === false ? "The supplied 2027 planner PDF is not available. Restore the attached interior PDF before generating." : files.plannerPdfAvailable === true ? `The 30 interior pages from the supplied PDF will be fitted to ${width.toFixed(2)} \xD7 ${height.toFixed(2)} inch trim ${settings.bleed ? "with bleed" : "without bleed"}; its cover pages are excluded.` : `The 30 interior pages from the supplied PDF will be checked and fitted to ${width.toFixed(2)} \xD7 ${height.toFixed(2)} inch trim ${settings.bleed ? "with bleed" : "without bleed"}.`
     });
   }
   const lineWeightValid = Number(settings.lineThickness) >= 0.75;
@@ -13482,14 +13486,16 @@ stream
 function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight, yTop, yBottom) {
   const parts = [];
   let pageContentTop = yTop;
+  const trimTop = height - (settings.bleed ? BLEED_INCHES : 0);
+  const trimBottom = settings.bleed ? BLEED_INCHES : 0;
   const isDiary = settings.lineStyle === "diary";
   if (!isDiary && pageNumber === 1 && settings.ownershipPage) {
-    parts.push(textCommand(title, inch(xLeft), inch(height - 1.35), 17, "F2", "0.12 0.24 0.29"));
-    parts.push(textCommand("This journal belongs to", inch(xLeft), inch(height - 2.5), 10));
-    parts.push(lineCommand(inch(xLeft), inch(height - 2.72), inch(xRight), inch(height - 2.72), settings.lineColor, settings.lineThickness));
-    parts.push(textCommand(settings.authorName || "Write your name here", inch(xLeft), inch(height - 3.1), 9, "F1", "0.36 0.39 0.41"));
-    parts.push(lineCommand(inch(xLeft), inch(height - 3.32), inch(xRight), inch(height - 3.32), settings.lineColor, settings.lineThickness));
-    pageContentTop = Math.min(pageContentTop, height - 3.75);
+    parts.push(textCommand(title, inch(xLeft), inch(trimTop - 1.35), 17, "F2", "0.12 0.24 0.29"));
+    parts.push(textCommand("This journal belongs to", inch(xLeft), inch(trimTop - 2.5), 10));
+    parts.push(lineCommand(inch(xLeft), inch(trimTop - 2.72), inch(xRight), inch(trimTop - 2.72), settings.lineColor, settings.lineThickness));
+    parts.push(textCommand(settings.authorName || "Write your name here", inch(xLeft), inch(trimTop - 3.1), 9, "F1", "0.36 0.39 0.41"));
+    parts.push(lineCommand(inch(xLeft), inch(trimTop - 3.32), inch(xRight), inch(trimTop - 3.32), settings.lineColor, settings.lineThickness));
+    pageContentTop = Math.min(pageContentTop, trimTop - 3.75);
   }
   if (isDiary) {
     const isoDate = notebookDiaryPageDate(settings.diaryStartMonth, pageNumber);
@@ -13502,18 +13508,18 @@ function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight
         year: "numeric",
         timeZone: "UTC"
       }).format(date);
-      parts.push(textCommand(weekday, inch(xLeft), inch(height - 0.66), 8, "F2", "0.32 0.36 0.40"));
-      parts.push(textCommand(fullDate, inch(xLeft), inch(height - 1.02), 15, "F2", "0.12 0.24 0.29"));
-      parts.push(lineCommand(inch(xLeft), inch(height - 1.16), inch(xRight), inch(height - 1.16), settings.lineColor, settings.lineThickness));
-      pageContentTop = Math.min(pageContentTop, height - 1.38);
+      parts.push(textCommand(weekday, inch(xLeft), inch(trimTop - 0.66), 8, "F2", "0.32 0.36 0.40"));
+      parts.push(textCommand(fullDate, inch(xLeft), inch(trimTop - 1.02), 15, "F2", "0.12 0.24 0.29"));
+      parts.push(lineCommand(inch(xLeft), inch(trimTop - 1.16), inch(xRight), inch(trimTop - 1.16), settings.lineColor, settings.lineThickness));
+      pageContentTop = Math.min(pageContentTop, trimTop - 1.38);
     }
   }
   if (settings.headerText) {
-    parts.push(textCommand(settings.headerText, inch(xLeft), inch(height - 0.42), 8, "F2"));
-    if (!isDiary) pageContentTop = Math.min(pageContentTop, height - 0.78);
+    parts.push(textCommand(settings.headerText, inch(xLeft), inch(trimTop - 0.42), 8, "F2"));
+    if (!isDiary) pageContentTop = Math.min(pageContentTop, trimTop - 0.78);
   }
   if (!isDiary && (settings.showDateField || settings.showSubjectField)) {
-    const rowY = height - 0.72;
+    const rowY = trimTop - 0.72;
     let x = xLeft;
     if (settings.showDateField) {
       parts.push(textCommand("Date", inch(x), inch(rowY), 7, "F2", "0.32 0.36 0.40"));
@@ -13529,10 +13535,10 @@ function fixedPageText(settings, title, pageNumber, width, height, xLeft, xRight
     pageContentTop = Math.min(pageContentTop, rowY - 0.24);
   }
   if (settings.footerText) {
-    parts.push(textCommand(settings.footerText, inch(xLeft), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+    parts.push(textCommand(settings.footerText, inch(xLeft), inch(trimBottom + 0.3), 7, "F1", "0.42 0.45 0.48"));
   }
   if (settings.showPageNumbers) {
-    parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+    parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(trimBottom + 0.3), 7, "F1", "0.42 0.45 0.48"));
   }
   const lineBottom = Math.max(yBottom, 0.67);
   const availableHeight = pageContentTop - lineBottom;
@@ -13595,8 +13601,9 @@ function editableNotebookPage(edit, settings, pageNumber, width, height, xLeft, 
   for (let y = rulesTop; y >= lineBottom; y -= spacing) {
     parts.push(lineCommand(inch(xLeft), inch(y), inch(xRight), inch(y), settings.lineColor, settings.lineThickness));
   }
-  if (settings.footerText) parts.push(textCommand(settings.footerText, inch(xLeft), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
-  if (settings.showPageNumbers) parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(0.3), 7, "F1", "0.42 0.45 0.48"));
+  const trimBottom = settings.bleed ? BLEED_INCHES : 0;
+  if (settings.footerText) parts.push(textCommand(settings.footerText, inch(xLeft), inch(trimBottom + 0.3), 7, "F1", "0.42 0.45 0.48"));
+  if (settings.showPageNumbers) parts.push(textCommand(String(pageNumber), inch(xRight - 0.1), inch(trimBottom + 0.3), 7, "F1", "0.42 0.45 0.48"));
   return parts.join("");
 }
 function introText(parts, text3, x, y, size = 8, bold = false, color = "0.20 0.26 0.24") {
@@ -14004,9 +14011,12 @@ function createNotebookInteriorPdf(title, settings, pageArtwork = {}) {
     const inside = gutter + 0.05;
     const left = isOdd ? inside : outer;
     const right = isOdd ? outer : inside;
-    const xLeft = left;
-    const xRight = pageWidth - right;
-    const yTop = pageHeight - top;
+    const trimOriginX = settings.bleed && !isOdd ? BLEED_INCHES : 0;
+    const trimOriginY = settings.bleed ? BLEED_INCHES : 0;
+    const xLeft = trimOriginX + left;
+    const xRight = trimOriginX + trim.width - right;
+    const yTop = trimOriginY + trim.height - top;
+    const yBottom = trimOriginY + bottom;
     const pageEdit = settings.pageEdits?.[String(page2)];
     const introType = settings.use2027PlannerPdf ? void 0 : settings.introPages?.[page2 - frontBlankCount - 1];
     const outroType = settings.outroPages?.[page2 - writingEndPage - 1];
@@ -14021,9 +14031,9 @@ function createNotebookInteriorPdf(title, settings, pageArtwork = {}) {
       xLeft,
       xRight,
       yTop,
-      bottom
+      yBottom
     ) : image ? `q 0 0 ${inch(pageWidth).toFixed(2)} ${inch(pageHeight).toFixed(2)} re W n ${inch(pageWidth).toFixed(2)} 0 0 ${inch(pageHeight).toFixed(2)} 0 0 cm /Im0 Do Q
-` : page2 <= frontBlankCount || page2 > outroEndPage ? "" : settings.use2027PlannerPdf && page2 <= introEndPage ? "" : page2 <= introEndPage && introType ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : page2 <= writingEndPage ? fixedPageText(
+` : page2 <= frontBlankCount || page2 > outroEndPage ? "" : settings.use2027PlannerPdf && page2 <= introEndPage ? "" : page2 <= introEndPage && introType ? notebookIntroPage(introType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, yBottom) : page2 <= writingEndPage ? fixedPageText(
       settings,
       title,
       writingPageNumber,
@@ -14032,8 +14042,8 @@ function createNotebookInteriorPdf(title, settings, pageArtwork = {}) {
       xLeft,
       xRight,
       yTop,
-      bottom
-    ) : outroType ? notebookOutroPage(outroType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, bottom) : "";
+      yBottom
+    ) : outroType ? notebookOutroPage(outroType, settings, pageWidth, pageHeight, xLeft, xRight, yTop, yBottom) : "";
     const imageObjectNumber = image ? objects.length + 1 : 0;
     if (image) {
       objects.push(streamObject(
@@ -14056,10 +14066,15 @@ function createNotebookInteriorPdf(title, settings, pageArtwork = {}) {
   );
   return buildPdf(objects);
 }
-function fitPlannerPageToTrim(page2, settings, edit) {
+function fitPlannerPageToTrim(page2, settings, edit, outputPageNumber = 1) {
   const trim = notebookTrim(settings);
   const targetWidth = inch(trim.width);
   const targetHeight = inch(trim.height);
+  const bleed = settings.bleed ? inch(BLEED_INCHES) : 0;
+  const mediaWidth = targetWidth + bleed;
+  const mediaHeight = targetHeight + bleed * 2;
+  const trimOriginX = settings.bleed && outputPageNumber % 2 === 0 ? bleed : 0;
+  const trimOriginY = bleed;
   const sourceWidth = page2.getWidth();
   const sourceHeight = page2.getHeight();
   const fitScale = edit?.fitMode === "fill" ? Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight) : Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
@@ -14069,10 +14084,10 @@ function fitPlannerPageToTrim(page2, settings, edit) {
   const offsetY = Math.max(-25, Math.min(25, Number(edit?.offsetY ?? 0))) * targetHeight / 100;
   page2.scaleContent(scale, scale);
   page2.translateContent(
-    (targetWidth - sourceWidth * scale) / 2 + offsetX,
-    (targetHeight - sourceHeight * scale) / 2 + offsetY
+    (targetWidth - sourceWidth * scale) / 2 + offsetX + trimOriginX,
+    (targetHeight - sourceHeight * scale) / 2 + offsetY + trimOriginY
   );
-  page2.setSize(targetWidth, targetHeight);
+  page2.setSize(mediaWidth, mediaHeight);
 }
 async function loadPlannerPages(sourcePdf) {
   const source = await PDFDocument.load(sourcePdf);
@@ -14090,7 +14105,13 @@ async function createPlanner2027PagePreview(sourcePdf, pageNumber, settings) {
   const output = await PDFDocument.create();
   const [page2] = await output.copyPages(source, [pageIndices[pageNumber - 1]]);
   const printedPageNumber = Math.max(0, Number(settings.frontBlankPageCount) || 0) + pageNumber;
-  fitPlannerPageToTrim(page2, settings, settings.pageEdits?.[String(printedPageNumber)]);
+  const disabledBefore = (settings.disabledPages || []).filter((disabledPage) => disabledPage < printedPageNumber).length;
+  fitPlannerPageToTrim(
+    page2,
+    settings,
+    settings.pageEdits?.[String(printedPageNumber)],
+    Math.max(1, printedPageNumber - disabledBefore)
+  );
   output.addPage(page2);
   return Buffer.from(await output.save({ useObjectStreams: false }));
 }
@@ -14103,16 +14124,18 @@ async function prependPlanner2027Pages(interiorPdf, sourcePdf, settings) {
   const plannerPages = await output.copyPages(source, pageIndices);
   const frontBlanks = Math.max(0, Number(settings.frontBlankPageCount) || 0);
   const disabledPages = new Set(settings.disabledPages || []);
+  let outputPageNumber = 0;
   for (let index2 = 0; index2 < generatedPages.length; index2++) {
     const printedPageNumber = index2 + 1;
     if (disabledPages.has(printedPageNumber)) continue;
+    outputPageNumber += 1;
     if (index2 >= frontBlanks && index2 < frontBlanks + plannerPages.length) {
       const edit = settings.pageEdits?.[String(printedPageNumber)];
       if (edit?.replace) {
         output.addPage(generatedPages[index2]);
       } else {
         const plannerPage = plannerPages[index2 - frontBlanks];
-        fitPlannerPageToTrim(plannerPage, settings, settings.pageEdits?.[String(printedPageNumber)]);
+        fitPlannerPageToTrim(plannerPage, settings, settings.pageEdits?.[String(printedPageNumber)], outputPageNumber);
         output.addPage(plannerPage);
       }
     } else {
@@ -14650,15 +14673,15 @@ function normalizeSettings(input, previous = DEFAULT_NOTEBOOK_SETTINGS) {
       4
     );
   }
-  if (raw.diaryStartMonth !== void 0) {
-    const startMonth = String(raw.diaryStartMonth);
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth) || !notebookDiaryPageCount(startMonth)) {
-      throw Object.assign(new Error("Choose a diary start month on or before December 2027."), { statusCode: 400 });
-    }
-    settings.diaryStartMonth = startMonth;
-  } else if (settings.lineStyle === "diary" && !settings.diaryStartMonth) {
-    settings.diaryStartMonth = currentNotebookDiaryStartMonth();
+  const diaryStartMonth = resolveNotebookDiaryStartMonth(
+    settings.lineStyle,
+    raw.diaryStartMonth,
+    settings.diaryStartMonth
+  );
+  if (diaryStartMonth === null) {
+    throw Object.assign(new Error("Choose a diary start month on or before December 2027."), { statusCode: 400 });
   }
+  settings.diaryStartMonth = diaryStartMonth;
   if (settings.lineStyle === "diary") {
     const diaryPages = notebookDiaryPageCount(settings.diaryStartMonth);
     if (!diaryPages || diaryPages > 828) {

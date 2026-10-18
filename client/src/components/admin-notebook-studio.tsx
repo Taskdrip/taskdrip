@@ -2316,7 +2316,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                               </span>
                             </label>
                             <p className="px-2 pb-1 text-[10px] leading-4 text-[#667267]">
-                              When enabled, those pages print first and your evenly ruled writing pages follow December through the final page. It selects A4 trim with no bleed and at least 0.75 pt rule weight; other custom intro/outro designs are retained but paused.
+                              Starts at A4 trim with no bleed and at least 0.75 pt rule weight. You can choose another trim or bleed setting; the imported pages will be fitted to it. Closing designs and end blank pages print after the writing section.
                             </p>
                             {draft.settings.use2027PlannerPdf && (
                               <div className="mt-3 border-t border-[#e2e8df] pt-3">

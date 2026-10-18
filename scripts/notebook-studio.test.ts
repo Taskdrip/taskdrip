@@ -12,6 +12,8 @@ import {
   notebookPageArtKey,
   notebookPrintArtPixels,
   notebookLogicalPageCount,
+  notebookDiaryPageCount,
+  resolveNotebookDiaryStartMonth,
   notebookTotalPageCount,
 } from "../shared/notebook-studio";
 import {
@@ -168,6 +170,105 @@ test("front blanks, closing designs, and end blanks are physically ordered and c
   assert.equal(validation.introPageCount, 1);
   assert.equal(validation.outroPageCount, 1);
   assert.equal(validation.blankPageCount, 3);
+});
+
+test("imported planner projects retain closing pages and front/end blanks in the KDP interior", async () => {
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    pageCount: 2,
+    trimSize: "8.27x11.69",
+    customWidth: 8.27,
+    customHeight: 11.69,
+    bleed: false,
+    lineThickness: 0.75,
+    use2027PlannerPdf: true,
+    introPages: ["welcome"] as const,
+    outroPages: ["year-reflection"] as const,
+    frontBlankPageCount: 2,
+    backBlankPageCount: 1,
+    ownershipPage: false,
+  };
+  const source = await PDFDocument.create();
+  for (let index = 0; index < 32; index++) source.addPage([595.5, 842.25]);
+
+  const generated = createNotebookInteriorPdf("Imported journal", settings);
+  const finalPdf = await prependPlanner2027Pages(
+    generated,
+    Buffer.from(await source.save({ useObjectStreams: false })),
+    settings,
+  );
+  const document = await PDFDocument.load(finalPdf);
+  const validation = validateNotebook("Imported journal", settings, {
+    interiorExists: true,
+    coverExists: false,
+    plannerPdfAvailable: true,
+  });
+
+  assert.equal(notebookLogicalPageCount(settings), 36);
+  assert.equal(notebookTotalPageCount(settings), 36);
+  assert.equal(document.getPageCount(), 36);
+  assert.ok(document.getPages().every((page) =>
+    Math.abs(page.getWidth() - 8.27 * 72) < 0.1
+    && Math.abs(page.getHeight() - 11.69 * 72) < 0.1,
+  ), "every exported page matches the selected A4 trim with bleed off");
+  assert.equal(validation.pageCount, 36);
+  assert.equal(validation.introPageCount, 30);
+  assert.equal(validation.writingPageCount, 2);
+  assert.equal(validation.outroPageCount, 1);
+  assert.equal(validation.blankPageCount, 3);
+});
+
+test("imported planner pages fit the selected trim and bleed size", async () => {
+  const settings = {
+    ...DEFAULT_NOTEBOOK_SETTINGS,
+    pageCount: 1,
+    trimSize: "6x9",
+    customWidth: 6,
+    customHeight: 9,
+    bleed: true,
+    lineThickness: 0.75,
+    use2027PlannerPdf: true,
+    outroPages: ["future-letter"] as const,
+    frontBlankPageCount: 1,
+    backBlankPageCount: 1,
+    disabledPages: [4],
+    ownershipPage: false,
+  };
+  const source = await PDFDocument.create();
+  for (let index = 0; index < 32; index++) source.addPage([595.5, 842.25]);
+
+  const generated = createNotebookInteriorPdf("Trimmed planner journal", settings);
+  const finalPdf = await prependPlanner2027Pages(
+    generated,
+    Buffer.from(await source.save({ useObjectStreams: false })),
+    settings,
+  );
+  const document = await PDFDocument.load(finalPdf);
+  const validation = validateNotebook("Trimmed planner journal", settings, {
+    interiorExists: true,
+    coverExists: false,
+    plannerPdfAvailable: true,
+  });
+  const plannerCheck = validation.items.find((item) => item.label === "Imported 2027 planner pages");
+
+  assert.equal(document.getPageCount(), notebookTotalPageCount(settings));
+  assert.ok(document.getPages().every((page) =>
+    Math.abs(page.getWidth() - (6 + 0.125) * 72) < 0.02
+    && Math.abs(page.getHeight() - (9 + 0.25) * 72) < 0.02,
+  ), "all imported and generated pages use the selected 6 × 9 trim plus bleed");
+  assert.equal(plannerCheck?.status, "ready");
+  assert.match(plannerCheck?.message || "", /6\.00 × 9\.00 inch trim with bleed/);
+});
+
+test("empty or stale diary months do not block undated journals", () => {
+  const now = new Date("2026-10-18T12:00:00.000Z");
+
+  assert.equal(resolveNotebookDiaryStartMonth("classic", "", "", now), "");
+  assert.equal(resolveNotebookDiaryStartMonth("lined-journal", "not-a-month", "2027-01", now), "");
+  assert.equal(resolveNotebookDiaryStartMonth("diary", "", "", now), "2026-10");
+  assert.equal(resolveNotebookDiaryStartMonth("diary", "2027-12", "", now), "2027-12");
+  assert.equal(resolveNotebookDiaryStartMonth("diary", "2028-01", "", now), null);
+  assert.equal(notebookDiaryPageCount("2027-12"), 31);
 });
 
 test("disabled pages are omitted from KDP output and page edits can replace an imported planner page", async () => {
@@ -400,4 +501,45 @@ test("page art dimensions follow trim size and include bleed at 300 DPI", () => 
     notebookPrintArtPixels({ trimSize: "custom", customWidth: 5.5, customHeight: 8.5, bleed: false }),
     { width: 1650, height: 2550 },
   );
+});
+
+test("generated interior PDF page size matches each selected trim and bleed setting", async () => {
+  const trims = [
+    { trimSize: "5x8", width: 5, height: 8 },
+    { trimSize: "5.5x8.5", width: 5.5, height: 8.5 },
+    { trimSize: "6x9", width: 6, height: 9 },
+    { trimSize: "8.27x11.69", width: 8.27, height: 11.69 },
+    { trimSize: "custom", width: 7.25, height: 10.25 },
+  ];
+
+  for (const trim of trims) {
+    for (const bleed of [false, true]) {
+      const settings = {
+        ...DEFAULT_NOTEBOOK_SETTINGS,
+        pageCount: 1,
+        trimSize: trim.trimSize,
+        customWidth: trim.width,
+        customHeight: trim.height,
+        bleed,
+        introPages: [],
+        outroPages: [],
+        ownershipPage: false,
+        frontBlankPageCount: 0,
+        backBlankPageCount: 0,
+      };
+      const document = await PDFDocument.load(createNotebookInteriorPdf("Trim check", settings));
+      const [page] = document.getPages();
+      const expectedWidth = (trim.width + (bleed ? 0.125 : 0)) * 72;
+      const expectedHeight = (trim.height + (bleed ? 0.25 : 0)) * 72;
+
+      assert.ok(
+        Math.abs(page.getWidth() - expectedWidth) < 0.02,
+        `${trim.trimSize} ${bleed ? "with" : "without"} bleed uses the correct PDF width`,
+      );
+      assert.ok(
+        Math.abs(page.getHeight() - expectedHeight) < 0.02,
+        `${trim.trimSize} ${bleed ? "with" : "without"} bleed uses the correct PDF height`,
+      );
+    }
+  }
 });

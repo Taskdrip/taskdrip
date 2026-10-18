@@ -15,8 +15,8 @@ import {
   NOTEBOOK_2027_PLANNER_PAGE_COUNT,
   notebookPageArtKey,
   notebookPrintArtPixels,
-  currentNotebookDiaryStartMonth,
   notebookDiaryPageCount,
+  resolveNotebookDiaryStartMonth,
   notebookLogicalPageCount,
   notebookTotalPageCount,
   type NotebookIntroPageType,
@@ -310,15 +310,15 @@ function normalizeSettings(input: unknown, previous: NotebookSettings = DEFAULT_
       4,
     );
   }
-  if (raw.diaryStartMonth !== undefined) {
-    const startMonth = String(raw.diaryStartMonth);
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth) || !notebookDiaryPageCount(startMonth)) {
-      throw Object.assign(new Error("Choose a diary start month on or before December 2027."), { statusCode: 400 });
-    }
-    settings.diaryStartMonth = startMonth;
-  } else if (settings.lineStyle === "diary" && !settings.diaryStartMonth) {
-    settings.diaryStartMonth = currentNotebookDiaryStartMonth();
+  const diaryStartMonth = resolveNotebookDiaryStartMonth(
+    settings.lineStyle,
+    raw.diaryStartMonth,
+    settings.diaryStartMonth,
+  );
+  if (diaryStartMonth === null) {
+    throw Object.assign(new Error("Choose a diary start month on or before December 2027."), { statusCode: 400 });
   }
+  settings.diaryStartMonth = diaryStartMonth;
   if (settings.lineStyle === "diary") {
     const diaryPages = notebookDiaryPageCount(settings.diaryStartMonth);
     if (!diaryPages || diaryPages > 828) {

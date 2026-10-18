@@ -284,13 +284,12 @@ export function notebookIntroPageCount(settings: Pick<NotebookSettings, "introPa
 }
 
 export function notebookOutroPageCount(settings: Pick<NotebookSettings, "outroPages"> & Partial<Pick<NotebookSettings, "use2027PlannerPdf">>) {
-  if (settings.use2027PlannerPdf) return 0;
   return Array.isArray(settings.outroPages) ? settings.outroPages.length : 0;
 }
 
 export function notebookBlankPageCount(settings: Pick<NotebookSettings, "frontBlankPageCount" | "backBlankPageCount"> & Partial<Pick<NotebookSettings, "use2027PlannerPdf">>) {
   const front = Math.max(0, Number(settings.frontBlankPageCount) || 0);
-  const back = settings.use2027PlannerPdf ? 0 : Math.max(0, Number(settings.backBlankPageCount) || 0);
+  const back = Math.max(0, Number(settings.backBlankPageCount) || 0);
   return front + back;
 }
 
@@ -334,6 +333,18 @@ export function notebookDiaryPageCount(startMonth: string) {
   const firstDay = Date.UTC(year, month - 1, 1);
   if (firstDay > NOTEBOOK_DIARY_LAST_DAY) return 0;
   return Math.floor((NOTEBOOK_DIARY_LAST_DAY - firstDay) / 86_400_000) + 1;
+}
+
+export function resolveNotebookDiaryStartMonth(
+  lineStyle: NotebookLineStyle,
+  value: unknown,
+  previous = "",
+  now = new Date(),
+): string | null {
+  if (lineStyle !== "diary") return "";
+  const requested = String(value ?? "").trim();
+  const startMonth = requested || previous || currentNotebookDiaryStartMonth(now);
+  return notebookDiaryPageCount(startMonth) ? startMonth : null;
 }
 
 export function notebookDiaryPageDate(startMonth: string, pageNumber: number) {
