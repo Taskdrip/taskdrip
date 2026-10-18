@@ -382,6 +382,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [tab, setTab] = useState<"interior" | "cover" | "validation" | "kdp">("interior");
+  const [interiorSection, setInteriorSection] = useState<"format" | "sections" | "rules">("format");
   const [listSearch, setListSearch] = useState("");
   const [listCollapsed, setListCollapsed] = useState(false);
   const [zoom, setZoom] = useState(82);
@@ -437,7 +438,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
       const next = Array.isArray(result) ? result.map(normalizeProject) : [];
       setProjects(next);
       const currentId = activeIdRef.current;
-      const nextId = selectId || (currentId && next.some((item) => item.id === currentId) ? currentId : next[0]?.id || null);
+      const nextId = selectId || (currentId && next.some((item) => item.id === currentId) ? currentId : null);
       setActiveId(nextId);
       const selected = next.find((item) => item.id === nextId) || null;
       setDraft(selected ? normalizeProject(selected) : null);
@@ -614,6 +615,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     setActiveId(project.id);
     setDraft(normalizeProject(project));
     setTab("interior");
+    setInteriorSection("format");
     setNotice(null);
     setBusy(`project:${project.id}`);
     void requestJson<NotebookProject>(projectUrl(project.id))
@@ -1923,8 +1925,8 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
           </div>
         )}
 
-        <div className={`grid gap-4 transition-[grid-template-columns] duration-300 lg:gap-5 ${draft ? "min-h-0 flex-1 grid-rows-[minmax(0,1fr)] items-stretch" : "items-start"} ${listCollapsed ? "lg:grid-cols-[58px_minmax(0,1fr)] 2xl:grid-cols-[68px_minmax(0,1fr)]" : "lg:grid-cols-[236px_minmax(0,1fr)] 2xl:grid-cols-[292px_minmax(0,1fr)]"}`}>
-          <aside className={`overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${draft ? "hidden h-full min-h-0 flex-col lg:flex" : ""}`}>
+        <div className={`grid gap-4 transition-[grid-template-columns] duration-300 lg:gap-5 ${draft ? `min-h-0 flex-1 grid-rows-[minmax(0,1fr)] items-stretch ${listCollapsed ? "lg:grid-cols-[58px_minmax(0,1fr)] 2xl:grid-cols-[68px_minmax(0,1fr)]" : "lg:grid-cols-[236px_minmax(0,1fr)] 2xl:grid-cols-[292px_minmax(0,1fr)]"}` : "grid-cols-1 items-start"}`}>
+          <aside className={`overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${draft ? "hidden h-full min-h-0 flex-col lg:flex" : "hidden"}`}>
             <div className={`flex items-center justify-between border-b border-[#e5dfd2] px-4 py-4 ${listCollapsed ? "lg:justify-center lg:px-2" : ""}`}>
               {!listCollapsed && <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">Your shelf</p><h2 className="mt-1 text-sm font-semibold">Notebook projects</h2></div>}
               <button type="button" aria-label={listCollapsed ? "Expand project list" : "Collapse project list"} onClick={() => setListCollapsed((value) => !value)} className="hidden h-9 w-9 items-center justify-center rounded-lg text-[#6c7168] hover:bg-[#f0ece2] lg:flex">
@@ -2001,15 +2003,75 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
           </aside>
 
           {!draft ? (
-            <section className="flex min-h-[620px] flex-col items-center justify-center rounded-[22px] border border-dashed border-[#d2cbbb] bg-[#faf7ef] p-8 text-center">
-              <div className="relative grid h-20 w-20 place-items-center rounded-[25px] bg-[#e9e6d8] text-[#557365]">
-                <BookOpen size={31} strokeWidth={1.5} />
-                <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 border-[#faf7ef] bg-[#b87958] text-white"><Plus size={15} /></span>
+            <section className="min-h-[620px] overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
+              <div className="flex flex-col gap-4 border-b border-[#e5dfd2] px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[.2em] text-[#927958]">Project workspace</p>
+                  <h2 className="mt-1 font-serif text-2xl font-semibold tracking-[-.03em] text-[#30372f] sm:text-[28px]">Notebook projects</h2>
+                  <p className="mt-1 text-[12px] text-[#77776b]">Browse, organize, and edit every journal in one place.</p>
+                </div>
+                <label className="relative block w-full sm:max-w-[280px]">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8d81]" />
+                  <input value={listSearch} onChange={(event) => setListSearch(event.target.value)} placeholder="Search projects" aria-label="Search notebook projects" className={`${inputClass} h-10 pl-9 text-xs`} />
+                </label>
               </div>
-              <p className="mt-6 text-[9px] font-bold uppercase tracking-[.2em] text-[#927958]">Print starts here</p>
-              <h2 className="mt-2 font-serif text-3xl tracking-[-.03em]">Make room for a new idea.</h2>
-              <p className="mt-3 max-w-md text-sm leading-6 text-[#737469]">Create a notebook project, set its trim and interior rules, then review the generated files and validation notes.</p>
-              <button type="button" onClick={() => void createProject()} disabled={busy === "create"} className={`${primaryButton} mt-6`}><Plus size={16} /> Create notebook</button>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-5 sm:px-7">
+                <p className="text-[11px] font-semibold text-[#676b61]">
+                  {listSearch.trim() ? `${filteredProjects.length} of ${projects.length} projects` : `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}
+                </p>
+                {loading && <span className="inline-flex items-center gap-2 text-[10px] text-[#858477]"><LoaderCircle size={13} className="animate-spin" />Updating projects</span>}
+              </div>
+              {filteredProjects.length > 0 ? (
+                <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 xl:grid-cols-3">
+                  {filteredProjects.map((project) => {
+                    const status = String(project.status || "draft").replace(/[_-]/g, " ");
+                    const isReady = ["ready", "generated"].includes(project.status);
+                    const rowBusy = busy === `delete:${project.id}` || busy === `duplicate:${project.id}`;
+                    return (
+                      <article key={project.id} className="group overflow-hidden rounded-[18px] border border-[#e1dbcf] bg-[#fffdf8] transition duration-200 hover:-translate-y-0.5 hover:border-[#bdcdbf] hover:shadow-[0_14px_34px_rgba(54,71,53,.09)]">
+                        <button type="button" onClick={() => activate(project)} className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#597c67]" aria-label={`Open ${project.title || "Untitled notebook"}`}>
+                          <div className="relative flex h-[190px] items-center justify-center overflow-hidden bg-[#eee9de] p-5">
+                            <div className="absolute inset-0 opacity-40" style={{ background: `radial-gradient(circle at 50% 20%, ${project.coverDesign?.accent || "#315a51"}22, transparent 55%)` }} />
+                            <img src={coverImageSource(project)} alt="" className="relative h-full max-w-[145px] rounded-[3px_8px_8px_3px] border border-black/10 object-cover shadow-[0_12px_22px_rgba(40,43,34,.2)] transition-transform duration-300 group-hover:scale-[1.03]" />
+                            <span className={`absolute left-4 top-4 rounded-full border px-2.5 py-1 text-[9px] font-semibold capitalize ${isReady ? "border-[#d4e1d1] bg-[#f3f8f0] text-[#567458]" : "border-[#e8ddc5] bg-[#fffaf0] text-[#947542]"}`}>
+                              <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle ${isReady ? "bg-[#779578]" : "bg-[#c89b58]"}`} />{status}
+                            </span>
+                          </div>
+                          <div className="px-4 pb-3 pt-4">
+                            <h3 className="truncate text-[14px] font-semibold text-[#343b34]">{project.title || "Untitled notebook"}</h3>
+                            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[#858477]">
+                              <span>{notebookTotalPageCount(project.settings).toLocaleString()} pages</span>
+                              <span aria-hidden="true">·</span>
+                              <span>{project.settings.trimSize === "custom" ? `${project.settings.customWidth} × ${project.settings.customHeight} in` : project.settings.trimSize} trim</span>
+                            </p>
+                          </div>
+                        </button>
+                        <div className="flex items-center justify-between border-t border-[#eee9df] px-4 py-2.5">
+                          <span className="inline-flex items-center gap-1.5 text-[9px] text-[#939184]"><Clock3 size={11} />Updated {formatDate(project.updatedAt)}</span>
+                          <div className="flex items-center gap-0.5">
+                            <button type="button" onClick={() => activate(project)} className="rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-[#45634d] hover:bg-[#edf2e9]">Edit</button>
+                            <IconButton label={`Duplicate ${project.title || "notebook"}`} onClick={() => void duplicateProject(project)} disabled={rowBusy}><Copy size={14} /></IconButton>
+                            <IconButton label={`Delete ${project.title || "notebook"}`} tone="danger" onClick={() => void deleteProject(project)} disabled={rowBusy}><Trash2 size={14} /></IconButton>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex min-h-[390px] flex-col items-center justify-center px-6 py-12 text-center">
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#eeeade] text-[#637968]"><BookOpen size={25} strokeWidth={1.6} /></div>
+                  <h3 className="mt-4 font-serif text-xl font-semibold text-[#3c443c]">{projects.length ? "No matching projects" : loading ? "Loading notebook projects" : "Start your first notebook"}</h3>
+                  <p className="mt-2 max-w-sm text-[12px] leading-5 text-[#77776b]">{projects.length ? "Try a different project name or clear your search." : loading ? "Your project shelf will be ready in a moment." : "Create a notebook, set up its sections and print format, then review the live proof."}</p>
+                  {projects.length ? (
+                    <button type="button" onClick={() => setListSearch("")} className="mt-4 text-[11px] font-semibold text-[#45634d] hover:underline">Clear search</button>
+                  ) : !loading ? (
+                    <button type="button" onClick={() => void createProject()} disabled={busy === "create"} className={`${primaryButton} mt-5`}><Plus size={15} /> Create notebook</button>
+                  ) : (
+                    <LoaderCircle size={18} className="mt-4 animate-spin text-[#557866]" aria-label="Loading projects" />
+                  )}
+                </div>
+              )}
             </section>
           ) : (
             <section className={`grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 ${previewFocus ? "" : "nb-enter"}`}>
@@ -2083,14 +2145,40 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                         ))}
                       </div>
                     </div>
+                    {tab === "interior" && (
+                      <div className="border-b border-[#e5dfd2] bg-[#f7f4eb] px-4 py-3 sm:px-5">
+                        <div className="grid gap-2 sm:grid-cols-3" role="tablist" aria-label="Interior settings sections">
+                          {([
+                            ["format", "Book format", "Title, pages, and print size", FileCog],
+                            ["sections", "Page sections", `${introPageCount} opening · ${outroPageCount} closing`, LayoutGrid],
+                            ["rules", "Writing page", `${normalizeNotebookLineSpacing(draft.settings.lineSpacing).toFixed(2)}″ line spacing`, Settings2],
+                          ] as const).map(([value, label, summary, Icon]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              role="tab"
+                              aria-selected={interiorSection === value}
+                              onClick={() => setInteriorSection(value)}
+                              className={`flex min-h-[58px] items-center gap-3 rounded-xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#597c67] ${interiorSection === value ? "border-[#9fb5a1] bg-[#edf3eb] text-[#315a51] shadow-sm" : "border-[#e5dfd2] bg-[#fffdf8] text-[#686b61] hover:border-[#c6d2c4] hover:bg-white"}`}
+                            >
+                              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${interiorSection === value ? "bg-white text-[#456e5a]" : "bg-[#f1eee6] text-[#838477]"}`}><Icon size={15} /></span>
+                              <span className="min-w-0">
+                                <span className="block text-[11px] font-semibold">{label}</span>
+                                <span className="mt-0.5 block truncate text-[9px] text-[#858477]">{summary}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-4 p-4 sm:p-5">
                       {tab === "interior" && (
                         <div className="space-y-4">
-                          <div>
+                          <div hidden={interiorSection !== "format"}>
                             <p className="text-[13px] font-semibold text-[#41483e]">Page construction</p>
                             <p className="mt-1 text-[10px] leading-4 text-[#858477]">Set the book’s physical format and the rules shared by its writing pages. Your live proof reflects these draft changes before you save.</p>
                           </div>
-                          <div className="grid gap-3 sm:grid-cols-2">
+                          <div className={interiorSection === "format" ? "grid gap-3 sm:grid-cols-2" : "hidden"}>
                             <Field label="Subtitle"><input value={draft.settings.subtitle} onChange={(event) => updateSettings("subtitle", event.target.value)} className={inputClass} placeholder="Optional subtitle" /></Field>
                             <Field label="Author name"><input value={draft.settings.authorName} onChange={(event) => updateSettings("authorName", event.target.value)} className={inputClass} placeholder="Name on the book" /></Field>
                             <Field label="Series name"><input value={draft.settings.seriesName} onChange={(event) => updateSettings("seriesName", event.target.value)} className={inputClass} placeholder="Optional series" /></Field>
@@ -2134,7 +2222,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                               </select>
                             </Field>
                           </div>
-                          <fieldset className="rounded-xl border border-[#d8d4c8] bg-[#fffdf8] p-3">
+                          <fieldset hidden={interiorSection !== "rules"} className="rounded-xl border border-[#d8d4c8] bg-[#fffdf8] p-3">
                             <legend className="px-1 text-[11px] font-semibold text-[#4d5f50]">Writing line quality</legend>
                             <p className="mb-3 text-[10px] leading-4 text-[#858477]">
                               Set the same precise distance between every rule in the live proof and print PDF.
@@ -2209,6 +2297,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                               </div>
                             </div>
                           </fieldset>
+                          <div hidden={interiorSection !== "sections"} className="space-y-4">
                           <fieldset className="rounded-xl border border-[#d6dfd5] bg-[#f8fbf6] p-3">
                             <legend className="px-1 text-[11px] font-semibold text-[#4d5f50]">2027 planner pages from the supplied PDF</legend>
                             <label className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-[#eff4ed]">
@@ -2469,6 +2558,8 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                               <button type="button" onClick={addCurrentAffairsEntry} disabled={draft.settings.currentAffairsEntries.length >= 4} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#d9d4c8] px-2.5 py-2 text-[10px] font-semibold text-[#4b6552] hover:bg-[#f1f2eb] disabled:opacity-40"><Plus size={13} />Add current-affairs story</button>
                             </fieldset>
                           )}
+                          </div>
+                          <div hidden={interiorSection !== "rules"} className="space-y-3">
                           <p className="text-[10px] leading-4 text-[#858477]">
                             Writing rules stay inside the writing area, clear of the header, date/subject fields, and footer.
                           </p>
@@ -2498,6 +2589,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                                 />{label}
                               </label>
                             ))}
+                          </div>
                           </div>
                         </div>
                       )}
