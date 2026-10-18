@@ -391,6 +391,9 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   const [previewMode, setPreviewMode] = useState<"page" | "gallery">("page");
   const [galleryStart, setGalleryStart] = useState(0);
   const [editorVisible, setEditorVisible] = useState(true);
+  const [previewFocus, setPreviewFocus] = useState(
+    () => typeof window !== "undefined" && window.innerHeight < 680,
+  );
   const [expandedPlannerPage, setExpandedPlannerPage] = useState<number | null>(null);
   const [remoteSvgUrl, setRemoteSvgUrl] = useState("");
   const [remoteSvgError, setRemoteSvgError] = useState("");
@@ -1116,7 +1119,16 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
       observer?.disconnect();
       window.removeEventListener("resize", fit);
     };
-  }, [trimAspect, spread, tab, draft?.id]);
+  }, [trimAspect, spread, tab, draft?.id, previewFocus]);
+
+  useEffect(() => {
+    if (!previewFocus) return;
+    const exitPreviewOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewFocus(false);
+    };
+    window.addEventListener("keydown", exitPreviewOnEscape);
+    return () => window.removeEventListener("keydown", exitPreviewOnEscape);
+  }, [previewFocus]);
 
   const hasInterior = !!draft?.generatedInteriorKey;
   const hasCover = !!draft?.generatedCoverKey;
@@ -1504,6 +1516,10 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
     const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
     const viewport = previewViewportRef.current;
+    if (!previewFocus && viewport && viewport.clientHeight < 180) {
+      setPreviewFocus(true);
+      return;
+    }
     setZoom(calculateFitZoom(
       aspect,
       spread,
@@ -1996,7 +2012,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
               <button type="button" onClick={() => void createProject()} disabled={busy === "create"} className={`${primaryButton} mt-6`}><Plus size={16} /> Create notebook</button>
             </section>
           ) : (
-            <section className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 nb-enter">
+            <section className={`grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 ${previewFocus ? "" : "nb-enter"}`}>
               <div className="rounded-[18px] border border-[#ded8ca] bg-[#faf7ef] px-4 py-3 shadow-[0_8px_26px_rgba(65,55,38,.04)] sm:px-5 sm:py-3.5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
@@ -2617,7 +2633,10 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                   )}
                 </div>
 
-                {tab !== "kdp" && <section className={`flex h-full min-h-0 min-w-0 flex-col rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${tab === "interior" ? "overflow-hidden" : "overflow-y-auto"}`}>
+                {tab !== "kdp" && <section
+                  aria-label={previewFocus && tab === "interior" ? "Focused notebook interior proof" : undefined}
+                  className={`flex min-w-0 flex-col rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] ${previewFocus && tab === "interior" ? "fixed inset-2 z-[100] min-h-0 shadow-[0_18px_60px_rgba(31,37,31,.38)]" : "h-full min-h-0 shadow-[0_10px_34px_rgba(65,55,38,.045)]"} ${tab === "interior" ? "overflow-hidden" : "overflow-y-auto"}`}
+                >
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d8d1c3] bg-[#f8f5ed] px-4 py-3.5 sm:px-5">
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">{tab === "cover" ? "Cover proof" : tab === "validation" ? "Print checks" : "Interior proof"}</p>
@@ -2641,6 +2660,16 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                       </button>
                       {tab === "interior" && (
                         <>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewFocus((focused) => !focused)}
+                            aria-pressed={previewFocus}
+                            aria-label={previewFocus ? "Exit focused proof preview" : "Expand proof preview"}
+                            className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-semibold transition ${previewFocus ? "border-[#315a51] bg-[#315a51] text-[#fffdf8] hover:bg-[#26483f]" : "border-[#d8d4c8] bg-[#fffdf8] text-[#45634d] hover:bg-[#ece8dd]"}`}
+                          >
+                            {previewFocus ? <X size={14} /> : <Maximize2 size={14} />}
+                            {previewFocus ? "Exit focus" : "Focus proof"}
+                          </button>
                           <div className="flex items-center rounded-lg border border-[#ded8ca] bg-[#fffdf8] p-0.5" role="group" aria-label="Interior preview mode">
                             <button
                               type="button"
@@ -2729,7 +2758,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                                 />
                                 <span className="text-right text-[10px] tabular-nums text-[#74766b]">Page {page} / {logicalPageCount}</span>
                               </div>
-                              {!remoteSvgUrl && (
+                              {!remoteSvgUrl && !previewFocus && (
                                 <section className="max-h-[30dvh] shrink-0 overflow-y-auto border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-3 sm:px-5" aria-label="Advanced page editor">
                                   <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div>
