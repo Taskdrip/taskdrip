@@ -369,8 +369,8 @@ function calculateFitZoom(aspect: number, spread: boolean, viewportWidth: number
   const availableWidth = spread
     ? Math.max(80, (viewportWidth - 60) / 2)
     : Math.max(80, viewportWidth - 48);
-  const fittedWidth = Math.min(pageWidth, availableHeight * aspect, availableWidth);
-  return Math.max(10, Math.min(120, Math.floor((fittedWidth / pageWidth) * 82)));
+  const fittedWidth = Math.min(availableHeight * aspect, availableWidth);
+  return Math.max(10, Math.min(300, Math.floor((fittedWidth / pageWidth) * 82)));
 }
 
 export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } = {}) {
@@ -392,6 +392,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   const [previewMode, setPreviewMode] = useState<"page" | "gallery">("page");
   const [galleryStart, setGalleryStart] = useState(0);
   const [editorVisible, setEditorVisible] = useState(true);
+  const [focusEditorOpen, setFocusEditorOpen] = useState(false);
   const [previewFocus, setPreviewFocus] = useState(
     () => typeof window !== "undefined" && window.innerHeight < 680,
   );
@@ -1121,7 +1122,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
       observer?.disconnect();
       window.removeEventListener("resize", fit);
     };
-  }, [trimAspect, spread, tab, draft?.id, previewFocus]);
+  }, [trimAspect, spread, tab, draft?.id, previewFocus, previewMode]);
 
   useEffect(() => {
     if (!previewFocus) return;
@@ -2754,7 +2755,10 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                         <>
                           <button
                             type="button"
-                            onClick={() => setPreviewFocus((focused) => !focused)}
+                            onClick={() => {
+                              setFocusEditorOpen(false);
+                              setPreviewFocus((focused) => !focused);
+                            }}
                             aria-pressed={previewFocus}
                             aria-label={previewFocus ? "Exit focused proof preview" : "Expand proof preview"}
                             className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-semibold transition ${previewFocus ? "border-[#315a51] bg-[#315a51] text-[#fffdf8] hover:bg-[#26483f]" : "border-[#d8d4c8] bg-[#fffdf8] text-[#45634d] hover:bg-[#ece8dd]"}`}
@@ -2765,7 +2769,10 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                           <div className="flex items-center rounded-lg border border-[#ded8ca] bg-[#fffdf8] p-0.5" role="group" aria-label="Interior preview mode">
                             <button
                               type="button"
-                              onClick={() => setPreviewMode("page")}
+                              onClick={() => {
+                                setFocusEditorOpen(false);
+                                setPreviewMode("page");
+                              }}
                               aria-pressed={previewMode === "page"}
                               className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold transition ${previewMode === "page" ? "bg-[#315a51] text-[#fffdf8] shadow-sm" : "text-[#697064] hover:bg-[#f0ede4]"}`}
                             >
@@ -2774,6 +2781,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                             <button
                               type="button"
                               onClick={() => {
+                                setFocusEditorOpen(false);
                                 setGalleryStart(Math.floor((page - 1) / NOTEBOOK_GALLERY_PAGE_SIZE) * NOTEBOOK_GALLERY_PAGE_SIZE);
                                 setPreviewMode("gallery");
                               }}
@@ -2783,11 +2791,22 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                               <LayoutGrid size={13} /> All pages
                             </button>
                           </div>
+                          {previewFocus && previewMode === "page" && !remoteSvgUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setFocusEditorOpen((open) => !open)}
+                              aria-expanded={focusEditorOpen}
+                              aria-controls="focused-page-editor"
+                              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-semibold transition ${focusEditorOpen ? "border-[#315a51] bg-[#315a51] text-[#fffdf8]" : "border-[#d8d4c8] bg-[#fffdf8] text-[#45634d] hover:bg-[#ece8dd]"}`}
+                            >
+                              {focusEditorOpen ? "Close editor" : "Edit page"}
+                            </button>
+                          )}
                           {previewMode === "page" && (
                             <>
                               <button type="button" onClick={() => setZoom((value) => Math.max(10, value - 10))} disabled={zoom <= 10} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
                               <span className="w-10 text-center text-[10px] tabular-nums text-[#727367]">{zoom}%</span>
-                              <button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))} disabled={zoom >= 120} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom in"><ZoomIn size={15} /></button>
+                              <button type="button" onClick={() => setZoom((value) => Math.min(300, value + 10))} disabled={zoom >= 300} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom in"><ZoomIn size={15} /></button>
                               <button type="button" onClick={fitPreviewToViewport} className="rounded-lg px-2.5 py-2 text-[10px] font-semibold text-[#45634d] hover:bg-[#ece8dd]" aria-label="Fit full page to screen">Fit page</button>
                               <span className="mx-1 h-5 w-px bg-[#d8d1c3]" />
                               <button type="button" onClick={() => setSpread((value) => !value)} className={`rounded-lg px-2.5 py-2 text-[10px] font-semibold ${spread ? "bg-[#dfe8dc] text-[#385c47]" : "text-[#727367] hover:bg-[#ece8dd]"}`}>{spread ? "Spread" : "Single"}</button>
@@ -2850,8 +2869,8 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                                 />
                                 <span className="text-right text-[10px] tabular-nums text-[#74766b]">Page {page} / {logicalPageCount}</span>
                               </div>
-                              {!remoteSvgUrl && !previewFocus && (
-                                <section className="max-h-[30dvh] shrink-0 overflow-y-auto border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-3 sm:px-5" aria-label="Advanced page editor">
+                              {!remoteSvgUrl && (!previewFocus || focusEditorOpen) && (
+                                <section id="focused-page-editor" className="max-h-[30dvh] shrink-0 overflow-y-auto border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-3 sm:px-5" aria-label="Advanced page editor">
                                   <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div>
                                       <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">{currentPlannerPage ? "Planner page editor" : "Advanced page editor"}</p>
@@ -2975,8 +2994,10 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                                         key={`thumbnail-${pageNumber}`}
                                         type="button"
                                         onClick={() => {
+                                          setFocusEditorOpen(false);
                                           setPageNumber(pageNumber);
                                           setPreviewMode("page");
+                                          setPreviewFocus(true);
                                         }}
                                         className={`group rounded-xl border bg-[#faf7ef] p-2 text-left shadow-sm transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#597c67] ${pageNumber === page ? "border-[#557b63] ring-2 ring-[#557b63]/25" : "border-[#d8d1c3] hover:border-[#a9b8a5]"}`}
                                         aria-label={`Open page ${pageNumber}${excluded ? ", excluded from print" : ""}`}
