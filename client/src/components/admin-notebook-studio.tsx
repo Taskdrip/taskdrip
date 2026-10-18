@@ -363,12 +363,12 @@ const NOTEBOOK_2027_PAGE_LABELS = [
 
 function calculateFitZoom(aspect: number, spread: boolean, viewportWidth: number, viewportHeight: number) {
   const pageWidth = spread ? 350 : 500;
-  const availableHeight = Math.max(220, viewportHeight - 468);
+  const availableHeight = Math.max(80, viewportHeight - 32);
   const availableWidth = spread
-    ? Math.max(160, (viewportWidth - 480) / 2)
-    : Math.max(180, viewportWidth - 460);
+    ? Math.max(80, (viewportWidth - 60) / 2)
+    : Math.max(80, viewportWidth - 48);
   const fittedWidth = Math.min(pageWidth, availableHeight * aspect, availableWidth);
-  return Math.max(32, Math.min(120, Math.round((fittedWidth / pageWidth) * 82)));
+  return Math.max(10, Math.min(120, Math.floor((fittedWidth / pageWidth) * 82)));
 }
 
 export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } = {}) {
@@ -389,6 +389,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   const [expandedPlannerPage, setExpandedPlannerPage] = useState<number | null>(null);
   const [remoteSvgUrl, setRemoteSvgUrl] = useState("");
   const [remoteSvgError, setRemoteSvgError] = useState("");
+  const previewViewportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pageArtFileInputRef = useRef<HTMLInputElement>(null);
   const [pageArtTarget, setPageArtTarget] = useState<NotebookPageArtTarget | null>(null);
@@ -459,22 +460,6 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
       setJumpValue(String(logicalPageCount));
     }
   }, [page, logicalPageCount]);
-
-  useEffect(() => {
-    const fit = () => {
-      const settings = draft?.settings;
-      const trim = settings?.trimSize === "custom"
-        ? [Number(settings.customWidth), Number(settings.customHeight)]
-        : String(settings?.trimSize || "6x9").split("x").map(Number);
-      const aspect = trim.length === 2 && trim.every((dimension) => Number.isFinite(dimension) && dimension > 0)
-        ? trim[0] / trim[1]
-        : 2 / 3;
-      setZoom(calculateFitZoom(aspect, spread, window.innerWidth, window.innerHeight));
-    };
-    fit();
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, [draft?.settings.trimSize, draft?.settings.customWidth, draft?.settings.customHeight, spread]);
 
   const updateDraft = (transform: (project: NotebookProject) => NotebookProject) => {
     setDraft((current) => current ? transform(current) : current);
@@ -1458,8 +1443,35 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   const fitPreviewToViewport = () => {
     const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
     const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
-    setZoom(calculateFitZoom(aspect, spread, window.innerWidth, window.innerHeight));
+    const viewport = previewViewportRef.current;
+    setZoom(calculateFitZoom(
+      aspect,
+      spread,
+      viewport?.clientWidth || window.innerWidth,
+      viewport?.clientHeight || window.innerHeight,
+    ));
   };
+
+  useEffect(() => {
+    const fit = () => {
+      const viewport = previewViewportRef.current;
+      if (!viewport) return;
+      const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
+      const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
+      setZoom(calculateFitZoom(aspect, spread, viewport.clientWidth, viewport.clientHeight));
+    };
+
+    fit();
+    const viewport = previewViewportRef.current;
+    if (!viewport) return;
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    observer?.observe(viewport);
+    window.addEventListener("resize", fit);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [trimAspect, spread, tab, draft?.id]);
 
   const currentPageEdit = draft?.settings.pageEdits[String(page)] || EMPTY_NOTEBOOK_PAGE_EDIT;
   const currentPageExcluded = Boolean(draft?.settings.disabledPages.includes(page));
@@ -2519,7 +2531,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                     <div className="flex flex-wrap items-center gap-1.5">
                       {tab === "interior" && (
                         <>
-                          <button type="button" onClick={() => setZoom((value) => Math.max(32, value - 10))} disabled={zoom <= 32} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
+                          <button type="button" onClick={() => setZoom((value) => Math.max(10, value - 10))} disabled={zoom <= 10} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
                           <span className="w-10 text-center text-[10px] tabular-nums text-[#727367]">{zoom}%</span>
                           <button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))} disabled={zoom >= 120} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom in"><ZoomIn size={15} /></button>
                           <button type="button" onClick={fitPreviewToViewport} className="rounded-lg px-2.5 py-2 text-[10px] font-semibold text-[#45634d] hover:bg-[#ece8dd]" aria-label="Fit page to screen">Fit</button>
@@ -2545,7 +2557,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                       ) : (
                         <>
                           {remoteSvgError && <div role="status" className="mx-4 mt-4 rounded-lg border border-[#e3d3b7] bg-[#fbf4e5] px-3 py-2 text-[10px] text-[#806741]">{remoteSvgError}</div>}
-                          <div className="flex min-h-[240px] flex-1 items-center justify-center overflow-auto px-3 py-4 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
+                          <div ref={previewViewportRef} className="flex min-h-[200px] flex-1 items-center justify-center overflow-auto px-3 py-4 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
                             <div className={`flex items-center justify-center gap-3 transition-transform duration-200 ${spread ? "flex-row" : "flex-col"}`} style={{ width: "100%" }}>
                               <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: spread ? `${Math.round(350 * zoom / 82)}px` : `${Math.round(500 * zoom / 82)}px` }}>{renderInteriorPage(page)}</div>
                               {spread && page < logicalPageCount && <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: `${Math.round(350 * zoom / 82)}px` }}>{renderInteriorPage(page + 1)}</div>}
