@@ -80,3 +80,15 @@ CMD ["node", "dist/index.js"]
 - Never use `npm run build` in Dockerfile — use node_modules/.bin/ direct paths
 - Never add `nodejs_20` to nixpkgs
 - Never use `import.meta.dirname` in vite.config.ts
+
+## Production log routing
+
+The live custom domain is served by Railway behind Cloudflare. Replit's deployment
+status and runtime-log callbacks report no deployment for this project.
+
+**Why:** Replit deployment tooling only exposes logs for Replit-managed deployments;
+the public site's response headers identify the separate Railway runtime.
+
+**How to apply:** For live-site incidents, use Railway's logs and redeployment path.
+Use Replit's workflow logs only for the local preview, and do not assume a Replit
+Publish action will update the Railway-hosted domain.

@@ -125,7 +125,7 @@ const PageFallback = () => (
   </div>
 );
 
-class AdminErrorBoundary extends Component<{ children: any }, { hasError: boolean; error: string }> {
+class AdminErrorBoundary extends Component<{ children: any; title?: string }, { hasError: boolean; error: string }> {
   constructor(props: any) {
     super(props);
     this.state = { hasError: false, error: "" };
@@ -141,14 +141,14 @@ class AdminErrorBoundary extends Component<{ children: any }, { hasError: boolea
             <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">⚠️</span>
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Admin Dashboard Error</h2>
-            <p className="text-gray-400 text-sm mb-4">A rendering error occurred. Please refresh the page. If the problem persists, check the browser console for details.</p>
+            <h2 className="text-xl font-bold text-white mb-2">{this.props.title || "Admin Dashboard Error"}</h2>
+            <p className="text-gray-400 text-sm mb-4">This page hit a rendering error instead of loading. Reload the page; if it happens again, share the error shown below with the site administrator.</p>
             <pre className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-xs text-red-300 text-left overflow-auto max-h-40 mb-6 whitespace-pre-wrap break-all">{this.state.error}</pre>
             <button
               onClick={() => { this.setState({ hasError: false, error: "" }); window.location.reload(); }}
               className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
             >
-              Reload Dashboard
+              Reload page
             </button>
           </div>
         </div>
@@ -234,7 +234,11 @@ function Router() {
         <Route path="/hire-developer" component={HireDeveloper} />
         <Route path="/messages" component={Messages} />
         <Route path="/referrals" component={ReferralsPage} />
-        <Route path="/creator-studio" component={CreatorStudioPage} />
+        <Route path="/creator-studio" component={() => (
+          <AdminErrorBoundary title="Creator Studio failed to load">
+            <CreatorStudioPage />
+          </AdminErrorBoundary>
+        )} />
         {isAuthenticated ? (
           <>
             <Route path="/dashboard" component={() => {
