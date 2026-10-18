@@ -19,6 +19,7 @@ import {
   FileText,
   FolderOpen,
   LoaderCircle,
+  LayoutGrid,
   Maximize2,
   MoreHorizontal,
   PanelLeftClose,
@@ -172,6 +173,7 @@ const EMPTY_NOTEBOOK_PAGE_EDIT: NotebookPageEdit = {
   offsetX: 0,
   offsetY: 0,
 };
+const NOTEBOOK_GALLERY_PAGE_SIZE = 24;
 const DEFAULT_COVER: CoverDesign = {
   style: "minimal",
   background: "#e7e2d4",
@@ -386,6 +388,9 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   const [page, setPage] = useState(1);
   const [jumpValue, setJumpValue] = useState("1");
   const [spread, setSpread] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"page" | "gallery">("page");
+  const [galleryStart, setGalleryStart] = useState(0);
+  const [editorVisible, setEditorVisible] = useState(true);
   const [expandedPlannerPage, setExpandedPlannerPage] = useState<number | null>(null);
   const [remoteSvgUrl, setRemoteSvgUrl] = useState("");
   const [remoteSvgError, setRemoteSvgError] = useState("");
@@ -448,6 +453,9 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     setDraft(activeProject ? normalizeProject(activeProject) : null);
     setPage(1);
     setJumpValue("1");
+    setPreviewMode("page");
+    setGalleryStart(0);
+    setEditorVisible(true);
     setExpandedPlannerPage(null);
     setPageArtTarget(null);
     setRemoteSvgUrl("");
@@ -460,6 +468,12 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
       setJumpValue(String(logicalPageCount));
     }
   }, [page, logicalPageCount]);
+
+  useEffect(() => {
+    const lastGalleryStart = Math.floor(Math.max(0, logicalPageCount - 1) / NOTEBOOK_GALLERY_PAGE_SIZE)
+      * NOTEBOOK_GALLERY_PAGE_SIZE;
+    setGalleryStart((current) => Math.min(current, lastGalleryStart));
+  }, [logicalPageCount]);
 
   const updateDraft = (transform: (project: NotebookProject) => NotebookProject) => {
     setDraft((current) => current ? transform(current) : current);
@@ -862,6 +876,30 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     setPage(clamped);
     setJumpValue(String(clamped));
   };
+  useEffect(() => {
+    if (!draft || tab !== "interior") return;
+    const handlePreviewNavigation = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.altKey
+        || event.ctrlKey
+        || event.metaKey
+        || (target instanceof HTMLElement && (
+          target.isContentEditable
+          || ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)
+        ))
+      ) return;
+      if (event.key === "ArrowLeft" && page > 1) {
+        event.preventDefault();
+        setPageNumber(page - (spread ? 2 : 1));
+      } else if (event.key === "ArrowRight" && page < logicalPageCount) {
+        event.preventDefault();
+        setPageNumber(page + (spread ? 2 : 1));
+      }
+    };
+    window.addEventListener("keydown", handlePreviewNavigation);
+    return () => window.removeEventListener("keydown", handlePreviewNavigation);
+  }, [draft, logicalPageCount, page, spread, tab]);
   const updatePageEditAt = (pageNumber: number, key: keyof NotebookPageEdit, value: string | boolean | number) => {
     updateDraft((project) => {
       const pageKey = String(pageNumber);
@@ -1742,9 +1780,40 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     10,
     Math.min(30, normalizeNotebookLineSpacing(draft?.settings.lineSpacing) * 56),
   );
+  const galleryPageEnd = Math.min(logicalPageCount, galleryStart + NOTEBOOK_GALLERY_PAGE_SIZE);
+  const galleryPageNumbers = Array.from(
+    { length: Math.max(0, galleryPageEnd - galleryStart) },
+    (_, index) => galleryStart + index + 1,
+  );
+  const physicalInteriorSections = draft ? (() => {
+    const sections: { label: string; start: number; count: number }[] = [];
+    let nextPage = 1;
+    const frontBlankCount = Math.max(0, Number(draft.settings.frontBlankPageCount) || 0);
+    const openingCount = draft.settings.use2027PlannerPdf
+      ? NOTEBOOK_2027_PLANNER_PAGE_COUNT
+      : draft.settings.introPages.length;
+    const writingCount = Math.max(0, Number(draft.settings.pageCount) || 0);
+    const closingCount = draft.settings.use2027PlannerPdf ? 0 : draft.settings.outroPages.length;
+    const backBlankCount = draft.settings.use2027PlannerPdf
+      ? 0
+      : Math.max(0, Number(draft.settings.backBlankPageCount) || 0);
+    [
+      ["Front blanks", frontBlankCount],
+      [draft.settings.use2027PlannerPdf ? "2027 planner" : "Opening pages", openingCount],
+      ["Writing pages", writingCount],
+      ["Closing pages", closingCount],
+      ["Back blanks", backBlankCount],
+    ].forEach(([label, count]) => {
+      const pageCountForSection = Number(count);
+      if (pageCountForSection < 1) return;
+      sections.push({ label: String(label), start: nextPage, count: pageCountForSection });
+      nextPage += pageCountForSection;
+    });
+    return sections;
+  })() : [];
 
   return (
-    <main className={`notebook-studio min-h-[100dvh] bg-[#f3efe5] text-[#30372f] ${draft ? "flex h-[100dvh] min-h-[560px] flex-col overflow-hidden" : ""}`} aria-label="Admin notebook studio">
+    <main className={`notebook-studio min-h-[100dvh] bg-[#f3efe5] text-[#30372f] ${draft ? "flex h-[100dvh] min-h-[460px] flex-col overflow-hidden" : ""}`} aria-label="Admin notebook studio">
       <style>{`
         .notebook-studio { font-family: ui-sans-serif, system-ui, sans-serif; }
         .notebook-studio button, .notebook-studio input, .notebook-studio select, .notebook-studio textarea { -webkit-tap-highlight-color: transparent; }
@@ -1975,11 +2044,14 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                 </div>
               </div>
 
-              <div className={`grid h-full min-h-0 gap-4 ${tab === "kdp" ? "items-start overflow-y-auto" : "grid-rows-[auto_auto] items-start overflow-y-auto lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:overflow-hidden lg:grid-cols-[minmax(280px,.78fr)_minmax(0,1.22fr)]"}`}>
-                <div className={`space-y-4 ${tab === "kdp" ? "" : "min-h-0 overflow-y-auto"}`}>
+              <div className={`grid h-full min-h-0 gap-4 ${tab === "kdp" ? "items-start overflow-y-auto" : `grid-rows-[auto_auto] items-start overflow-y-auto lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:overflow-hidden ${editorVisible ? "lg:grid-cols-[minmax(340px,.9fr)_minmax(0,1.1fr)] 2xl:grid-cols-[minmax(400px,.92fr)_minmax(0,1.08fr)]" : "lg:grid-cols-1"}`}`}>
+                <div className={`space-y-4 ${tab === "kdp" ? "" : `min-h-0 overflow-y-auto ${editorVisible ? "" : "hidden"}`}`}>
                   <section className="flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
                     <div className="sticky top-0 z-20 border-b border-[#e5dfd2] bg-[#faf7ef] px-4 pt-4 sm:px-5">
-                      <p className="text-[9px] font-bold uppercase tracking-[.19em] text-[#927958]">Project setup &amp; template</p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[9px] font-bold uppercase tracking-[.19em] text-[#927958]">Project-wide settings</p>
+                        <span className="rounded-full border border-[#e4dfd4] bg-[#fffdf8] px-2 py-1 text-[8px] font-semibold uppercase tracking-[.12em] text-[#7a7b6f]">Applies across the interior</span>
+                      </div>
                       <div className="mt-3 flex gap-4 overflow-x-auto">
                         {([
                           ["interior", "Interior", FileText],
@@ -2000,7 +2072,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                         <div className="space-y-4">
                           <div>
                             <p className="text-[13px] font-semibold text-[#41483e]">Page construction</p>
-                            <p className="mt-1 text-[10px] leading-4 text-[#858477]">Choose the physical format and the details that repeat across the printed interior.</p>
+                            <p className="mt-1 text-[10px] leading-4 text-[#858477]">Set the book’s physical format and the rules shared by its writing pages. Your live proof reflects these draft changes before you save.</p>
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <Field label="Subtitle"><input value={draft.settings.subtitle} onChange={(event) => updateSettings("subtitle", event.target.value)} className={inputClass} placeholder="Optional subtitle" /></Field>
@@ -2545,7 +2617,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                   )}
                 </div>
 
-                {tab !== "kdp" && <section className="flex h-full min-h-0 min-w-0 flex-col overflow-y-auto rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)]">
+                {tab !== "kdp" && <section className={`flex h-full min-h-0 min-w-0 flex-col rounded-[22px] border border-[#ded8ca] bg-[#e9e4d8] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${tab === "interior" ? "overflow-hidden" : "overflow-y-auto"}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d8d1c3] bg-[#f8f5ed] px-4 py-3.5 sm:px-5">
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">{tab === "cover" ? "Cover proof" : tab === "validation" ? "Print checks" : "Interior proof"}</p>
@@ -2553,19 +2625,53 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                       {tab === "interior" && (
                         <p className="mt-1 flex items-center gap-1.5 text-[9px] text-[#788073]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#6f9474]" />
-                          Live proof · updates as you edit
+                          Draft-driven proof · edits render here immediately
                         </p>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditorVisible((visible) => !visible)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-semibold text-[#45634d] hover:bg-[#ece8dd]"
+                        aria-label={editorVisible ? "Hide project editor" : "Show project editor"}
+                      >
+                        {editorVisible ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+                        {editorVisible ? "Hide setup" : "Show setup"}
+                      </button>
                       {tab === "interior" && (
                         <>
-                          <button type="button" onClick={() => setZoom((value) => Math.max(10, value - 10))} disabled={zoom <= 10} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
-                          <span className="w-10 text-center text-[10px] tabular-nums text-[#727367]">{zoom}%</span>
-                          <button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))} disabled={zoom >= 120} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom in"><ZoomIn size={15} /></button>
-                          <button type="button" onClick={fitPreviewToViewport} className="rounded-lg px-2.5 py-2 text-[10px] font-semibold text-[#45634d] hover:bg-[#ece8dd]" aria-label="Fit full page to screen">Fit page</button>
-                          <span className="mx-1 h-5 w-px bg-[#d8d1c3]" />
-                          <button type="button" onClick={() => setSpread((value) => !value)} className={`rounded-lg px-2.5 py-2 text-[10px] font-semibold ${spread ? "bg-[#dfe8dc] text-[#385c47]" : "text-[#727367] hover:bg-[#ece8dd]"}`}>{spread ? "Spread" : "Single"}</button>
+                          <div className="flex items-center rounded-lg border border-[#ded8ca] bg-[#fffdf8] p-0.5" role="group" aria-label="Interior preview mode">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewMode("page")}
+                              aria-pressed={previewMode === "page"}
+                              className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold transition ${previewMode === "page" ? "bg-[#315a51] text-[#fffdf8] shadow-sm" : "text-[#697064] hover:bg-[#f0ede4]"}`}
+                            >
+                              <BookOpen size={13} /> Page
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGalleryStart(Math.floor((page - 1) / NOTEBOOK_GALLERY_PAGE_SIZE) * NOTEBOOK_GALLERY_PAGE_SIZE);
+                                setPreviewMode("gallery");
+                              }}
+                              aria-pressed={previewMode === "gallery"}
+                              className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold transition ${previewMode === "gallery" ? "bg-[#315a51] text-[#fffdf8] shadow-sm" : "text-[#697064] hover:bg-[#f0ede4]"}`}
+                            >
+                              <LayoutGrid size={13} /> All pages
+                            </button>
+                          </div>
+                          {previewMode === "page" && (
+                            <>
+                              <button type="button" onClick={() => setZoom((value) => Math.max(10, value - 10))} disabled={zoom <= 10} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom out"><ZoomOut size={15} /></button>
+                              <span className="w-10 text-center text-[10px] tabular-nums text-[#727367]">{zoom}%</span>
+                              <button type="button" onClick={() => setZoom((value) => Math.min(120, value + 10))} disabled={zoom >= 120} className="grid h-8 w-8 place-items-center rounded-lg text-[#65695f] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Zoom in"><ZoomIn size={15} /></button>
+                              <button type="button" onClick={fitPreviewToViewport} className="rounded-lg px-2.5 py-2 text-[10px] font-semibold text-[#45634d] hover:bg-[#ece8dd]" aria-label="Fit full page to screen">Fit page</button>
+                              <span className="mx-1 h-5 w-px bg-[#d8d1c3]" />
+                              <button type="button" onClick={() => setSpread((value) => !value)} className={`rounded-lg px-2.5 py-2 text-[10px] font-semibold ${spread ? "bg-[#dfe8dc] text-[#385c47]" : "text-[#727367] hover:bg-[#ece8dd]"}`}>{spread ? "Spread" : "Single"}</button>
+                            </>
+                          )}
                         </>
                       )}
                       {tab === "cover" && <button type="button" onClick={() => void exportCoverPng()} disabled={busy === "png"} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#d8d4c8] bg-[#fffdf8] px-3 text-[10px] font-semibold text-[#4a584c] hover:bg-[#f0ede4] disabled:opacity-50">{busy === "png" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />} PNG</button>}
@@ -2585,91 +2691,187 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                         </div>
                       ) : (
                         <>
-                          {remoteSvgError && <div role="status" className="mx-4 mt-4 rounded-lg border border-[#e3d3b7] bg-[#fbf4e5] px-3 py-2 text-[10px] text-[#806741]">{remoteSvgError}</div>}
-                          <div ref={previewViewportRef} className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-4 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
-                            <div className={`flex items-center justify-center gap-3 transition-transform duration-200 ${spread ? "flex-row" : "flex-col"}`} style={{ width: "100%" }}>
-                              <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: spread ? `${Math.round(350 * zoom / 82)}px` : `${Math.round(500 * zoom / 82)}px` }}>{renderInteriorPage(page)}</div>
-                              {spread && page < logicalPageCount && <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: `${Math.round(350 * zoom / 82)}px` }}>{renderInteriorPage(page + 1)}</div>}
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-3 border-t border-[#d8d1c3] bg-[#f8f5ed] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button type="button" onClick={() => setPageNumber(1)} disabled={page === 1} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="First page"><ChevronLeft size={15} /><ChevronLeft className="-ml-3" size={15} /></button>
-                              <button type="button" onClick={() => setPageNumber(page - (spread ? 2 : 1))} disabled={page === 1} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Previous page"><ChevronLeft size={16} /></button>
-                              <form className="flex items-center gap-1.5" onSubmit={(event) => { event.preventDefault(); setPageNumber(Number(jumpValue) || 1); }}>
-                                <input aria-label="Jump to page" inputMode="numeric" value={jumpValue} onChange={(event) => setJumpValue(event.target.value.replace(/[^\d]/g, ""))} onBlur={() => setPageNumber(Number(jumpValue) || page)} className="h-8 w-12 rounded-lg border border-[#d9d4c8] bg-[#fffdf8] text-center text-[11px] tabular-nums outline-none focus:border-[#597c67]" />
-                                <span className="text-[10px] text-[#858477]">of {logicalPageCount}</span>
-                              </form>
-                              <button type="button" onClick={() => setPageNumber(page + (spread ? 2 : 1))} disabled={page >= logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Next page"><ChevronRight size={16} /></button>
-                              <button type="button" onClick={() => setPageNumber(logicalPageCount)} disabled={page === logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Last page"><ChevronRight size={15} /><ChevronRight className="-ml-3" size={15} /></button>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="text-[10px] text-[#858477]">{LINE_STYLES.find(([value]) => value === draft.settings.lineStyle)?.[1]} · {draft.settings.trimSize === "custom" ? `${draft.settings.customWidth} × ${draft.settings.customHeight} in` : draft.settings.trimSize}</span>
-                              <button type="button" onClick={() => void fetchFile("interior", "open")} disabled={!hasInterior || busy === "file:interior"} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#315a51] px-3 text-[10px] font-semibold text-[#fbf8ef] hover:bg-[#26483f] disabled:cursor-not-allowed disabled:opacity-45">{busy === "file:interior" ? <LoaderCircle size={12} className="animate-spin" /> : <Maximize2 size={12} />} Open PDF</button>
-                            </div>
-                          </div>
-                          {!remoteSvgUrl && (
-                            <section className="max-h-[30dvh] shrink-0 overflow-y-auto border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-3 sm:px-5" aria-label="Advanced page editor">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">{currentPlannerPage ? "Planner page editor" : "Advanced page editor"}</p>
-                                  <h3 className="mt-1 text-[13px] font-semibold text-[#3f463e]">{currentPageSection} <span className="font-normal text-[#858477]">· page {page} of {logicalPageCount}</span></h3>
-                                  <p className="mt-1 max-w-2xl text-[10px] leading-4 text-[#77776b]">{currentPlannerPage ? "Adjust the imported page’s fit, scale, and position for print. Type in the fields below to create an editable replacement that updates this proof." : "Edit this page’s text, replace its layout with a custom ruled page, or exclude only this page from the downloaded interior."}</p>
-                                </div>
-                                <label className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-semibold ${currentPageExcluded ? "border-[#e2b9a9] bg-[#fff0e9] text-[#934432]" : "border-[#d3ddce] bg-[#edf3ea] text-[#42634d]"}`}>
-                                  <input
-                                    type="checkbox"
-                                    checked={!currentPageExcluded}
-                                    onChange={(event) => toggleCurrentPageExcluded(!event.target.checked)}
-                                    className="h-4 w-4 accent-[#456e5a]"
-                                  />
-                                  Include in download
-                                </label>
-                              </div>
-                              {currentPageExcluded && <p role="status" className="mt-3 rounded-lg border border-[#e4c5b8] bg-[#fff4ee] px-3 py-2 text-[10px] text-[#8c4736]">This page is excluded from the KDP interior. Turn on “Include in download” to restore it.</p>}
-                              {currentPlannerPage && <div className="mt-4">{renderPlannerPageLayout(page, currentPageEdit)}</div>}
-                              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                                <Field label={currentPlannerPage ? "Page title" : "Custom page title"}>
-                                  <input
-                                    aria-label="Custom page title"
-                                    value={currentPageEdit.title}
-                                    maxLength={120}
-                                    onChange={(event) => updateCurrentPageEdit("title", event.target.value)}
-                                    placeholder={currentPlannerPage ? NOTEBOOK_2027_PAGE_LABELS[page - (draft?.settings.frontBlankPageCount || 0) - 1] : ""}
-                                    className={inputClass}
-                                  />
-                                </Field>
-                                <Field label="Supporting text">
-                                  <input
-                                    aria-label="Custom page supporting text"
-                                    value={currentPageEdit.subtitle}
-                                    maxLength={300}
-                                    onChange={(event) => updateCurrentPageEdit("subtitle", event.target.value)}
-                                    className={inputClass}
-                                  />
-                                </Field>
-                                <div className="sm:col-span-2">
-                                  <Field label={currentPlannerPage ? "Page content" : "Page content"} hint={currentPlannerPage ? "Typing here switches to an editable ruled page; your original remains available by turning this off." : "Add a short note or prompt. The exported page keeps the selected writing rules below it."}>
-                                    <textarea
-                                      aria-label="Custom page content"
-                                      value={currentPageEdit.body}
-                                      maxLength={2400}
-                                      rows={4}
-                                      onChange={(event) => updateCurrentPageEdit("body", event.target.value)}
-                                      className={textareaClass}
-                                    />
-                                  </Field>
+                          {previewMode === "page" ? (
+                            <>
+                              {remoteSvgError && <div role="status" className="mx-4 mt-4 rounded-lg border border-[#e3d3b7] bg-[#fbf4e5] px-3 py-2 text-[10px] text-[#806741]">{remoteSvgError}</div>}
+                              <div ref={previewViewportRef} className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-4 sm:px-6" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
+                                <div className={`flex items-center justify-center gap-3 transition-transform duration-200 ${spread ? "flex-row" : "flex-col"}`} style={{ width: "100%" }}>
+                                  <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: spread ? `${Math.round(350 * zoom / 82)}px` : `${Math.round(500 * zoom / 82)}px` }}>{renderInteriorPage(page)}</div>
+                                  {spread && page < logicalPageCount && <div className="transition-transform duration-200" style={{ width: "100%", maxWidth: `${Math.round(350 * zoom / 82)}px` }}>{renderInteriorPage(page + 1)}</div>}
                                 </div>
                               </div>
-                              <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-[#e4dfd4] bg-[#fffdf8] px-3 py-2.5 text-[10px] text-[#62665d]">
+                              <div className="flex flex-col gap-3 border-t border-[#d8d1c3] bg-[#f8f5ed] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button type="button" onClick={() => setPageNumber(1)} disabled={page === 1} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="First page"><ChevronLeft size={15} /><ChevronLeft className="-ml-3" size={15} /></button>
+                                  <button type="button" onClick={() => setPageNumber(page - (spread ? 2 : 1))} disabled={page === 1} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Previous page"><ChevronLeft size={16} /></button>
+                                  <form className="flex items-center gap-1.5" onSubmit={(event) => { event.preventDefault(); setPageNumber(Number(jumpValue) || 1); }}>
+                                    <input aria-label="Jump to page" inputMode="numeric" value={jumpValue} onChange={(event) => setJumpValue(event.target.value.replace(/[^\d]/g, ""))} onBlur={() => setPageNumber(Number(jumpValue) || page)} className="h-8 w-12 rounded-lg border border-[#d9d4c8] bg-[#fffdf8] text-center text-[11px] tabular-nums outline-none focus:border-[#597c67]" />
+                                    <span className="text-[10px] text-[#858477]">of {logicalPageCount}</span>
+                                  </form>
+                                  <button type="button" onClick={() => setPageNumber(page + (spread ? 2 : 1))} disabled={page >= logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Next page"><ChevronRight size={16} /></button>
+                                  <button type="button" onClick={() => setPageNumber(logicalPageCount)} disabled={page === logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-30" aria-label="Last page"><ChevronRight size={15} /><ChevronRight className="-ml-3" size={15} /></button>
+                                </div>
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="text-[10px] text-[#858477]">{LINE_STYLES.find(([value]) => value === draft.settings.lineStyle)?.[1]} · {draft.settings.trimSize === "custom" ? `${draft.settings.customWidth} × ${draft.settings.customHeight} in` : draft.settings.trimSize}</span>
+                                  <button type="button" onClick={() => void fetchFile("interior", "open")} disabled={!hasInterior || busy === "file:interior"} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#315a51] px-3 text-[10px] font-semibold text-[#fbf8ef] hover:bg-[#26483f] disabled:cursor-not-allowed disabled:opacity-45">{busy === "file:interior" ? <LoaderCircle size={12} className="animate-spin" /> : <Maximize2 size={12} />} Open PDF</button>
+                                </div>
+                              </div>
+                              <div className="grid gap-2 border-t border-[#e2dccf] bg-[#fbf8f1] px-4 py-2.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                                <span className="text-[9px] font-semibold text-[#64695f]">Physical page</span>
                                 <input
-                                  type="checkbox"
-                                  checked={currentPageEdit.replace}
-                                  onChange={(event) => updateCurrentPageEdit("replace", event.target.checked)}
-                                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
+                                  type="range"
+                                  min={1}
+                                  max={logicalPageCount}
+                                  value={page}
+                                  onChange={(event) => setPageNumber(Number(event.target.value))}
+                                  aria-label={`Select physical interior page, currently ${page} of ${logicalPageCount}`}
+                                  className="h-5 w-full cursor-pointer accent-[#456e5a]"
                                 />
-                                <span><strong className="text-[#42473f]">{currentPlannerPage ? "Show editable page content" : "Replace this page’s current layout with my custom content."}</strong> When off, the original page design is preserved. Text edits switch this on automatically. Save changes and generate files to apply edits to the PDF.</span>
-                              </label>
+                                <span className="text-right text-[10px] tabular-nums text-[#74766b]">Page {page} / {logicalPageCount}</span>
+                              </div>
+                              {!remoteSvgUrl && (
+                                <section className="max-h-[30dvh] shrink-0 overflow-y-auto border-t border-[#d8d1c3] bg-[#fbf8f1] px-4 py-3 sm:px-5" aria-label="Advanced page editor">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                      <p className="text-[9px] font-bold uppercase tracking-[.16em] text-[#927958]">{currentPlannerPage ? "Planner page editor" : "Advanced page editor"}</p>
+                                      <h3 className="mt-1 text-[13px] font-semibold text-[#3f463e]">{currentPageSection} <span className="font-normal text-[#858477]">· page {page} of {logicalPageCount}</span></h3>
+                                      <p className="mt-1 max-w-2xl text-[10px] leading-4 text-[#77776b]">{currentPlannerPage ? "Adjust the imported page’s fit, scale, and position for print. Type in the fields below to create an editable replacement that updates this proof." : "Edit this page’s text, replace its layout with a custom ruled page, or exclude only this page from the downloaded interior."}</p>
+                                    </div>
+                                    <label className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-semibold ${currentPageExcluded ? "border-[#e2b9a9] bg-[#fff0e9] text-[#934432]" : "border-[#d3ddce] bg-[#edf3ea] text-[#42634d]"}`}>
+                                      <input
+                                        type="checkbox"
+                                        checked={!currentPageExcluded}
+                                        onChange={(event) => toggleCurrentPageExcluded(!event.target.checked)}
+                                        className="h-4 w-4 accent-[#456e5a]"
+                                      />
+                                      Include in download
+                                    </label>
+                                  </div>
+                                  {currentPageExcluded && <p role="status" className="mt-3 rounded-lg border border-[#e4c5b8] bg-[#fff4ee] px-3 py-2 text-[10px] text-[#8c4736]">This page is excluded from the KDP interior. Turn on “Include in download” to restore it.</p>}
+                                  {currentPlannerPage && <div className="mt-4">{renderPlannerPageLayout(page, currentPageEdit)}</div>}
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <Field label={currentPlannerPage ? "Page title" : "Custom page title"}>
+                                      <input
+                                        aria-label="Custom page title"
+                                        value={currentPageEdit.title}
+                                        maxLength={120}
+                                        onChange={(event) => updateCurrentPageEdit("title", event.target.value)}
+                                        placeholder={currentPlannerPage ? NOTEBOOK_2027_PAGE_LABELS[page - (draft?.settings.frontBlankPageCount || 0) - 1] : ""}
+                                        className={inputClass}
+                                      />
+                                    </Field>
+                                    <Field label="Supporting text">
+                                      <input
+                                        aria-label="Custom page supporting text"
+                                        value={currentPageEdit.subtitle}
+                                        maxLength={300}
+                                        onChange={(event) => updateCurrentPageEdit("subtitle", event.target.value)}
+                                        className={inputClass}
+                                      />
+                                    </Field>
+                                    <div className="sm:col-span-2">
+                                      <Field label="Page content" hint={currentPlannerPage ? "Typing here switches to an editable ruled page; your original remains available by turning this off." : "Add a short note or prompt. The exported page keeps the selected writing rules below it."}>
+                                        <textarea
+                                          aria-label="Custom page content"
+                                          value={currentPageEdit.body}
+                                          maxLength={2400}
+                                          rows={4}
+                                          onChange={(event) => updateCurrentPageEdit("body", event.target.value)}
+                                          className={textareaClass}
+                                        />
+                                      </Field>
+                                    </div>
+                                  </div>
+                                  <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-[#e4dfd4] bg-[#fffdf8] px-3 py-2.5 text-[10px] text-[#62665d]">
+                                    <input
+                                      type="checkbox"
+                                      checked={currentPageEdit.replace}
+                                      onChange={(event) => updateCurrentPageEdit("replace", event.target.checked)}
+                                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#456e5a]"
+                                    />
+                                    <span><strong className="text-[#42473f]">{currentPlannerPage ? "Show editable page content" : "Replace this page’s current layout with my custom content."}</strong> When off, the original page design is preserved. Text edits switch this on automatically. Save changes and generate files to apply edits to the PDF.</span>
+                                  </label>
+                                </section>
+                              )}
+                            </>
+                          ) : (
+                            <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#d8d1c3] bg-[#f8f5ed] px-4 py-3">
+                                <div className="min-w-0">
+                                  <h3 className="text-[12px] font-semibold text-[#3f463e]">Browse the entire interior</h3>
+                                  <p className="mt-1 text-[10px] text-[#858477]">Every physical page is available here, including blanks and excluded pages. Select a thumbnail to proof and edit it.</p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <form
+                                    className="flex items-center gap-1.5"
+                                    aria-label="Jump to physical page in interior overview"
+                                    onSubmit={(event) => {
+                                      event.preventDefault();
+                                      const nextPage = Math.min(logicalPageCount, Math.max(1, Number(jumpValue) || 1));
+                                      setPageNumber(nextPage);
+                                      setGalleryStart(Math.floor((nextPage - 1) / NOTEBOOK_GALLERY_PAGE_SIZE) * NOTEBOOK_GALLERY_PAGE_SIZE);
+                                    }}
+                                  >
+                                    <label htmlFor="gallery-page-jump" className="sr-only">Jump to physical page</label>
+                                    <input
+                                      id="gallery-page-jump"
+                                      inputMode="numeric"
+                                      value={jumpValue}
+                                      onChange={(event) => setJumpValue(event.target.value.replace(/[^\d]/g, ""))}
+                                      className="h-8 w-14 rounded-lg border border-[#d9d4c8] bg-[#fffdf8] text-center text-[10px] tabular-nums outline-none focus:border-[#597c67]"
+                                      aria-label="Jump to physical page"
+                                    />
+                                    <button type="submit" className="h-8 rounded-lg border border-[#d8d4c8] bg-[#fffdf8] px-2.5 text-[9px] font-semibold text-[#45634d] hover:bg-[#f0ede4]">Go</button>
+                                  </form>
+                                  <span className="text-[10px] tabular-nums text-[#74766b]">{galleryStart + 1}–{galleryPageEnd} of {logicalPageCount}</span>
+                                  <button type="button" onClick={() => setGalleryStart((start) => Math.max(0, start - NOTEBOOK_GALLERY_PAGE_SIZE))} disabled={galleryStart === 0} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Previous pages"><ChevronLeft size={16} /></button>
+                                  <button type="button" onClick={() => setGalleryStart((start) => Math.min(Math.max(0, logicalPageCount - NOTEBOOK_GALLERY_PAGE_SIZE), start + NOTEBOOK_GALLERY_PAGE_SIZE))} disabled={galleryPageEnd >= logicalPageCount} className="grid h-8 w-8 place-items-center rounded-lg text-[#687064] hover:bg-[#ece8dd] disabled:opacity-35" aria-label="Next pages"><ChevronRight size={16} /></button>
+                                </div>
+                              </div>
+                              <nav aria-label="Interior section index" className="flex gap-2 overflow-x-auto border-b border-[#d8d1c3] bg-[#f4f0e7] px-4 py-2.5 scrollbar-hide">
+                                {physicalInteriorSections.map((section) => (
+                                  <button
+                                    key={`${section.label}-${section.start}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setPageNumber(section.start);
+                                      setGalleryStart(Math.floor((section.start - 1) / NOTEBOOK_GALLERY_PAGE_SIZE) * NOTEBOOK_GALLERY_PAGE_SIZE);
+                                    }}
+                                    aria-label={`Browse ${section.label}, pages ${section.start} to ${section.start + section.count - 1}`}
+                                    className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[9px] font-semibold transition ${page >= section.start && page < section.start + section.count ? "border-[#b8cbb8] bg-[#e7eee4] text-[#42634d]" : "border-[#ded8ca] bg-[#fffdf8] text-[#73766b] hover:border-[#b8cbb8] hover:text-[#42634d]"}`}
+                                  >
+                                    <span>{section.label}</span>
+                                    <span className="rounded-full bg-black/[.045] px-1.5 py-0.5 tabular-nums">{section.count}</span>
+                                  </button>
+                                ))}
+                              </nav>
+                              <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4" style={{ backgroundImage: "radial-gradient(#d6d0c3 0.7px, transparent 0.7px)", backgroundSize: "14px 14px" }}>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
+                                  {galleryPageNumbers.map((pageNumber) => {
+                                    const excluded = draft.settings.disabledPages.includes(pageNumber);
+                                    return (
+                                      <button
+                                        key={`thumbnail-${pageNumber}`}
+                                        type="button"
+                                        onClick={() => {
+                                          setPageNumber(pageNumber);
+                                          setPreviewMode("page");
+                                        }}
+                                        className={`group rounded-xl border bg-[#faf7ef] p-2 text-left shadow-sm transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#597c67] ${pageNumber === page ? "border-[#557b63] ring-2 ring-[#557b63]/25" : "border-[#d8d1c3] hover:border-[#a9b8a5]"}`}
+                                        aria-label={`Open page ${pageNumber}${excluded ? ", excluded from print" : ""}`}
+                                      >
+                                        <div className="mx-auto w-full overflow-hidden rounded-md bg-[#e9e4d8] p-2">
+                                          <div className="pointer-events-none mx-auto w-full max-w-[170px]">{renderInteriorPage(pageNumber)}</div>
+                                        </div>
+                                        <div className="mt-2 flex items-center justify-between gap-1 px-0.5">
+                                          <span className="text-[10px] font-semibold tabular-nums text-[#4d554c]">Page {pageNumber}</span>
+                                          <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-semibold ${excluded ? "bg-[#f5e6df] text-[#934b3a]" : "bg-[#e9efe6] text-[#45634d]"}`}>{excluded ? "Excluded" : "Included"}</span>
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </section>
                           )}
                         </>
