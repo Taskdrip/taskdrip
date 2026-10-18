@@ -63,6 +63,7 @@ import {
   type NotebookPageEdit,
 } from "@shared/notebook-studio";
 import NotebookKdpListingGuide from "./notebook-kdp-listing-guide";
+import NotebookPlannerPagePreview from "./notebook-planner-page-preview";
 
 type NotebookSettings = {
   subtitle: string;
@@ -1683,10 +1684,9 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
             style={{ aspectRatio: trimAspect }}
             aria-label={`2027 planner opening page ${plannerPage} of ${NOTEBOOK_2027_PLANNER_PAGE_COUNT}`}
           >
-            <iframe
-              title={`2027 planner page ${plannerPage}`}
-              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?${previewParams.toString()}#toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-width`}
-              className="block h-full w-full border-0"
+            <NotebookPlannerPagePreview
+              label={`2027 planner page ${plannerPage}`}
+              src={`${API}/${draft!.id}/files/planner-2027/page/${plannerPage}?${previewParams.toString()}`}
             />
           </article>
         );
