@@ -17,6 +17,7 @@ import {
   FileCheck2,
   FileCog,
   FileText,
+  FolderOpen,
   LoaderCircle,
   Maximize2,
   MoreHorizontal,
@@ -301,6 +302,11 @@ function coverSvg(project: NotebookProject) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800"><rect width="1200" height="1800" fill="${bg}"/><rect x="64" y="64" width="1072" height="1672" rx="8" fill="none" stroke="${accent}" stroke-width="3" opacity=".68"/><path d="M104 120H1096" stroke="${accent}" stroke-width="2" opacity=".5"/><text x="600" y="174" text-anchor="middle" fill="${accent}" font-family="Georgia,serif" font-size="24" letter-spacing="8">${escapeXml(settings.seriesName || "FIELD NOTES")}</text>${imageMarkup}<g>${motif}</g><text x="600" y="815" text-anchor="middle" fill="${accent}" font-family="Georgia,serif" font-size="66" font-weight="600">${displayTitle}</text>${subtitle ? `<text x="600" y="900" text-anchor="middle" fill="${accent}" opacity=".8" font-family="sans-serif" font-size="28">${subtitle}</text>` : ""}<path d="M520 1030H680" stroke="${accent}" stroke-width="3" opacity=".7"/><text x="600" y="1590" text-anchor="middle" fill="${accent}" font-family="sans-serif" font-size="26" letter-spacing="4">${author.toUpperCase()}</text><text x="600" y="1645" text-anchor="middle" fill="${accent}" opacity=".68" font-family="sans-serif" font-size="15" letter-spacing="2">${desc}</text></svg>`;
 }
 
+function coverImageSource(project: NotebookProject) {
+  if (project.coverDesign.frontImageUrl) return project.coverDesign.frontImageUrl;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(coverSvg(project))}`;
+}
+
 function IconButton({ label, onClick, children, disabled = false, tone = "quiet" }: {
   label: string;
   onClick: () => void;
@@ -390,6 +396,8 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
   activeIdRef.current = activeId;
 
   const activeProject = useMemo(() => projects.find((project) => project.id === activeId) || null, [projects, activeId]);
+  const headerProject = draft || activeProject;
+  const headerImage = useMemo(() => headerProject ? coverImageSource(headerProject) : "", [headerProject]);
   const mainPageCount = Math.max(1, Number(draft?.settings.pageCount) || 160);
   const introPageCount = draft ? notebookIntroPageCount(draft.settings) : 0;
   const outroPageCount = draft ? notebookOutroPageCount(draft.settings) : 0;
@@ -400,6 +408,17 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     return needle ? projects.filter((project) => project.title.toLowerCase().includes(needle)) : projects;
   }, [projects, listSearch]);
   const dirty = !!draft && !!activeProject && JSON.stringify(draft) !== JSON.stringify(activeProject);
+  const confirmLeaveDraft = () => !dirty || window.confirm("You have unsaved changes. Leave this notebook without saving?");
+  const returnToProjectShelf = () => {
+    if (!confirmLeaveDraft()) return;
+    setActiveId(null);
+    setDraft(null);
+    setTab("interior");
+    setNotice(null);
+  };
+  const returnToCreatorStudio = () => {
+    if (confirmLeaveDraft()) onExit?.();
+  };
 
   const refreshProjects = useCallback(async (selectId?: string) => {
     setLoading(true);
@@ -1721,32 +1740,50 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
         @keyframes nb-enter { from { opacity: .25; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .notebook-studio .nb-enter { animation: none; } }
       `}</style>
-      <header className="border-b border-[#ddd6c7] bg-[#faf7ef]">
-        <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            {onExit && (
-              <button type="button" onClick={onExit} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#ded8ca] bg-[#fffdf8] px-2.5 text-[10px] font-semibold text-[#59685a] transition hover:bg-[#f0ede4] sm:px-3" aria-label="Exit Notebook Studio">
-                <ArrowLeft size={14} /><span className="hidden sm:inline">Creator Studio</span><span className="sm:hidden">Back</span>
+      <header className="relative isolate shrink-0 overflow-hidden border-b border-[#203d34] bg-[#29473d] text-[#fbf7eb]">
+        {headerImage && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] overflow-hidden sm:w-[48%]" aria-hidden="true">
+            <img src={headerImage} alt="" className="h-full w-full object-cover object-center opacity-35 saturate-[.75]" />
+          </div>
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,#29473d_0%,rgba(41,71,61,.98)_43%,rgba(41,71,61,.76)_74%,rgba(41,71,61,.68)_100%)]" aria-hidden="true" />
+        <div className="relative mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="min-w-0 flex-1">
+            <nav aria-label="Studio navigation" className="mb-1.5 flex min-w-0 items-center gap-2 text-[10px] font-semibold text-[#e2e9dd]/75">
+              {onExit && (
+                <button type="button" onClick={returnToCreatorStudio} className="inline-flex shrink-0 items-center gap-1.5 rounded-md py-1 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8ddbd]" aria-label="Return to Creator Studio">
+                  <ArrowLeft size={13} /> <span>Creator Studio</span>
+                </button>
+              )}
+              {onExit && <span aria-hidden="true" className="text-white/35">/</span>}
+              <button type="button" onClick={returnToProjectShelf} aria-current={!draft ? "page" : undefined} className={`inline-flex min-w-0 items-center gap-1.5 rounded-md py-1 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e8ddbd] ${!draft ? "text-white" : ""}`}>
+                <FolderOpen size={13} className="shrink-0" />
+                <span className="truncate">{draft ? "All notebook projects" : "Notebook projects"}</span>
               </button>
-            )}
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] bg-[#315a51] text-[#f7f2e7] shadow-[inset_0_1px_0_rgba(255,255,255,.18)]">
-              <BookOpen size={21} strokeWidth={1.7} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[.2em] text-[#8d7654]">Taskdrip / admin publishing</p>
-              <h1 className="truncate font-serif text-[22px] font-semibold tracking-[-.025em] sm:text-[25px]">Notebook studio</h1>
+            </nav>
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border border-white/20 bg-white/10 text-[#f7f2e7] shadow-[inset_0_1px_0_rgba(255,255,255,.18)]">
+                <BookOpen size={20} strokeWidth={1.7} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[.2em] text-[#d9cba8]">Taskdrip · Creator Studio</p>
+                <h1 className="truncate font-serif text-[21px] font-semibold tracking-[-.025em] sm:text-[24px]">Notebook studio</h1>
+                <p className="hidden max-w-[560px] truncate text-[10px] text-[#e6e9df]/75 sm:block">
+                  {draft ? `${draft.title || "Untitled notebook"} · Edit, review, and prepare your print files.` : "Manage your journal and print-ready notebook projects."}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <div className="mr-auto flex items-center gap-2 rounded-full border border-[#dcd6c9] bg-[#f4f0e7] px-3 py-2 text-[11px] font-medium text-[#686a60] sm:mr-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#69896f]" />
-              {projects.length} {projects.length === 1 ? "project" : "projects"} on shelf
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            <div className="mr-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/10 px-3 py-2 text-[10px] font-medium text-[#f1eee3] sm:mr-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#b7cfaa]" />
+              {projects.length} {projects.length === 1 ? "project" : "projects"}
             </div>
-            <button type="button" onClick={() => void refreshProjects(activeId || undefined)} disabled={loading} className={secondaryButton}>
-              <RefreshCw size={15} className={loading ? "animate-spin" : ""} /> Refresh
+            <button type="button" onClick={() => void refreshProjects(activeId || undefined)} disabled={loading} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 text-[10px] font-semibold text-white transition hover:bg-white/15 disabled:opacity-50">
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
             </button>
-            <button type="button" onClick={() => void createProject()} disabled={busy === "create"} className={primaryButton}>
-              {busy === "create" ? <LoaderCircle size={16} className="animate-spin" /> : <Plus size={16} />} New notebook
+            <button type="button" onClick={() => void createProject()} disabled={busy === "create"} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#f3ead2] px-3.5 text-[10px] font-bold text-[#29473d] shadow-sm transition hover:bg-white disabled:opacity-60">
+              {busy === "create" ? <LoaderCircle size={15} className="animate-spin" /> : <Plus size={15} />} New notebook
             </button>
           </div>
         </div>
@@ -1766,11 +1803,11 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
           </div>
         )}
 
-        <div className={`grid gap-4 transition-[grid-template-columns] duration-300 lg:gap-5 ${draft ? "min-h-0 flex-1 grid-rows-[minmax(0,1fr)] items-stretch" : "items-start"} ${listCollapsed ? "lg:grid-cols-[68px_minmax(0,1fr)]" : "lg:grid-cols-[292px_minmax(0,1fr)]"}`}>
-          <aside className={`overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${draft ? "hidden h-full min-h-0 flex-col lg:flex" : ""}`}>
+        <div className={`grid gap-4 transition-[grid-template-columns] duration-300 lg:gap-5 ${draft ? "min-h-0 flex-1 grid-rows-[minmax(0,1fr)] items-stretch" : "items-start"} ${listCollapsed ? "2xl:grid-cols-[68px_minmax(0,1fr)]" : "2xl:grid-cols-[292px_minmax(0,1fr)]"}`}>
+          <aside className={`overflow-hidden rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] shadow-[0_10px_34px_rgba(65,55,38,.045)] ${draft ? "hidden h-full min-h-0 flex-col 2xl:flex" : ""}`}>
             <div className={`flex items-center justify-between border-b border-[#e5dfd2] px-4 py-4 ${listCollapsed ? "lg:justify-center lg:px-2" : ""}`}>
               {!listCollapsed && <div><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#927958]">Your shelf</p><h2 className="mt-1 text-sm font-semibold">Notebook projects</h2></div>}
-              <button type="button" aria-label={listCollapsed ? "Expand project list" : "Collapse project list"} onClick={() => setListCollapsed((value) => !value)} className="hidden h-9 w-9 items-center justify-center rounded-lg text-[#6c7168] hover:bg-[#f0ece2] lg:flex">
+              <button type="button" aria-label={listCollapsed ? "Expand project list" : "Collapse project list"} onClick={() => setListCollapsed((value) => !value)} className="hidden h-9 w-9 items-center justify-center rounded-lg text-[#6c7168] hover:bg-[#f0ece2] 2xl:flex">
                 {listCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
               </button>
             </div>
@@ -1790,13 +1827,14 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
                     return (
                       <div key={project.id} className={`group rounded-[15px] border p-2.5 transition-all ${selected ? "border-[#bdd0c3] bg-[#eef3ec] shadow-[0_3px_12px_rgba(55,91,69,.06)]" : "border-transparent hover:border-[#e3ddcf] hover:bg-[#f6f2e9]"}`}>
                         <button type="button" onClick={() => activate(project)} className="flex w-full min-w-0 items-center gap-3 text-left">
-                          <div className="relative grid h-[52px] w-[40px] shrink-0 place-items-center overflow-hidden rounded-[4px_7px_7px_4px] border border-black/10 shadow-sm" style={{ background: project.coverDesign?.background || "#e7e2d4" }}>
+                          <div className="relative grid h-[58px] w-[44px] shrink-0 place-items-center overflow-hidden rounded-[4px_7px_7px_4px] border border-black/10 shadow-sm" style={{ background: project.coverDesign?.background || "#e7e2d4" }}>
+                            {project.coverDesign?.frontImageUrl && <img src={project.coverDesign.frontImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />}
                             <span className="absolute inset-y-0 left-0 w-[4px] bg-black/10" />
-                            <span className="px-1 text-center font-serif text-[7px] font-bold leading-tight" style={{ color: project.coverDesign?.accent || "#315a51" }}>{project.title || "Untitled"}</span>
+                            <span className="relative z-[1] rounded-sm bg-white/55 px-1 text-center font-serif text-[7px] font-bold leading-tight" style={{ color: project.coverDesign?.accent || "#315a51" }}>{project.title || "Untitled"}</span>
                           </div>
                           <span className="min-w-0 flex-1">
                             <span className={`block truncate text-[12px] font-semibold ${selected ? "text-[#294b42]" : "text-[#3f443c]"}`}>{project.title || "Untitled notebook"}</span>
-                            <span className="mt-1 flex items-center gap-1.5 text-[10px] text-[#858477]">
+                              <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-[#858477]">
                               <span className={`h-1.5 w-1.5 rounded-full ${project.status === "generated" || project.status === "ready" ? "bg-[#6d9272]" : "bg-[#c89b58]"}`} />
                               <span className="capitalize">{String(project.status || "draft").replace(/[_-]/g, " ")}</span>
                               <span className="text-[#b5ae9e]">·</span>
@@ -1858,7 +1896,7 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
               <div className="rounded-[22px] border border-[#ded8ca] bg-[#faf7ef] p-4 shadow-[0_10px_34px_rgba(65,55,38,.045)] sm:p-5">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
-                    <button type="button" onClick={() => { setActiveId(null); setDraft(null); }} className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#ded8ca] bg-[#fffdf8] text-[#5f675e] transition hover:bg-[#f0ede4] lg:hidden" aria-label="Back to notebook shelf"><ArrowLeft size={16} /></button>
+                     <button type="button" onClick={returnToProjectShelf} className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#ded8ca] bg-[#fffdf8] text-[#5f675e] transition hover:bg-[#f0ede4] 2xl:hidden" aria-label="Back to notebook shelf"><ArrowLeft size={16} /></button>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full border border-[#d5dacb] bg-[#f1f2e9] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.13em] text-[#63745f]">{String(draft.status || "draft").replace(/[_-]/g, " ")}</span>

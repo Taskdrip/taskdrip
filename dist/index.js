@@ -14056,15 +14056,22 @@ function createNotebookInteriorPdf(title, settings, pageArtwork = {}) {
   );
   return buildPdf(objects);
 }
-function fitPlannerPageToTrim(page2, settings) {
+function fitPlannerPageToTrim(page2, settings, edit) {
   const trim = notebookTrim(settings);
   const targetWidth = inch(trim.width);
   const targetHeight = inch(trim.height);
   const sourceWidth = page2.getWidth();
   const sourceHeight = page2.getHeight();
-  const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  const fitScale = edit?.fitMode === "fill" ? Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight) : Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  const zoom = Math.max(50, Math.min(160, Number(edit?.scale ?? 100))) / 100;
+  const scale = fitScale * (Number.isFinite(zoom) ? zoom : 1);
+  const offsetX = Math.max(-25, Math.min(25, Number(edit?.offsetX ?? 0))) * targetWidth / 100;
+  const offsetY = Math.max(-25, Math.min(25, Number(edit?.offsetY ?? 0))) * targetHeight / 100;
   page2.scaleContent(scale, scale);
-  page2.translateContent((targetWidth - sourceWidth * scale) / 2, (targetHeight - sourceHeight * scale) / 2);
+  page2.translateContent(
+    (targetWidth - sourceWidth * scale) / 2 + offsetX,
+    (targetHeight - sourceHeight * scale) / 2 + offsetY
+  );
   page2.setSize(targetWidth, targetHeight);
 }
 async function loadPlannerPages(sourcePdf) {
@@ -14082,7 +14089,8 @@ async function createPlanner2027PagePreview(sourcePdf, pageNumber, settings) {
   const { source, pageIndices } = await loadPlannerPages(sourcePdf);
   const output = await PDFDocument.create();
   const [page2] = await output.copyPages(source, [pageIndices[pageNumber - 1]]);
-  fitPlannerPageToTrim(page2, settings);
+  const printedPageNumber = Math.max(0, Number(settings.frontBlankPageCount) || 0) + pageNumber;
+  fitPlannerPageToTrim(page2, settings, settings.pageEdits?.[String(printedPageNumber)]);
   output.addPage(page2);
   return Buffer.from(await output.save({ useObjectStreams: false }));
 }
@@ -14104,7 +14112,7 @@ async function prependPlanner2027Pages(interiorPdf, sourcePdf, settings) {
         output.addPage(generatedPages[index2]);
       } else {
         const plannerPage = plannerPages[index2 - frontBlanks];
-        fitPlannerPageToTrim(plannerPage, settings);
+        fitPlannerPageToTrim(plannerPage, settings, settings.pageEdits?.[String(printedPageNumber)]);
         output.addPage(plannerPage);
       }
     } else {
@@ -14367,7 +14375,11 @@ function createNotebookCoverPdf(title, settings, design, uploadedCoverBytes = nu
 // server/notebook-studio.ts
 var PROJECT_FILES_DIR = path.resolve(process.cwd(), ".private-notebook-files");
 var PUBLIC_UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
-var TASKDRIP_2027_PLANNER_PDF = path.resolve(process.cwd(), "attached_assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf");
+var TASKDRIP_2027_PLANNER_PDF_FILENAME = "taskdrip_2027_Notebook_Journal_1792270834126.pdf";
+var TASKDRIP_2027_PLANNER_PDF_CANDIDATES = [
+  path.resolve(process.cwd(), "dist", "assets", TASKDRIP_2027_PLANNER_PDF_FILENAME),
+  path.resolve(process.cwd(), "attached_assets", TASKDRIP_2027_PLANNER_PDF_FILENAME)
+];
 var pageArtUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 1 }
@@ -14480,11 +14492,18 @@ function normalizePageEdits(input, previous) {
       throw Object.assign(new Error(`Edit for page ${rawPage} must be an object.`), { statusCode: 400 });
     }
     const edit = rawEdit;
+    const scale = Number(edit.scale);
+    const offsetX = Number(edit.offsetX);
+    const offsetY = Number(edit.offsetY);
     edits[rawPage] = {
       title: cleanText(edit.title, 120),
       subtitle: cleanText(edit.subtitle, 300),
       body: cleanText(edit.body, 2400),
-      replace: edit.replace === true
+      replace: edit.replace === true,
+      fitMode: edit.fitMode === "fill" ? "fill" : "fit",
+      scale: Number.isFinite(scale) ? Math.max(50, Math.min(160, scale)) : 100,
+      offsetX: Number.isFinite(offsetX) ? Math.max(-25, Math.min(25, offsetX)) : 0,
+      offsetY: Number.isFinite(offsetY) ? Math.max(-25, Math.min(25, offsetY)) : 0
     };
   }
   return edits;
@@ -14767,12 +14786,18 @@ async function exists(file) {
     return false;
   }
 }
+async function taskdrip2027PlannerPdfPath() {
+  for (const candidate of TASKDRIP_2027_PLANNER_PDF_CANDIDATES) {
+    if (await exists(candidate)) return candidate;
+  }
+  return null;
+}
 async function readTaskdrip2027PlannerPdf() {
-  try {
-    return await readFile(TASKDRIP_2027_PLANNER_PDF);
-  } catch {
+  const plannerPdfPath = await taskdrip2027PlannerPdfPath();
+  if (!plannerPdfPath) {
     throw Object.assign(new Error("The supplied 2027 planner PDF is unavailable in this app build."), { statusCode: 503 });
   }
+  return readFile(plannerPdfPath);
 }
 async function sendProjectFile(res, file, title, extension, inline = false) {
   if (!await exists(file)) return res.status(404).json({ message: "Generate this file before downloading it." });
@@ -14938,10 +14963,27 @@ function registerNotebookStudioRoutes(app2) {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
       const savedSettings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
+      const plannerPageNumber = Number(req.params.page);
+      if (!Number.isInteger(plannerPageNumber) || plannerPageNumber < 1 || plannerPageNumber > NOTEBOOK_2027_PLANNER_PAGE_COUNT) {
+        return res.status(400).json({ message: "Choose a 2027 planner page from 1 to 30." });
+      }
+      const printedPageNumber = savedSettings.frontBlankPageCount + plannerPageNumber;
+      const pageKey = String(printedPageNumber);
+      const savedEdit = savedSettings.pageEdits[pageKey] || { title: "", subtitle: "", body: "", replace: false };
       const settings = normalizeSettings({
         trimSize: req.query.trimSize,
         customWidth: req.query.customWidth,
-        customHeight: req.query.customHeight
+        customHeight: req.query.customHeight,
+        pageEdits: {
+          ...savedSettings.pageEdits,
+          [pageKey]: {
+            ...savedEdit,
+            fitMode: req.query.fitMode ?? savedEdit.fitMode,
+            scale: req.query.scale ?? savedEdit.scale,
+            offsetX: req.query.offsetX ?? savedEdit.offsetX,
+            offsetY: req.query.offsetY ?? savedEdit.offsetY
+          }
+        }
       }, savedSettings);
       const sourcePdf = await readTaskdrip2027PlannerPdf();
       const previewPdf = await createPlanner2027PagePreview(sourcePdf, Number(req.params.page), settings);
@@ -15043,7 +15085,7 @@ function registerNotebookStudioRoutes(app2) {
         exists(filePath(project.id, "cover"))
       ]);
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || Boolean(await taskdrip2027PlannerPdfPath());
       const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
       await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id)));
       res.json({ validation });
@@ -15057,7 +15099,7 @@ function registerNotebookStudioRoutes(app2) {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
-      const plannerPdfAvailable = !settings.use2027PlannerPdf || await exists(TASKDRIP_2027_PLANNER_PDF);
+      const plannerPdfAvailable = !settings.use2027PlannerPdf || Boolean(await taskdrip2027PlannerPdfPath());
       const previousReport = validateNotebook(project.title, settings, {
         interiorExists: false,
         coverExists: false,
