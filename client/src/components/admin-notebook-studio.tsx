@@ -1050,6 +1050,36 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     || ["passed", "ready", "manual"].includes(String(validationSummary?.status || "").toLowerCase());
   const manualVerification = validationSummary?.manualVerificationRequired === true
     || validationItems.some((item) => /manual|previewer|verify/i.test(item.label));
+  const trimAspect = (() => {
+    const trim = draft?.settings.trimSize === "custom"
+      ? [Number(draft.settings.customWidth), Number(draft.settings.customHeight)]
+      : String(draft?.settings.trimSize || "6x9").split("x").map(Number);
+    return trim.length === 2 && trim.every((dimension) => Number.isFinite(dimension) && dimension > 0)
+      ? `${trim[0]} / ${trim[1]}`
+      : "2 / 3";
+  })();
+
+  useEffect(() => {
+    const fit = () => {
+      const viewport = previewViewportRef.current;
+      if (!viewport) return;
+      const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
+      const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
+      setZoom(calculateFitZoom(aspect, spread, viewport.clientWidth, viewport.clientHeight));
+    };
+
+    fit();
+    const viewport = previewViewportRef.current;
+    if (!viewport) return;
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    observer?.observe(viewport);
+    window.addEventListener("resize", fit);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [trimAspect, spread, tab, draft?.id]);
+
   const hasInterior = !!draft?.generatedInteriorKey;
   const hasCover = !!draft?.generatedCoverKey;
 
@@ -1432,14 +1462,6 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
     );
   };
 
-  const trimAspect = (() => {
-    const trim = draft?.settings.trimSize === "custom"
-      ? [Number(draft.settings.customWidth), Number(draft.settings.customHeight)]
-      : String(draft?.settings.trimSize || "6x9").split("x").map(Number);
-    return trim.length === 2 && trim.every((dimension) => Number.isFinite(dimension) && dimension > 0)
-      ? `${trim[0]} / ${trim[1]}`
-      : "2 / 3";
-  })();
   const fitPreviewToViewport = () => {
     const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
     const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
@@ -1451,27 +1473,6 @@ export default function AdminNotebookStudio({ onExit }: { onExit?: () => void } 
       viewport?.clientHeight || window.innerHeight,
     ));
   };
-
-  useEffect(() => {
-    const fit = () => {
-      const viewport = previewViewportRef.current;
-      if (!viewport) return;
-      const [width, height] = trimAspect.split("/").map((value) => Number(value.trim()));
-      const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
-      setZoom(calculateFitZoom(aspect, spread, viewport.clientWidth, viewport.clientHeight));
-    };
-
-    fit();
-    const viewport = previewViewportRef.current;
-    if (!viewport) return;
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
-    observer?.observe(viewport);
-    window.addEventListener("resize", fit);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", fit);
-    };
-  }, [trimAspect, spread, tab, draft?.id]);
 
   const currentPageEdit = draft?.settings.pageEdits[String(page)] || EMPTY_NOTEBOOK_PAGE_EDIT;
   const currentPageExcluded = Boolean(draft?.settings.disabledPages.includes(page));
