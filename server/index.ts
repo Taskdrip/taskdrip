@@ -20,6 +20,7 @@ import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
 import { ensureAsiafilmSmartlink } from "./url-shortener";
 import bcrypt from "bcryptjs";
+import { startSeoCrawlerScheduler } from "./seo-intelligence-routes";
 
 // ── Global crash guards — must be first so the server never silently dies ──
 process.on("uncaughtException", (err) => {
@@ -315,6 +316,7 @@ server.listen({
     startupError = err?.message || "Route registration failed";
     console.error("[startup] Routes error:", err);
   }
+  startSeoCrawlerScheduler();
 
   // Global error handler must be registered after routes.
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

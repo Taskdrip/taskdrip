@@ -1,10 +1,19 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import { randomBytes } from "crypto";
 import { db } from "./db";
 import {
   blogPosts, shopProducts, users, courses, campaigns, pageSeoSettings,
   pwaSettings, appSettings, keywordTrackers,
 } from "@shared/schema";
 import { eq, desc, sql, and, ilike, count } from "drizzle-orm";
+import { getPublicSeoUrls } from "./public-seo-routes";
+
+const SEO_SITE_ORIGIN = "https://taskdrip.online";
+const CRAWL_FREQUENCIES = ["hourly", "daily", "weekly"] as const;
+type CrawlFrequency = typeof CRAWL_FREQUENCIES[number];
+
+let activeCrawl: Promise<any> | null = null;
+let seoSchedulerStarted = false;
 
 // ─── Auth helpers ────────────────────────────────────────────────────────────
 const isAuthed = (req: any, res: Response, next: NextFunction) => {
@@ -28,6 +37,178 @@ async function getSetting(key: string): Promise<string> {
 async function setSetting(key: string, value: string): Promise<void> {
   await db.insert(appSettings).values({ key, value, updatedAt: new Date() })
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: new Date() } });
+}
+
+function nextCrawlTime(frequency: CrawlFrequency, from = new Date()): Date {
+  const next = new Date(from);
+  next.setUTCSeconds(0, 0);
+  if (frequency === "hourly") {
+    next.setUTCHours(next.getUTCHours() + 1);
+  } else {
+    next.setUTCHours(0, 0, 0, 0);
+    if (frequency === "daily") {
+      next.setUTCDate(next.getUTCDate() + 1);
+    } else {
+      const daysUntilMonday = (8 - next.getUTCDay()) % 7 || 7;
+      next.setUTCDate(next.getUTCDate() + daysUntilMonday);
+    }
+  }
+  return next;
+}
+
+function plainText(value?: string | null): string {
+  return (value || "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function makeMetaDescription(title: string, ...sources: Array<string | null | undefined>): string {
+  const source = sources.map(plainText).find(Boolean) ||
+    `${title} — explore practical information, resources, and updates on Taskdrip.`;
+  if (source.length <= 160) return source;
+  const shortened = source.slice(0, 157).replace(/\s+\S*$/, "").trim();
+  return `${shortened || source.slice(0, 157).trim()}…`;
+}
+
+async function submitIndexNow(urls: string[]) {
+  const [enabled, key] = await Promise.all([
+    getSetting("seo_indexnow_enabled"),
+    getSetting("seo_indexnow_key"),
+  ]);
+  if (enabled !== "true") {
+    return { status: "disabled", submitted: 0, message: "IndexNow notifications are disabled." };
+  }
+  if (!key) {
+    return { status: "not_configured", submitted: 0, message: "Generate an IndexNow key in crawler settings first." };
+  }
+  let submitted = 0;
+  const failures: string[] = [];
+  for (let i = 0; i < urls.length; i += 10000) {
+    const batch = urls.slice(i, i + 10000);
+    try {
+      const response = await fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({
+          host: "taskdrip.online",
+          key,
+          keyLocation: `${SEO_SITE_ORIGIN}/${key}.txt`,
+          urlList: batch,
+        }),
+      });
+      if (response.ok) submitted += batch.length;
+      else failures.push(`IndexNow returned HTTP ${response.status}`);
+    } catch (error: any) {
+      failures.push(error?.message || "IndexNow request failed");
+    }
+  }
+  return {
+    status: failures.length ? (submitted ? "partial" : "failed") : "submitted",
+    submitted,
+    message: failures.join("; ") || `${submitted} URL${submitted === 1 ? "" : "s"} submitted to IndexNow.`,
+  };
+}
+
+async function runSeoCrawl() {
+  if (activeCrawl) return activeCrawl;
+  activeCrawl = (async () => {
+    const startedAt = Date.now();
+    const publishedPosts = await db.select({
+      id: blogPosts.id,
+      title: blogPosts.title,
+      slug: blogPosts.slug,
+      content: blogPosts.content,
+      excerpt: blogPosts.excerpt,
+      metaDescription: blogPosts.metaDescription,
+    }).from(blogPosts).where(eq(blogPosts.isPublished, true));
+
+    let repairedDescriptions = 0;
+    for (const post of publishedPosts) {
+      if (post.metaDescription?.trim()) continue;
+      const description = makeMetaDescription(post.title, post.excerpt, post.content);
+      await db.update(blogPosts)
+        .set({ metaDescription: description, updatedAt: new Date() })
+        .where(eq(blogPosts.id, post.id));
+      repairedDescriptions++;
+    }
+
+    const urls = await getPublicSeoUrls();
+    if (urls.length > 50000) {
+      throw new Error(`The sitemap currently has ${urls.length} URLs. A sitemap index is required above 50,000 URLs.`);
+    }
+    const breakdown = urls.reduce<Record<string, number>>((result, page) => {
+      result[page.type] = (result[page.type] || 0) + 1;
+      return result;
+    }, {});
+    const notifications = await submitIndexNow(urls.map((page) => page.url));
+    const crawledAt = new Date().toISOString();
+    await Promise.all([
+      setSetting("last_crawl_at", crawledAt),
+      setSetting("last_crawl_total", String(urls.length)),
+      setSetting("last_crawl_repaired_descriptions", String(repairedDescriptions)),
+      setSetting("last_crawl_duration_ms", String(Date.now() - startedAt)),
+      setSetting("last_crawl_error", ""),
+    ]);
+    return {
+      success: true,
+      totalUrls: urls.length,
+      breakdown,
+      repairedDescriptions,
+      notifications,
+      sitemapUrl: `${SEO_SITE_ORIGIN}/sitemap.xml`,
+      crawledAt,
+      durationMs: Date.now() - startedAt,
+      issues: urls.reduce((total, page) => {
+        const title = page.metaTitle || page.title;
+        const description = plainText(page.metaDescription);
+        return total + (!title ? 1 : 0) + (!description ? 1 : 0) +
+          (title.length > 70 ? 1 : 0) + (description.length > 160 ? 1 : 0);
+      }, 0),
+    };
+  })();
+  try {
+    return await activeCrawl;
+  } finally {
+    activeCrawl = null;
+  }
+}
+
+async function scheduledSeoCrawlTick() {
+  try {
+    const [enabled, frequencyValue, nextValue] = await Promise.all([
+      getSetting("seo_crawl_enabled"),
+      getSetting("seo_crawl_frequency"),
+      getSetting("seo_crawl_next_at"),
+    ]);
+    const frequency = CRAWL_FREQUENCIES.includes(frequencyValue as CrawlFrequency)
+      ? frequencyValue as CrawlFrequency
+      : "daily";
+    if (enabled !== "true") return;
+
+    const next = nextValue ? new Date(nextValue) : new Date(0);
+    if (Number.isNaN(next.getTime()) || next.getTime() > Date.now()) return;
+    await setSetting("seo_crawl_next_at", nextCrawlTime(frequency).toISOString());
+    await runSeoCrawl();
+  } catch (error: any) {
+    console.error("[SEO] Scheduled crawl failed:", error);
+    await setSetting("last_crawl_error", error?.message || "Scheduled crawl failed").catch(() => {});
+  }
+}
+
+export function startSeoCrawlerScheduler() {
+  if (seoSchedulerStarted) return;
+  seoSchedulerStarted = true;
+  const timer = setInterval(() => void scheduledSeoCrawlTick(), 30 * 1000);
+  timer.unref?.();
+  void scheduledSeoCrawlTick();
 }
 
 // ─── Gemini helper ───────────────────────────────────────────────────────────
@@ -160,12 +341,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
       const clarityId = await getSetting("clarity_id");
 
-      // Compute static pages count (matches sitemap)
-      const staticPageCount = 21;
-      const totalIndexed = staticPageCount +
-        Number(blogCount?.n || 0) +
-        Number(productCount?.n || 0) +
-        Number(courseCount?.n || 0);
+      const sitemapUrls = await getPublicSeoUrls();
+      const staticPageCount = sitemapUrls.filter((page) => page.type === "page").length;
+      const totalIndexed = sitemapUrls.length;
 
       const seoConfigured = seoPages.filter(p => p.metaTitle || p.metaDescription).length;
 
@@ -181,7 +359,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         campaigns: Number(campaignCount?.n || 0),
         users: Number(userCount?.n || 0),
         seoConfiguredPages: seoConfigured,
-        totalConfigurablePages: 16,
+        totalConfigurablePages: staticPageCount,
         missingMeta,
         ga4Connected: !!(pwsRow?.gaTrackingId),
         clarityConnected: !!clarityId,
@@ -194,53 +372,138 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     }
   });
 
-  // ── POST /api/admin/seo-intelligence/crawl ────────────────────────────────
-  app.post("/api/admin/seo-intelligence/crawl", isAuthed, isAdmin, async (req, res) => {
+  // ── Crawler schedule and IndexNow settings ────────────────────────────────
+  app.get("/api/admin/seo-intelligence/crawler-settings", isAuthed, isAdmin, async (_req, res) => {
     try {
-      const [
-        [blogs], [products], [allUsers], [allCourses], [allCampaigns],
-      ] = await Promise.all([
-        db.select({ n: count() }).from(blogPosts).where(eq(blogPosts.isPublished, true)),
-        db.select({ n: count() }).from(shopProducts),
-        db.select({ n: count() }).from(users).where(eq(users.userType, "creator")),
-        db.select({ n: count() }).from(courses).where(eq(courses.isPublished, true)),
-        db.select({ n: count() }).from(campaigns),
+      const [enabled, frequency, indexNowEnabled, indexNowKey, nextCrawlAt, lastCrawlAt, lastCrawlTotal, lastCrawlError, repaired] = await Promise.all([
+        getSetting("seo_crawl_enabled"),
+        getSetting("seo_crawl_frequency"),
+        getSetting("seo_indexnow_enabled"),
+        getSetting("seo_indexnow_key"),
+        getSetting("seo_crawl_next_at"),
+        getSetting("last_crawl_at"),
+        getSetting("last_crawl_total"),
+        getSetting("last_crawl_error"),
+        getSetting("last_crawl_repaired_descriptions"),
       ]);
-
-      const staticCount = 21;
-      const blogC = Number(blogs?.n || 0);
-      const productC = Number(products?.n || 0);
-      const userC = Number(allUsers?.n || 0);
-      const courseC = Number(allCourses?.n || 0);
-      const campaignC = Number(allCampaigns?.n || 0);
-      const totalUrls = staticCount + blogC + productC + userC + courseC;
-
-      // Ping search engines with sitemap
-      const domain = "https://taskdrip.online";
-      const sitemapUrl = `${domain}/sitemap.xml`;
-      const pings: { engine: string; status: string }[] = [];
-      try {
-        const googlePing = await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { signal: AbortSignal.timeout(5000) });
-        pings.push({ engine: "Google", status: googlePing.ok ? "✅ Pinged" : `⚠️ ${googlePing.status}` });
-      } catch { pings.push({ engine: "Google", status: "⚠️ Timeout" }); }
-      try {
-        const bingPing = await fetch(`https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { signal: AbortSignal.timeout(5000) });
-        pings.push({ engine: "Bing", status: bingPing.ok ? "✅ Pinged" : `⚠️ ${bingPing.status}` });
-      } catch { pings.push({ engine: "Bing", status: "⚠️ Timeout" }); }
-
-      await setSetting("last_crawl_at", new Date().toISOString());
-      await setSetting("last_crawl_total", String(totalUrls));
-
       res.json({
-        success: true,
-        totalUrls,
-        breakdown: { staticPages: staticCount, blogPosts: blogC, products: productC, creators: userC, courses: courseC, campaigns: campaignC },
-        pings,
-        sitemapUrl,
-        crawledAt: new Date().toISOString(),
+        enabled: enabled === "true",
+        frequency: CRAWL_FREQUENCIES.includes(frequency as CrawlFrequency) ? frequency : "daily",
+        indexNowEnabled: indexNowEnabled === "true",
+        indexNowKeyConfigured: !!indexNowKey,
+        indexNowKeyLocation: indexNowKey ? `${SEO_SITE_ORIGIN}/${indexNowKey}.txt` : null,
+        nextCrawlAt: nextCrawlAt || null,
+        lastCrawlAt: lastCrawlAt || null,
+        lastCrawlTotal: lastCrawlTotal ? Number(lastCrawlTotal) : 0,
+        lastCrawlError: lastCrawlError || null,
+        repairedDescriptions: repaired ? Number(repaired) : 0,
       });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.put("/api/admin/seo-intelligence/crawler-settings", isAuthed, isAdmin, async (req, res) => {
+    try {
+      const { enabled, frequency, indexNowEnabled, generateIndexNowKey } = req.body || {};
+      const currentFrequency = await getSetting("seo_crawl_frequency");
+      const nextFrequency = (frequency ?? currentFrequency) || "daily";
+      if (!CRAWL_FREQUENCIES.includes(nextFrequency)) {
+        return res.status(400).json({ message: "frequency must be hourly, daily, or weekly" });
+      }
+      if (enabled !== undefined && typeof enabled !== "boolean") {
+        return res.status(400).json({ message: "enabled must be a boolean" });
+      }
+      if (indexNowEnabled !== undefined && typeof indexNowEnabled !== "boolean") {
+        return res.status(400).json({ message: "indexNowEnabled must be a boolean" });
+      }
+
+      const currentEnabled = (await getSetting("seo_crawl_enabled")) === "true";
+      await Promise.all([
+        setSetting("seo_crawl_frequency", nextFrequency),
+        enabled !== undefined ? setSetting("seo_crawl_enabled", String(enabled)) : Promise.resolve(),
+        indexNowEnabled !== undefined ? setSetting("seo_indexnow_enabled", String(indexNowEnabled)) : Promise.resolve(),
+      ]);
+      const currentKey = await getSetting("seo_indexnow_key");
+      if (generateIndexNowKey || (indexNowEnabled === true && !currentKey)) {
+        await setSetting("seo_indexnow_key", randomBytes(16).toString("hex"));
+      }
+      if (enabled === true && (!currentEnabled || nextFrequency !== currentFrequency)) {
+        await setSetting("seo_crawl_next_at", nextCrawlTime(nextFrequency).toISOString());
+      } else if (enabled === false) {
+        await setSetting("seo_crawl_next_at", "");
+      } else if (currentEnabled && nextFrequency !== currentFrequency) {
+        await setSetting("seo_crawl_next_at", nextCrawlTime(nextFrequency).toISOString());
+      }
+      const [savedEnabled, savedFrequency, savedIndexNowEnabled, savedKey, nextCrawlAt] = await Promise.all([
+        getSetting("seo_crawl_enabled"),
+        getSetting("seo_crawl_frequency"),
+        getSetting("seo_indexnow_enabled"),
+        getSetting("seo_indexnow_key"),
+        getSetting("seo_crawl_next_at"),
+      ]);
+      res.json({
+        enabled: savedEnabled === "true",
+        frequency: savedFrequency || "daily",
+        indexNowEnabled: savedIndexNowEnabled === "true",
+        indexNowKeyConfigured: !!savedKey,
+        indexNowKeyLocation: savedKey ? `${SEO_SITE_ORIGIN}/${savedKey}.txt` : null,
+        nextCrawlAt: nextCrawlAt || null,
+      });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  app.get("/api/admin/seo-intelligence/crawler-urls", isAuthed, isAdmin, async (_req, res) => {
+    try {
+      const urls = await getPublicSeoUrls();
+      const normalized = urls.map((page) => {
+        const title = (page.metaTitle || page.title || "").trim();
+        const description = plainText(page.metaDescription);
+        const warnings = [
+          !title && "Missing title",
+          title.length > 70 && "Title exceeds 70 characters",
+          !description && "Missing meta description",
+          description.length > 160 && "Meta description exceeds 160 characters",
+        ].filter(Boolean);
+        return { ...page, warnings };
+      });
+      res.json({ urls: normalized, totalUrls: normalized.length });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ── Run a real database-backed crawl and refresh the live sitemap ─────────
+  app.post("/api/admin/seo-intelligence/crawl", isAuthed, isAdmin, async (_req, res) => {
+    try {
+      const result = await runSeoCrawl();
+      res.json(result);
+    } catch (e: any) {
+      await setSetting("last_crawl_error", e.message || "Crawl failed").catch(() => {});
+      res.status(500).json({ message: e.message || "Crawl failed" });
+    }
+  });
+
+  app.post("/api/admin/seo-intelligence/crawler-index", isAuthed, isAdmin, async (req, res) => {
+    try {
+      const requested = req.body?.urls;
+      if (!Array.isArray(requested) || requested.length < 1 || requested.length > 10000 ||
+        requested.some((url: unknown) => typeof url !== "string")) {
+        return res.status(400).json({ message: "Provide between 1 and 10,000 URLs to submit." });
+      }
+      const currentUrls = new Set((await getPublicSeoUrls()).map((page) => page.url));
+      const urls = Array.from(new Set(requested as string[]));
+      const invalid = urls.filter((url) => !currentUrls.has(url));
+      if (invalid.length) {
+        return res.status(400).json({
+          message: `${invalid.length} URL${invalid.length === 1 ? " is" : "s are"} not in the current public sitemap and cannot be submitted.`,
+        });
+      }
+      res.json({ ...await submitIndexNow(urls), requested: urls.length });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message || "IndexNow submission failed" });
     }
   });
 

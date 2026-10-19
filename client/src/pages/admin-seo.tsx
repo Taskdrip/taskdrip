@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import SeoCrawlerPanel from "@/components/admin/SeoCrawlerPanel";
 import {
   ArrowLeft, Search, Globe, Edit, CheckCircle, AlertCircle,
   BarChart3, Settings, ExternalLink, RefreshCw, FileText,
@@ -28,7 +29,18 @@ const PAGES_LIST = [
   { slug: "about", title: "About Us", path: "/about" },
   { slug: "blog", title: "Blog", path: "/blog" },
   { slug: "breedskool", title: "BreedSkool", path: "/breedskool" },
+  { slug: "realtrainai-ai-training-guide", title: "RealTrainAI Guide", path: "/realtrainai-ai-training-guide" },
+  { slug: "abraham-tahbat", title: "Abraham Tahbat Portfolio", path: "/abraham-tahbat" },
+  { slug: "olajumoke-owoeye", title: "Olajumoke Owoeye Portfolio", path: "/olajumoke-owoeye" },
   { slug: "leaderboard", title: "Leaderboard", path: "/leaderboard" },
+  { slug: "get-started", title: "Get Started", path: "/get-started" },
+  { slug: "docs", title: "Documentation", path: "/docs" },
+  { slug: "hire-developer", title: "Hire a Developer", path: "/hire-developer" },
+  { slug: "roadmap", title: "Roadmap", path: "/roadmap" },
+  { slug: "terms", title: "Terms of Service", path: "/terms" },
+  { slug: "privacy", title: "Privacy Policy", path: "/privacy" },
+  { slug: "cookies", title: "Cookie Policy", path: "/cookies" },
+  { slug: "disclaimer", title: "Disclaimer", path: "/disclaimer" },
   { slug: "advertise", title: "Advertise With Us", path: "/advertise" },
   { slug: "contact", title: "Contact", path: "/contact" },
   { slug: "tdrip", title: "$TDRIP Token", path: "/tdrip" },
@@ -443,8 +455,6 @@ export default function AdminSEO() {
   const [activeTab, setActiveTab] = useState<"pages" | "analytics" | "adsense" | "crawler" | "technical">("pages");
   const [adsenseId, setAdsenseId] = useState("");
   const [adSlots, setAdSlots] = useState([{ id: "", position: "header", label: "Header Banner" }]);
-  const [crawlLog, setCrawlLog] = useState<string[]>([]);
-  const [crawling, setCrawling] = useState(false);
   const [searchQ, setSearchQ] = useState("");
 
   const isAdmin = (user as any)?.userType === "admin" || (user as any)?.role === "admin";
@@ -662,143 +672,7 @@ export default function AdminSEO() {
           </div>
         )}
 
-        {activeTab === "crawler" && (
-          <div className="space-y-6">
-            <div className="rounded-2xl bg-white border border-gray-200 p-6">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="font-black text-gray-900 text-lg">Automatic Content Crawler</h2>
-                  <p className="text-gray-500 text-sm mt-1">Automatically crawls new content across Taskdrip and prepares it for search engine indexing via sitemap updates.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                {[
-                  { icon: FileText, label: "Blog Posts", color: "from-blue-500 to-indigo-600" },
-                  { icon: ShoppingBag, label: "Shop Products", color: "from-emerald-500 to-teal-600" },
-                  { icon: Users, label: "Creator Profiles", color: "from-violet-500 to-purple-600" },
-                  { icon: BookOpen, label: "Campaigns", color: "from-amber-400 to-orange-500" },
-                ].map(({ icon: Icon, label, color }) => (
-                  <div key={label} className={`bg-gradient-to-br ${color} rounded-2xl p-4 text-white`}>
-                    <Icon className="w-6 h-6 mb-2 text-white/80" />
-                    <p className="font-bold text-sm">{label}</p>
-                    <p className="text-white/60 text-xs">Auto-indexed</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={async () => {
-                    setCrawling(true);
-                    setCrawlLog([]);
-                    const steps = [
-                      "🔍 Scanning blog posts...",
-                      "✅ Found 12 blog posts — added to sitemap",
-                      "🔍 Scanning shop products...",
-                      "✅ Found 7 products — structured data injected",
-                      "🔍 Scanning creator profiles...",
-                      "✅ Found 24 creator profiles — Person schema generated",
-                      "🔍 Scanning brand profiles...",
-                      "✅ Found 8 brand profiles — Organization schema generated",
-                      "🔍 Scanning campaigns...",
-                      "✅ Found 18 active campaigns — indexed",
-                      "📤 Pinging Google with updated sitemap...",
-                      "📤 Pinging Bing with updated sitemap...",
-                      "✅ Crawl complete! Sitemap updated with 69 URLs",
-                    ];
-                    for (const step of steps) {
-                      await new Promise(r => setTimeout(r, 400));
-                      setCrawlLog(prev => [...prev, step]);
-                    }
-                    setCrawling(false);
-                  }}
-                  disabled={crawling}
-                  className="bg-violet-600 hover:bg-violet-700"
-                  data-testid="button-run-crawler"
-                >
-                  {crawling ? (
-                    <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin mr-2" />Crawling…</>
-                  ) : (
-                    <><Play className="w-4 h-4 mr-2" />Run Crawler Now</>
-                  )}
-                </Button>
-                <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline"><ExternalLink className="w-3.5 h-3.5 mr-1.5" />View Sitemap</Button>
-                </a>
-                <a
-                  href="https://search.google.com/search-console"
-                  target="_blank" rel="noopener noreferrer"
-                >
-                  <Button variant="outline"><ExternalLink className="w-3.5 h-3.5 mr-1.5" />Google Search Console</Button>
-                </a>
-              </div>
-            </div>
-
-            {crawlLog.length > 0 && (
-              <div className="rounded-2xl bg-gray-950 border border-gray-800 p-5">
-                <p className="font-bold text-green-400 text-sm mb-3 flex items-center gap-2">
-                  <Scan className="w-4 h-4" />Crawl Output
-                </p>
-                <div className="font-mono text-xs text-green-300 space-y-1">
-                  {crawlLog.map((line, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="text-gray-500 select-none">{String(i + 1).padStart(2, "0")}</span>
-                      <span>{line}</span>
-                    </div>
-                  ))}
-                  {crawling && <div className="flex items-center gap-2 text-gray-400"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />Processing...</div>}
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-2xl bg-white border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-gray-600" />Scheduled Crawl</h3>
-              <p className="text-sm text-gray-500 mb-4">Configure automatic crawl schedule to keep your sitemap fresh and search engines updated.</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { label: "Daily (Recommended)", desc: "Crawls every day at midnight UTC", active: true },
-                  { label: "Hourly", desc: "Real-time indexing for high-traffic sites", active: false },
-                  { label: "Weekly", desc: "For sites with less frequent content updates", active: false },
-                ].map(({ label, desc, active }) => (
-                  <div key={label} className={`rounded-xl border p-4 cursor-pointer transition-all ${active ? "border-violet-500 bg-violet-50" : "border-gray-200 hover:border-gray-300"}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-3 h-3 rounded-full border-2 ${active ? "border-violet-500 bg-violet-500" : "border-gray-300"}`} />
-                      <p className="font-semibold text-sm text-gray-900">{label}</p>
-                    </div>
-                    <p className="text-xs text-gray-500">{desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-gray-200 p-6">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Database className="w-4 h-4 text-gray-600" />Submit to Search Engines</h3>
-              <p className="text-sm text-gray-500 mb-4">Submit your sitemap URL directly to major search engines for immediate indexing.</p>
-              <div className="space-y-3">
-                {[
-                  { name: "Google Search Console", url: "https://search.google.com/search-console", icon: "🔍", color: "border-blue-200 bg-blue-50", textColor: "text-blue-700" },
-                  { name: "Bing Webmaster Tools", url: "https://www.bing.com/webmasters", icon: "🔵", color: "border-sky-200 bg-sky-50", textColor: "text-sky-700" },
-                  { name: "Yandex Webmaster", url: "https://webmaster.yandex.com", icon: "🟠", color: "border-orange-200 bg-orange-50", textColor: "text-orange-700" },
-                  { name: "IndexNow (Bing/Yandex)", url: "https://www.indexnow.org", icon: "⚡", color: "border-yellow-200 bg-yellow-50", textColor: "text-yellow-700" },
-                ].map(({ name, url, icon, color, textColor }) => (
-                  <a key={name} href={url} target="_blank" rel="noopener noreferrer"
-                    className={`flex items-center justify-between p-4 rounded-xl border ${color} hover:brightness-95 transition-all`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{icon}</span>
-                      <div>
-                        <p className={`font-semibold text-sm ${textColor}`}>{name}</p>
-                        <p className="text-xs text-gray-500">Submit: {window.location.origin}/sitemap.xml</p>
-                      </div>
-                    </div>
-                    <ExternalLink className={`w-4 h-4 ${textColor}`} />
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === "crawler" && <SeoCrawlerPanel />}
 
         {activeTab === "technical" && (
           <div className="space-y-6">
@@ -807,7 +681,7 @@ export default function AdminSEO() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { title: "robots.txt", url: "/robots.txt", desc: "Auto-generated. Controls crawling rules for all search engines.", status: "auto" },
-                  { title: "sitemap.xml", url: "/sitemap.xml", desc: "Auto-generated. Includes all static pages and published blog posts.", status: "auto" },
+                  { title: "sitemap.xml", url: "/sitemap.xml", desc: "Auto-generated from indexable pages, published posts, active products, public profiles, courses, portfolios, and approved P2P listings.", status: "auto" },
                 ].map(({ title, url, desc, status }) => (
                   <div key={title} className="rounded-xl border border-gray-200 p-4 flex items-start justify-between">
                     <div>

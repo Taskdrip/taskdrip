@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { campaigns, blogPosts, shopProducts, users, courses, p2pListings, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
+import { campaigns, blogPosts, shopProducts, users, courses, p2pListings, portfolioItems, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
 import { and, eq, or } from "drizzle-orm";
 import { load } from "cheerio";
 
@@ -24,7 +24,7 @@ const trimText = (s: string, max = 200) => {
   return clean.length > max ? clean.slice(0, max - 1) + "…" : clean;
 };
 
-function cleanArticleHtml(html: string): string {
+function cleanArticleHtml(html: string, defaultImageAlt: string): string {
   const $ = load(`<div id="article-content">${html || ""}</div>`, {}, false);
   const article = $("#article-content");
   article.find("script,style,iframe,object,embed,form,button,input,textarea,select,meta,link").remove();
@@ -44,6 +44,12 @@ function cleanArticleHtml(html: string): string {
     const heading = $("<h2></h2>").html($(element).html() || "");
     $(element).replaceWith(heading);
   });
+  article.find("img").each((_, element) => {
+    const image = $(element);
+    if (!image.attr("alt")?.trim()) image.attr("alt", trimText(defaultImageAlt, 120));
+    if (!image.attr("loading")) image.attr("loading", "lazy");
+    if (!image.attr("decoding")) image.attr("decoding", "async");
+  });
   return article.html() || "";
 }
 
@@ -59,7 +65,7 @@ function renderArticleHtml(post: typeof blogPosts.$inferSelect, origin: string, 
     ? `<p><span>Taskdrip Team</span> · <time datetime="${escapeHtml(date)}">${escapeHtml(visibleDate)}</time></p>`
     : `<p>Taskdrip Team</p>`;
 
-  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content)}</div></article></main>`;
+  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content, post.title)}</div></article></main>`;
 }
 
 const absolutize = (origin: string, src?: string | null) => {
@@ -154,6 +160,26 @@ const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
       mainEntityOfPage: "https://taskdrip.online/realtrainai-ai-training-guide",
       datePublished: "2026-10-12",
       dateModified: "2026-10-12",
+    }),
+  },
+  "/abraham-tahbat": {
+    title: "Abraham Felix Tahbat | Full-Stack Developer & Product Architect",
+    description: "Explore Abraham Felix Tahbat's portfolio of SaaS platforms, AI-powered tools, marketplaces, and business systems built for teams and growing companies.",
+    canonicalUrl: "https://taskdrip.online/abraham-tahbat",
+    type: "profile",
+  },
+  "/olajumoke-owoeye": {
+    title: "Olajumoke Owoeye | Content Creator & Social Media Manager",
+    description: "Explore the work of Olajumoke Owoeye, a content creator, social media manager and marketing professional based in Ibadan, Nigeria.",
+    canonicalUrl: "https://taskdrip.online/olajumoke-owoeye",
+    type: "profile",
+    structuredData: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: "Olajumoke Owoeye",
+      jobTitle: "Content Creator and Social Media Manager",
+      url: "https://taskdrip.online/olajumoke-owoeye",
+      address: { "@type": "PostalAddress", addressLocality: "Ibadan", addressCountry: "NG" },
     }),
   },
   "/breedskool": {
@@ -452,15 +478,78 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(
+        and(eq(p2pListings.id, id), eq(p2pListings.status, "approved")),
+      );
       if (listing) {
+        const title = (listing as any).title || "P2P listing";
+        const description = trimText((listing as any).description || "");
         return {
-          title: `${(listing as any).title || "P2P listing"} | Taskdrip`,
-          description: trimText((listing as any).description || ""),
+          title: `${title} | Taskdrip`,
+          description,
           image: absolutize(origin, (listing as any).featuredImage),
+          structuredData: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": (listing as any).listingType === "service" ? "Service" : "Product",
+            name: title,
+            description,
+            image: absolutize(origin, (listing as any).featuredImage),
+            url: `${origin}/p2p/${encodeURIComponent(listing.id)}`,
+          }),
         };
       }
     } catch {}
+    return { title: "Listing not found | Taskdrip", description: "This P2P listing is not available.", noIndex: true };
+  }
+
+  // /creator-portfolio/:username or /creator-portfolio/:id
+  const portfolioMatch = pathname.match(/^\/creator-portfolio\/([^/?#]+)/);
+  if (portfolioMatch) {
+    const identity = decodeURIComponent(portfolioMatch[1]);
+    let user: any = null;
+    try {
+      const [byId] = await db.select().from(users).where(eq(users.id, identity));
+      user = byId || null;
+    } catch {}
+    if (!user) {
+      try {
+        const [byUsername] = await db.select().from(users).where(eq(users.username, identity));
+        user = byUsername || null;
+      } catch {}
+    }
+    if (!user || user.userType !== "creator") {
+      return { title: "Portfolio not found | Taskdrip", description: "This creator portfolio is not available.", noIndex: true };
+    }
+    const items = await db.select({
+      title: portfolioItems.title,
+      description: portfolioItems.description,
+    }).from(portfolioItems).where(eq(portfolioItems.userId, user.id));
+    const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "Creator";
+    const summary = trimText([
+      user.seoDescription || user.bio || `${name}'s selected work and creator portfolio on Taskdrip.`,
+      ...items.slice(0, 3).map((item) => item.description || item.title),
+    ].filter(Boolean).join(" "), 160);
+    const canonicalUrl = `${origin}/creator-portfolio/${encodeURIComponent(user.username || user.id)}`;
+    return {
+      title: `${name} | Creator Portfolio | Taskdrip`,
+      description: summary,
+      image: absolutize(origin, user.profileImageUrl),
+      canonicalUrl,
+      type: "profile",
+      noIndex: items.length === 0,
+      structuredData: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        name: `${name} | Creator Portfolio`,
+        url: canonicalUrl,
+        mainEntity: {
+          "@type": "Person",
+          name,
+          description: trimText(user.bio || "", 300),
+          image: absolutize(origin, user.profileImageUrl),
+        },
+      }),
+    };
   }
 
   // Fallback: page_seo_settings by direct slug match (e.g. /home → home)
@@ -495,8 +584,11 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
 function injectMeta(html: string, origin: string, url: string, meta: Meta, fallbackImage: string): string {
   const fullUrl = meta.canonicalUrl || `${origin}${url.split("?")[0].split("#")[0]}`;
   const image = meta.image || fallbackImage;
-  const title = meta.title;
-  const description = meta.description ? trimText(meta.description, 160) : undefined;
+  const title = trimText(meta.title || "Taskdrip | Creator and Brand Platform", 70);
+  const description = trimText(
+    meta.description || `Explore ${title} and discover creator, brand, and marketplace resources on Taskdrip.`,
+    160,
+  );
   const type = meta.type || "website";
 
   // Remove any existing og/twitter/description tags so the per-page values win when crawlers parse.
@@ -569,7 +661,7 @@ export async function buildSeoHtml(html: string, req: { protocol: string; get: (
     const pathname = (req.originalUrl || "/").split("?")[0];
 
     const fallbackImage = await defaultOgImage(origin);
-    const meta = (await lookupRoute(origin, pathname)) || { image: fallbackImage };
+    const meta = (await lookupRoute(origin, pathname)) || { image: fallbackImage, noIndex: true };
     if (isPrivateRoute(pathname)) meta.noIndex = true;
     return injectMeta(html, origin, req.originalUrl || "/", meta, fallbackImage);
   } catch (err) {

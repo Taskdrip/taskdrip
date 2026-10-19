@@ -11,3 +11,4 @@
 - [Notebook front matter](notebook-front-matter.md) — keep writing-page numbering separate from the physical print count for selected intro pages.
 - [Notebook rule spacing](notebook-rule-spacing.md) — keep ruled lines clean and uniform, with discoverable controls applied to both proof and print output.
 - [Adsterra publisher tags](adsterra-publisher-tags.md) — use exact HTTPS script URLs for Native/Social Bar units; zone IDs alone do not identify their host.
+- [Search engine indexing limits](seo-indexing-boundaries.md) — sitemaps and IndexNow help discovery, but Google controls indexing and URL submission needs authorized Search Console access.
