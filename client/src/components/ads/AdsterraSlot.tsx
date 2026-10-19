@@ -95,7 +95,7 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
     <>
       {placements.map((placement) => (
         <AdsterraPlacement
-          key={`${placement.id}:${placement.key}:${placement.shortSlug || ""}`}
+          key={`${location}:${placement.id}:${placement.key}:${placement.shortSlug || ""}`}
           placement={placement}
           position={position}
           location={location}

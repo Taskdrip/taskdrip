@@ -1,0 +1,130 @@
+This is the API KEY Generated on adsterra:  e5e9ad6c4eb61edda7586dd37c377e35
+
+taskdrip.online ad tags
+160x300
+160x300_1
+IFRAME SYNC
+
+
+<script>
+  atOptions = {
+    'key' : 'd7698385134eb4874a8b03c75ec73d8e',
+    'format' : 'iframe',
+    'height' : 300,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://bicea.org/22/d7698385134eb4874a8b03c75ec73d8e"></script>
+
+
+
+160x600
+160x600_1
+IFRAME SYNC
+
+<script>
+  atOptions = {
+    'key' : '1c8e455c08da2acaaf8ad13a9a904ed5',
+    'format' : 'iframe',
+    'height' : 600,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://bicea.org/22/1c8e455c08da2acaaf8ad13a9a904ed5"></script>
+
+
+
+300x250
+300x250_1
+IFRAME SYNC
+
+<script>
+  atOptions = {
+    'key' : 'd8908142688a819f84bcd7c2fec56af6',
+    'format' : 'iframe',
+    'height' : 250,
+    'width' : 300,
+    'params' : {}
+  };
+</script>
+<script src="https://bicea.org/22/d8908142688a819f84bcd7c2fec56af6"></script>
+
+
+320x50
+320x50_1
+IFRAME SYNC
+
+
+<script>
+  atOptions = {
+    'key' : '17a65f77fa3438b3fefdcb676ee98dee',
+    'format' : 'iframe',
+    'height' : 50,
+    'width' : 320,
+    'params' : {}
+  };
+</script>
+<script src="https://bicea.org/22/17a65f77fa3438b3fefdcb676ee98dee"></script>
+
+
+468x60
+468x60_1
+IFRAME SYNC
+
+<script>
+  atOptions = {
+    'key' : '853091c54a9b97261a0c491b694fec3d',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://bicea.org/22/853091c54a9b97261a0c491b694fec3d"></script>
+
+
+728x90
+728x90_1
+IFRAME SYNC
+
+<script>
+  atOptions = {
+    'key' : '154db1845b00e0f67c9191df7bfaae41',
+    'format' : 'iframe',
+    'height' : 90,
+    'width' : 728,
+    'params' : {}
+  };
+</script>
+<script src="https://bicea.org/22/154db1845b00e0f67c9191df7bfaae41"></script>
+
+
+NativeBanner
+By default, Native Banners are set to 4 images in a row. To customize yours, go to the Websites page, find the Native Banner, and click EDIT next to it
+
+NativeBanner_1
+NATIVE ASYNC
+
+<script data-cfasync="false" src="https://afders.org/1/5f2b3b9889056ddaef435c83d66cfe70"></script>
+
+Popunder
+Popunder_1
+JS SYNC
+
+<script data-cfasync="false" src="https://afders.org/1/5f2b3b9889056ddaef435c83d66cfe70"></script>
+
+
+Smartlink_1
+SMARTLINK
+
+https://arwf.org/4/8c495b91cd0cddb28d0dc18b095eb0d1
+
+
+SocialBar
+SocialBar_1
+JS SYNC
+
+<script data-cfasync="false" src="https://bicea.org/14/74a8f64f8fe3f8d27ae89ac6b9528098"></script>
+

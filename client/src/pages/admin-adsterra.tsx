@@ -57,6 +57,14 @@ function placementTarget(placement: AdsterraPlacement) {
   return placement.pages[0] || "site";
 }
 
+function placementPreviewPath(placement: AdsterraPlacement) {
+  if (placement.position === "blog-feed" || placement.pages.includes("blog")) return "/blog";
+  if (placement.pages.includes("article") || ["sidebar", "article-inline", "article-end"].includes(placement.position)) {
+    return "/blog/ai-roi-workplace-ai-spending-costs-productivity";
+  }
+  return "/";
+}
+
 function updatePlacement(
   settings: AdsterraSettingsValue,
   placementId: string,
@@ -148,7 +156,7 @@ export default function AdminAdsterraPage() {
               </div>
               <div className="flex items-center gap-3">
                 <span className={`text-sm font-semibold ${draft.enabled ? "text-emerald-300" : "text-slate-400"}`}>
-                  {draft.enabled ? "Ads are enabled" : "Ads are disabled"}
+                  {draft.enabled ? "Taskdrip tags enabled" : "Taskdrip tags disabled"}
                 </span>
                 <Switch
                   checked={draft.enabled}
@@ -159,7 +167,7 @@ export default function AdminAdsterraPage() {
             </div>
           </CardHeader>
           <CardContent className="text-sm leading-6 text-slate-300">
-            The global switch is off until you turn it on and save. Disabling it stops new placements and impressions; tabs that already loaded a third-party tag may need a refresh to remove effects the ad network has already added.
+            This switch only tells Taskdrip whether to inject the saved tags. It does not confirm Adsterra approval, zone status, or ad availability. Changes take effect after saving; refresh public pages that were already open.
           </CardContent>
         </Card>
 
@@ -191,7 +199,17 @@ export default function AdminAdsterraPage() {
                           <span className="text-xs text-slate-400">{placement.width} × {placement.height}</span>
                         )}
                       </div>
-                      <CardDescription className="mt-1 text-slate-400">Placement ID: {placement.id}</CardDescription>
+                      <CardDescription className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-400">
+                        <span>Placement ID: {placement.id}</span>
+                        <a
+                          href={placementPreviewPath(placement)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-cyan-300 hover:underline"
+                        >
+                          Preview this area <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </CardDescription>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`text-sm ${placement.enabled ? "text-emerald-300" : "text-slate-400"}`}>{placement.enabled ? "On" : "Off"}</span>
