@@ -281,9 +281,11 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
       const publishedAt = post.publishedAt ? new Date(post.publishedAt).toISOString() : undefined;
       const modifiedAt = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedAt;
       const canonicalUrl = `${origin}/blog/${encodeURIComponent(post.slug)}`;
+      const articleVideoId = post.content.match(/youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{11})/)?.[1];
       const structuredData = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "BlogPosting",
+        inLanguage: "en",
         headline: post.title,
         description: trimText(post.metaDescription || post.excerpt || post.content || "", 160),
         image: image ? [image] : undefined,
@@ -294,6 +296,14 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
         mainEntityOfPage: canonicalUrl,
         articleSection: post.category || undefined,
         keywords: post.seoKeywords || undefined,
+        video: articleVideoId ? {
+          "@type": "VideoObject",
+          name: `${post.title} — source video`,
+          description: trimText(post.metaDescription || post.excerpt || post.title, 500),
+          thumbnailUrl: [`https://i.ytimg.com/vi/${articleVideoId}/hqdefault.jpg`],
+          embedUrl: `https://www.youtube-nocookie.com/embed/${articleVideoId}`,
+          contentUrl: `https://www.youtube.com/watch?v=${articleVideoId}`,
+        } : undefined,
       });
       return {
         title: post.title,

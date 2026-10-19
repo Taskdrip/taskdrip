@@ -3,6 +3,7 @@
  * Seeding is idempotent — existing slugs are UPDATED on every startup
  * so content improvements here propagate on redeploy.
  */
+import { TECH_ARTICLES } from "./tech-article-seed-data";
 
 export type DefaultBlog = {
   title: string;
@@ -1690,4 +1691,5 @@ export const DEFAULT_BLOGS: DefaultBlog[] = [
 <p>Questions about the referral program? Reach out on Telegram at <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer">t.me/taskdrip</a> or check the <a href="/documentation">documentation</a> for a full breakdown of how commissions are calculated and paid out.</p>
 `,
   },
+  ...TECH_ARTICLES,
 ];

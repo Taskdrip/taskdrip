@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SharePanel, ShareButton } from "@/components/ui/share-panel";
 import { SeoHead } from "@/components/SeoHead";
+import { AiPilotCalculator, DeviceUpgradeCalculator } from "@/components/blog/ArticleCalculators";
 import {
   Heart, MessageCircle, Share2, Eye, Clock, Calendar, ArrowLeft,
   Facebook, Twitter, Link2, Send, ChevronDown, ChevronUp,
@@ -445,9 +446,13 @@ export default function BlogPost() {
   const articleImage = post.featuredImage && typeof window !== "undefined"
     ? new URL(post.featuredImage, window.location.origin).toString()
     : post.featuredImage;
+  const articleVideoId = typeof post.content === "string"
+    ? post.content.match(/youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{11})/)?.[1]
+    : undefined;
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    inLanguage: "en",
     headline: post.title,
     description: post.metaDescription || post.excerpt || undefined,
     image: articleImage ? [articleImage] : undefined,
@@ -458,6 +463,14 @@ export default function BlogPost() {
     mainEntityOfPage: canonicalUrl,
     articleSection: post.category || undefined,
     keywords: post.seoKeywords || undefined,
+    video: articleVideoId ? {
+      "@type": "VideoObject",
+      name: `${post.title} — source video`,
+      description: post.metaDescription || post.excerpt || post.title,
+      thumbnailUrl: [`https://i.ytimg.com/vi/${articleVideoId}/hqdefault.jpg`],
+      embedUrl: `https://www.youtube-nocookie.com/embed/${articleVideoId}`,
+      contentUrl: `https://www.youtube.com/watch?v=${articleVideoId}`,
+    } : undefined,
   };
 
   return (
@@ -566,6 +579,12 @@ export default function BlogPost() {
           dangerouslySetInnerHTML={{ __html: post.content }}
           style={{ lineHeight: '1.8', fontSize: '1.05rem' }}
         />
+        {post.slug === "why-phones-laptops-getting-more-expensive-ai-memory-chip-shortage" && (
+          <DeviceUpgradeCalculator />
+        )}
+        {post.slug === "ai-roi-workplace-ai-spending-costs-productivity" && (
+          <AiPilotCalculator />
+        )}
         <style>{`
           .prose h1, .prose h2, .prose h3 { font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
           .prose h2 { font-size: 1.5rem; color: #1a1a2e; }
