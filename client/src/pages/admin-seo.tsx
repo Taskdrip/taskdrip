@@ -200,7 +200,7 @@ function BuiltInAnalyticsDashboard() {
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
           <p className="font-bold text-gray-900 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-purple-600" />Built-in Site Analytics</p>
-          <p className="text-xs text-gray-500 mt-1">Privacy-friendly, no cookies. Tracks every public page view.</p>
+          <p className="text-xs text-gray-500 mt-1">First-party browser analytics. Automated clients are excluded; session totals count browser-tab sessions, not individual people.</p>
         </div>
         <div className="flex gap-2">
           {[7, 30, 90].map(d => (
@@ -222,14 +222,14 @@ function BuiltInAnalyticsDashboard() {
         <div className="py-8 text-center text-sm text-gray-500">No data yet. Visit some public pages to populate.</div>
       ) : (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
               <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Total views</p>
               <p className="text-2xl font-extrabold text-purple-900 mt-1" data-testid="text-analytics-total">{fmt(data.total)}</p>
             </div>
             <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-              <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Unique visitors</p>
-              <p className="text-2xl font-extrabold text-blue-900 mt-1" data-testid="text-analytics-unique">{fmt(data.uniqueVisitors)}</p>
+              <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Browser sessions</p>
+              <p className="text-2xl font-extrabold text-blue-900 mt-1" data-testid="text-analytics-sessions">{fmt(data.sessions)}</p>
             </div>
             <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
               <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Mobile share</p>
@@ -244,6 +244,10 @@ function BuiltInAnalyticsDashboard() {
             <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
               <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Avg / day</p>
               <p className="text-2xl font-extrabold text-amber-900 mt-1">{fmt(Math.round(data.total / Math.max(1, data.days)))}</p>
+            </div>
+            <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-4">
+              <p className="text-xs text-indigo-600 font-semibold uppercase tracking-wide">Pages / session</p>
+              <p className="text-2xl font-extrabold text-indigo-900 mt-1">{Number(data.pagesPerSession || 0).toFixed(2)}</p>
             </div>
           </div>
 
@@ -285,7 +289,9 @@ function BuiltInAnalyticsDashboard() {
               <div className="rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
                 {(data.topReferrers || []).slice(0, 10).map((p: any) => (
                   <div key={p.referrer} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50">
-                    <span className="truncate text-gray-700 text-xs">{p.referrer === "direct" ? "Direct / none" : p.referrer}</span>
+                    <span className="truncate text-gray-700 text-xs">
+                      {p.referrer === "direct" ? "Direct / none" : p.referrer === "internal" ? "Internal navigation" : p.referrer}
+                    </span>
                     <span className="font-bold text-blue-700">{fmt(p.views)}</span>
                   </div>
                 ))}

@@ -17,7 +17,7 @@ type Article = {
   content: string;
 };
 
-const img = (slug: string, ext: "png" | "jpg" = "png") => `/uploads/blog/${slug}.${ext}`;
+const img = (slug: string, ext: "png" | "jpg" | "svg" = "png") => `/uploads/blog/${slug}.${ext}`;
 
 const articles: Article[] = [
   {
@@ -739,7 +739,7 @@ const articles: Article[] = [
     tags: ["Digital Products", "Passive Income", "Creator", "Online Business"],
     seoKeywords: "digital products 2026, passive income digital products, sell digital products, online income, creator business",
     readingTime: 10,
-    featuredImage: img("passive-income-digital-products", "jpg"),
+    featuredImage: img("passive-income-digital-products", "svg"),
     content: `
 <p>Despite all the new ways to make money online, digital products remain quietly the highest-margin form of passive income available. You build once, you sell forever, and the marginal cost of every additional sale is essentially zero. The 2026 version of this playbook just got a serious upgrade thanks to AI tools, global payments and SocialFi distribution.</p>
 
@@ -822,7 +822,7 @@ const articles: Article[] = [
     tags: ["Creator Economy", "Web3", "Future", "Influencers", "SocialFi"],
     seoKeywords: "future creator economy, web3 creators, creator economy 2026, web3 influencers, creator monetization web3",
     readingTime: 10,
-    featuredImage: img("future-creator-economy-web3", "jpg"),
+    featuredImage: img("future-creator-economy-web3", "svg"),
     content: `
 <p>The creator economy has spent two decades being shaped by ad networks. Web3 is reshaping it again — this time around ownership, programmable money and direct relationships with audiences. The 2026 picture is dramatically more creator-friendly than the one we grew up in, but it also demands new skills.</p>
 

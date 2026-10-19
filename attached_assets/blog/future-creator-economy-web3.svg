@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">The changing creator economy</title>
+  <desc id="desc">Illustration of creators connected to an open digital network.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1f3a"/>
+      <stop offset="1" stop-color="#164e63"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1000" cy="110" r="170" fill="#38bdf8" opacity=".12"/>
+  <circle cx="1100" cy="570" r="210" fill="#a78bfa" opacity=".12"/>
+  <g fill="none" stroke="url(#glow)" stroke-width="4" opacity=".7">
+    <path d="M814 213L978 145l94 111-97 139-161-65z"/>
+    <path d="M814 213l161 43M978 145l-3 250M1072 256l-258 74"/>
+    <path d="M814 213l-47-95M1072 256l71-86M975 395l84 97"/>
+  </g>
+  <g fill="#0f172a" stroke="#93c5fd" stroke-width="4">
+    <circle cx="814" cy="213" r="42"/><circle cx="978" cy="145" r="42"/>
+    <circle cx="1072" cy="256" r="42"/><circle cx="975" cy="395" r="42"/>
+    <circle cx="814" cy="330" r="42"/>
+  </g>
+  <g fill="#e0f2fe" opacity=".9">
+    <circle cx="814" cy="201" r="11"/><path d="M790 236c4-16 14-23 24-23s20 7 24 23z"/>
+    <circle cx="978" cy="133" r="11"/><path d="M954 168c4-16 14-23 24-23s20 7 24 23z"/>
+    <circle cx="1072" cy="244" r="11"/><path d="M1048 279c4-16 14-23 24-23s20 7 24 23z"/>
+    <circle cx="975" cy="383" r="11"/><path d="M951 418c4-16 14-23 24-23s20 7 24 23z"/>
+    <circle cx="814" cy="318" r="11"/><path d="M790 353c4-16 14-23 24-23s20 7 24 23z"/>
+  </g>
+  <text x="82" y="168" fill="#67e8f9" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="4">CREATOR ECONOMY</text>
+  <text x="78" y="265" fill="#fff" font-family="Arial,sans-serif" font-size="58" font-weight="700">Creators and the</text>
+  <text x="78" y="335" fill="#fff" font-family="Arial,sans-serif" font-size="58" font-weight="700">open web.</text>
+  <text x="82" y="398" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="25">Ownership, community, and sustainable digital work.</text>
+  <text x="82" y="562" fill="#bae6fd" font-family="Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="2">TASKDRIP  ·  WEB3 &amp; SOCIALFI</text>
+</svg>

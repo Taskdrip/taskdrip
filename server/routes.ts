@@ -10,7 +10,7 @@ import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable, TASKDRIP_EMAILS } from "./email-service";
 import { activityAuditMiddleware, recordActivity } from "./activity-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, blogPosts, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or, isNull } from "drizzle-orm";
@@ -2221,6 +2221,32 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     } catch (error) {
       console.error("Error fetching blog posts:", error);
       res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.get('/api/blog/:slug/related', async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Blog post not found" });
+      const conditions = [
+        eq(blogPosts.isPublished, true),
+        sql`${blogPosts.slug} <> ${req.params.slug}`,
+      ];
+      if (post.category) conditions.push(eq(blogPosts.category, post.category));
+      const related = await db.select({
+        title: blogPosts.title,
+        slug: blogPosts.slug,
+        excerpt: blogPosts.excerpt,
+        category: blogPosts.category,
+        featuredImage: blogPosts.featuredImage,
+      }).from(blogPosts)
+        .where(and(...conditions))
+        .orderBy(desc(blogPosts.publishedAt))
+        .limit(3);
+      res.json(related);
+    } catch (error) {
+      console.error("Error fetching related blog posts:", error);
+      res.status(500).json({ message: "Failed to fetch related posts" });
     }
   });
 
@@ -13341,39 +13367,85 @@ Instructions:
   // ── Internal Page View Analytics ──────────────────────────────────────────
   app.post('/api/analytics/track', async (req: any, res) => {
     try {
-      const { path, referrer, sessionId } = req.body || {};
-      if (!path || typeof path !== 'string') return res.status(400).json({ message: 'path required' });
+      const { path: rawPath, referrer: rawReferrer, sessionId: rawSessionId } = req.body || {};
+      if (typeof rawPath !== 'string' || !rawPath.startsWith('/') || rawPath.startsWith('//')) {
+        return res.status(400).json({ message: 'A local page path is required' });
+      }
+      const parsedPath = new URL(rawPath, 'https://taskdrip.online');
+      if (parsedPath.origin !== 'https://taskdrip.online') {
+        return res.status(400).json({ message: 'Only local page paths can be tracked' });
+      }
+      const path = parsedPath.pathname;
       if (path.startsWith('/api') || path.startsWith('/admin')) return res.json({ ok: true, skipped: true });
+
       const ua = (req.headers['user-agent'] || '').toString().slice(0, 255);
-      const device = /mobile|iphone|ipad|android/i.test(ua) ? 'mobile' : 'desktop';
+      if (!ua || /bot|crawler|spider|slurp|facebookexternalhit|discordbot|whatsapp|telegrambot|preview|uptime|monitoring|headlesschrome|phantomjs|selenium/i.test(ua)) {
+        return res.json({ ok: true, skipped: true, reason: 'automated_client' });
+      }
+
+      const sessionId = typeof rawSessionId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(rawSessionId)
+        ? rawSessionId
+        : null;
+      const isTablet = /ipad|tablet|kindle|silk/i.test(ua);
+      const device = isTablet ? 'tablet' : /mobile|iphone|android/i.test(ua) ? 'mobile' : 'desktop';
+      let referrer: string | null = null;
+      if (typeof rawReferrer === 'string' && /^https?:\/\//i.test(rawReferrer)) {
+        try {
+          const referrerUrl = new URL(rawReferrer);
+          const referrerHost = referrerUrl.hostname.toLowerCase();
+          const requestHost = (req.get('host') || '').split(':')[0].toLowerCase();
+          referrer = referrerHost === requestHost ||
+            referrerHost === 'taskdrip.online' ||
+            referrerHost.endsWith('.taskdrip.online')
+            ? 'internal'
+            : referrerHost;
+        } catch {
+          referrer = null;
+        }
+      }
+
       await db.insert(pageViews).values({
         path: path.slice(0, 255),
-        referrer: referrer ? String(referrer).slice(0, 255) : null,
+        referrer,
         userId: req.user?.id || null,
-        sessionId: sessionId ? String(sessionId).slice(0, 64) : null,
-        userAgent: ua,
+        sessionId,
+        userAgent: null,
         device,
       });
       res.json({ ok: true });
     } catch (e: any) {
-      res.status(200).json({ ok: false, error: e.message });
+      console.error('[analytics] Failed to record page view:', e.message);
+      res.status(500).json({ message: 'Unable to record page view' });
     }
   });
 
   app.get('/api/admin/analytics/dashboard', isAuthenticated, async (req: any, res) => {
     try {
       if (req.user?.userType !== 'admin' && req.user?.role !== 'admin') return res.status(403).json({ message: 'Admin only' });
-      const days = Math.min(90, Math.max(1, parseInt(String(req.query.days || '30'), 10)));
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const parsedDays = parseInt(String(req.query.days || '30'), 10);
+      const days = Number.isFinite(parsedDays) ? Math.min(90, Math.max(1, parsedDays)) : 30;
+      const since = new Date();
+      since.setUTCHours(0, 0, 0, 0);
+      since.setUTCDate(since.getUTCDate() - (days - 1));
 
       const totalRows = await db.select({ c: count() }).from(pageViews).where(gte(pageViews.createdAt, since));
       const total = Number(totalRows[0]?.c || 0);
 
-      const uniqueVisitorRows = await db.execute(sql`
-        SELECT COUNT(DISTINCT COALESCE(session_id, user_id, user_agent)) AS c
-        FROM page_views WHERE created_at >= ${since}
+      const sessionRows = await db.execute(sql`
+        SELECT COUNT(DISTINCT session_id) AS c
+        FROM page_views WHERE created_at >= ${since} AND session_id IS NOT NULL
       `);
-      const uniqueVisitors = Number((uniqueVisitorRows.rows?.[0] as any)?.c || 0);
+      const sessions = Number((sessionRows.rows?.[0] as any)?.c || 0);
+      const pagesPerSessionRows = await db.execute(sql`
+        SELECT COALESCE(AVG(page_count), 0) AS average
+        FROM (
+          SELECT COUNT(*) AS page_count
+          FROM page_views
+          WHERE created_at >= ${since} AND session_id IS NOT NULL
+          GROUP BY session_id
+        ) AS session_page_counts
+      `);
+      const pagesPerSession = Number((pagesPerSessionRows.rows?.[0] as any)?.average || 0);
 
       const topPagesRows = await db.execute(sql`
         SELECT path, COUNT(*)::int AS views
@@ -13385,19 +13457,36 @@ Instructions:
       const topReferrersRows = await db.execute(sql`
         SELECT COALESCE(NULLIF(referrer, ''), 'direct') AS referrer, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
-        GROUP BY referrer ORDER BY views DESC LIMIT 10
+        GROUP BY referrer ORDER BY views DESC LIMIT 100
       `);
-      const topReferrers = (topReferrersRows.rows || []) as { referrer: string; views: number }[];
+      const referrerTotals = new Map<string, number>();
+      for (const row of (topReferrersRows.rows || []) as { referrer: string; views: number }[]) {
+        let source = row.referrer || 'direct';
+        if (source !== 'direct' && source !== 'internal') {
+          try { source = new URL(source.includes('://') ? source : `https://${source}`).hostname.toLowerCase(); }
+          catch { source = 'other'; }
+        }
+        referrerTotals.set(source, (referrerTotals.get(source) || 0) + Number(row.views || 0));
+      }
+      const topReferrers = Array.from(referrerTotals, ([referrer, views]) => ({ referrer, views }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10);
 
       const dailyRows = await db.execute(sql`
         SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY day ORDER BY day ASC
       `);
-      const daily = (dailyRows.rows || []).map((r: any) => ({
-        day: new Date(r.day).toISOString().split('T')[0],
-        views: Number(r.views),
-      }));
+      const dailyCounts = new Map((dailyRows.rows || []).map((r: any) => [
+        new Date(r.day).toISOString().split('T')[0],
+        Number(r.views),
+      ]));
+      const daily = Array.from({ length: days }, (_, index) => {
+        const date = new Date(since);
+        date.setUTCDate(since.getUTCDate() + index);
+        const day = date.toISOString().split('T')[0];
+        return { day, views: dailyCounts.get(day) || 0 };
+      });
 
       const deviceRows = await db.execute(sql`
         SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
@@ -13406,7 +13495,7 @@ Instructions:
       `);
       const devices = (deviceRows.rows || []) as { device: string; views: number }[];
 
-      res.json({ days, total, uniqueVisitors, topPages, topReferrers, daily, devices });
+      res.json({ days, total, sessions, pagesPerSession: Number(pagesPerSession.toFixed(2)), topPages, topReferrers, daily, devices });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }

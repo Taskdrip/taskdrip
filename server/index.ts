@@ -206,6 +206,28 @@ app.use('/uploads', async (req, res, next) => {
   }
 }));
 
+// The imported article images are stored with the project under attached_assets.
+// Serve them through the existing public /uploads/blog paths when no user-uploaded
+// file exists, so seeded article thumbnails remain available in production.
+app.get('/uploads/blog/passive-income-digital-products.png', (_req, res) => {
+  res.redirect(308, '/uploads/blog/passive-income-digital-products.svg');
+});
+app.get('/uploads/blog/passive-income-digital-products.jpg', (_req, res) => {
+  res.redirect(308, '/uploads/blog/passive-income-digital-products.svg');
+});
+app.get('/uploads/blog/future-creator-economy-web3.png', (_req, res) => {
+  res.redirect(308, '/uploads/blog/future-creator-economy-web3.svg');
+});
+app.get('/uploads/blog/future-creator-economy-web3.jpg', (_req, res) => {
+  res.redirect(308, '/uploads/blog/future-creator-economy-web3.svg');
+});
+app.use('/uploads/blog', express.static(path.resolve('attached_assets', 'blog'), {
+  setHeaders: (res) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  }
+}));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const reqPath = req.path;

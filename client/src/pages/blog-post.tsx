@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SharePanel, ShareButton } from "@/components/ui/share-panel";
+import { SeoHead } from "@/components/SeoHead";
 import {
   Heart, MessageCircle, Share2, Eye, Clock, Calendar, ArrowLeft,
   Facebook, Twitter, Link2, Send, ChevronDown, ChevronUp,
@@ -331,6 +332,12 @@ export default function BlogPost() {
     enabled: !!slug,
   });
 
+  const { data: relatedPosts = [] } = useQuery<any[]>({
+    queryKey: ["/api/blog", slug, "related"],
+    queryFn: () => fetch(`/api/blog/${slug}/related`).then(r => r.json()),
+    enabled: !!slug && !!post,
+  });
+
   const { data: user } = useQuery<any>({ queryKey: ["/api/user"] });
 
   const { data: liked } = useQuery<{ liked: boolean }>({
@@ -432,14 +439,40 @@ export default function BlogPost() {
   const displayedComments = showAllComments ? comments : comments.slice(0, 3);
   const confirmedTips = tips.filter((t: any) => t.status === "confirmed" || t.status === "pending");
   const totalTipped = confirmedTips.reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
+  const canonicalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/blog/${encodeURIComponent(post.slug)}`
+    : undefined;
+  const articleImage = post.featuredImage && typeof window !== "undefined"
+    ? new URL(post.featuredImage, window.location.origin).toString()
+    : post.featuredImage;
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.metaDescription || post.excerpt || undefined,
+    image: articleImage ? [articleImage] : undefined,
+    datePublished: post.publishedAt ? new Date(post.publishedAt).toISOString() : undefined,
+    dateModified: post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined,
+    author: { "@type": "Organization", name: "Taskdrip" },
+    publisher: { "@type": "Organization", name: "Taskdrip", url: "https://taskdrip.online" },
+    mainEntityOfPage: canonicalUrl,
+    articleSection: post.category || undefined,
+    keywords: post.seoKeywords || undefined,
+  };
 
   return (
     <div className="min-h-screen bg-white">
       <NavigationFixed />
 
-      {post.metaDescription && (
-        <meta name="description" content={post.metaDescription} />
-      )}
+      <SeoHead
+        title={post.title}
+        description={post.metaDescription || post.excerpt || ""}
+        keywords={post.seoKeywords || ""}
+        ogImage={articleImage}
+        ogType="article"
+        canonicalUrl={canonicalUrl}
+        jsonLd={articleSchema}
+      />
 
       <article className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Back */}
@@ -546,6 +579,35 @@ export default function BlogPost() {
           .prose code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; }
           .prose img { border-radius: 12px; margin: 1.5rem 0; }
         `}</style>
+
+        {relatedPosts.length > 0 && (
+          <section aria-labelledby="related-articles-heading" className="mb-12 border-t border-gray-100 pt-8">
+            <h2 id="related-articles-heading" className="text-xl font-bold text-gray-900 mb-4">Related articles</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedPosts.map((related: any) => (
+                <a
+                  key={related.slug}
+                  href={`/blog/${encodeURIComponent(related.slug)}`}
+                  className="group rounded-xl border border-gray-200 overflow-hidden hover:border-blue-300 hover:shadow-sm transition"
+                >
+                  {related.featuredImage && (
+                    <img
+                      src={related.featuredImage}
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-36 object-cover"
+                    />
+                  )}
+                  <div className="p-4">
+                    {related.category && <p className="text-xs text-blue-700 font-semibold mb-2">{related.category}</p>}
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 leading-snug">{related.title}</h3>
+                    {related.excerpt && <p className="text-sm text-gray-500 mt-2 line-clamp-3">{related.excerpt}</p>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Tags */}
         {post.seoKeywords && (

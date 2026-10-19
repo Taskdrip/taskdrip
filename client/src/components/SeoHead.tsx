@@ -33,7 +33,7 @@ function setCanonical(url: string) {
 }
 
 function setJsonLd(data?: object) {
-  let el = document.querySelector('script[data-seo-ld]') as HTMLScriptElement | null;
+  let el = document.querySelector('script[data-seo-page-ld]') as HTMLScriptElement | null;
   if (!data) {
     el?.remove();
     return;
@@ -41,7 +41,7 @@ function setJsonLd(data?: object) {
   if (!el) {
     el = document.createElement("script");
     el.type = "application/ld+json";
-    el.setAttribute("data-seo-ld", "true");
+    el.setAttribute("data-seo-page-ld", "true");
     document.head.appendChild(el);
   }
   el.textContent = JSON.stringify(data);

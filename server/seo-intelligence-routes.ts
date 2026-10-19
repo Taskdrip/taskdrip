@@ -256,7 +256,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           metaDescription: blogPosts.metaDescription,
           featuredImage: blogPosts.featuredImage,
           isPublished: blogPosts.isPublished,
-        }).from(blogPosts).where(eq(blogPosts.isPublished, true)).limit(100),
+          content: blogPosts.content,
+        }).from(blogPosts).where(eq(blogPosts.isPublished, true)),
       ]);
 
       const PAGES = [
@@ -283,12 +284,57 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         if (!s.ogTitle && !s.ogDescription) issues.push({ type: "missing_og", severity: "medium", path, detail: "Missing Open Graph tags" });
       }
 
-      // Check blog posts
+      // Check every published article for editorial and on-page SEO gaps.
+      let totalWords = 0;
+      let longFormTargetCount = 0;
+      let postsWithImages = 0;
+      let postsWithInternalLinks = 0;
+      let postsWithExternalLinks = 0;
+      let imagesMissingAlt = 0;
       for (const post of allBlogs) {
         const path = `/blog/${post.slug}`;
-        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path, detail: `Blog post missing meta description` });
-        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path, detail: `Blog post missing featured image` });
+        const plainText = (post.content || "")
+          .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+          .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;|&#160;/gi, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        const wordCount = plainText ? plainText.split(" ").length : 0;
+        totalWords += wordCount;
+        if (wordCount >= 3000) longFormTargetCount++;
+        if (post.metaDescription && post.metaDescription.length > 160) {
+          issues.push({ type: "long_meta_desc", severity: "low", path, detail: `Meta description is ${post.metaDescription.length} characters; keep it concise and accurate.` });
+        }
+        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path, detail: "Blog post missing meta description" });
+        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path, detail: "Blog post missing a featured image" });
+        else postsWithImages++;
         if (!post.title) issues.push({ type: "missing_title", severity: "high", path, detail: `Blog post missing title` });
+        const headings = (post.content || "").match(/<h[23]\b/gi) || [];
+        if (headings.length === 0) {
+          issues.push({ type: "missing_section_headings", severity: "medium", path, detail: "Add descriptive section headings so readers can scan the article." });
+        }
+        const links = Array.from((post.content || "").matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi), match => match[1]);
+        const internalLinks = links.filter(href => href.startsWith("/") || /^https?:\/\/([^/]+\.)?taskdrip\.online(?:\/|$)/i.test(href));
+        const externalLinks = links.filter(href => /^https?:\/\//i.test(href) && !/^https?:\/\/([^/]+\.)?taskdrip\.online(?:\/|$)/i.test(href));
+        if (internalLinks.length) postsWithInternalLinks++;
+        else issues.push({ type: "no_internal_links", severity: "low", path, detail: "Add a contextual link to a genuinely related page or article on Taskdrip." });
+        if (externalLinks.length) postsWithExternalLinks++;
+        else issues.push({ type: "no_external_sources", severity: "low", path, detail: "Link to relevant primary or authoritative sources for factual claims; do not add unrelated links." });
+        const images = Array.from((post.content || "").matchAll(/<img\b([^>]*)>/gi), match => match[1]);
+        const missingAlt = images.filter(attrs => !/\balt\s*=\s*["'][^"']+["']/i.test(attrs)).length;
+        imagesMissingAlt += missingAlt;
+        if (missingAlt) {
+          issues.push({ type: "missing_alt_text", severity: "low", path, detail: `${missingAlt} article image${missingAlt === 1 ? "" : "s"} need descriptive alt text.` });
+        }
+        if (wordCount < 3000) {
+          issues.push({
+            type: "below_requested_long_form_target",
+            severity: "low",
+            path,
+            detail: `${wordCount.toLocaleString()} words; below your requested 3,000-word editorial target. Google does not require a fixed word count—expand only with useful, accurate material.`,
+          });
+        }
       }
 
       const highCount = issues.filter(i => i.severity === "high").length;
@@ -298,6 +344,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       res.json({
         issues,
         summary: { total: issues.length, high: highCount, medium: mediumCount, low: lowCount },
+        contentAudit: {
+          publishedArticles: allBlogs.length,
+          averageWordCount: allBlogs.length ? Math.round(totalWords / allBlogs.length) : 0,
+          meetingRequestedLongFormTarget: longFormTargetCount,
+          withFeaturedImage: postsWithImages,
+          withInternalLinks: postsWithInternalLinks,
+          withExternalSources: postsWithExternalLinks,
+          imagesMissingAlt,
+        },
         auditedAt: new Date().toISOString(),
       });
     } catch (e: any) {

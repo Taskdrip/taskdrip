@@ -47,6 +47,15 @@ interface AuditIssue {
 interface AuditData {
   issues: AuditIssue[];
   summary: { total: number; high: number; medium: number; low: number };
+  contentAudit?: {
+    publishedArticles: number;
+    averageWordCount: number;
+    meetingRequestedLongFormTarget: number;
+    withFeaturedImage: number;
+    withInternalLinks: number;
+    withExternalSources: number;
+    imagesMissingAlt: number;
+  };
   auditedAt: string;
 }
 
@@ -898,7 +907,12 @@ function SiteAuditTab() {
     long_meta_desc: AlertCircle,
     missing_og: Globe,
     missing_image: ImageIcon,
+    missing_alt_text: ImageIcon,
+    no_internal_links: Link,
+    no_external_sources: ExternalLink,
+    missing_section_headings: FileText,
     missing_title: AlertCircle,
+    below_requested_long_form_target: FileText,
   };
 
   const filteredIssues = (audit?.issues || []).filter(i =>
@@ -951,6 +965,31 @@ function SiteAuditTab() {
               <p className="text-xs text-blue-600 mt-1">Low Priority</p>
             </div>
           </div>
+
+          {audit.contentAudit && (
+            <section className="rounded-2xl bg-white border border-gray-200 p-5">
+              <h3 className="font-bold text-gray-900">Published article review</h3>
+              <p className="text-xs text-gray-500 mt-1 mb-4">
+                Counts cover all published blog articles. The 3,000-word figure is your requested editorial target, not a Google ranking requirement.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  ["Published articles", audit.contentAudit.publishedArticles],
+                  ["Average words", audit.contentAudit.averageWordCount.toLocaleString()],
+                  ["At least 3,000 words", audit.contentAudit.meetingRequestedLongFormTarget],
+                  ["Have a featured image", audit.contentAudit.withFeaturedImage],
+                  ["Have internal links", audit.contentAudit.withInternalLinks],
+                  ["Cite external sources", audit.contentAudit.withExternalSources],
+                  ["Images missing alt text", audit.contentAudit.imagesMissingAlt],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-gray-50 border border-gray-100 p-3">
+                    <p className="text-xl font-bold text-gray-900">{value}</p>
+                    <p className="text-xs text-gray-500 mt-1">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Filter */}
           <div className="flex gap-2">

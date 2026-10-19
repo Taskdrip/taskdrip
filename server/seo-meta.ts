@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { campaigns, blogPosts, shopProducts, users, courses, p2pListings, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
 import { and, eq, or } from "drizzle-orm";
+import { load } from "cheerio";
 
 type Meta = {
   title?: string;
@@ -12,6 +13,7 @@ type Meta = {
   canonicalUrl?: string;
   noIndex?: boolean;
   structuredData?: string | null;
+  articleHtml?: string;
 };
 
 const escapeHtml = (s: string) =>
@@ -21,6 +23,44 @@ const trimText = (s: string, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   return clean.length > max ? clean.slice(0, max - 1) + "…" : clean;
 };
+
+function cleanArticleHtml(html: string): string {
+  const $ = load(`<div id="article-content">${html || ""}</div>`, {}, false);
+  const article = $("#article-content");
+  article.find("script,style,iframe,object,embed,form,button,input,textarea,select,meta,link").remove();
+  article.find("article").each((_, element) => {
+    $(element).replaceWith($(element).contents());
+  });
+  article.find("*").each((_, element) => {
+    const node = $(element);
+    for (const name of Object.keys(element.attribs || {})) {
+      const value = node.attr(name) || "";
+      if (/^on/i.test(name) || (["href", "src", "xlink:href"].includes(name.toLowerCase()) && /^\s*javascript:/i.test(value))) {
+        node.removeAttr(name);
+      }
+    }
+  });
+  article.find("h1").each((_, element) => {
+    const heading = $("<h2></h2>").html($(element).html() || "");
+    $(element).replaceWith(heading);
+  });
+  return article.html() || "";
+}
+
+function renderArticleHtml(post: typeof blogPosts.$inferSelect, origin: string, image?: string): string {
+  const title = escapeHtml(post.title);
+  const date = post.publishedAt ? new Date(post.publishedAt).toISOString() : "";
+  const visibleDate = date ? new Date(date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) : "";
+  const featuredImage = image
+    ? `<img src="${escapeHtml(image)}" alt="${title}" width="1200" loading="eager" />`
+    : "";
+  const excerpt = post.excerpt ? `<p>${escapeHtml(post.excerpt)}</p>` : "";
+  const meta = visibleDate
+    ? `<p><span>Taskdrip Team</span> · <time datetime="${escapeHtml(date)}">${escapeHtml(visibleDate)}</time></p>`
+    : `<p>Taskdrip Team</p>`;
+
+  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content)}</div></article></main>`;
+}
 
 const absolutize = (origin: string, src?: string | null) => {
   if (!src) return undefined;
@@ -49,15 +89,15 @@ async function defaultOgImage(origin: string): Promise<string> {
 // no DB entry yet (e.g. fresh deploy before seeding completes).
 const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
   "/": {
-    title: "Taskdrip — Earn Crypto Completing Brand Tasks | Web3 Influencer Platform",
-    description: "Taskdrip is the #1 Web3 influencer marketplace. Complete social media tasks, promote brands, and earn USDT crypto rewards. Join 15,000+ verified creators earning daily.",
+    title: "Taskdrip | Brand Campaigns and Creator Collaboration",
+    description: "Taskdrip connects brands with content creators for campaign work. Explore brand campaigns, creator profiles, and tools for managing collaborations and payouts.",
     keywords: "earn crypto online, web3 influencer platform, brand campaigns, earn USDT, crypto rewards",
     canonicalUrl: "https://taskdrip.online",
     type: "website",
   },
   "/tasks": {
-    title: "Browse Brand Campaigns & Earn Crypto | Taskdrip Tasks",
-    description: "Browse hundreds of paid brand campaigns on Taskdrip. Follow, like, share, and create content for top brands. Earn USDT and crypto rewards instantly upon approval.",
+    title: "Browse Brand Campaigns and Creator Tasks | Taskdrip",
+    description: "Explore current brand campaigns and creator tasks on Taskdrip. Review campaign requirements, deliverables, eligibility, and reward details before applying.",
     keywords: "paid social media tasks, brand campaigns, earn USDT tasks, crypto campaign rewards",
     canonicalUrl: "https://taskdrip.online/tasks",
   },
@@ -74,8 +114,8 @@ const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
     canonicalUrl: "https://taskdrip.online/shop",
   },
   "/influencers": {
-    title: "Find Verified Influencers & Content Creators | Taskdrip Directory",
-    description: "Discover thousands of verified influencers and content creators on Taskdrip. Filter by niche, following, engagement rate, and country.",
+    title: "Find Influencers and Content Creators | Taskdrip",
+    description: "Browse creator profiles on Taskdrip and compare available niches, audience details, engagement information, and collaboration options.",
     keywords: "influencer directory, find influencers, content creators, verified influencers",
     canonicalUrl: "https://taskdrip.online/influencers",
   },
@@ -129,14 +169,14 @@ const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
     canonicalUrl: "https://taskdrip.online/leaderboard",
   },
   "/advertise": {
-    title: "Advertise on Taskdrip — Reach 15,000+ Verified Influencers",
-    description: "Launch your influencer marketing campaign on Taskdrip. Reach 15,000+ verified creators across Africa and globally. Affordable rates, guaranteed deliverables.",
+    title: "Advertise with Creators on Taskdrip",
+    description: "Learn how brands can use Taskdrip to plan creator campaigns, review deliverables, and manage collaborations with content creators.",
     keywords: "advertise with influencers, influencer marketing campaign, brand promotion",
     canonicalUrl: "https://taskdrip.online/advertise",
   },
   "/about": {
-    title: "About Taskdrip — Our Mission to Empower Creators with Crypto",
-    description: "Taskdrip is a Web3 influencer marketing platform built to help content creators earn crypto from brand campaigns. Learn about our story, mission, and values.",
+    title: "About Taskdrip | Creator and Brand Campaign Platform",
+    description: "Learn about Taskdrip, a platform for connecting brands and creators through campaign listings, creator profiles, and collaboration tools.",
     keywords: "about taskdrip, web3 influencer platform, crypto creator economy",
     canonicalUrl: "https://taskdrip.online/about",
   },
@@ -222,16 +262,47 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(
-      and(eq(blogPosts.slug, slug), eq(blogPosts.isPublished, true)),
-    );
+    let post: typeof blogPosts.$inferSelect | undefined;
+    try {
+      const [found] = await db.select().from(blogPosts).where(
+        and(eq(blogPosts.slug, slug), eq(blogPosts.isPublished, true)),
+      );
+      post = found;
+    } catch (error: any) {
+      console.error("Blog SEO lookup failed:", error.message);
+      return {
+        title: "Article temporarily unavailable | Taskdrip",
+        description: "This article is temporarily unavailable.",
+        noIndex: true,
+      };
+    }
     if (post) {
-      const image = (post as any).featuredImage || ogImageFromHtml((post as any).content);
+      const image = absolutize(origin, post.featuredImage || ogImageFromHtml(post.content));
+      const publishedAt = post.publishedAt ? new Date(post.publishedAt).toISOString() : undefined;
+      const modifiedAt = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedAt;
+      const canonicalUrl = `${origin}/blog/${encodeURIComponent(post.slug)}`;
+      const structuredData = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: trimText(post.metaDescription || post.excerpt || post.content || "", 160),
+        image: image ? [image] : undefined,
+        datePublished: publishedAt,
+        dateModified: modifiedAt,
+        author: { "@type": "Organization", name: "Taskdrip", url: `${origin}/about` },
+        publisher: { "@type": "Organization", name: "Taskdrip", url: origin },
+        mainEntityOfPage: canonicalUrl,
+        articleSection: post.category || undefined,
+        keywords: post.seoKeywords || undefined,
+      });
       return {
         title: post.title,
-        description: trimText((post as any).metaDescription || (post as any).excerpt || (post as any).content || ""),
-        image: absolutize(origin, image),
+        description: trimText(post.metaDescription || post.excerpt || post.content || "", 160),
+        image,
         type: "article",
+        canonicalUrl,
+        structuredData,
+        articleHtml: renderArticleHtml(post, origin, image),
       };
     }
     return {
@@ -412,15 +483,15 @@ async function lookupRoute(origin: string, pathname: string): Promise<Meta | nul
 }
 
 function injectMeta(html: string, origin: string, url: string, meta: Meta, fallbackImage: string): string {
-  const fullUrl = meta.canonicalUrl || `${origin}${url}`;
+  const fullUrl = meta.canonicalUrl || `${origin}${url.split("?")[0].split("#")[0]}`;
   const image = meta.image || fallbackImage;
   const title = meta.title;
-  const description = meta.description;
+  const description = meta.description ? trimText(meta.description, 160) : undefined;
   const type = meta.type || "website";
 
   // Remove any existing og/twitter/description tags so the per-page values win when crawlers parse.
   let out = html
-    .replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "")
+    .replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|og:locale|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "")
     .replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
 
   if (title) {
@@ -438,6 +509,7 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
     `<meta property="og:url" content="${escapeHtml(fullUrl)}" />`,
     image ? `<meta property="og:image" content="${escapeHtml(image)}" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
+    `<meta property="og:locale" content="en_NG" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:site" content="@taskdrip" />`,
     title ? `<meta name="twitter:title" content="${escapeHtml(title)}" />` : "",
@@ -449,18 +521,31 @@ function injectMeta(html: string, origin: string, url: string, meta: Meta, fallb
 
   let result = out.replace(/<\/head>/i, `    ${tags}\n  </head>`);
 
-  // Inject JSON-LD structured data
+  const schemas: unknown[] = [{
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${origin}/#organization`, name: "Taskdrip", url: origin, logo: `${origin}/taskdrip-logo.jpg` },
+      { "@type": "WebSite", "@id": `${origin}/#website`, name: "Taskdrip", url: origin, publisher: { "@id": `${origin}/#organization` } },
+    ],
+  }];
   if (meta.structuredData) {
-    try {
-      // Validate it's valid JSON
-      JSON.parse(meta.structuredData);
-      const safeStructuredData = meta.structuredData
-        .replace(/</g, "\\u003c")
-        .replace(/>/g, "\\u003e")
-        .replace(/&/g, "\\u0026");
-      const ldTag = `\n  <script type="application/ld+json" data-seo-ld="true">${safeStructuredData}</script>`;
-      result = result.replace(/<\/head>/i, `${ldTag}\n  </head>`);
-    } catch {}
+    try { schemas.push(JSON.parse(meta.structuredData)); } catch {}
+  }
+  schemas.forEach((schema, index) => {
+    const safeStructuredData = JSON.stringify(schema)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/&/g, "\\u0026");
+    const marker = index === 0 ? `data-seo-ld="site"` : `data-seo-page-ld="true"`;
+    const ldTag = `\n  <script type="application/ld+json" ${marker}>${safeStructuredData}</script>`;
+    result = result.replace(/<\/head>/i, `${ldTag}\n  </head>`);
+  });
+
+  if (meta.articleHtml) {
+    result = result.replace(
+      /(<div\s+id=["']root["'][^>]*>)([\s\S]*?)(<\/div>)/i,
+      (_match, open: string, existing: string, close: string) => `${open}${meta.articleHtml}${existing}${close}`,
+    );
   }
 
   return result;

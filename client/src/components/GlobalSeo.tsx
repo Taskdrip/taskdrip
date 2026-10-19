@@ -51,6 +51,7 @@ function getOrCreateSessionId() {
 export function GlobalSeo() {
   const [location] = useLocation();
   const trackedRef = useRef<string | null>(null);
+  const previousLocationRef = useRef<string | null>(null);
 
   const { data: settings } = useQuery<any>({
     queryKey: ["/api/pwa-settings"],
@@ -97,32 +98,38 @@ gtag('config', '${settings.gaTrackingId}', { send_page_view: false });`;
 
   // Track SPA page views: GA + internal endpoint
   useEffect(() => {
-    if (trackedRef.current === location) return;
-    trackedRef.current = location;
+    const path = location.split("?")[0].split("#")[0] || "/";
+    if (trackedRef.current === path) return;
+    const previousLocation = previousLocationRef.current;
+    trackedRef.current = path;
+    previousLocationRef.current = path;
 
     if (settings?.gaTrackingId && typeof window.gtag === "function") {
       window.gtag("event", "page_view", {
-        page_path: location,
-        page_location: window.location.href,
+        page_path: path,
+        page_location: `${window.location.origin}${path}`,
         page_title: document.title,
       });
     }
 
     // Skip internal tracking for admin/api/dashboard
     if (
-      location.startsWith("/admin") ||
-      location.startsWith("/api") ||
-      location.startsWith("/dashboard") ||
-      location.startsWith("/brand-dashboard")
+      path.startsWith("/admin") ||
+      path.startsWith("/api") ||
+      path.startsWith("/dashboard") ||
+      path.startsWith("/brand-dashboard")
     ) return;
 
     const sessionId = getOrCreateSessionId();
+    const referrer = previousLocation
+      ? `${window.location.origin}${previousLocation}`
+      : document.referrer || null;
     fetch("/api/analytics/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        path: location,
-        referrer: document.referrer || null,
+        path,
+        referrer,
         sessionId,
       }),
       credentials: "include",
@@ -135,18 +142,18 @@ gtag('config', '${settings.gaTrackingId}', { send_page_view: false });`;
 
 // Map URL paths → admin SEO slug + sensible defaults
 const ROUTE_SEO: Record<string, { slug: string; title: string; description: string }> = {
-  "/": { slug: "home", title: "Taskdrip — Web3 Influencer Marketplace | Earn USDT & TON", description: "The leading SocialFi influencer marketplace. Brands launch campaigns, creators earn USDT, TON & $TDRIP. Verified profiles, on-chain payouts, instant escrow." },
-  "/tasks": { slug: "tasks", title: "Browse Tasks — Earn Crypto for Social Actions | Taskdrip", description: "Earn USDT & $TDRIP for likes, follows, retweets, and content creation. Hundreds of brand-funded tasks updated daily." },
+  "/": { slug: "home", title: "Taskdrip | Brand Campaigns and Creator Collaboration", description: "Taskdrip connects brands with content creators for campaign work. Explore brand campaigns, creator profiles, and tools for managing collaborations and payouts." },
+  "/tasks": { slug: "tasks", title: "Browse Brand Campaigns and Creator Tasks | Taskdrip", description: "Explore current brand campaigns and creator tasks on Taskdrip. Review campaign requirements, deliverables, eligibility, and reward details before applying." },
   "/shop": { slug: "shop", title: "Creator Shop — Templates, Boosts & Digital Goods | Taskdrip", description: "Buy and sell creator tools, presets, templates, and growth boosts. Pay with USDT, TON, or $TDRIP." },
-  "/influencers": { slug: "influencers", title: "Find Verified Influencers — Web3 Creator Discovery | Taskdrip", description: "Discover verified Web3 influencers across TikTok, Instagram, X, YouTube and Telegram. Filter by niche, audience and price." },
+  "/influencers": { slug: "influencers", title: "Find Influencers and Content Creators | Taskdrip", description: "Browse creator profiles on Taskdrip and compare available niches, audience details, engagement information, and collaboration options." },
   "/brands": { slug: "brands", title: "Brands on Taskdrip — Crypto-Native Advertisers", description: "Browse brands hiring influencers. Connect with Web3, gaming, DeFi, and lifestyle brands paying in stablecoins." },
   "/feed": { slug: "feed", title: "Creator Feed — Latest Posts & Drops | Taskdrip", description: "The freshest posts from verified Taskdrip creators. Tip in $TDRIP, follow your favourites, never miss a drop." },
   "/blog": { slug: "blog", title: "Taskdrip Blog — Web3 Marketing & Creator Economy Insights", description: "Guides, case studies and news on the Web3 creator economy, SocialFi, influencer marketing and crypto payouts." },
   "/realtrainai-ai-training-guide": { slug: "realtrainai-ai-training-guide", title: "RealTrainAI Guide: AI Trainer Jobs, Pay & How to Apply | Taskdrip", description: "An independent guide to RealTrainAI: AI trainer work, application steps, pay claims, matching uncertainty, location caveats and safer ways to evaluate the opportunity." },
   "/breedskool": { slug: "breedskool", title: "BreedSkool — Free Tech Training & Digital Skills for Africa", description: "Join BreedSkool for free practical tech training, a supportive learner community, and a £100,000 mission to make digital opportunity more accessible across Africa." },
   "/leaderboard": { slug: "leaderboard", title: "Leaderboard — Top Earners & Creators | Taskdrip", description: "See the top-earning creators, biggest spenders and most active brands on Taskdrip." },
-  "/advertise": { slug: "advertise", title: "Advertise on Taskdrip — Reach Crypto-Native Audiences", description: "Run banner ads, sponsored campaigns and creator collaborations on Taskdrip. Targeting tools, transparent pricing." },
-  "/about": { slug: "about", title: "About Taskdrip — The Web3 Influencer Marketplace", description: "Taskdrip connects brands and creators with on-chain payouts, verified profiles and the $TDRIP rewards economy." },
+  "/advertise": { slug: "advertise", title: "Advertise with Creators on Taskdrip", description: "Learn how brands can use Taskdrip to plan creator campaigns, review deliverables, and manage collaborations with content creators." },
+  "/about": { slug: "about", title: "About Taskdrip | Creator and Brand Campaign Platform", description: "Learn about Taskdrip, a platform for connecting brands and creators through campaign listings, creator profiles, and collaboration tools." },
   "/contact": { slug: "contact", title: "Contact Taskdrip — Support & Partnerships", description: "Talk to the Taskdrip team. Partnerships, press, support and creator onboarding." },
   "/privacy": { slug: "privacy", title: "Privacy Policy | Taskdrip", description: "Read how Taskdrip handles account, usage, cookie, analytics, and advertising information." },
   "/terms": { slug: "terms", title: "Terms of Service | Taskdrip", description: "Review the terms that apply when using Taskdrip's creator and brand services." },
@@ -204,6 +211,9 @@ export function RouteSeo() {
   ) {
     return <SeoHead title="Taskdrip Account" noIndex />;
   }
+  // Individual blog posts provide their own SEO from the loaded article record.
+  // The initial HTTP response already contains server-rendered article metadata.
+  if (location.startsWith("/blog/")) return null;
   const match = matchRouteSeo(location);
   if (!match) return null;
   return <PageSeo slug={match.slug} fallbackTitle={match.title} fallbackDescription={match.description} />;

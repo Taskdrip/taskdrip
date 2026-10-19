@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Building income with digital products</title>
+  <desc id="desc">Illustration of a digital product card, a book, and a growing sales chart.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1000" cy="112" r="160" fill="#8b5cf6" opacity=".16"/>
+  <circle cx="1030" cy="570" r="220" fill="#ec4899" opacity=".12"/>
+  <g transform="translate(710 100)">
+    <rect x="30" y="44" width="300" height="356" rx="26" fill="#ffffff" opacity=".08" stroke="#ffffff" stroke-opacity=".35" stroke-width="2"/>
+    <rect x="54" y="68" width="250" height="308" rx="18" fill="#fff" opacity=".96"/>
+    <rect x="75" y="90" width="208" height="122" rx="12" fill="url(#accent)"/>
+    <path d="M108 176l42-44 32 26 49-51" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="231" cy="107" r="8" fill="#fff"/>
+    <rect x="78" y="235" width="172" height="14" rx="7" fill="#1f2937"/>
+    <rect x="78" y="263" width="205" height="10" rx="5" fill="#9ca3af"/>
+    <rect x="78" y="285" width="184" height="10" rx="5" fill="#d1d5db"/>
+    <rect x="78" y="319" width="98" height="31" rx="15" fill="#4f46e5"/>
+    <text x="127" y="340" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="12" font-weight="700">DOWNLOAD</text>
+  </g>
+  <g transform="translate(780 390) rotate(-8)">
+    <rect width="170" height="120" rx="12" fill="#fbbf24"/>
+    <path d="M20 22h130M20 42h104M20 62h118" stroke="#78350f" stroke-width="8" stroke-linecap="round" opacity=".65"/>
+    <path d="M0 20a20 20 0 0 1 20-20v120A20 20 0 0 1 0 100z" fill="#f97316"/>
+  </g>
+  <text x="82" y="168" fill="#fbbf24" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="4">CREATOR BUSINESS</text>
+  <text x="78" y="265" fill="#fff" font-family="Arial,sans-serif" font-size="60" font-weight="700">Digital products,</text>
+  <text x="78" y="335" fill="#fff" font-family="Arial,sans-serif" font-size="60" font-weight="700">built to be useful.</text>
+  <text x="82" y="398" fill="#d1d5db" font-family="Arial,sans-serif" font-size="25">A practical guide to creating and selling digital work.</text>
+  <text x="82" y="562" fill="#c4b5fd" font-family="Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="2">TASKDRIP  ·  CREATOR ECONOMY</text>
+</svg>

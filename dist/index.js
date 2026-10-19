@@ -11797,8 +11797,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           slug: blogPosts.slug,
           metaDescription: blogPosts.metaDescription,
           featuredImage: blogPosts.featuredImage,
-          isPublished: blogPosts.isPublished
-        }).from(blogPosts).where(eq7(blogPosts.isPublished, true)).limit(100)
+          isPublished: blogPosts.isPublished,
+          content: blogPosts.content
+        }).from(blogPosts).where(eq7(blogPosts.isPublished, true))
       ]);
       const PAGES2 = [
         "home",
@@ -11833,11 +11834,50 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         else if (s.metaDescription.length > 160) issues.push({ type: "long_meta_desc", severity: "medium", path: path7, detail: `Meta description too long (${s.metaDescription.length} chars, max 160)` });
         if (!s.ogTitle && !s.ogDescription) issues.push({ type: "missing_og", severity: "medium", path: path7, detail: "Missing Open Graph tags" });
       }
+      let totalWords = 0;
+      let longFormTargetCount = 0;
+      let postsWithImages = 0;
+      let postsWithInternalLinks = 0;
+      let postsWithExternalLinks = 0;
+      let imagesMissingAlt = 0;
       for (const post of allBlogs) {
         const path7 = `/blog/${post.slug}`;
-        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path: path7, detail: `Blog post missing meta description` });
-        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path: path7, detail: `Blog post missing featured image` });
+        const plainText = (post.content || "").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim();
+        const wordCount = plainText ? plainText.split(" ").length : 0;
+        totalWords += wordCount;
+        if (wordCount >= 3e3) longFormTargetCount++;
+        if (post.metaDescription && post.metaDescription.length > 160) {
+          issues.push({ type: "long_meta_desc", severity: "low", path: path7, detail: `Meta description is ${post.metaDescription.length} characters; keep it concise and accurate.` });
+        }
+        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path: path7, detail: "Blog post missing meta description" });
+        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path: path7, detail: "Blog post missing a featured image" });
+        else postsWithImages++;
         if (!post.title) issues.push({ type: "missing_title", severity: "high", path: path7, detail: `Blog post missing title` });
+        const headings = (post.content || "").match(/<h[23]\b/gi) || [];
+        if (headings.length === 0) {
+          issues.push({ type: "missing_section_headings", severity: "medium", path: path7, detail: "Add descriptive section headings so readers can scan the article." });
+        }
+        const links = Array.from((post.content || "").matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi), (match) => match[1]);
+        const internalLinks = links.filter((href) => href.startsWith("/") || /^https?:\/\/([^/]+\.)?taskdrip\.online(?:\/|$)/i.test(href));
+        const externalLinks = links.filter((href) => /^https?:\/\//i.test(href) && !/^https?:\/\/([^/]+\.)?taskdrip\.online(?:\/|$)/i.test(href));
+        if (internalLinks.length) postsWithInternalLinks++;
+        else issues.push({ type: "no_internal_links", severity: "low", path: path7, detail: "Add a contextual link to a genuinely related page or article on Taskdrip." });
+        if (externalLinks.length) postsWithExternalLinks++;
+        else issues.push({ type: "no_external_sources", severity: "low", path: path7, detail: "Link to relevant primary or authoritative sources for factual claims; do not add unrelated links." });
+        const images = Array.from((post.content || "").matchAll(/<img\b([^>]*)>/gi), (match) => match[1]);
+        const missingAlt = images.filter((attrs) => !/\balt\s*=\s*["'][^"']+["']/i.test(attrs)).length;
+        imagesMissingAlt += missingAlt;
+        if (missingAlt) {
+          issues.push({ type: "missing_alt_text", severity: "low", path: path7, detail: `${missingAlt} article image${missingAlt === 1 ? "" : "s"} need descriptive alt text.` });
+        }
+        if (wordCount < 3e3) {
+          issues.push({
+            type: "below_requested_long_form_target",
+            severity: "low",
+            path: path7,
+            detail: `${wordCount.toLocaleString()} words; below your requested 3,000-word editorial target. Google does not require a fixed word count\u2014expand only with useful, accurate material.`
+          });
+        }
       }
       const highCount = issues.filter((i) => i.severity === "high").length;
       const mediumCount = issues.filter((i) => i.severity === "medium").length;
@@ -11845,6 +11885,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       res.json({
         issues,
         summary: { total: issues.length, high: highCount, medium: mediumCount, low: lowCount },
+        contentAudit: {
+          publishedArticles: allBlogs.length,
+          averageWordCount: allBlogs.length ? Math.round(totalWords / allBlogs.length) : 0,
+          meetingRequestedLongFormTarget: longFormTargetCount,
+          withFeaturedImage: postsWithImages,
+          withInternalLinks: postsWithInternalLinks,
+          withExternalSources: postsWithExternalLinks,
+          imagesMissingAlt
+        },
         auditedAt: (/* @__PURE__ */ new Date()).toISOString()
       });
     } catch (e) {
@@ -23919,6 +23968,28 @@ async function registerRoutes(app2, existingServer) {
       res.status(500).json({ message: "Failed to fetch blog posts" });
     }
   });
+  app2.get("/api/blog/:slug/related", async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) return res.status(404).json({ message: "Blog post not found" });
+      const conditions = [
+        eq16(blogPosts.isPublished, true),
+        sql13`${blogPosts.slug} <> ${req.params.slug}`
+      ];
+      if (post.category) conditions.push(eq16(blogPosts.category, post.category));
+      const related = await db.select({
+        title: blogPosts.title,
+        slug: blogPosts.slug,
+        excerpt: blogPosts.excerpt,
+        category: blogPosts.category,
+        featuredImage: blogPosts.featuredImage
+      }).from(blogPosts).where(and12(...conditions)).orderBy(desc12(blogPosts.publishedAt)).limit(3);
+      res.json(related);
+    } catch (error) {
+      console.error("Error fetching related blog posts:", error);
+      res.status(500).json({ message: "Failed to fetch related posts" });
+    }
+  });
   app2.get("/api/blog/:slug", async (req, res) => {
     try {
       const post = await storage.getBlogPostBySlug(req.params.slug);
@@ -33995,36 +34066,73 @@ ${body}`,
   });
   app2.post("/api/analytics/track", async (req, res) => {
     try {
-      const { path: path7, referrer, sessionId } = req.body || {};
-      if (!path7 || typeof path7 !== "string") return res.status(400).json({ message: "path required" });
+      const { path: rawPath, referrer: rawReferrer, sessionId: rawSessionId } = req.body || {};
+      if (typeof rawPath !== "string" || !rawPath.startsWith("/") || rawPath.startsWith("//")) {
+        return res.status(400).json({ message: "A local page path is required" });
+      }
+      const parsedPath = new URL(rawPath, "https://taskdrip.online");
+      if (parsedPath.origin !== "https://taskdrip.online") {
+        return res.status(400).json({ message: "Only local page paths can be tracked" });
+      }
+      const path7 = parsedPath.pathname;
       if (path7.startsWith("/api") || path7.startsWith("/admin")) return res.json({ ok: true, skipped: true });
       const ua = (req.headers["user-agent"] || "").toString().slice(0, 255);
-      const device = /mobile|iphone|ipad|android/i.test(ua) ? "mobile" : "desktop";
+      if (!ua || /bot|crawler|spider|slurp|facebookexternalhit|discordbot|whatsapp|telegrambot|preview|uptime|monitoring|headlesschrome|phantomjs|selenium/i.test(ua)) {
+        return res.json({ ok: true, skipped: true, reason: "automated_client" });
+      }
+      const sessionId = typeof rawSessionId === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(rawSessionId) ? rawSessionId : null;
+      const isTablet = /ipad|tablet|kindle|silk/i.test(ua);
+      const device = isTablet ? "tablet" : /mobile|iphone|android/i.test(ua) ? "mobile" : "desktop";
+      let referrer = null;
+      if (typeof rawReferrer === "string" && /^https?:\/\//i.test(rawReferrer)) {
+        try {
+          const referrerUrl = new URL(rawReferrer);
+          const referrerHost = referrerUrl.hostname.toLowerCase();
+          const requestHost = (req.get("host") || "").split(":")[0].toLowerCase();
+          referrer = referrerHost === requestHost || referrerHost === "taskdrip.online" || referrerHost.endsWith(".taskdrip.online") ? "internal" : referrerHost;
+        } catch {
+          referrer = null;
+        }
+      }
       await db.insert(pageViews).values({
         path: path7.slice(0, 255),
-        referrer: referrer ? String(referrer).slice(0, 255) : null,
+        referrer,
         userId: req.user?.id || null,
-        sessionId: sessionId ? String(sessionId).slice(0, 64) : null,
-        userAgent: ua,
+        sessionId,
+        userAgent: null,
         device
       });
       res.json({ ok: true });
     } catch (e) {
-      res.status(200).json({ ok: false, error: e.message });
+      console.error("[analytics] Failed to record page view:", e.message);
+      res.status(500).json({ message: "Unable to record page view" });
     }
   });
   app2.get("/api/admin/analytics/dashboard", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Admin only" });
-      const days = Math.min(90, Math.max(1, parseInt(String(req.query.days || "30"), 10)));
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
+      const parsedDays = parseInt(String(req.query.days || "30"), 10);
+      const days = Number.isFinite(parsedDays) ? Math.min(90, Math.max(1, parsedDays)) : 30;
+      const since = /* @__PURE__ */ new Date();
+      since.setUTCHours(0, 0, 0, 0);
+      since.setUTCDate(since.getUTCDate() - (days - 1));
       const totalRows = await db.select({ c: count4() }).from(pageViews).where(gte2(pageViews.createdAt, since));
       const total = Number(totalRows[0]?.c || 0);
-      const uniqueVisitorRows = await db.execute(sql13`
-        SELECT COUNT(DISTINCT COALESCE(session_id, user_id, user_agent)) AS c
-        FROM page_views WHERE created_at >= ${since}
+      const sessionRows = await db.execute(sql13`
+        SELECT COUNT(DISTINCT session_id) AS c
+        FROM page_views WHERE created_at >= ${since} AND session_id IS NOT NULL
       `);
-      const uniqueVisitors = Number(uniqueVisitorRows.rows?.[0]?.c || 0);
+      const sessions2 = Number(sessionRows.rows?.[0]?.c || 0);
+      const pagesPerSessionRows = await db.execute(sql13`
+        SELECT COALESCE(AVG(page_count), 0) AS average
+        FROM (
+          SELECT COUNT(*) AS page_count
+          FROM page_views
+          WHERE created_at >= ${since} AND session_id IS NOT NULL
+          GROUP BY session_id
+        ) AS session_page_counts
+      `);
+      const pagesPerSession = Number(pagesPerSessionRows.rows?.[0]?.average || 0);
       const topPagesRows = await db.execute(sql13`
         SELECT path, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
@@ -34034,25 +34142,43 @@ ${body}`,
       const topReferrersRows = await db.execute(sql13`
         SELECT COALESCE(NULLIF(referrer, ''), 'direct') AS referrer, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
-        GROUP BY referrer ORDER BY views DESC LIMIT 10
+        GROUP BY referrer ORDER BY views DESC LIMIT 100
       `);
-      const topReferrers = topReferrersRows.rows || [];
+      const referrerTotals = /* @__PURE__ */ new Map();
+      for (const row of topReferrersRows.rows || []) {
+        let source = row.referrer || "direct";
+        if (source !== "direct" && source !== "internal") {
+          try {
+            source = new URL(source.includes("://") ? source : `https://${source}`).hostname.toLowerCase();
+          } catch {
+            source = "other";
+          }
+        }
+        referrerTotals.set(source, (referrerTotals.get(source) || 0) + Number(row.views || 0));
+      }
+      const topReferrers = Array.from(referrerTotals, ([referrer, views]) => ({ referrer, views })).sort((a, b) => b.views - a.views).slice(0, 10);
       const dailyRows = await db.execute(sql13`
         SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY day ORDER BY day ASC
       `);
-      const daily = (dailyRows.rows || []).map((r) => ({
-        day: new Date(r.day).toISOString().split("T")[0],
-        views: Number(r.views)
-      }));
+      const dailyCounts = new Map((dailyRows.rows || []).map((r) => [
+        new Date(r.day).toISOString().split("T")[0],
+        Number(r.views)
+      ]));
+      const daily = Array.from({ length: days }, (_, index2) => {
+        const date = new Date(since);
+        date.setUTCDate(since.getUTCDate() + index2);
+        const day = date.toISOString().split("T")[0];
+        return { day, views: dailyCounts.get(day) || 0 };
+      });
       const deviceRows = await db.execute(sql13`
         SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY device ORDER BY views DESC
       `);
       const devices = deviceRows.rows || [];
-      res.json({ days, total, uniqueVisitors, topPages, topReferrers, daily, devices });
+      res.json({ days, total, sessions: sessions2, pagesPerSession: Number(pagesPerSession.toFixed(2)), topPages, topReferrers, daily, devices });
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
@@ -34893,11 +35019,43 @@ import path5 from "path";
 init_db();
 init_schema();
 import { and as and14, eq as eq18, or as or4 } from "drizzle-orm";
+import { load } from "cheerio";
 var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   return clean.length > max ? clean.slice(0, max - 1) + "\u2026" : clean;
 };
+function cleanArticleHtml(html) {
+  const $ = load(`<div id="article-content">${html || ""}</div>`, {}, false);
+  const article = $("#article-content");
+  article.find("script,style,iframe,object,embed,form,button,input,textarea,select,meta,link").remove();
+  article.find("article").each((_, element) => {
+    $(element).replaceWith($(element).contents());
+  });
+  article.find("*").each((_, element) => {
+    const node = $(element);
+    for (const name of Object.keys(element.attribs || {})) {
+      const value = node.attr(name) || "";
+      if (/^on/i.test(name) || ["href", "src", "xlink:href"].includes(name.toLowerCase()) && /^\s*javascript:/i.test(value)) {
+        node.removeAttr(name);
+      }
+    }
+  });
+  article.find("h1").each((_, element) => {
+    const heading = $("<h2></h2>").html($(element).html() || "");
+    $(element).replaceWith(heading);
+  });
+  return article.html() || "";
+}
+function renderArticleHtml(post, origin, image) {
+  const title = escapeHtml2(post.title);
+  const date = post.publishedAt ? new Date(post.publishedAt).toISOString() : "";
+  const visibleDate = date ? new Date(date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) : "";
+  const featuredImage = image ? `<img src="${escapeHtml2(image)}" alt="${title}" width="1200" loading="eager" />` : "";
+  const excerpt = post.excerpt ? `<p>${escapeHtml2(post.excerpt)}</p>` : "";
+  const meta = visibleDate ? `<p><span>Taskdrip Team</span> \xB7 <time datetime="${escapeHtml2(date)}">${escapeHtml2(visibleDate)}</time></p>` : `<p>Taskdrip Team</p>`;
+  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml2(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content)}</div></article></main>`;
+}
 var absolutize = (origin, src) => {
   if (!src) return void 0;
   if (/^https?:\/\//i.test(src)) return src;
@@ -34921,15 +35079,15 @@ async function defaultOgImage(origin) {
 }
 var STATIC_DEFAULTS = {
   "/": {
-    title: "Taskdrip \u2014 Earn Crypto Completing Brand Tasks | Web3 Influencer Platform",
-    description: "Taskdrip is the #1 Web3 influencer marketplace. Complete social media tasks, promote brands, and earn USDT crypto rewards. Join 15,000+ verified creators earning daily.",
+    title: "Taskdrip | Brand Campaigns and Creator Collaboration",
+    description: "Taskdrip connects brands with content creators for campaign work. Explore brand campaigns, creator profiles, and tools for managing collaborations and payouts.",
     keywords: "earn crypto online, web3 influencer platform, brand campaigns, earn USDT, crypto rewards",
     canonicalUrl: "https://taskdrip.online",
     type: "website"
   },
   "/tasks": {
-    title: "Browse Brand Campaigns & Earn Crypto | Taskdrip Tasks",
-    description: "Browse hundreds of paid brand campaigns on Taskdrip. Follow, like, share, and create content for top brands. Earn USDT and crypto rewards instantly upon approval.",
+    title: "Browse Brand Campaigns and Creator Tasks | Taskdrip",
+    description: "Explore current brand campaigns and creator tasks on Taskdrip. Review campaign requirements, deliverables, eligibility, and reward details before applying.",
     keywords: "paid social media tasks, brand campaigns, earn USDT tasks, crypto campaign rewards",
     canonicalUrl: "https://taskdrip.online/tasks"
   },
@@ -34946,8 +35104,8 @@ var STATIC_DEFAULTS = {
     canonicalUrl: "https://taskdrip.online/shop"
   },
   "/influencers": {
-    title: "Find Verified Influencers & Content Creators | Taskdrip Directory",
-    description: "Discover thousands of verified influencers and content creators on Taskdrip. Filter by niche, following, engagement rate, and country.",
+    title: "Find Influencers and Content Creators | Taskdrip",
+    description: "Browse creator profiles on Taskdrip and compare available niches, audience details, engagement information, and collaboration options.",
     keywords: "influencer directory, find influencers, content creators, verified influencers",
     canonicalUrl: "https://taskdrip.online/influencers"
   },
@@ -35001,14 +35159,14 @@ var STATIC_DEFAULTS = {
     canonicalUrl: "https://taskdrip.online/leaderboard"
   },
   "/advertise": {
-    title: "Advertise on Taskdrip \u2014 Reach 15,000+ Verified Influencers",
-    description: "Launch your influencer marketing campaign on Taskdrip. Reach 15,000+ verified creators across Africa and globally. Affordable rates, guaranteed deliverables.",
+    title: "Advertise with Creators on Taskdrip",
+    description: "Learn how brands can use Taskdrip to plan creator campaigns, review deliverables, and manage collaborations with content creators.",
     keywords: "advertise with influencers, influencer marketing campaign, brand promotion",
     canonicalUrl: "https://taskdrip.online/advertise"
   },
   "/about": {
-    title: "About Taskdrip \u2014 Our Mission to Empower Creators with Crypto",
-    description: "Taskdrip is a Web3 influencer marketing platform built to help content creators earn crypto from brand campaigns. Learn about our story, mission, and values.",
+    title: "About Taskdrip | Creator and Brand Campaign Platform",
+    description: "Learn about Taskdrip, a platform for connecting brands and creators through campaign listings, creator profiles, and collaboration tools.",
     keywords: "about taskdrip, web3 influencer platform, crypto creator economy",
     canonicalUrl: "https://taskdrip.online/about"
   },
@@ -35092,16 +35250,47 @@ async function lookupRoute(origin, pathname) {
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug2 = decodeURIComponent(blogMatch[1]);
-    const [post] = await db.select().from(blogPosts).where(
-      and14(eq18(blogPosts.slug, slug2), eq18(blogPosts.isPublished, true))
-    );
+    let post;
+    try {
+      const [found] = await db.select().from(blogPosts).where(
+        and14(eq18(blogPosts.slug, slug2), eq18(blogPosts.isPublished, true))
+      );
+      post = found;
+    } catch (error) {
+      console.error("Blog SEO lookup failed:", error.message);
+      return {
+        title: "Article temporarily unavailable | Taskdrip",
+        description: "This article is temporarily unavailable.",
+        noIndex: true
+      };
+    }
     if (post) {
-      const image = post.featuredImage || ogImageFromHtml(post.content);
+      const image = absolutize(origin, post.featuredImage || ogImageFromHtml(post.content));
+      const publishedAt = post.publishedAt ? new Date(post.publishedAt).toISOString() : void 0;
+      const modifiedAt = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedAt;
+      const canonicalUrl = `${origin}/blog/${encodeURIComponent(post.slug)}`;
+      const structuredData = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: trimText(post.metaDescription || post.excerpt || post.content || "", 160),
+        image: image ? [image] : void 0,
+        datePublished: publishedAt,
+        dateModified: modifiedAt,
+        author: { "@type": "Organization", name: "Taskdrip", url: `${origin}/about` },
+        publisher: { "@type": "Organization", name: "Taskdrip", url: origin },
+        mainEntityOfPage: canonicalUrl,
+        articleSection: post.category || void 0,
+        keywords: post.seoKeywords || void 0
+      });
       return {
         title: post.title,
-        description: trimText(post.metaDescription || post.excerpt || post.content || ""),
-        image: absolutize(origin, image),
-        type: "article"
+        description: trimText(post.metaDescription || post.excerpt || post.content || "", 160),
+        image,
+        type: "article",
+        canonicalUrl,
+        structuredData,
+        articleHtml: renderArticleHtml(post, origin, image)
       };
     }
     return {
@@ -35254,12 +35443,12 @@ async function lookupRoute(origin, pathname) {
   return null;
 }
 function injectMeta(html, origin, url, meta, fallbackImage) {
-  const fullUrl = meta.canonicalUrl || `${origin}${url}`;
+  const fullUrl = meta.canonicalUrl || `${origin}${url.split("?")[0].split("#")[0]}`;
   const image = meta.image || fallbackImage;
   const title = meta.title;
-  const description = meta.description;
+  const description = meta.description ? trimText(meta.description, 160) : void 0;
   const type = meta.type || "website";
-  let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
+  let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|og:locale|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
   if (title) {
     out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml2(title)}</title>`);
   }
@@ -35274,6 +35463,7 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
     `<meta property="og:url" content="${escapeHtml2(fullUrl)}" />`,
     image ? `<meta property="og:image" content="${escapeHtml2(image)}" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
+    `<meta property="og:locale" content="en_NG" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:site" content="@taskdrip" />`,
     title ? `<meta name="twitter:title" content="${escapeHtml2(title)}" />` : "",
@@ -35282,16 +35472,32 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
   ].filter(Boolean).join("\n    ");
   let result = out.replace(/<\/head>/i, `    ${tags}
   </head>`);
+  const schemas = [{
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${origin}/#organization`, name: "Taskdrip", url: origin, logo: `${origin}/taskdrip-logo.jpg` },
+      { "@type": "WebSite", "@id": `${origin}/#website`, name: "Taskdrip", url: origin, publisher: { "@id": `${origin}/#organization` } }
+    ]
+  }];
   if (meta.structuredData) {
     try {
-      JSON.parse(meta.structuredData);
-      const safeStructuredData = meta.structuredData.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
-      const ldTag = `
-  <script type="application/ld+json" data-seo-ld="true">${safeStructuredData}</script>`;
-      result = result.replace(/<\/head>/i, `${ldTag}
-  </head>`);
+      schemas.push(JSON.parse(meta.structuredData));
     } catch {
     }
+  }
+  schemas.forEach((schema, index2) => {
+    const safeStructuredData = JSON.stringify(schema).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
+    const marker = index2 === 0 ? `data-seo-ld="site"` : `data-seo-page-ld="true"`;
+    const ldTag = `
+  <script type="application/ld+json" ${marker}>${safeStructuredData}</script>`;
+    result = result.replace(/<\/head>/i, `${ldTag}
+  </head>`);
+  });
+  if (meta.articleHtml) {
+    result = result.replace(
+      /(<div\s+id=["']root["'][^>]*>)([\s\S]*?)(<\/div>)/i,
+      (_match, open, existing, close) => `${open}${meta.articleHtml}${existing}${close}`
+    );
   }
   return result;
 }
@@ -38692,6 +38898,24 @@ app.use("/uploads", async (req, res, next) => {
   }
   next();
 }, express3.static(path6.resolve("uploads"), {
+  setHeaders: (res) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  }
+}));
+app.get("/uploads/blog/passive-income-digital-products.png", (_req, res) => {
+  res.redirect(308, "/uploads/blog/passive-income-digital-products.svg");
+});
+app.get("/uploads/blog/passive-income-digital-products.jpg", (_req, res) => {
+  res.redirect(308, "/uploads/blog/passive-income-digital-products.svg");
+});
+app.get("/uploads/blog/future-creator-economy-web3.png", (_req, res) => {
+  res.redirect(308, "/uploads/blog/future-creator-economy-web3.svg");
+});
+app.get("/uploads/blog/future-creator-economy-web3.jpg", (_req, res) => {
+  res.redirect(308, "/uploads/blog/future-creator-economy-web3.svg");
+});
+app.use("/uploads/blog", express3.static(path6.resolve("attached_assets", "blog"), {
   setHeaders: (res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=86400");
