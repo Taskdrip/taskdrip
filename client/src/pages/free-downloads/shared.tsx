@@ -7,12 +7,13 @@ import "./free-downloads.css";
 
 export const basePath = "/downloads";
 
-export function FreeDownloadsShell({ children }: { children: React.ReactNode }) {
+export function FreeDownloadsShell({ children, categories: categoryOverride }: { children: React.ReactNode; categories?: Array<{ id: string; slug: string; name: string }> }) {
   const { isAuthenticated, user } = useAuth();
   const categories = useFreeDownloadCategories();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const currentUser = user as any;
   const accountName = currentUser?.firstName || currentUser?.email?.split("@")[0] || "My account";
+  const categoryItems = categoryOverride || categories.data || [];
   return (
     <main className="fd-page">
       <header className="fd-site-header">
@@ -23,13 +24,15 @@ export function FreeDownloadsShell({ children }: { children: React.ReactNode }) 
         <button className="fd-mobile-menu-toggle" type="button" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}>
           {mobileMenuOpen ? "Close" : "Menu"}
         </button>
-        <nav className={`fd-site-nav ${mobileMenuOpen ? "is-open" : ""}`} aria-label="Resource library navigation">
+        <nav className={`fd-site-nav ${mobileMenuOpen ? "is-open" : ""}`} aria-label="Resource library navigation" onClick={event => {
+          if ((event.target as HTMLElement).closest("a")) setMobileMenuOpen(false);
+        }}>
           <Link href="/">Home</Link>
           <Link href="/downloads">Free Downloads</Link>
           <details className="fd-nav-categories">
             <summary>Categories <ChevronDown size={13} /></summary>
             <div className="fd-nav-category-menu">
-              {(categories.data || []).map((category) => <Link key={category.id} href={`/downloads/category/${category.slug}`}>{category.name}</Link>)}
+              {categoryItems.map((category) => <Link key={category.id} href={`/downloads/category/${category.slug}`}>{category.name}</Link>)}
             </div>
           </details>
           <Link href="/downloads/request">Request a Download</Link>
