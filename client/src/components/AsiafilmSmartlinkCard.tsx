@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AdsterraSettingsValue } from "@shared/schema";
+import projectorScene from "@assets/generated_images/asiafilm-cinema-projector.jpg";
+import neonCinemaScene from "@assets/generated_images/asiafilm-neon-cinema.jpg";
 
 type SmartlinkPosition = keyof AdsterraSettingsValue["featuredSmartlink"];
 type PublicSettings = Pick<AdsterraSettingsValue, "featuredSmartlink">;
@@ -13,7 +15,14 @@ const POSITION_LABELS: Record<SmartlinkPosition, string> = {
   footer: "in the footer",
 };
 
+const BACKGROUND_SCENES = [
+  "/asiafilm-featured.svg",
+  projectorScene,
+  neonCinemaScene,
+];
+
 export function AsiafilmSmartlinkCard() {
+  const [activeScene, setActiveScene] = useState(0);
   const [mountNodes, setMountNodes] = useState<Array<{ node: HTMLElement; position: SmartlinkPosition }>>([]);
   const { data } = useQuery<{ href: string }>({
     queryKey: ["/api/featured-smartlink"],
@@ -31,6 +40,17 @@ export function AsiafilmSmartlinkCard() {
     refetchInterval: 15_000,
     retry: false,
   });
+
+  useEffect(() => {
+    const hasActiveMount = settings?.featuredSmartlink &&
+      mountNodes.some(({ position }) => settings.featuredSmartlink[position]);
+    if (!hasActiveMount) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const interval = window.setInterval(() => {
+      setActiveScene((current) => (current + 1) % BACKGROUND_SCENES.length);
+    }, 5_500);
+    return () => window.clearInterval(interval);
+  }, [mountNodes, settings?.featuredSmartlink]);
 
   useEffect(() => {
     const findMountNodes = () => {
@@ -63,19 +83,38 @@ export function AsiafilmSmartlinkCard() {
         href={data?.href ?? "/s/asiafilm-featured"}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative inline-flex aspect-[5/1] w-full max-w-[750px] items-center justify-between gap-3 overflow-hidden rounded-xl border border-white/20 bg-slate-950 bg-cover bg-center px-4 text-left text-xs font-semibold text-white shadow-md transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 sm:rounded-2xl sm:px-6 sm:text-sm"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg, rgba(15, 23, 42, .92) 0%, rgba(15, 23, 42, .68) 48%, rgba(15, 23, 42, .18) 100%), url('/asiafilm-featured.svg')",
-        }}
+        aria-label="Step into the world of AsiaFilm"
+        className="group relative isolate inline-flex aspect-[5/1] w-full max-w-[750px] items-center justify-between gap-3 overflow-hidden rounded-xl border border-white/20 bg-slate-950 px-4 text-left text-xs font-semibold text-white shadow-md transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 sm:rounded-2xl sm:px-6 sm:text-sm"
         data-testid="button-asiafilm-smartlink"
       >
-        <span className="relative z-10 flex min-w-0 items-center gap-2 sm:gap-3">
-          <span className="truncate">Discover the featured AsiaFilm link</span>
-          <ArrowUpRight className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-5 sm:w-5" aria-hidden="true" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+          {BACKGROUND_SCENES.map((scene, index) => (
+            <img
+              key={scene}
+              src={scene}
+              alt=""
+              draggable={false}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out motion-reduce:transition-none ${
+                activeScene === index ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ))}
+          <span className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/20" />
         </span>
-        <span className="relative z-10 hidden shrink-0 rounded-md border border-white/35 bg-white/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm sm:inline-flex sm:items-center">
-          Sponsored link
+        <span className="relative z-10 flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="min-w-0">
+            <span className="mb-0.5 block text-[8px] font-bold uppercase tracking-[0.18em] text-violet-200 sm:text-[10px]">
+              Featured destination
+            </span>
+            <span className="block truncate text-[11px] font-bold sm:text-lg">
+              Step into the world of AsiaFilm
+            </span>
+          </span>
+          <span className="hidden shrink-0 items-center gap-1 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors group-hover:bg-violet-500 sm:inline-flex">
+            Explore now
+            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+          <ArrowUpRight className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:hidden" aria-hidden="true" />
         </span>
       </a>
     </aside>
