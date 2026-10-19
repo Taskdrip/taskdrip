@@ -146,6 +146,8 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "short_link_clicks", column: "browser", definition: "varchar" },
   { table: "short_link_clicks", column: "os", definition: "varchar" },
   { table: "short_link_clicks", column: "device", definition: "varchar" },
+  // The resource listing query uses this field even when no search filter is active.
+  { table: "free_download_items", column: "download_code", definition: "varchar(32)" },
 ];
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot
@@ -824,6 +826,136 @@ const REQUIRED_TABLES: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_user_status_idx" ON "creator_studio_subscriptions" ("user_id", "status")`,
   `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_status_created_idx" ON "creator_studio_subscriptions" ("status", "created_at")`,
+
+  // Free Downloads schema — kept additive/idempotent for Railway's external PostgreSQL.
+  `CREATE SEQUENCE IF NOT EXISTS "free_download_code_seq"`,
+  `CREATE TABLE IF NOT EXISTS "free_download_categories" (
+    "id" text PRIMARY KEY,
+    "name" varchar(120) NOT NULL,
+    "slug" varchar(140) NOT NULL UNIQUE,
+    "description" text NOT NULL DEFAULT '',
+    "image_url" text,
+    "sort_order" integer NOT NULL DEFAULT 0,
+    "is_active" boolean NOT NULL DEFAULT true,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_subcategories" (
+    "id" text PRIMARY KEY,
+    "category_id" text NOT NULL REFERENCES "free_download_categories"("id") ON DELETE CASCADE,
+    "name" varchar(120) NOT NULL,
+    "slug" varchar(140) NOT NULL,
+    "sort_order" integer NOT NULL DEFAULT 0,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    UNIQUE ("category_id", "slug")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_preachers" (
+    "id" text PRIMARY KEY,
+    "full_name" varchar(180) NOT NULL,
+    "slug" varchar(200) NOT NULL UNIQUE,
+    "photograph_url" text,
+    "biography" text NOT NULL DEFAULT '',
+    "ministry_name" varchar(180) NOT NULL DEFAULT '',
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_items" (
+    "id" text PRIMARY KEY,
+    "title" varchar(220) NOT NULL,
+    "slug" varchar(240) NOT NULL UNIQUE,
+    "short_description" varchar(600) NOT NULL DEFAULT '',
+    "description_html" text NOT NULL DEFAULT '',
+    "category_id" text NOT NULL REFERENCES "free_download_categories"("id") ON DELETE RESTRICT,
+    "subcategory_id" text REFERENCES "free_download_subcategories"("id") ON DELETE SET NULL,
+    "tags" text[] NOT NULL DEFAULT '{}',
+    "thumbnail_url" text,
+    "gallery_urls" text[] NOT NULL DEFAULT '{}',
+    "preview_video_url" text,
+    "external_demo_url" text,
+    "format" varchar(40) NOT NULL DEFAULT '',
+    "version" varchar(80) NOT NULL DEFAULT '',
+    "creator" varchar(180) NOT NULL DEFAULT '',
+    "release_date" date,
+    "system_requirements" text NOT NULL DEFAULT '',
+    "installation_instructions" text NOT NULL DEFAULT '',
+    "features" text[] NOT NULL DEFAULT '{}',
+    "preacher_id" text REFERENCES "free_download_preachers"("id") ON DELETE SET NULL,
+    "source_file_key" text,
+    "source_file_name" varchar(255),
+    "source_mime_type" varchar(160),
+    "source_size_bytes" bigint,
+    "external_download_url" text,
+    "download_code" varchar(32) NOT NULL DEFAULT ('TFD' || LPAD(nextval('free_download_code_seq')::text, 2, '0')),
+    "seo_title" varchar(220) NOT NULL DEFAULT '',
+    "seo_description" varchar(320) NOT NULL DEFAULT '',
+    "focus_keyword" varchar(160) NOT NULL DEFAULT '',
+    "canonical_url" text,
+    "og_title" varchar(220) NOT NULL DEFAULT '',
+    "og_description" varchar(320) NOT NULL DEFAULT '',
+    "og_image" text,
+    "publication_status" varchar(16) NOT NULL DEFAULT 'draft'
+      CHECK ("publication_status" IN ('draft', 'preview', 'published')),
+    "is_featured" boolean NOT NULL DEFAULT false,
+    "download_count" integer NOT NULL DEFAULT 0,
+    "created_by" text REFERENCES "users"("id") ON DELETE SET NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now(),
+    "published_at" timestamptz
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_unlocks" (
+    "id" text PRIMARY KEY,
+    "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "download_id" text NOT NULL REFERENCES "free_download_items"("id") ON DELETE CASCADE,
+    "ad_redirected_at" timestamptz,
+    "unlocked_at" timestamptz NOT NULL DEFAULT now(),
+    UNIQUE ("user_id", "download_id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_events" (
+    "id" text PRIMARY KEY,
+    "user_id" text REFERENCES "users"("id") ON DELETE SET NULL,
+    "download_id" text REFERENCES "free_download_items"("id") ON DELETE CASCADE,
+    "event_type" varchar(32) NOT NULL
+      CHECK ("event_type" IN ('detail_view', 'ad_redirect', 'unlock', 'download_click')),
+    "completed_at" timestamptz,
+    "created_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_requests" (
+    "id" text PRIMARY KEY,
+    "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "resource_title" varchar(220) NOT NULL,
+    "category_name" varchar(120) NOT NULL,
+    "description" text NOT NULL,
+    "preferred_format" varchar(80) NOT NULL DEFAULT '',
+    "reference_url" text,
+    "email" varchar(254) NOT NULL,
+    "additional_comments" text NOT NULL DEFAULT '',
+    "status" varchar(20) NOT NULL DEFAULT 'pending'
+      CHECK ("status" IN ('pending', 'processing', 'available', 'rejected')),
+    "internal_notes" text NOT NULL DEFAULT '',
+    "response" text NOT NULL DEFAULT '',
+    "linked_download_id" text REFERENCES "free_download_items"("id") ON DELETE SET NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_slides" (
+    "id" text PRIMARY KEY,
+    "title" varchar(220) NOT NULL,
+    "description" varchar(600) NOT NULL DEFAULT '',
+    "image_url" text NOT NULL,
+    "cta_label" varchar(80) NOT NULL DEFAULT 'Explore downloads',
+    "cta_url" varchar(500) NOT NULL DEFAULT '/downloads',
+    "sort_order" integer NOT NULL DEFAULT 0,
+    "is_active" boolean NOT NULL DEFAULT true,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_settings" (
+    "id" text PRIMARY KEY DEFAULT 'default',
+    "smartlink_url" text NOT NULL DEFAULT '',
+    "ad_requirement_enabled" boolean NOT NULL DEFAULT false,
+    "telegram_url" text NOT NULL DEFAULT 'https://t.me/taskdrip',
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
 ];
 
 export async function runStartupMigrations(): Promise<void> {
@@ -849,6 +981,57 @@ export async function runStartupMigrations(): Promise<void> {
       console.error(
         `[startup-migration] Failed to ensure ${fix.table}.${fix.column}: ${err?.message}`
       );
+    }
+  }
+
+  const freeDownloadRepairs = [
+    `UPDATE free_download_items
+     SET download_code = 'TFD' || LPAD(nextval('free_download_code_seq')::text, 2, '0')
+     WHERE download_code IS NULL OR btrim(download_code) = ''`,
+    `ALTER TABLE IF EXISTS free_download_items
+     ALTER COLUMN download_code SET DEFAULT ('TFD' || LPAD(nextval('free_download_code_seq')::text, 2, '0'))`,
+    `ALTER TABLE IF EXISTS free_download_items ALTER COLUMN download_code SET NOT NULL`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS free_download_items_download_code_unique
+     ON free_download_items(download_code)`,
+    `CREATE INDEX IF NOT EXISTS free_download_items_public_idx
+     ON free_download_items(publication_status, category_id, published_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_items_featured_idx
+     ON free_download_items(is_featured, publication_status, published_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_items_preacher_idx
+     ON free_download_items(preacher_id, publication_status)`,
+    `CREATE INDEX IF NOT EXISTS free_download_unlocks_user_idx
+     ON free_download_unlocks(user_id, unlocked_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_events_type_date_idx
+     ON free_download_events(event_type, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_events_download_date_idx
+     ON free_download_events(download_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_events_user_download_type_idx
+     ON free_download_events(user_id, download_id, event_type, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_requests_user_idx
+     ON free_download_requests(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_requests_status_idx
+     ON free_download_requests(status, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_requests_category_status_idx
+     ON free_download_requests(category_name, status, created_at DESC)`,
+    `INSERT INTO free_download_settings (id)
+     VALUES ('default') ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO free_download_categories (id, name, slug, description, sort_order)
+     VALUES
+       ('fd-cat-files', 'Files & Documents', 'files-documents', 'Useful documents, templates, guides and learning resources.', 1),
+       ('fd-cat-ai', 'AI Tools', 'ai-tools', 'AI applications and tools for work and creativity.', 2),
+       ('fd-cat-software', 'Software', 'software', 'Software and applications shared with permission.', 3),
+       ('fd-cat-movies', 'Movies', 'movies', 'Legally distributable films and public-domain cinema.', 4),
+       ('fd-cat-videos', 'Videos', 'videos', 'Video resources, tutorials and creator-authorized media.', 5),
+       ('fd-cat-podcasts', 'Podcasts', 'podcasts', 'Podcast episodes and audio series.', 6),
+       ('fd-cat-music', 'Music', 'music', 'Licensed, public-domain and creator-authorized music.', 7),
+       ('fd-cat-sermons', 'Sermons', 'sermons', 'Sermons and ministry resources shared with permission.', 8)
+     ON CONFLICT (slug) DO NOTHING`,
+  ];
+  for (const query of freeDownloadRepairs) {
+    try {
+      await db.execute(sql.raw(query));
+    } catch (err: any) {
+      console.error(`[startup-migration] Free Downloads repair error: ${err?.message}`);
     }
   }
 
