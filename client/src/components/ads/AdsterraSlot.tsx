@@ -58,19 +58,17 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
     retry: false,
   });
   const pageTarget = getPageTarget(location);
-  const placement = settings?.enabled
-    ? settings.placements.find((item) => item.enabled && item.position === position && pageAllows(item, pageTarget))
-    : undefined;
-  const placementSignature = placement
-    ? `${placement.id}:${placement.format}:${placement.key}:${placement.width || 0}:${placement.height || 0}`
-    : "";
-  const containerRef = useRef<HTMLElement | null>(null);
-  const impressionTracked = useRef(false);
+  const placements = settings?.enabled
+    ? settings.placements.filter((item) => item.enabled && item.position === position && pageAllows(item, pageTarget))
+    : [];
+  const placementSignature = placements
+    .map((item) => `${item.id}:${item.format}:${item.key}:${item.width || 0}:${item.height || 0}:${item.shortSlug || ""}`)
+    .join("|");
   const [slotClaimed, setSlotClaimed] = useState(false);
   const slotId = `${location}:${position}`;
 
   useEffect(() => {
-    if (!placement) {
+    if (placements.length === 0) {
       setSlotClaimed(false);
       return;
     }
@@ -89,10 +87,45 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
       claims?.delete(slotId);
       if (claims?.size === 0) pageClaims.delete(location);
     };
-  }, [location, placement?.id, slotId]);
+  }, [location, placementSignature, slotId]);
+
+  if (!slotClaimed || placements.length === 0) return null;
+
+  return (
+    <>
+      {placements.map((placement) => (
+        <AdsterraPlacement
+          key={`${placement.id}:${placement.key}:${placement.shortSlug || ""}`}
+          placement={placement}
+          position={position}
+          location={location}
+          baseUrl={settings?.shortenerBaseUrl || "https://taskdrip.online"}
+        />
+      ))}
+    </>
+  );
+}
+
+function AdsterraPlacement({
+  placement,
+  position,
+  location,
+  baseUrl,
+}: {
+  placement: AdsterraPlacement;
+  position: AdsterraPosition;
+  location: string;
+  baseUrl: string;
+}) {
+  const containerRef = useRef<HTMLElement | null>(null);
+  const impressionTracked = useRef(false);
+  const width = placement.width || 300;
+  const height = placement.height || 250;
+  const isSidebar = position === "sidebar";
+  const isFloating = position === "floating";
 
   useEffect(() => {
-    if (!placement || !slotClaimed || impressionTracked.current) return;
+    if (impressionTracked.current) return;
 
     const record = () => {
       if (impressionTracked.current) return;
@@ -133,14 +166,11 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
       observer.disconnect();
       if (visibilityTimer) clearTimeout(visibilityTimer);
     };
-  }, [location, placementSignature, slotClaimed]);
-
-  if (!placement || !slotClaimed) return null;
+  }, [location, placement.id, placement.format, placement.key]);
 
   if (placement.format === "popunder") return null;
   if (placement.format === "smartlink") {
     if (!placement.shortSlug) return null;
-    const baseUrl = settings?.shortenerBaseUrl || "https://taskdrip.online";
     return (
       <section
         ref={containerRef}
@@ -164,10 +194,6 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
     );
   }
 
-  const width = placement.width || 300;
-  const height = placement.height || 250;
-  const isSidebar = position === "sidebar";
-  const isFloating = position === "floating";
   return (
     <section
       ref={containerRef}

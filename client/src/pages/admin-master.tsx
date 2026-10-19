@@ -3630,6 +3630,18 @@ export default function AdminMaster() {
                   <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-cyan-300 transition-colors flex-shrink-0" />
                 </div>
               </a>
+              <a href="/admin/url-shortener" className="group">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-violet-500/30 hover:border-violet-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-violet-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                    <Link2 className="h-6 w-6 text-violet-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">URL Shortener</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Manage short links, access rules, and click activity</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-violet-300 transition-colors flex-shrink-0" />
+                </div>
+              </a>
               <a href="/admin/email" className="group">
                 <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-green-500/30 hover:border-green-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-green-900/20">
                   <div className="w-12 h-12 rounded-2xl bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">

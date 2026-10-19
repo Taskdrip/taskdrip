@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, BarChart3, Eye, ExternalLink, MousePointerClick, Save, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BarChart3, Eye, ExternalLink, Link2, MousePointerClick, Save, ShieldCheck } from "lucide-react";
 
 type Analytics = {
   days: number;
@@ -120,9 +120,17 @@ export default function AdminAdsterraPage() {
             <h1 className="text-2xl font-bold sm:text-3xl">Adsterra Ads Control</h1>
             <p className="mt-1 text-sm text-slate-400">Choose which ad tags run, their location, and the pages where they appear.</p>
           </div>
-          <Button onClick={() => saveMutation.mutate()} disabled={isLoading || saveMutation.isPending || draft.placements.length === 0}>
-            <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? "Saving…" : "Save changes"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href="/short-links" className="inline-flex h-9 items-center gap-2 rounded-md border border-white/15 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white">
+              <Link2 className="h-4 w-4" /> URL Shortener
+            </a>
+            <a href="/admin/url-shortener" className="inline-flex h-9 items-center gap-2 rounded-md border border-white/15 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white">
+              <Link2 className="h-4 w-4" /> Shortener Admin
+            </a>
+            <Button onClick={() => saveMutation.mutate()} disabled={isLoading || saveMutation.isPending || draft.placements.length === 0}>
+              <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
         </div>
 
         {isError && (
@@ -268,12 +276,14 @@ export default function AdminAdsterraPage() {
             <CardDescription className="text-slate-400">Changes are saved here and applied to public pages automatically.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-6 text-slate-300">
-            <p><strong>1. Start safely:</strong> Keep the master switch off while reviewing tags. Turn on only the placements you intend to run, then enable the master switch and save.</p>
-            <p><strong>2. Choose areas:</strong> Blog feed ads appear around the article list; article-inline ads are inserted after the opening paragraphs; sidebar ads sit beside article text; article-end and footer placements appear at those sections. New articles use the same placement rules without editing each post.</p>
-            <p><strong>3. Control pages:</strong> Set each placement to all public pages, the blog listing, individual blog articles, or other site pages. Taskdrip renders no more than four placement locations on one page.</p>
-            <p><strong>4. Check results:</strong> Taskdrip counts viewable impressions and the page path for each placement. Adsterra remains the source of truth for banner/native/social-bar/popunder clicks, CTR, CPM, and revenue. Smartlink clicks pass through Taskdrip’s <code>/s/</code> shortener and appear in short-link analytics.</p>
-            <p><strong>5. Stop ads:</strong> Switch off “Adsterra operation” and save. This prevents further ad slots from loading; refresh tabs that already loaded a network tag.</p>
-            <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-amber-100">Use only Adsterra publisher zone IDs in these fields. The account API key is not needed for the supplied client-side tags and must not be stored here.</p>
+            <p><strong>1. Start safely:</strong> Enable the master switch, enable the placements you want, then save. This only activates the tags; it cannot activate a paused or unapproved website/zone in Adsterra.</p>
+            <p><strong>2. Test the right page:</strong> Blog-feed ads appear on <code>/blog</code>; sidebar, inline, and article-end ads appear on <code>/blog/:slug</code>. The sidebar is hidden on mobile. On other pages, use the footer placement and scroll to the bottom. The current setup is mostly blog-focused, so the homepage will not show the article placements.</p>
+            <p><strong>3. Check visibility:</strong> Taskdrip records a viewable impression only after at least half of a slot stays on screen for one second. A zero count before scrolling to an ad is expected. Taskdrip tracks views and Smartlink clicks; use Adsterra for banner clicks, CTR, CPM, and revenue.</p>
+            <p><strong>4. Confirm your tags:</strong> In the <a className="text-cyan-300 underline" href="https://beta.publishers.adsterra.com/websites" target="_blank" rel="noreferrer">Adsterra publisher dashboard</a>, make sure <code>taskdrip.online</code> is approved and copy each active zone’s current code/zone ID. Replace any outdated IDs here, keep the format and location matched to that zone, then save. Do not use an account API key.</p>
+            <p><strong>5. Rule out browser blocking:</strong> Test in a regular Chrome window with ad blockers and Brave Shields disabled for <code>taskdrip.online</code>. Third-party ad scripts can be blocked by browser privacy tools. Never click your own ads to test.</p>
+            <p><strong>6. Keep the networks separate:</strong> The screenshot showing “account wasn’t approved” is Google AdSense. AdSense ads will not serve until Google approves that account, but this does not approve or disable Adsterra; check Adsterra’s own website and zone statuses separately.</p>
+            <p><strong>7. Smartlinks:</strong> The Taskdrip Smartlink uses the <code>/s/</code> shortener and its clicks appear in short-link analytics. If a banner and Smartlink share a location, both now render there.</p>
+            <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-amber-100">If a slot stays blank in a clean browser after you confirm the site and zone are approved and the IDs are current, copy the freshly generated code from Adsterra’s Websites page and contact Adsterra support to verify the zone is serving inventory.</p>
           </CardContent>
         </Card>
       </div>
