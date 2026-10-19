@@ -1,0 +1,661 @@
+Continue and complete , the below update and ensure feature works seamlessly for users and admin.
+
+
+Act as a senior full-stack developer, UI/UX designer, SEO engineer and product architect.
+
+Integrate a new feature called **Free Downloads** into the existing Taskdrip web application.
+
+This must be a fully functional, production-ready feature, not just a landing page or UI mockup.
+
+The feature should have a sleek, modern, premium interface that fits the existing Taskdrip branding, design system and application architecture.
+
+IMPORTANT:
+make source each download, file, or page for download has a special unique code to find the file in the system , like when a USER searches in the filter or search, TFD01 it take user to the the exact download page for that file.
+- First inspect the existing codebase, database, authentication system, routing, UI components and admin dashboard.
+- Reuse existing infrastructure wherever possible.
+- Do not break, replace or remove existing Taskdrip features.
+- Integrate this feature seamlessly into the existing navigation.
+- Make all buttons, forms, filters, download workflows and admin controls functional.
+- Preserve existing user accounts and permissions.
+
+## 1. FEATURE NAME AND POSITIONING
+
+Feature name: **Free Downloads**
+
+Suggested tagline:
+"Discover. Download. Explore."
+
+Create a dedicated public-facing downloads homepage accessible through a navigation link labelled:
+
+FREE DOWNLOADS
+
+The platform will provide access to:
+- Free Files & Documents
+- AI Tools
+- Software & Applications
+- Movies
+- Videos
+- Podcasts
+- Music
+- Sermons
+
+All downloadable content must be uploaded and managed by administrators.
+
+Only legally distributable, licensed, public-domain or creator-authorized content should be published.
+
+## 2. FRONT PAGE DESIGN
+
+Create a visually attractive, modern downloads homepage.
+
+### Header
+Include:
+- Taskdrip logo.
+- Home.
+- Free Downloads.
+- Categories dropdown.
+- Request a Download.
+- Telegram Community.
+- Search icon/search bar.
+- Login/Register buttons for guests.
+- User profile/avatar dropdown for logged-in users.
+
+### Hero Section
+
+Create a full-width hero section with:
+- High-quality background images.
+- Automatic image slider animation.
+- Smooth transitions and subtle overlays.
+- Large headline: "Everything You Need, All in One Place."
+- Supporting text: "Discover free software, AI tools, entertainment, educational resources and digital downloads."
+- Prominent search bar.
+- Explore Downloads button.
+- Browse Categories button.
+
+Allow administrators to manage hero slider images, titles, descriptions and CTA links from the dashboard.
+
+### Featured Downloads
+
+Display attractive content cards with:
+- Cover image or thumbnail.
+- Download title.
+- Category.
+- Short description.
+- File format.
+- File size.
+- Upload date.
+- Preview badge where applicable.
+- View Details button.
+
+### Category Explorer
+
+Create attractive category cards for:
+
+1. Files & Documents
+2. AI Tools
+3. Software
+4. Movies
+5. Videos
+6. Podcasts
+7. Music
+8. Sermons
+
+Each category should have its own dedicated listing page.
+
+### Additional Homepage Sections
+
+Include:
+- Trending Downloads.
+- Recently Added.
+- Most Downloaded.
+- Featured AI Tools.
+- Featured Software.
+- Latest Movies & Videos.
+- Latest Sermons.
+- Popular Downloads.
+- Request a File CTA.
+- Join Our Telegram Community section.
+
+Telegram community:
+https://t.me/taskdrip
+
+Use a prominent Join Telegram button.
+
+## 3. ADVANCED SEARCH AND FILTER SYSTEM
+
+Build a powerful search and filtering system.
+
+Users should be able to search by:
+- Download title.
+- Description.
+- Category.
+- Keywords.
+- Tags.
+- File format.
+- Preacher or minister name for sermons.
+
+Provide advanced filters:
+
+- Category.
+- Subcategory.
+- File type.
+- Format (PDF, ZIP, MP3, MP4, EXE, APK, DOCX, etc.).
+- File size.
+- Date uploaded.
+- Popularity.
+- Most downloaded.
+- Latest uploads.
+- Alphabetical order.
+
+Allow filters to work together without resetting other selected filters.
+
+Include:
+- Search suggestions.
+- Search results count.
+- Pagination or load more.
+- Clear all filters.
+- Responsive mobile filter drawer.
+
+### Sermons Special Filter
+
+For the Sermons category, introduce a special searchable preacher/minister filter.
+
+When a user starts typing a preacher's name, dynamically display matching ministers as selectable suggestions.
+
+For example:
+- Pastor Chris Oyakhilome.
+- Bishop David Oyedepo.
+- Pastor E.A. Adeboye.
+- Apostle Joshua Selman.
+- Pastor Jerry Eze.
+
+These are examples, not a fixed list.
+
+Administrators must be able to add, edit and remove preacher profiles.
+
+Each preacher should have:
+- Full name.
+- Profile photograph.
+- Biography.
+- Ministry/church name.
+- Available sermons.
+- Dedicated preacher profile page.
+
+Selecting a preacher should filter the sermon results to that minister.
+
+Support autocomplete, keyboard navigation and mobile-friendly selection.
+
+## 4. INDIVIDUAL DOWNLOAD DETAIL PAGES
+
+Every upload must automatically generate its own dedicated page with a unique SEO-friendly URL.
+
+Example:
+
+taskdrip.online/downloads/complete-ai-video-editor
+
+Each page must support the following fields:
+
+- Download title.
+- SEO-friendly slug.
+- Main featured image.
+- Additional gallery images.
+- Short description.
+- Full content/article.
+- Category.
+- Subcategory.
+- Tags.
+- File format.
+- File size.
+- Version.
+- Developer/creator.
+- Release date.
+- Upload date.
+- System requirements where applicable.
+- Installation instructions.
+- Features and benefits.
+- Preview video or trailer.
+- External demo link.
+- Preacher information for sermons.
+- Download button.
+- Related downloads.
+- Share buttons.
+- Download count.
+
+### Content Editor
+
+Build a rich text editor for administrators.
+
+Support:
+- H1–H6 headings.
+- Paragraphs.
+- Bold and italic.
+- Lists.
+- Tables.
+- Images.
+- Hyperlinks.
+- Embedded YouTube videos.
+- Video previews.
+- Quotes.
+- Code blocks.
+- Download instructions.
+
+The full content should render beautifully on the frontend.
+
+### SEO Optimization
+
+Every download page must support:
+
+- Custom SEO title.
+- Meta description.
+- Focus keyword.
+- SEO-friendly URL.
+- Canonical URL.
+- Open Graph title.
+- Open Graph description.
+- Open Graph image.
+- Twitter/X card metadata.
+- Image alt text.
+- XML sitemap inclusion.
+- Breadcrumb navigation.
+- Internal linking.
+- Structured data/schema markup where appropriate.
+
+Use appropriate schema types, such as SoftwareApplication, VideoObject, MusicRecording or Article, where applicable.
+
+Ensure that each page has unique SEO metadata and is indexable when published.
+
+Add social sharing options for WhatsApp, Facebook, X and Telegram.
+
+## 5. ADSTERRA SMARTLINK MONETIZATION
+
+This is a critical feature.
+
+Integrate my Adsterra Smartlink into the download button workflow.
+
+Create an admin settings field where I can add, update or replace my Adsterra Smartlink without modifying source code.
+
+Use this placeholder initially:
+
+ADSTERRA_SMARTLINK_URL = "PASTE_MY_ADSTERRA_SMARTLINK_HERE"
+
+### Required Download Workflow
+
+The workflow must work as follows:
+
+STEP 1: User visits the downloads homepage.
+
+STEP 2: User searches for a file and clicks View Details.
+
+STEP 3: If the user is not logged in, redirect them to the registration/login page.
+
+STEP 4: After registration or login, allow access to the individual download details page.
+
+STEP 5: User clicks the primary button labelled:
+
+"GET FREE DOWNLOAD"
+
+STEP 6: Open the configured Adsterra Smartlink in a new tab or through the configured redirect method.
+
+STEP 7: After the first Adsterra redirect has been initiated, mark the download's advertising requirement as completed for that user and that specific download.
+
+STEP 8: Display or unlock the actual download button.
+
+The unlocked button should read:
+
+"DOWNLOAD NOW"
+
+STEP 9: When the user clicks DOWNLOAD NOW, take them directly to the original file download link.
+
+IMPORTANT:
+- Do not send users through Adsterra again after the advertising requirement has been completed.
+- Do not make the actual download link available before the advertising requirement is completed.
+- Store the advertising completion state securely on the backend, not just in frontend JavaScript or local storage.
+- Track completion separately for each user and download.
+- Prevent duplicate ad redirects for an already unlocked download.
+- Handle browser popup blockers gracefully.
+- Do not claim that an advertisement has completed simply because a click event occurred if the redirect was blocked.
+- Provide a retry option if the advertising redirect cannot be opened.
+- Make the system configurable so the admin can enable or disable the advertising requirement.
+
+### User Notice
+
+Display this short note below the primary button:
+
+"To access your free download, you'll first be redirected to our advertising partner. Once you've completed this step, your download button will be unlocked. You can then download your file directly without additional redirects."
+
+Make the message clear, friendly and professional.
+
+### Security
+
+Never expose private storage paths or sensitive download URLs unnecessarily.
+
+Use secure server-side authorization and expiring download URLs where supported.
+
+Do not allow users to bypass the advertising requirement by manually accessing the download endpoint.
+
+## 6. USER AUTHENTICATION AND ACCESS CONTROL
+
+Integrate with Taskdrip's existing authentication system.
+
+Only authenticated users should access individual download pages and download functionality.
+
+Guests can:
+- Visit the homepage.
+- Browse public category listings.
+- Search available downloads.
+- View public previews and summaries.
+
+Guests must register or log in before accessing full download details and download functionality.
+
+After login, redirect users to the download page they originally requested.
+
+Registration should use the existing Taskdrip account system.
+
+Do not create a separate user database.
+
+## 7. DOWNLOAD REQUEST FORM
+
+Create a dedicated Request a Download page.
+
+Users should be able to submit requests for resources that are not currently available.
+
+Form fields:
+
+- Resource title.
+- Category.
+- Description/details.
+- Preferred file format.
+- Reference URL (optional).
+- Email address (prepopulate from the logged-in user's account).
+- Additional comments.
+
+Include a Submit Request button.
+
+### Request Management
+
+Administrators should have a dedicated dashboard section where they can:
+
+- View all requests.
+- Search requests.
+- Filter by category.
+- View request details.
+- Change request status.
+- Mark as Pending, Processing, Available or Rejected.
+- Add internal notes.
+- Respond to users.
+- Link a completed request to an uploaded download.
+
+Users should be able to view the status of their own requests from their account dashboard.
+
+Send notifications when request status changes, using the existing notification infrastructure.
+
+## 8. ADMIN DOWNLOAD MANAGEMENT DASHBOARD
+
+Build a complete administration module integrated into the existing Taskdrip admin dashboard.
+
+Add a navigation section:
+
+FREE DOWNLOADS MANAGEMENT
+
+Subsections:
+
+1. All Downloads.
+2. Add New Download.
+3. Categories.
+4. Subcategories.
+5. Preachers/Ministers.
+6. Download Requests.
+7. Featured Downloads.
+8. Homepage Slider.
+9. SEO Settings.
+10. Adsterra Settings.
+11. Analytics.
+
+### Add New Download Form
+
+Administrators should be able to add resources with:
+
+- Download title.
+- Category.
+- Subcategory.
+- Description.
+- Full rich-text content.
+- Featured image.
+- Multiple gallery images.
+- Preview video URL or trailer.
+- Actual downloadable file upload.
+- External download URL.
+- File format.
+- File size.
+- Version.
+- Author/creator.
+- Preacher/minister (for sermons).
+- Tags.
+- SEO title.
+- Meta description.
+- Focus keyword.
+- Canonical URL.
+- Publication status.
+- Featured status.
+
+Allow admins to save as Draft, Preview or Publish.
+
+Automatically generate the download slug.
+
+Allow administrators to edit, delete, duplicate, unpublish and feature existing uploads.
+
+### File Upload System
+
+Support appropriate file formats, including:
+
+- PDF.
+- DOC/DOCX.
+- ZIP/RAR.
+- MP3.
+- MP4.
+- PNG/JPG.
+- EXE.
+- APK.
+- Other configurable formats.
+
+Implement:
+- File size validation.
+- MIME type validation.
+- Secure file storage.
+- Upload progress.
+- File replacement.
+- File deletion.
+- File metadata extraction where possible.
+
+Do not store large media files directly in the application database.
+
+Use the existing storage infrastructure or a configurable object storage service.
+
+## 9. ANALYTICS AND DOWNLOAD TRACKING
+
+Create an admin analytics dashboard showing:
+
+- Total downloads.
+- Total registered users.
+- Total download requests.
+- Most popular downloads.
+- Most popular categories.
+- Daily, weekly and monthly download statistics.
+- Ad redirect clicks.
+- Completed advertising requirements.
+- Actual download clicks.
+- Conversion rate from download page visits to downloads.
+
+Track each download event accurately.
+
+Avoid inflating download counts through repeated page refreshes or automated requests.
+
+Allow date-range filtering.
+
+## 10. DATABASE ARCHITECTURE
+
+Create or extend the existing database schema to support:
+
+- Downloads.
+- Categories.
+- Subcategories.
+- Preachers.
+- Download media/gallery.
+- Download tags.
+- User download access/unlock records.
+- Download requests.
+- Download analytics/events.
+- Homepage slider.
+- Adsterra configuration.
+- SEO metadata.
+
+Use appropriate relationships, indexing, constraints and migrations.
+
+Ensure all user-specific download access records are linked to the authenticated user ID.
+
+Avoid duplicate unlock records.
+
+Use transactions where appropriate.
+
+## 11. FRONTEND DESIGN AND USER EXPERIENCE
+
+The entire experience should feel like a premium digital resource marketplace.
+
+Design direction:
+
+- Modern dark/light compatible interface.
+- Clean typography.
+- Spacious layouts.
+- Professional download cards.
+- Smooth hover animations.
+- Subtle gradients.
+- Rounded cards.
+- Beautiful thumbnails.
+- Responsive navigation.
+- Skeleton loading states.
+- Empty states.
+- Error handling.
+- Toast notifications.
+- Mobile-first responsive design.
+
+Avoid excessive animations and clutter.
+
+Ensure fast loading and excellent mobile performance.
+
+### Download Page Layout
+
+Each individual download page should have:
+
+1. Breadcrumb navigation.
+2. Main cover image.
+3. Download title.
+4. Category and tags.
+5. Short description.
+6. Primary download button.
+7. File information panel.
+8. Full detailed content.
+9. Preview video/gallery.
+10. Installation or usage instructions.
+11. Related downloads.
+12. Telegram community invitation.
+
+## 12. TELEGRAM COMMUNITY INTEGRATION
+
+Use this Telegram community link:
+
+https://t.me/taskdrip
+
+Add a beautiful community CTA:
+
+"Never Miss a Free Resource!"
+
+"Join the Taskdrip Telegram community to discover new uploads, free tools, software, digital resources and exclusive updates."
+
+Button:
+"JOIN TASKDRIP COMMUNITY"
+
+Open the Telegram link in a new tab.
+
+## 13. PERFORMANCE, SECURITY AND QUALITY ASSURANCE
+
+Implement:
+
+- Backend validation.
+- Role-based admin authorization.
+- CSRF protection where applicable.
+- XSS protection.
+- SQL injection protection.
+- Secure upload validation.
+- Rate limiting.
+- Spam protection for request forms.
+- Secure file download endpoints.
+- Authentication checks.
+- SEO-friendly server-rendered pages where supported.
+- Optimized images.
+- Lazy loading.
+- Caching.
+- Pagination.
+- Database query optimization.
+
+Do not allow normal users to access admin upload functionality.
+
+Do not expose private files through public storage directories.
+
+## 14. FINAL IMPLEMENTATION REQUIREMENTS
+
+Before considering this feature complete, test the entire workflow.
+
+TEST 1: Admin can create a new category.
+
+TEST 2: Admin can add a new download with images, videos, full content and an actual file or external download URL.
+
+TEST 3: The system automatically generates a dedicated SEO-friendly page.
+
+TEST 4: The new resource appears in the correct category and homepage sections.
+
+TEST 5: Search and advanced filters work correctly.
+
+TEST 6: Sermon preacher autocomplete works correctly.
+
+TEST 7: Guests are required to register or log in before accessing download details.
+
+TEST 8: Logged-in users can initiate the Adsterra advertising workflow.
+
+TEST 9: After the advertising requirement is completed, the direct download button becomes available.
+
+TEST 10: Clicking the unlocked download button does not trigger another Adsterra redirect.
+
+TEST 11: Users cannot bypass the download authorization by directly accessing the file endpoint.
+
+TEST 12: Download requests are submitted, stored and visible in the admin dashboard.
+
+TEST 13: Administrators can manage all downloads, requests, SEO settings and homepage sliders.
+
+TEST 14: Telegram buttons work.
+
+TEST 15: The feature works on desktop, tablets and mobile devices.
+
+TEST 16: Existing Taskdrip functionality remains intact.
+
+### FINAL INSTRUCTION
+
+Do not stop after creating the frontend.
+
+Build the complete end-to-end functionality, including database migrations, backend APIs, frontend pages, admin management, authentication, file storage, download authorization, advertising workflow and analytics.
+
+Use reusable components and maintainable code.
+
+Do not hardcode content that should be manageable by the administrator.
+
+Do not overwrite existing production data.
+
+After implementation, provide a summary of:
+- Files created or modified.
+- Database migrations.
+- New API endpoints.
+- Admin dashboard functionality.
+- Storage configuration required.
+- Adsterra Smartlink configuration.
+- Testing results.
+- Any remaining deployment requirements.
+
+The final result should feel like a premium, fully integrated Taskdrip digital downloads platform.

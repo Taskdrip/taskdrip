@@ -1,12 +1,15 @@
 import { FormEvent, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Send } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { freeDownloadsApi, type FreeDownloadRequestInput } from "@/lib/free-downloads-api";
 import { FreeDownloadsShell, InlineNotice, PageHeading, useDownloadAuthRedirect } from "./shared";
 
 export function FreeDownloadRequestPage() {
   const currentPath = `${window.location.pathname}${window.location.search}`;
   const { isAuthenticated, isLoading } = useDownloadAuthRedirect(currentPath);
+  const { user } = useAuth();
+  const memberEmail = (user as any)?.email || "";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -37,6 +40,7 @@ export function FreeDownloadRequestPage() {
           <div className="fd-field"><label htmlFor="preferredFormat">Preferred format</label><input className="fd-input" id="preferredFormat" value={form.preferredFormat} onChange={e => update("preferredFormat", e.target.value)} placeholder="PDF, app, audio…" /></div>
           <div className="fd-field"><label htmlFor="referenceUrl">Reference link</label><input className="fd-input" id="referenceUrl" type="url" value={form.referenceUrl} onChange={e => update("referenceUrl", e.target.value)} placeholder="https://" /></div>
         </div>
+        <div className="fd-field"><label htmlFor="request-email">Account email</label><input className="fd-input" id="request-email" type="email" value={memberEmail} readOnly aria-readonly="true" /><small>We use the email on your Taskdrip account for updates.</small></div>
         <div className="fd-field"><label htmlFor="additionalComments">Anything else?</label><textarea className="fd-textarea" id="additionalComments" value={form.additionalComments} onChange={e => update("additionalComments", e.target.value)} placeholder="Optional context for the team." /></div>
         <div aria-hidden="true" style={{ position: "absolute", left: "-10000px" }}><label htmlFor="website">Website</label><input id="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={e => update("website", e.target.value)} /></div>
         <div className="fd-admin-actions"><button className="fd-button" disabled={busy || isLoading || !isAuthenticated} type="submit">{busy ? "Sending…" : "Send request"}<Send size={14} /></button><Link className="fd-text-link" href="/downloads/my-requests">View my requests</Link></div>

@@ -115,6 +115,27 @@ const LegalPageTemplate = lazy(() =>
 );
 const MyTraining = lazy(() => import("@/pages/my-training"));
 const AiMarketingBot = lazy(() => import("@/pages/ai-marketing-bot"));
+const FreeDownloadsHomePage = lazy(() =>
+  import("@/pages/free-downloads/home").then((m) => ({ default: m.FreeDownloadsHomePage }))
+);
+const FreeDownloadCategoryPage = lazy(() =>
+  import("@/pages/free-downloads/category").then((m) => ({ default: m.FreeDownloadCategoryPage }))
+);
+const FreeDownloadDetailPage = lazy(() =>
+  import("@/pages/free-downloads/detail").then((m) => ({ default: m.FreeDownloadDetailPage }))
+);
+const FreeDownloadRequestPage = lazy(() =>
+  import("@/pages/free-downloads/request").then((m) => ({ default: m.FreeDownloadRequestPage }))
+);
+const FreeDownloadMyRequestsPage = lazy(() =>
+  import("@/pages/free-downloads/my-requests").then((m) => ({ default: m.MyFreeDownloadRequestsPage }))
+);
+const FreeDownloadPreacherPage = lazy(() =>
+  import("@/pages/free-downloads/preacher").then((m) => ({ default: m.FreeDownloadPreacherPage }))
+);
+const AdminFreeDownloadsPage = lazy(() =>
+  import("@/pages/free-downloads/admin").then((m) => ({ default: m.AdminFreeDownloadsPage }))
+);
 
 const PageFallback = () => (
   <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -241,6 +262,12 @@ function Router() {
             <CreatorStudioPage />
           </AdminErrorBoundary>
         )} />
+        <Route path="/downloads" component={FreeDownloadsHomePage} />
+        <Route path="/downloads/request" component={FreeDownloadRequestPage} />
+        <Route path="/downloads/my-requests" component={FreeDownloadMyRequestsPage} />
+        <Route path="/downloads/category/:slug" component={FreeDownloadCategoryPage} />
+        <Route path="/downloads/preachers/:slug" component={FreeDownloadPreacherPage} />
+        <Route path="/downloads/:slug" component={FreeDownloadDetailPage} />
         {isAuthenticated ? (
           <>
             <Route path="/dashboard" component={() => {
@@ -282,6 +309,11 @@ function Router() {
             <Route path="/admin/plugin-studio" component={() =>
               (user as any)?.userType === "admin" || (user as any)?.role === "admin"
                 ? <AdminErrorBoundary><AdminPluginStudio /></AdminErrorBoundary>
+                : <NotFound />
+            } />
+            <Route path="/admin/free-downloads" component={() =>
+              (user as any)?.role === "admin"
+                ? <AdminErrorBoundary title="Free Downloads management failed to load"><AdminFreeDownloadsPage /></AdminErrorBoundary>
                 : <NotFound />
             } />
             <Route path="/admin/courses" component={AdminCourses} />
@@ -336,6 +368,7 @@ function Router() {
             <Route path="/profile" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/profile')}`; return null; }} />
             <Route path="/wallet" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/wallet')}`; return null; }} />
             <Route path="/admin" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin')}`; return null; }} />
+            <Route path="/admin/free-downloads" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/free-downloads')}`; return null; }} />
             <Route path="/admin/plugin-studio" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin/plugin-studio')}`; return null; }} />
             <Route path="/admin-ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-ads')}`; return null; }} />
             <Route path="/admin/ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />

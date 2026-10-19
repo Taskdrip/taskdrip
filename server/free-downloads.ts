@@ -186,6 +186,7 @@ const downloadPayloadSchema = z.object({
   previewVideoUrl: z.string().max(1000).optional().nullable().default(null),
   externalDemoUrl: z.string().max(1000).optional().nullable().default(null),
   format: z.string().trim().max(40).optional().default(""),
+  fileSizeBytes: z.number().int().min(0).max(5_000_000_000).nullable().optional().default(null),
   version: z.string().trim().max(80).optional().default(""),
   creator: z.string().trim().max(180).optional().default(""),
   releaseDate: z.string().trim().max(10).optional().nullable().default(null),
@@ -254,6 +255,7 @@ function safeExternalUrl(value: unknown, allowRelative = false): string | null {
 function publicDownload(row: any, unlocked = false) {
   return {
     id: row.id,
+    downloadCode: row.download_code || "",
     title: row.title,
     slug: row.slug,
     shortDescription: row.short_description || "",
@@ -264,6 +266,7 @@ function publicDownload(row: any, unlocked = false) {
     subcategoryName: row.subcategory_name || row.subcategoryName || null,
     tags: row.tags || [],
     thumbnailUrl: row.thumbnail_url || null,
+    previewVideoUrl: row.preview_video_url || null,
     format: row.format || "",
     fileSizeBytes: row.source_size_bytes ? Number(row.source_size_bytes) : null,
     version: row.version || "",
@@ -412,7 +415,7 @@ async function saveDownload(req: Request, res: Response, id?: string) {
     ? path.basename(uploaded.originalname).replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255)
     : previous?.source_file_name || null;
   const mimeType = uploaded?.mimetype || previous?.source_mime_type || null;
-  const sizeBytes = uploaded?.size ?? previous?.source_size_bytes ?? null;
+  const sizeBytes = uploaded?.size ?? data.fileSizeBytes ?? previous?.source_size_bytes ?? null;
 
   if (data.publicationStatus === "published" && !fileKey && !effectiveExternalUrl) {
     return res.status(400).json({ message: "Add a downloadable file or HTTPS download URL before publishing." });
@@ -602,17 +605,38 @@ export function registerFreeDownloadsRoutes(app: Express) {
       const q = String(req.query.q || "").trim().slice(0, 100);
       if (q.length < 2) return res.json({ suggestions: [] });
       const result = await pool.query(
-        `SELECT d.title, d.slug, c.name AS "categoryName"
+        `SELECT d.title, d.slug, d.download_code AS "downloadCode", c.name AS "categoryName"
          FROM free_download_items d JOIN free_download_categories c ON c.id=d.category_id
          WHERE d.publication_status='published' AND c.is_active=TRUE
-           AND (d.title ILIKE $1 OR d.short_description ILIKE $1 OR array_to_string(d.tags, ' ') ILIKE $1)
-         ORDER BY d.is_featured DESC, d.download_count DESC LIMIT 8`,
-        [`%${q}%`],
+           AND (d.download_code ILIKE $1 OR d.title ILIKE $1 OR d.short_description ILIKE $1 OR array_to_string(d.tags, ' ') ILIKE $1)
+         ORDER BY CASE WHEN UPPER(d.download_code)=UPPER($2) THEN 0 ELSE 1 END,
+           d.is_featured DESC, d.download_count DESC LIMIT 8`,
+        [`%${q}%`, q],
       );
       res.json({ suggestions: result.rows });
     } catch (error) {
       console.error("[free-downloads] Suggestions failed:", error);
       res.status(503).json({ message: "Search suggestions are temporarily unavailable." });
+    }
+  });
+
+  app.get("/api/free-downloads/by-code/:code", async (req, res) => {
+    const code = String(req.params.code || "").trim().toUpperCase();
+    if (!/^TFD\d{2,}$/.test(code)) return res.status(404).json({ message: "Download code not found." });
+    try {
+      const result = await pool.query(
+        `SELECT d.slug,d.download_code AS "downloadCode",d.title
+         FROM free_download_items d
+         JOIN free_download_categories c ON c.id=d.category_id
+         WHERE UPPER(d.download_code)=$1 AND d.publication_status='published' AND c.is_active=TRUE
+         LIMIT 1`,
+        [code],
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Download code not found." });
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("[free-downloads] Code lookup failed:", error);
+      res.status(503).json({ message: "Download code lookup is temporarily unavailable." });
     }
   });
 
@@ -670,7 +694,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
       if (q) {
         const p = add(`%${q}%`);
         conditions.push(`(d.title ILIKE ${p} OR d.short_description ILIKE ${p}
-          OR d.description_html ILIKE ${p} OR array_to_string(d.tags, ' ') ILIKE ${p}
+          OR d.download_code ILIKE ${p} OR d.description_html ILIKE ${p} OR array_to_string(d.tags, ' ') ILIKE ${p}
           OR COALESCE(p.full_name, '') ILIKE ${p} OR d.format ILIKE ${p})`);
       }
       if (req.query.category) conditions.push(`c.slug = ${add(String(req.query.category).slice(0, 140))}`);
@@ -702,11 +726,12 @@ export function registerFreeDownloadsRoutes(app: Express) {
          ${`WHERE ${where}`}`,
         values,
       );
-      const listValues = [...values, limit, offset];
+      const listValues = [...values, q, limit, offset];
       const results = await pool.query(
          `SELECT ${detailSelect} ${detailJoins}
          WHERE ${where}
-         ORDER BY ${orderBy[sort] || orderBy.latest}
+         ORDER BY CASE WHEN $${values.length + 1} ~* '^TFD[0-9]+$' AND UPPER(d.download_code)=UPPER($${values.length + 1}) THEN 0 ELSE 1 END,
+           ${orderBy[sort] || orderBy.latest}
          LIMIT $${listValues.length - 1} OFFSET $${listValues.length}`,
         listValues,
       );
@@ -900,8 +925,10 @@ export function registerFreeDownloadsRoutes(app: Express) {
         );
         if (!unlock.rowCount) return res.status(403).json({ message: "Complete the partner redirect to unlock this download." });
       }
-      await addEvent("download_click", row.id, req.user.id);
-      await pool.query("UPDATE free_download_items SET download_count=download_count+1 WHERE id=$1", [row.id]);
+      const countedEvent = await addEvent("download_click", row.id, req.user.id, true);
+      if (countedEvent) {
+        await pool.query("UPDATE free_download_items SET download_count=download_count+1 WHERE id=$1", [row.id]);
+      }
       if (row.external_download_url) {
         const target = safeExternalUrl(row.external_download_url);
         if (!target) return res.status(410).json({ message: "This download link is no longer valid." });
@@ -1003,11 +1030,11 @@ export function registerFreeDownloadsRoutes(app: Express) {
           og_title,og_description,og_image,publication_status,is_featured,external_demo_url,created_by
         )
         SELECT $2, title || ' (copy)', $3, short_description, description_html, category_id, subcategory_id,
-          tags, thumbnail_url, gallery_urls, preview_video_url, external_demo_url, format, version, creator, release_date,
+          tags, thumbnail_url, gallery_urls, preview_video_url, format, version, creator, release_date,
           system_requirements, installation_instructions, features, preacher_id, source_file_key,
           source_file_name, source_mime_type, source_size_bytes, external_download_url, seo_title,
           seo_description, focus_keyword, canonical_url, og_title, og_description, og_image, 'draft',
-          FALSE, $4
+          FALSE, external_demo_url, $4
         FROM free_download_items WHERE id=$1 RETURNING *`,
         [req.params.id, randomUUID(), `${toSlug("copy-" + randomUUID())}`, req.user.id],
       );
@@ -1363,6 +1390,13 @@ export function registerFreeDownloadsRoutes(app: Express) {
     const responseText = String(req.body?.response || "").slice(0, 3000);
     const linkedDownloadId = req.body?.linkedDownloadId ? String(req.body.linkedDownloadId) : null;
     try {
+      if (linkedDownloadId) {
+        const linked = await pool.query(
+          "SELECT 1 FROM free_download_items WHERE id=$1 AND publication_status='published' LIMIT 1",
+          [linkedDownloadId],
+        );
+        if (!linked.rowCount) return res.status(400).json({ message: "Choose a valid published download to link to this request." });
+      }
       const result = await pool.query(
         `UPDATE free_download_requests SET status=$2,internal_notes=$3,response=$4,
           linked_download_id=$5,updated_at=NOW()

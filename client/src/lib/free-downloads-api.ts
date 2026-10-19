@@ -15,6 +15,7 @@ export type FreeDownloadCategory = {
 
 export type FreeDownloadSummary = {
   id: string;
+  downloadCode: string;
   title: string;
   slug: string;
   shortDescription: string;
@@ -25,6 +26,7 @@ export type FreeDownloadSummary = {
   subcategoryName?: string | null;
   tags: string[];
   thumbnailUrl?: string | null;
+  previewVideoUrl?: string | null;
   format: string;
   fileSizeBytes?: number | null;
   version?: string;
@@ -134,8 +136,12 @@ export const freeDownloadsApi = {
       `${base}?${queryString(filters as Record<string, unknown>)}`,
     ),
   suggestions: (q: string) =>
-    requestJson<{ suggestions: { title: string; slug: string; categoryName: string }[] }>(
+    requestJson<{ suggestions: { title: string; slug: string; downloadCode: string; categoryName: string }[] }>(
       `${base}/suggestions?${queryString({ q })}`,
+    ),
+  byCode: (code: string) =>
+    requestJson<{ title: string; slug: string; downloadCode: string }>(
+      `${base}/by-code/${encodeURIComponent(code)}`,
     ),
   preacherSuggestions: (q: string) =>
     requestJson<{ suggestions: { id: string; fullName: string; slug: string; photographUrl?: string; ministryName: string }[] }>(
@@ -191,6 +197,7 @@ export const freeDownloadsApi = {
   updateCategory: (id: string, data: Record<string, unknown>) => requestJson<any>(`${base}/admin/categories/${id}`, "PUT", data),
   deleteCategory: (id: string) => requestJson<any>(`${base}/admin/categories/${id}`, "DELETE"),
   createSubcategory: (data: Record<string, unknown>) => requestJson<any>(`${base}/admin/subcategories`, "POST", data),
+  updateSubcategory: (id: string, data: Record<string, unknown>) => requestJson<any>(`${base}/admin/subcategories/${id}`, "PUT", data),
   deleteSubcategory: (id: string) => requestJson<any>(`${base}/admin/subcategories/${id}`, "DELETE"),
   createPreacher: (data: Record<string, unknown>) => requestJson<any>(`${base}/admin/preachers`, "POST", data),
   updatePreacher: (id: string, data: Record<string, unknown>) => requestJson<any>(`${base}/admin/preachers/${id}`, "PUT", data),
@@ -221,6 +228,13 @@ export const useFreeDownloadSuggestions = (q: string, enabled = q.trim().length 
   useQuery({
     queryKey: ["free-downloads", "suggestions", q],
     queryFn: () => freeDownloadsApi.suggestions(q),
+    enabled,
+  });
+
+export const useFreeDownloadPreacherSuggestions = (q: string, enabled = q.trim().length >= 2) =>
+  useQuery({
+    queryKey: ["free-downloads", "preacher-suggestions", q],
+    queryFn: () => freeDownloadsApi.preacherSuggestions(q),
     enabled,
   });
 

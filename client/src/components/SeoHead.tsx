@@ -4,6 +4,8 @@ interface SeoHeadProps {
   title?: string;
   description?: string;
   keywords?: string;
+  ogTitle?: string;
+  ogDescription?: string;
   ogImage?: string;
   ogType?: string;
   canonicalUrl?: string;
@@ -51,6 +53,8 @@ export function SeoHead({
   title,
   description,
   keywords,
+  ogTitle,
+  ogDescription,
   ogImage,
   ogType = "website",
   canonicalUrl,
@@ -64,13 +68,14 @@ export function SeoHead({
     if (description) {
       setMeta("description", description);
       setMeta("og:description", description, "property");
-    setMeta("twitter:description", description);
+      setMeta("twitter:description", description);
     }
     if (keywords) setMeta("keywords", keywords);
     if (title) {
-      setMeta("og:title", title, "property");
+      setMeta("og:title", ogTitle || title, "property");
       setMeta("twitter:title", title);
     }
+    if (ogDescription) setMeta("og:description", ogDescription, "property");
     if (ogImage) {
       setMeta("og:image", ogImage, "property");
       setMeta("twitter:image", ogImage);
@@ -86,7 +91,7 @@ export function SeoHead({
     return () => {
       if (title) document.title = prev;
     };
-  }, [title, description, keywords, ogImage, ogType, canonicalUrl, jsonLd, noIndex]);
+  }, [title, description, keywords, ogTitle, ogDescription, ogImage, ogType, canonicalUrl, jsonLd, noIndex]);
 
   return null;
 }
