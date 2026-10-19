@@ -26,7 +26,12 @@ const DEFAULT_PLACEMENTS: AdsterraPlacement[] = [
   { id: "socialbar", name: "Social Bar", format: "socialbar", key: "74a8f64f8fe3f8d27ae89ac6b9528098", width: 360, height: 100, enabled: false, position: "floating", pages: ["all"] },
 ];
 
-const DEFAULT_SETTINGS: AdsterraSettingsValue = { enabled: true, placements: DEFAULT_PLACEMENTS };
+const DEFAULT_SETTINGS: AdsterraSettingsValue = {
+  enabled: true,
+  placements: DEFAULT_PLACEMENTS,
+  featuredSmartlink: { afterHeader: true, middleBody: true, footer: true },
+};
+const DISABLED_FEATURED_SMARTLINK = { afterHeader: false, middleBody: false, footer: false };
 const FORMATS = new Set<AdsterraFormat>(["iframe", "native", "popunder", "smartlink", "socialbar"]);
 const POSITIONS = new Set<AdsterraPosition>(["body", "blog-feed", "article-inline", "sidebar", "article-end", "footer", "floating"]);
 const PAGE_TARGETS = new Set<AdsterraPageTarget>(["all", "site", "blog", "article"]);
@@ -51,6 +56,10 @@ async function getSettings(): Promise<AdsterraSettingsValue> {
   if (existing?.settings?.placements?.length) {
     return {
       ...existing.settings,
+      featuredSmartlink: {
+        ...DEFAULT_SETTINGS.featuredSmartlink,
+        ...existing.settings.featuredSmartlink,
+      },
       placements: existing.settings.placements.map((placement) => {
         if (
           placement.id === "native-banner" &&
@@ -117,6 +126,12 @@ function validateSettings(input: any, previous: AdsterraSettingsValue): { settin
   if (!input || typeof input.enabled !== "boolean" || !Array.isArray(input.placements) || input.placements.length > 20) {
     return { error: "Settings must include a global switch and no more than 20 placements." };
   }
+  const featuredSmartlink = input.featuredSmartlink ?? previous.featuredSmartlink;
+  if (!featuredSmartlink || ["afterHeader", "middleBody", "footer"].some(
+    (placement) => typeof featuredSmartlink[placement] !== "boolean",
+  )) {
+    return { error: "Featured Smartlink settings must include a switch for each placement." };
+  }
   const ids = new Set<string>();
   const placements: AdsterraPlacement[] = [];
   for (const candidate of input.placements) {
@@ -161,7 +176,17 @@ function validateSettings(input: any, previous: AdsterraSettingsValue): { settin
       shortSlug: candidate.format === "smartlink" ? oldPlacement?.shortSlug : undefined,
     });
   }
-  return { settings: { enabled: input.enabled, placements } };
+  return {
+    settings: {
+      enabled: input.enabled,
+      placements,
+      featuredSmartlink: {
+        afterHeader: featuredSmartlink.afterHeader,
+        middleBody: featuredSmartlink.middleBody,
+        footer: featuredSmartlink.footer,
+      },
+    },
+  };
 }
 
 function pagePath(value: unknown) {
@@ -177,7 +202,12 @@ export function registerAdsterraRoutes(app: Express) {
       res.json({ ...settings, shortenerBaseUrl: appBaseUrl() });
     } catch (error) {
       console.error("[adsterra] public settings error", error);
-      res.status(503).json({ enabled: false, placements: [], shortenerBaseUrl: appBaseUrl() });
+      res.status(503).json({
+        enabled: false,
+        placements: [],
+        featuredSmartlink: DISABLED_FEATURED_SMARTLINK,
+        shortenerBaseUrl: appBaseUrl(),
+      });
     }
   });
 

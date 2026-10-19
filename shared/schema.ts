@@ -2395,6 +2395,11 @@ export type AdsterraPlacement = {
 export type AdsterraSettingsValue = {
   enabled: boolean;
   placements: AdsterraPlacement[];
+  featuredSmartlink: {
+    afterHeader: boolean;
+    middleBody: boolean;
+    footer: boolean;
+  };
 };
 
 export const adsterraSettings = pgTable("adsterra_settings", {
