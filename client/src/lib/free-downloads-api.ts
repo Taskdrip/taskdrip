@@ -83,6 +83,15 @@ export type FreeDownloadDetail = FreeDownloadSummary & {
   related: FreeDownloadSummary[];
 };
 
+export type FreeDownloadPreview = FreeDownloadSummary & {
+  descriptionHtml: string;
+  features: string[];
+  systemRequirements: string;
+  installationInstructions: string;
+  adRequired: boolean;
+  smartlinkConfigured: boolean;
+};
+
 export type FreeDownloadFilters = {
   q?: string;
   category?: string;
@@ -186,7 +195,7 @@ export const freeDownloadsApi = {
     requestJson<{ suggestions: { id: string; fullName: string; slug: string; photographUrl?: string; ministryName: string }[] }>(
       `${base}/preachers/suggestions?${queryString({ q })}`,
     ),
-  preview: (slug: string) => requestJson<FreeDownloadSummary>(`${base}/preview/${encodeURIComponent(slug)}`),
+  preview: (slug: string) => requestJson<FreeDownloadPreview>(`${base}/preview/${encodeURIComponent(slug)}`),
   detail: (slug: string) => requestJson<FreeDownloadDetail>(`${base}/${encodeURIComponent(slug)}`),
   preacher: (slug: string) =>
     requestJson<{

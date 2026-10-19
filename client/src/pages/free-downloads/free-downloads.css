@@ -250,6 +250,66 @@
 @media(max-width:560px) { .fd-category-grid { grid-template-columns:1fr; } }
 @media(prefers-reduced-motion:reduce) { .fd-page *, .fd-page *:before, .fd-page *:after { animation-duration:.01ms!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }
 
+/* Full resource-library footer */
+.fd-footer {
+  margin:64px 0 0;
+  padding:42px 28px 22px;
+  border:0;
+  background:#262336;
+  color:#eceaf3;
+}
+.fd-footer-inner {
+  display:grid;
+  grid-template-columns:minmax(220px,1.5fr) repeat(3,minmax(130px,1fr));
+  gap:30px;
+  max-width:1184px;
+  margin:0 auto;
+}
+.fd-footer-brand .fd-brand { color:#fff; }
+.fd-footer-brand p {
+  max-width:290px;
+  margin:14px 0 0;
+  color:#c4c1d0;
+  font-size:12px;
+  line-height:1.7;
+}
+.fd-footer-links { display:grid; align-content:start; gap:11px; }
+.fd-footer-links strong {
+  margin-bottom:3px;
+  color:#fff;
+  font:700 12px "Manrope";
+}
+.fd-footer-links a {
+  width:max-content;
+  max-width:100%;
+  color:#c4c1d0;
+  font-size:11px;
+  font-weight:500;
+  line-height:1.45;
+  text-decoration:none;
+}
+.fd-footer-links a:hover { color:#fff; text-decoration:underline; }
+.fd-footer-bottom {
+  grid-column:1/-1;
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  padding-top:18px;
+  border-top:1px solid #ffffff24;
+  color:#aaa7b8;
+  font-size:10px;
+  line-height:1.6;
+}
+@media(max-width:700px) {
+  .fd-footer-inner { grid-template-columns:repeat(2,minmax(0,1fr)); gap:26px 20px; }
+  .fd-footer-brand { grid-column:1/-1; }
+}
+@media(max-width:560px) {
+  .fd-footer { margin-top:40px; padding:30px 16px 18px; }
+  .fd-footer-inner { gap:24px 14px; }
+  .fd-footer-bottom { flex-direction:column; gap:7px; }
+}
+
 /* Landing-page refresh */
 .fd-page {
   --fd-paper:#f7f8fa;

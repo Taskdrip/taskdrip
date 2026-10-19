@@ -394,7 +394,7 @@ async function fullDownloadDetail(row: any, settings: any, unlocked: boolean, ad
     } : null,
     isUnlocked: unlocked,
     adRequired: adminPreview ? false : Boolean(settings.ad_requirement_enabled),
-    smartlinkConfigured: Boolean(settings.smartlink_url),
+    smartlinkConfigured: Boolean(safeExternalUrl(settings.smartlink_url)),
     telegramUrl: settings.telegram_url,
     publicationStatus: row.publication_status,
     adminPreview,
@@ -831,8 +831,15 @@ export function registerFreeDownloadsRoutes(app: Express) {
     try {
       const row = await getPublishedBySlug(req.params.slug);
       if (!row) return res.status(404).json({ message: "Download not found." });
+      const settings = await getAdSettings();
       res.json({
         ...publicDownload(row),
+        descriptionHtml: sanitizeRichHtml(row.description_html || ""),
+        features: row.features || [],
+        systemRequirements: row.system_requirements || "",
+        installationInstructions: row.installation_instructions || "",
+        adRequired: Boolean(settings.ad_requirement_enabled),
+        smartlinkConfigured: Boolean(safeExternalUrl(settings.smartlink_url)),
         seo: {
           title: row.seo_title || row.title,
           description: row.seo_description || row.short_description,
@@ -861,7 +868,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
       res.json({
         unlocked: Boolean(unlock.rowCount) || !settings.ad_requirement_enabled,
         adRequired: Boolean(settings.ad_requirement_enabled),
-        smartlinkConfigured: Boolean(settings.smartlink_url),
+        smartlinkConfigured: Boolean(safeExternalUrl(settings.smartlink_url)),
       });
     } catch (error) {
       console.error("[free-downloads] Unlock status failed:", error);
@@ -902,7 +909,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
       if (unlock.rowCount || !settings.ad_requirement_enabled) {
         return res.json({ alreadyUnlocked: true, smartlinkUrl: null });
       }
-      if (!settings.smartlink_url) return res.status(503).json({ message: "The advertising partner is not configured yet." });
+      if (!safeExternalUrl(settings.smartlink_url)) return res.status(503).json({ message: "The advertising partner is not configured yet." });
       const redirectId = randomUUID();
       await pool.query(
         `INSERT INTO free_download_events (id, user_id, download_id, event_type)

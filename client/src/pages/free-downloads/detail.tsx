@@ -35,6 +35,7 @@ export function FreeDownloadDetailPage() {
   const [unlockError, setUnlockError] = useState("");
   const [working, setWorking] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
+  const [downloadCountdown, setDownloadCountdown] = useState<number | null>(null);
   const preview = useFreeDownloadPreview(slug, !!slug && !isAdminPreview);
   const detail = useFreeDownloadDetail(slug, isAuthenticated && !!slug && !isAdminPreview);
   const adminPreview = useAdminFreeDownloadPreview(slug, isAuthenticated && !!slug && isAdminPreview);
@@ -50,7 +51,16 @@ export function FreeDownloadDetailPage() {
   useEffect(() => {
     setUnlocked(!isAdminPreview && Boolean(unlockStatus.data?.unlocked || resource?.isUnlocked));
     setUnlockError("");
+    setDownloadCountdown(null);
   }, [slug, isAdminPreview, unlockStatus.data?.unlocked, resource?.isUnlocked]);
+  useEffect(() => {
+    if (downloadCountdown === null) return;
+    const timer = window.setTimeout(
+      () => setDownloadCountdown((remaining) => remaining === null || remaining <= 1 ? null : remaining - 1),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [downloadCountdown]);
   const jsonLd = useMemo(() => {
     if (!resource) return undefined;
     const category = `${resource.categoryName} ${resource.format}`.toLowerCase();
@@ -118,8 +128,10 @@ export function FreeDownloadDetailPage() {
         const status = await freeDownloadsApi.unlockStatus(slug);
         if (status.unlocked) {
           setUnlocked(true);
+          setDownloadCountdown(4);
           return;
         }
+        if (partnerTab.closed) throw new Error("The partner page was closed before Taskdrip could confirm the redirect. You have not been unlocked; retry when ready.");
         await wait(500);
       }
       throw new Error("Taskdrip could not confirm that the partner redirect opened. Nothing has been unlocked; you can retry.");
@@ -157,13 +169,23 @@ export function FreeDownloadDetailPage() {
           {guest.previewVideoUrl && <section className="fd-section"><h2>Preview</h2>{guestPreview
             ? <div className="fd-video-frame"><iframe src={guestPreview} title={`${guest.title} preview`} loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div>
             : <a className="fd-text-link" href={guest.previewVideoUrl} target="_blank" rel="noopener noreferrer">Watch the preview <ExternalLink size={14} /></a>}</section>}
+          <div className="fd-rich-copy" dangerouslySetInnerHTML={{ __html: guest.descriptionHtml || "" }} />
+          {guest.features?.length > 0 && <section className="fd-section"><h2>What you can do</h2><ul>{guest.features.map(feature => <li key={feature}>{feature}</li>)}</ul></section>}
+          {guest.systemRequirements && <section className="fd-section"><h2>System requirements</h2><p className="fd-rich-copy">{guest.systemRequirements}</p></section>}
+          {guest.installationInstructions && <section className="fd-section"><h2>Getting started</h2><p className="fd-rich-copy">{guest.installationInstructions}</p></section>}
         </article>
         <aside className="fd-detail-side">
-          <h2>Continue to the full resource</h2>
+          <h2>Get this resource</h2>
           <dl><div><dt>Format</dt><dd>{guest.format || "Digital resource"}</dd></div><div><dt>Downloads</dt><dd>{Number(guest.downloadCount || 0).toLocaleString()}</dd></div></dl>
-          <p>Sign in or create a free Taskdrip account to read the complete resource details and access its download.</p>
-          <a className="fd-button" href={loginUrl}>Log in to continue</a>
-          <a className="fd-button fd-button-outline" style={{ width: "100%", marginTop: 8 }} href={registerUrl}>Create an account</a>
+          {guest.adRequired
+            ? guest.smartlinkConfigured
+              ? <p className="fd-ad-explain">The first click opens the Adsterra Smartlink in a new tab. Return to this page and click again to open the publisher’s official resource.</p>
+              : <InlineNotice kind="error">The Adsterra Smartlink is not configured yet. Please check back later.</InlineNotice>
+            : <p>Details are open to everyone. Sign in or create a free Taskdrip account to continue to the publisher’s official resource.</p>}
+          {(!guest.adRequired || guest.smartlinkConfigured)
+            ? <><a className="fd-button" href={loginUrl}>Log in to get the resource</a>
+              <a className="fd-button fd-button-outline" style={{ width: "100%", marginTop: 8 }} href={registerUrl}>Create an account</a></>
+            : <button className="fd-button" disabled>Resource unavailable</button>}
         </aside>
       </div>
     </FreeDownloadsShell>;
@@ -219,9 +241,16 @@ export function FreeDownloadDetailPage() {
         {unlockError && <InlineNotice kind="error">{unlockError}</InlineNotice>}
         {!isAdminPreview && resource.adRequired && !resource.smartlinkConfigured && <InlineNotice kind="error">The partner link is not configured yet. Please contact the library team.</InlineNotice>}
         {isAdminPreview ? <p className="fd-ad-explain">Publishing is required before users can download this resource.</p>
-          : unlocked ? <><InlineNotice><ShieldCheck size={14} /> Access confirmed. {isExternalResource ? "The official resource is ready." : "Your secure download is ready."}</InlineNotice><a className="fd-button" href={secureFilePath}>{isExternalResource ? <ExternalLink size={15} /> : <Download size={15} />}{isExternalResource ? "OPEN OFFICIAL RESOURCE" : "DOWNLOAD NOW"}</a></>
+          : unlocked ? <><InlineNotice><ShieldCheck size={14} />{downloadCountdown !== null
+              ? <>Access confirmed. Your official download link will be ready in {downloadCountdown} seconds.</>
+              : <>Access confirmed. {isExternalResource ? "The official resource is ready." : "Your secure download is ready."}</>}</InlineNotice>
+            {downloadCountdown !== null
+              ? <button className="fd-button" disabled aria-live="polite">Preparing link · {downloadCountdown}s</button>
+              : <a className="fd-button" href={secureFilePath}>{isExternalResource ? <ExternalLink size={15} /> : <Download size={15} />}{isExternalResource ? "OPEN OFFICIAL RESOURCE" : "DOWNLOAD NOW"}</a>}</>
             : <button className="fd-button" onClick={unlock} disabled={working || unlockStatus.isLoading || (resource.adRequired && !resource.smartlinkConfigured)}>{working ? "Opening partner redirect…" : resource.adRequired ? "GET FREE RESOURCE" : isExternalResource ? "OPEN FREE RESOURCE" : "Get the download"}{isExternalResource ? <ExternalLink size={15} /> : <Download size={15} />}</button>}
-        {!isAdminPreview && resource.adRequired && <p className="fd-ad-explain">To access this free resource, you'll first be redirected to our advertising partner. Once the redirect completes, the resource button will be unlocked.</p>}
+        {!isAdminPreview && resource.adRequired && <p className="fd-ad-explain">{unlocked
+            ? "The first redirect is complete. Use the button above to open the publisher’s official download page."
+            : "Your first click opens the Adsterra Smartlink in a new tab. Come back to this page and click again to open the publisher’s official download page."}</p>}
         <div className="fd-share-block"><span><Share2 size={13} /> Share this resource</span><div><a href={`https://wa.me/?text=${shareTitle}%20${shareUrl}`} target="_blank" rel="noopener noreferrer">WhatsApp</a><a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">Facebook</a><a href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`} target="_blank" rel="noopener noreferrer">X</a><a href={`https://t.me/share/url?url=${shareUrl}&text=${shareTitle}`} target="_blank" rel="noopener noreferrer">Telegram</a></div></div>
         {unlockStatus.isError && <p className="fd-ad-explain">Unlock status could not be refreshed. You can retry the partner step.</p>}
         {resource.telegramUrl && <a className="fd-text-link" style={{ marginTop: 15 }} href={resource.telegramUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> More from this community</a>}
