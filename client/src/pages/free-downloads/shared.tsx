@@ -2,6 +2,7 @@ import { KeyboardEvent, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Search, ArrowUpRight, Download, FileArchive, Music2, Video, Sparkles, Package, ShieldCheck, RefreshCw, ChevronDown, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Footer } from "@/components/ui/footer";
 import { useFreeDownloadCategories, type FreeDownloadSummary } from "@/lib/free-downloads-api";
 import "./free-downloads.css";
 
@@ -46,42 +47,7 @@ export function FreeDownloadsShell({ children, categories: categoryOverride }: {
       </header>
       <div className="fd-topline"><span className="fd-mark">TD</span><span>Taskdrip / Resource Library</span><span className="fd-topline-right"><ShieldCheck size={14} /> Permission-led resources</span></div>
       <div className="fd-container">{children}</div>
-      <footer className="fd-footer">
-        <div className="fd-footer-inner">
-          <div className="fd-footer-brand">
-            <Link className="fd-brand" href="/" aria-label="Taskdrip home">
-              <img src="/taskdrip-logo.jpg" alt="" />
-              <span>Taskdrip</span>
-            </Link>
-            <p>Useful tools and resources for the work you do. Shared with permission and linked to their official sources.</p>
-          </div>
-          <nav className="fd-footer-links" aria-label="Resource library links">
-            <strong>Library</strong>
-            <Link href="/downloads">Browse free downloads</Link>
-            <Link href="/downloads/request">Request a resource</Link>
-            <Link href="/downloads/my-requests">My requests</Link>
-          </nav>
-          <nav className="fd-footer-links" aria-label="Resource categories">
-            <strong>Categories</strong>
-            {categoryItems.slice(0, 5).map((category) =>
-              <Link key={category.id} href={`/downloads/category/${category.slug}`}>{category.name}</Link>,
-            )}
-            {!categoryItems.length && <Link href="/downloads">Explore the library</Link>}
-          </nav>
-          <nav className="fd-footer-links" aria-label="Taskdrip links">
-            <strong>Taskdrip</strong>
-            <Link href="/">Home</Link>
-            <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer">Telegram community</a>
-            {isAuthenticated
-              ? <Link href="/dashboard">My account</Link>
-              : <><Link href="/login">Log in</Link><Link href="/signup">Create an account</Link></>}
-          </nav>
-          <div className="fd-footer-bottom">
-            <span>© {new Date().getFullYear()} Taskdrip. Useful things, shared with permission.</span>
-            <span>Downloads link to the official provider. Check each provider’s terms and system requirements.</span>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

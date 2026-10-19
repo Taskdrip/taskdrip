@@ -14,8 +14,14 @@ function escapeAttribute(value: string) {
 }
 
 function getPageTarget(path: string): AdsterraPageTarget {
-  if (path === "/blog") return "blog";
-  if (path.startsWith("/blog/")) return "article";
+  const pathname = path.split("?")[0].replace(/\/+$/, "") || "/";
+  if (pathname === "/blog") return "blog";
+  if (pathname.startsWith("/blog/")) return "article";
+  if (pathname === "/downloads") return "article";
+  const downloadDetail = pathname.match(/^\/downloads\/([^/]+)$/);
+  if (downloadDetail && !["category", "preachers", "request", "my-requests"].includes(downloadDetail[1])) {
+    return "article";
+  }
   return "site";
 }
 

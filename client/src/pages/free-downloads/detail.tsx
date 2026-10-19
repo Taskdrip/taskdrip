@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, Download, ExternalLink, ShieldCheck, Share2 } from "lucide-react";
+import { AdsterraSlot } from "@/components/ads/AdsterraSlot";
 import { freeDownloadsApi, useAdminFreeDownloadPreview, useFreeDownloadDetail, useFreeDownloadPreview, useFreeDownloadUnlockStatus } from "@/lib/free-downloads-api";
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, FreeDownloadsShell, InlineNotice, LoadingBlock, ResourceGrid } from "./shared";
@@ -170,6 +171,7 @@ export function FreeDownloadDetailPage() {
             ? <div className="fd-video-frame"><iframe src={guestPreview} title={`${guest.title} preview`} loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div>
             : <a className="fd-text-link" href={guest.previewVideoUrl} target="_blank" rel="noopener noreferrer">Watch the preview <ExternalLink size={14} /></a>}</section>}
           <div className="fd-rich-copy" dangerouslySetInnerHTML={{ __html: guest.descriptionHtml || "" }} />
+          <AdsterraSlot position="article-inline" />
           {guest.features?.length > 0 && <section className="fd-section"><h2>What you can do</h2><ul>{guest.features.map(feature => <li key={feature}>{feature}</li>)}</ul></section>}
           {guest.systemRequirements && <section className="fd-section"><h2>System requirements</h2><p className="fd-rich-copy">{guest.systemRequirements}</p></section>}
           {guest.installationInstructions && <section className="fd-section"><h2>Getting started</h2><p className="fd-rich-copy">{guest.installationInstructions}</p></section>}
@@ -188,6 +190,7 @@ export function FreeDownloadDetailPage() {
             : <button className="fd-button" disabled>Resource unavailable</button>}
         </aside>
       </div>
+      <AdsterraSlot position="article-end" />
     </FreeDownloadsShell>;
   }
   const activeQuery = isAdminPreview ? adminPreview : detail;
@@ -226,6 +229,7 @@ export function FreeDownloadDetailPage() {
         {resource.downloadCode && <p className="fd-download-code">Download code: <strong>{resource.downloadCode}</strong></p>}
         <div className="fd-tag-list">{(resource.tags || []).map(tag => <span className="fd-tag" key={tag}>{tag}</span>)}</div>
         <div className="fd-rich-copy" dangerouslySetInnerHTML={{ __html: resource.descriptionHtml || "" }} />
+        <AdsterraSlot position="article-inline" />
         {resource.previewVideoUrl && <section className="fd-section"><h2>Preview</h2>{previewEmbed
           ? <div className="fd-video-frame"><iframe src={previewEmbed} title={`${resource.title} preview`} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div>
           : <a className="fd-text-link" href={resource.previewVideoUrl} target="_blank" rel="noopener noreferrer">Watch the preview <ExternalLink size={14} /></a>}</section>}
@@ -257,6 +261,7 @@ export function FreeDownloadDetailPage() {
       </aside>
     </div>
     {resource.related?.length > 0 && <section className="fd-section"><h2>Related resources</h2><ResourceGrid items={resource.related} /></section>}
+    <AdsterraSlot position="article-end" />
     {preview.isError && <div className="fd-legal-note">Public preview metadata is temporarily unavailable.</div>}
   </FreeDownloadsShell>;
 }

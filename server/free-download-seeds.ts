@@ -17,12 +17,85 @@ type CuratedTool = {
   format: string;
   creator?: string;
   featured?: boolean;
+  tags?: string[];
+  categorySlug?: string;
   features: string[];
   systemRequirements: string;
   installationInstructions: string;
 };
 
 const curatedTools: CuratedTool[] = [
+  {
+    title: "ChatGPT",
+    slug: "chatgpt-free-ai-assistant",
+    description: "Use OpenAI’s ChatGPT free plan for writing, brainstorming, learning, research and everyday problem-solving. Usage limits and available features can change.",
+    details: [
+      "ChatGPT is an AI assistant for drafting and revising text, explaining unfamiliar topics, brainstorming ideas, analyzing supported files and helping with common research and planning tasks. The free plan makes it easy to try without a paid subscription.",
+      "Free-plan limits, models and features may change or vary by location. Check important facts against reliable sources, avoid sharing sensitive information, and review OpenAI’s current terms and privacy controls before using it for work.",
+    ],
+    url: "https://chatgpt.com/",
+    format: "Web app",
+    creator: "OpenAI",
+    featured: true,
+    tags: ["free", "creator tools", "ai", "writing", "research"],
+    categorySlug: "ai-tools",
+    features: ["Draft, revise and summarize content", "Brainstorm, learn and work through questions", "Free plan available with changing usage limits"],
+    systemRequirements: "A current web browser and an internet connection. An OpenAI account may be required for some features.",
+    installationInstructions: "Open the official ChatGPT website, sign in or create an account, and review the current Free plan details. Check generated answers before relying on them and do not submit confidential information.",
+  },
+  {
+    title: "Google Gemini",
+    slug: "google-gemini-free-ai-assistant",
+    description: "Try Google Gemini’s free AI assistant for writing, learning, planning and creative work. Feature access and usage limits vary by plan and region.",
+    details: [
+      "Gemini is Google’s AI assistant for questions, writing, brainstorming, learning and other everyday tasks. It is available in a browser, with companion apps and additional features depending on device, account and location.",
+      "Google changes its plans and feature availability over time. Review current limits and privacy settings, verify important answers, and avoid sharing sensitive business or personal data unless you have reviewed the applicable terms.",
+    ],
+    url: "https://gemini.google.com/",
+    format: "Web app",
+    creator: "Google",
+    featured: true,
+    tags: ["free", "creator tools", "ai", "writing", "research"],
+    categorySlug: "ai-tools",
+    features: ["AI assistance for writing and everyday questions", "Support for learning, planning and creative ideas", "Free access available; limits and features can change"],
+    systemRequirements: "A current web browser and an internet connection. Sign-in and feature availability depend on your Google account and region.",
+    installationInstructions: "Open Google’s official Gemini website and sign in with an eligible Google account. Review the current plan details and settings before using Gemini with personal or work information.",
+  },
+  {
+    title: "Claude",
+    slug: "claude-free-ai-assistant",
+    description: "Use Claude’s free plan for writing, analysis, coding help and research, with usage limits and features that may change.",
+    details: [
+      "Claude is Anthropic’s AI assistant for drafting, editing, analysis, coding help and working through complex questions. Its browser experience can help with long-form writing and tasks that benefit from structured explanations.",
+      "Anthropic’s official site lists a free plan, but usage and features are limited and can change. Check important information independently, review privacy settings, and do not share sensitive data unless you understand the service’s current terms.",
+    ],
+    url: "https://claude.ai/",
+    format: "Web app",
+    creator: "Anthropic",
+    tags: ["free", "creator tools", "ai", "writing", "coding"],
+    categorySlug: "ai-tools",
+    features: ["Writing, editing and analysis assistance", "Help with coding and data questions", "Free plan available with usage limits"],
+    systemRequirements: "A current web browser and an internet connection. An Anthropic account is required to use the hosted assistant.",
+    installationInstructions: "Open Claude’s official website, create an account or sign in, then review the free-plan limits. Verify generated answers and avoid entering confidential information.",
+  },
+  {
+    title: "NotebookLM",
+    slug: "google-notebooklm-research",
+    description: "Organize your own sources and use NotebookLM to build source-grounded summaries, study guides and research notes.",
+    details: [
+      "NotebookLM is Google’s research and learning assistant built around sources you provide. Add supported documents or links to a notebook, then ask questions and create summaries, study guides and other learning materials grounded in those sources.",
+      "Free access and limits depend on current account eligibility, region and plan. AI summaries can still contain mistakes; open the cited source material to verify important claims and check Google’s current privacy and product terms before uploading sensitive files.",
+    ],
+    url: "https://notebooklm.google/",
+    format: "Web app",
+    creator: "Google",
+    featured: true,
+    tags: ["free", "creator tools", "ai", "research", "education"],
+    categorySlug: "ai-tools",
+    features: ["Organize notebooks around your own research sources", "Generate source-grounded summaries and study aids", "Free access available with plan and usage limits"],
+    systemRequirements: "A current web browser and an internet connection. Google account and regional eligibility requirements may apply.",
+    installationInstructions: "Open the official NotebookLM website, sign in and create a notebook. Add sources you have permission to use, then verify responses against their citations.",
+  },
   {
     title: "Canva",
     slug: "canva-free-design",
@@ -298,7 +371,21 @@ export async function seedFreeCreatorTools(): Promise<number> {
   if (!categoryId) throw new Error("The Free Creator Tools category could not be created.");
 
   let added = 0;
+  const categoryIds = new Map<string, string>([[FREE_TOOLS_CATEGORY.slug, categoryId]]);
   for (const tool of curatedTools) {
+    let toolCategoryId = categoryId;
+    if (tool.categorySlug) {
+      toolCategoryId = categoryIds.get(tool.categorySlug) || "";
+      if (!toolCategoryId) {
+        const found = await pool.query(
+          "SELECT id FROM free_download_categories WHERE slug=$1 AND is_active=TRUE LIMIT 1",
+          [tool.categorySlug],
+        );
+        toolCategoryId = found.rows[0]?.id;
+        if (!toolCategoryId) throw new Error(`Required resource category "${tool.categorySlug}" is missing or inactive.`);
+        categoryIds.set(tool.categorySlug, toolCategoryId);
+      }
+    }
     const result = await pool.query(
       `INSERT INTO free_download_items (
          id, title, slug, short_description, description_html, category_id, tags, format, creator,
@@ -317,8 +404,8 @@ export async function seedFreeCreatorTools(): Promise<number> {
         tool.slug,
         tool.description,
         `<p>${tool.details[0]}</p><p>${tool.details[1]}</p>`,
-        categoryId,
-        ["free", "creator tools", tool.format.toLowerCase()],
+         toolCategoryId,
+         tool.tags || ["free", "creator tools", tool.format.toLowerCase()],
         tool.format,
         tool.creator || tool.title,
         tool.installationInstructions,

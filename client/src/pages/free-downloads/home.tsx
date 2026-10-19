@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
+import { AdsterraSlot } from "@/components/ads/AdsterraSlot";
 import { freeDownloadsApi, useFreeDownloadCategories, useFreeDownloadHome, useFreeDownloadList, useFreeDownloadPreacherSuggestions, useFreeDownloadSuggestions } from "@/lib/free-downloads-api";
 import { EmptyBlock, ErrorBlock, FreeDownloadsShell, LoadingBlock, ResourceGrid, SearchBox, SectionTitle } from "./shared";
 import type { FreeDownloadSummary } from "@/lib/free-downloads-api";
@@ -178,6 +179,7 @@ export function FreeDownloadsHomePage() {
       <a className="fd-text-link" href="/downloads/request">Request a resource <ArrowRight size={16} /></a>
     </div>
 
+    <AdsterraSlot position="article-inline" />
     {featured.length > 0 && <section className="fd-section"><SectionTitle kicker="SELECTED BY THE TEAM" title="Worth a closer look" detail="Standout finds, checked and ready to use." /><ResourceGrid items={featured.slice(0, 3)} featured /></section>}
     <section className="fd-section" id="fd-library">
       <SectionTitle kicker={query ? "SEARCH RESULTS" : "THE LIBRARY"} title={query ? `Results for “${query}”` : activeCategory ? activeCategory.name : "Find your next useful thing"} detail={query ? `${list.data?.total ?? 0} resources found` : activeCategory ? "Browse the resources in this category, or adjust the filters below." : "Browse the full collection, with the newest additions first."} />
@@ -210,6 +212,7 @@ export function FreeDownloadsHomePage() {
       {!!list.data && list.data.pageCount > 1 && <div className="fd-pagination"><button className="fd-button fd-button-outline" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Previous</button><span>Page {list.data.page} of {list.data.pageCount} · {list.data.total} downloads</span><button className="fd-button fd-button-outline" disabled={page >= list.data.pageCount} onClick={() => setPage(value => value + 1)}>Next</button></div>}
     </section>
     {home.isError && <p className="fd-legal-note" role="status">Featured collections are temporarily unavailable. The searchable library is still open.</p>}
+    <AdsterraSlot position="article-end" />
     <div className="fd-feature-band"><div><div className="fd-kicker">REQUEST DESK</div><h2>Make the library better.</h2><p>Request a resource and follow its progress from your member account.</p></div><Link className="fd-text-link" href="/downloads/request">Send a suggestion <ArrowRight size={15} /></Link></div>
   </FreeDownloadsShell>;
 }

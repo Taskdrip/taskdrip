@@ -53,6 +53,8 @@ COPY --from=builder /app/package.json ./package.json
 RUN npm prune --omit=dev --no-audit
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/scripts/apply-migrations.mjs ./scripts/apply-migrations.mjs
 RUN mkdir -p uploads
 
 EXPOSE 5000

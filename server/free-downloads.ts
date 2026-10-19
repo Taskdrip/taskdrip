@@ -361,11 +361,40 @@ async function getAnyBySlug(slug: string) {
 }
 
 async function getAdSettings() {
-  const result = await pool.query(
-    `SELECT smartlink_url, ad_requirement_enabled, telegram_url
-     FROM free_download_settings WHERE id = 'default' LIMIT 1`,
-  );
-  return result.rows[0] || { smartlink_url: "", ad_requirement_enabled: false, telegram_url: "https://t.me/taskdrip" };
+  const [downloadSettings, siteSettings] = await Promise.all([
+    pool.query(
+      `SELECT smartlink_url, ad_requirement_enabled, telegram_url
+       FROM free_download_settings WHERE id = 'default' LIMIT 1`,
+    ),
+    pool.query(`SELECT settings FROM adsterra_settings WHERE id = 'singleton' LIMIT 1`),
+  ]);
+  const saved = downloadSettings.rows[0] || {
+    smartlink_url: "",
+    ad_requirement_enabled: false,
+    telegram_url: "https://t.me/taskdrip",
+  };
+  const configuredUrl = safeExternalUrl(saved.smartlink_url);
+  const adSettings = siteSettings.rows[0]?.settings;
+  const activeSmartlink = adSettings?.enabled
+    ? adSettings.placements?.find((placement: any) =>
+      placement.enabled && placement.format === "smartlink" && typeof placement.shortSlug === "string" && placement.shortSlug,
+    )
+    : null;
+  let siteSmartlinkUrl: string | null = null;
+  if (!configuredUrl && activeSmartlink?.shortSlug) {
+    const baseUrl = safeExternalUrl(process.env.PUBLIC_APP_URL || "https://taskdrip.online");
+    if (baseUrl) {
+      siteSmartlinkUrl = safeExternalUrl(
+        new URL(`/s/${encodeURIComponent(activeSmartlink.shortSlug)}`, baseUrl).toString(),
+      );
+    }
+  }
+  const usesSiteSmartlink = Boolean(siteSmartlinkUrl);
+  return {
+    ...saved,
+    smartlink_url: configuredUrl || siteSmartlinkUrl || "",
+    ad_requirement_enabled: Boolean(saved.ad_requirement_enabled || usesSiteSmartlink),
+  };
 }
 
 async function fullDownloadDetail(row: any, settings: any, unlocked: boolean, adminPreview = false) {
