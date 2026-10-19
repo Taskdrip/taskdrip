@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, hashPassword } from "./auth";
 import { registerShortenerRoutes } from "./url-shortener";
+import { registerAdsterraRoutes } from "./adsterra";
 import { registerKeywordAnalyticsRoutes } from "./keyword-analytics";
 import { registerAutoBloggerRoutes, startAutoBloggerAutopilot } from "./auto-blogger";
 import { registerAdminDemoRoutes } from "./admin-demo-routes";
@@ -13894,6 +13895,7 @@ Instructions:
 
   // URL Shortener routes
   registerShortenerRoutes(app);
+  registerAdsterraRoutes(app);
   registerKeywordAnalyticsRoutes(app);
   registerAutoBloggerRoutes(app);
   registerAdminDemoRoutes(app, isAuthenticated);

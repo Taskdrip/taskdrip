@@ -119,6 +119,10 @@ function isValidCustomSlug(s: string) {
   return /^[a-zA-Z0-9_-]{3,40}$/.test(s);
 }
 
+function shortenerBaseUrl() {
+  return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
+}
+
 // ── Auth middleware (passport-based) ──────────────────────────
 function requireAuth(req: any, res: Response, next: any) {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.id) {
@@ -186,7 +190,7 @@ export function registerShortenerRoutes(app: Express) {
     const elig = await userCanShorten(u, settings);
     const [{ value: usedRaw }] = await db.select({ value: count() }).from(shortLinks).where(eq(shortLinks.userId, (req as any).userId));
     const used = Number(usedRaw) || 0;
-    res.json({ ...elig, used, enabled: settings.enabled });
+    res.json({ ...elig, used, enabled: settings.enabled, shortenerBaseUrl: shortenerBaseUrl() });
   });
 
   // List user's links
@@ -268,6 +272,7 @@ export function registerShortenerRoutes(app: Express) {
     const byOs: Record<string, number> = {};
     const byCity: Record<string, number> = {};
     const byReferer: Record<string, number> = {};
+    const bySourcePage: Record<string, number> = {};
     const byDay: Record<string, number> = {};
     for (const c of clicks) {
       const co = c.country || "Unknown"; byCountry[co] = (byCountry[co] || 0) + 1;
@@ -278,6 +283,16 @@ export function registerShortenerRoutes(app: Express) {
       let ref = "Direct";
       if (c.referer) { try { ref = new URL(c.referer).hostname; } catch { ref = c.referer.slice(0, 60); } }
       byReferer[ref] = (byReferer[ref] || 0) + 1;
+      let sourcePage = "Direct";
+      if (c.referer) {
+        try {
+          const parsedReferer = new URL(c.referer);
+          sourcePage = parsedReferer.pathname || "/";
+        } catch {
+          sourcePage = c.referer.slice(0, 150);
+        }
+      }
+      bySourcePage[sourcePage] = (bySourcePage[sourcePage] || 0) + 1;
       const day = c.clickedAt ? new Date(c.clickedAt).toISOString().slice(0, 10) : "unknown";
       byDay[day] = (byDay[day] || 0) + 1;
     }
@@ -296,6 +311,8 @@ export function registerShortenerRoutes(app: Express) {
       byOs: toSorted(byOs),
       byCity: toSorted(byCity).slice(0, 25),
       byReferer: toSorted(byReferer).slice(0, 25),
+      bySourcePage: toSorted(bySourcePage).slice(0, 25),
+      shortenerBaseUrl: shortenerBaseUrl(),
       recent: clicks.slice(0, 50),
     });
   });

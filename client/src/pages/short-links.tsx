@@ -19,7 +19,7 @@ import {
 import type { ShortLink } from "@shared/schema";
 import QRCode from "qrcode";
 
-type Eligibility = { ok: boolean; reason?: string; limit: number; used: number; enabled: boolean };
+type Eligibility = { ok: boolean; reason?: string; limit: number; used: number; enabled: boolean; shortenerBaseUrl?: string };
 
 function slugify(input: string) {
   return input.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32);
@@ -76,7 +76,7 @@ export default function ShortLinksPage() {
     },
   });
 
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const baseUrl = eligibility?.shortenerBaseUrl || "https://taskdrip.online";
 
   const copy = (slug: string) => {
     navigator.clipboard.writeText(`${baseUrl}/s/${slug}`);

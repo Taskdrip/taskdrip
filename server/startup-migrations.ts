@@ -132,6 +132,20 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   { table: "creator_books", column: "trim_size", definition: "varchar(20) NOT NULL DEFAULT '6x9'" },
   { table: "creator_books", column: "access_url", definition: "text" },
   { table: "creator_publishing_products", column: "access_url", definition: "text" },
+  // The legacy shortener table used short_code/clicks. Keep it readable by the
+  // current slug/click_count routes when an imported database hasn't migrated yet.
+  { table: "short_links", column: "slug", definition: "varchar" },
+  { table: "short_links", column: "is_referral", definition: "boolean DEFAULT false" },
+  { table: "short_links", column: "click_count", definition: "integer DEFAULT 0" },
+  { table: "short_links", column: "is_active", definition: "boolean DEFAULT true" },
+  { table: "short_links", column: "created_at", definition: "timestamp DEFAULT now()" },
+  { table: "short_link_clicks", column: "clicked_at", definition: "timestamp DEFAULT now()" },
+  { table: "short_link_clicks", column: "country_code", definition: "varchar" },
+  { table: "short_link_clicks", column: "region", definition: "varchar" },
+  { table: "short_link_clicks", column: "city", definition: "varchar" },
+  { table: "short_link_clicks", column: "browser", definition: "varchar" },
+  { table: "short_link_clicks", column: "os", definition: "varchar" },
+  { table: "short_link_clicks", column: "device", definition: "varchar" },
 ];
 
 // Tables that may not exist yet — created with IF NOT EXISTS so they're safe to run every boot
@@ -337,13 +351,13 @@ const REQUIRED_TABLES: string[] = [
   // Short links
   `CREATE TABLE IF NOT EXISTS "short_links" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-    "short_code" varchar NOT NULL UNIQUE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "slug" varchar NOT NULL UNIQUE,
     "original_url" text NOT NULL,
-    "user_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
     "title" varchar,
-    "clicks" integer DEFAULT 0,
+    "is_referral" boolean DEFAULT false,
     "is_active" boolean DEFAULT true,
-    "expires_at" timestamp,
+    "click_count" integer DEFAULT 0,
     "created_at" timestamp DEFAULT now()
   )`,
 
@@ -351,12 +365,35 @@ const REQUIRED_TABLES: string[] = [
   `CREATE TABLE IF NOT EXISTS "short_link_clicks" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "link_id" varchar NOT NULL REFERENCES "short_links"("id") ON DELETE CASCADE,
+    "clicked_at" timestamp DEFAULT now(),
     "ip_address" varchar,
     "user_agent" text,
-    "referer" varchar,
+    "browser" varchar,
+    "os" varchar,
+    "device" varchar,
+    "referer" text,
     "country" varchar,
+    "country_code" varchar,
+    "region" varchar,
+    "city" varchar
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "short_links_slug_unique_idx" ON "short_links" ("slug") WHERE "slug" IS NOT NULL`,
+
+  // Adsterra settings and viewable placement impressions
+  `CREATE TABLE IF NOT EXISTS "adsterra_settings" (
+    "id" varchar PRIMARY KEY DEFAULT 'singleton',
+    "settings" jsonb NOT NULL DEFAULT '{"enabled":false,"placements":[]}'::jsonb,
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "adsterra_events" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "placement_id" varchar NOT NULL,
+    "event_type" varchar NOT NULL DEFAULT 'impression',
+    "page_path" varchar(512) NOT NULL,
     "created_at" timestamp DEFAULT now()
   )`,
+  `CREATE INDEX IF NOT EXISTS "adsterra_events_placement_created_idx" ON "adsterra_events" ("placement_id", "created_at")`,
+  `CREATE INDEX IF NOT EXISTS "adsterra_events_created_idx" ON "adsterra_events" ("created_at")`,
 
   // Page hero backgrounds
   `CREATE TABLE IF NOT EXISTS "page_hero_backgrounds" (
@@ -813,5 +850,40 @@ export async function runStartupMigrations(): Promise<void> {
         `[startup-migration] Failed to ensure ${fix.table}.${fix.column}: ${err?.message}`
       );
     }
+  }
+
+  // Preserve old short-link identifiers when upgrading a legacy imported table.
+  try {
+    await db.execute(sql.raw(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'short_links'
+            AND column_name = 'short_code'
+        ) THEN
+          EXECUTE 'UPDATE short_links SET slug = short_code WHERE slug IS NULL';
+        END IF;
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'short_links'
+            AND column_name = 'clicks'
+        ) THEN
+          EXECUTE 'UPDATE short_links SET click_count = clicks WHERE click_count = 0';
+        END IF;
+      END $$;
+    `));
+  } catch (err: any) {
+    console.error(`[startup-migration] Failed to backfill legacy short links: ${err?.message}`);
+  }
+
+  try {
+    await db.execute(sql.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "short_links_slug_unique_idx" ON "short_links" ("slug") WHERE "slug" IS NOT NULL;`
+    ));
+  } catch (err: any) {
+    console.error(`[startup-migration] Failed to ensure short_links.slug index: ${err?.message}`);
   }
 }

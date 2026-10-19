@@ -3618,6 +3618,18 @@ export default function AdminMaster() {
                   <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-blue-400 transition-colors flex-shrink-0" />
                 </div>
               </a>
+              <a href="/admin/adsterra" className="group">
+                <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-cyan-500/30 hover:border-cyan-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-cyan-900/20">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center flex-shrink-0">
+                    <Megaphone className="h-6 w-6 text-cyan-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">Adsterra Ads</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Manage Adsterra tags, page targets, placement locations, and impressions</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-600 group-hover:text-cyan-300 transition-colors flex-shrink-0" />
+                </div>
+              </a>
               <a href="/admin/email" className="group">
                 <div className="rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-green-500/30 hover:border-green-500/60 p-5 flex items-center gap-4 transition-all hover:shadow-lg hover:shadow-green-900/20">
                   <div className="w-12 h-12 rounded-2xl bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">

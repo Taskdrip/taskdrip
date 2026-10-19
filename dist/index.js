@@ -15,6 +15,8 @@ __export(schema_exports, {
   adAnalytics: () => adAnalytics,
   adNetworkPlacements: () => adNetworkPlacements,
   adminWallets: () => adminWallets,
+  adsterraEvents: () => adsterraEvents,
+  adsterraSettings: () => adsterraSettings,
   advertiseApplications: () => advertiseApplications,
   appSettings: () => appSettings,
   autoBlogJobs: () => autoBlogJobs,
@@ -224,7 +226,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, pluginLicenses, pluginLicenseSites, pluginLicenseEvents, pluginSupportThreads, pluginSupportMessages, productReviews, creatorBooks, creatorNotebookProjects, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, pluginLicenses, pluginLicenseSites, pluginLicenseEvents, pluginSupportThreads, pluginSupportMessages, productReviews, creatorBooks, creatorNotebookProjects, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, adsterraSettings, adsterraEvents, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -2289,6 +2291,25 @@ var init_schema = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     insertShortLinkSchema = createInsertSchema(shortLinks).omit({ id: true, createdAt: true, clickCount: true });
+    adsterraSettings = pgTable("adsterra_settings", {
+      id: varchar("id").primaryKey().default("singleton"),
+      settings: jsonb("settings").$type().notNull().default(sql`'{"enabled":false,"placements":[]}'::jsonb`),
+      updatedAt: timestamp("updated_at").defaultNow()
+    });
+    adsterraEvents = pgTable(
+      "adsterra_events",
+      {
+        id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+        placementId: varchar("placement_id").notNull(),
+        eventType: varchar("event_type").notNull().default("impression"),
+        pagePath: varchar("page_path", { length: 512 }).notNull(),
+        createdAt: timestamp("created_at").defaultNow()
+      },
+      (table) => [
+        index("adsterra_events_placement_created_idx").on(table.placementId, table.createdAt),
+        index("adsterra_events_created_idx").on(table.createdAt)
+      ]
+    );
     keywordTrackers = pgTable("keyword_trackers", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       userId: varchar("user_id").notNull(),
@@ -3456,14 +3477,14 @@ __export(analytics_injector_exports, {
   injectAnalytics: () => injectAnalytics,
   invalidateAnalyticsCache: () => invalidateAnalyticsCache
 });
-import { inArray as inArray3 } from "drizzle-orm";
+import { inArray as inArray4 } from "drizzle-orm";
 async function getAnalyticsCodes() {
   const now = Date.now();
   if (now - cache.ts < CACHE_MS) {
     return { headCode: cache.headCode, bodyCode: cache.bodyCode, enabled: cache.enabled };
   }
   try {
-    const rows = await db.select().from(appSettings).where(inArray3(appSettings.key, [HEAD_KEY, BODY_KEY, ENABLED_KEY]));
+    const rows = await db.select().from(appSettings).where(inArray4(appSettings.key, [HEAD_KEY, BODY_KEY, ENABLED_KEY]));
     const map = new Map(rows.map((r) => [r.key, r.value || ""]));
     cache = {
       headCode: map.get(HEAD_KEY) || "",
@@ -3537,7 +3558,7 @@ var init_analytics_injector = __esm({
 });
 
 // server/lead-service.ts
-import { eq as eq8, inArray as inArray5 } from "drizzle-orm";
+import { eq as eq9, inArray as inArray6 } from "drizzle-orm";
 function strHash(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
@@ -3694,7 +3715,7 @@ async function persistLeads(items) {
   for (const it of items) {
     if (!it.name) continue;
     if (it.externalId && it.source) {
-      const existing = await db.select().from(leads).where(eq8(leads.externalId, it.externalId)).limit(1);
+      const existing = await db.select().from(leads).where(eq9(leads.externalId, it.externalId)).limit(1);
       if (existing.length) {
         saved.push(existing[0]);
         continue;
@@ -3779,7 +3800,7 @@ async function sendSmsTwilio(to, body) {
 }
 async function bulkSms(opts) {
   if (!opts.leadIds.length) return [];
-  const all = await db.select().from(leads).where(inArray5(leads.id, opts.leadIds));
+  const all = await db.select().from(leads).where(inArray6(leads.id, opts.leadIds));
   const results = [];
   for (const lead of all) {
     const phone = lead.phone || lead.whatsapp;
@@ -3801,7 +3822,7 @@ async function bulkSms(opts) {
       sentBy: opts.sentBy,
       campaignId: opts.campaignId
     });
-    if (!out.error) await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq8(leads.id, lead.id));
+    if (!out.error) await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq9(leads.id, lead.id));
     results.push({ leadId: lead.id, ...out });
   }
   return results;
@@ -3881,7 +3902,7 @@ var seed_breedskool_courses_exports = {};
 __export(seed_breedskool_courses_exports, {
   seedBreedskoolCourses: () => seedBreedskoolCourses
 });
-import { eq as eq13, sql as sql9 } from "drizzle-orm";
+import { eq as eq14, sql as sql9 } from "drizzle-orm";
 async function seedBreedskoolCourses(adminId) {
   let created = 0;
   let linked = 0;
@@ -3904,7 +3925,7 @@ async function seedBreedskoolCourses(adminId) {
             whatYouLearn: course.whatYouLearn,
             requirements: course.requirements,
             syllabus: course.syllabus
-          }).where(eq13(courses.id, courseId));
+          }).where(eq14(courses.id, courseId));
         }
       } else {
         const [newCourse] = await db.insert(courses).values({
@@ -3928,7 +3949,7 @@ async function seedBreedskoolCourses(adminId) {
         courseId = newCourse.id;
         created++;
       }
-      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq13(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq14(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
           await db.insert(courseLessons).values({
@@ -3951,7 +3972,7 @@ async function seedBreedskoolCourses(adminId) {
               content: lesson.content,
               isPreview: lesson.isPreview,
               order: lesson.order
-            }).where(eq13(courseLessons.id, existingLesson.id));
+            }).where(eq14(courseLessons.id, existingLesson.id));
           } else {
             await db.insert(courseLessons).values({
               courseId,
@@ -3966,7 +3987,7 @@ async function seedBreedskoolCourses(adminId) {
           sql9`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
       }
-      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq13(breedskoolCoursePricing.courseKey, course.courseKey));
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey));
       linked++;
     } catch (e) {
       console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
@@ -4328,11 +4349,11 @@ __export(seed_breedskool_exports, {
   seedBreedskoolPaymentSettings: () => seedBreedskoolPaymentSettings,
   seedBreedskoolPricing: () => seedBreedskoolPricing
 });
-import { eq as eq14, inArray as inArray9, and as and10 } from "drizzle-orm";
+import { eq as eq15, inArray as inArray10, and as and11 } from "drizzle-orm";
 async function seedBreedskoolPaymentSettings() {
   for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
     try {
-      const existing = await db.select().from(appSettings).where(eq14(appSettings.key, key)).limit(1);
+      const existing = await db.select().from(appSettings).where(eq15(appSettings.key, key)).limit(1);
       if (existing.length === 0) {
         await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
       }
@@ -4346,7 +4367,7 @@ async function seedBreedskoolPricing() {
   let skipped = 0;
   for (const course of BREEDSKOOL_COURSES) {
     try {
-      const existing = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
+      const existing = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(breedskoolCoursePricing).values({
           ...course,
@@ -4369,7 +4390,7 @@ async function seedBreedskoolPricing() {
           isActive: course.isActive,
           acceptedPayments: course.acceptedPayments,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey));
+        }).where(eq15(breedskoolCoursePricing.courseKey, course.courseKey));
         skipped++;
       }
     } catch (e) {
@@ -4381,14 +4402,14 @@ async function seedBreedskoolPricing() {
 async function fixVerifiedBreedskoolEnrollments() {
   let fixed = 0, skipped = 0, noLink = 0;
   try {
-    const verified = await db.select().from(breedskoolRegistrations).where(inArray9(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
+    const verified = await db.select().from(breedskoolRegistrations).where(inArray10(breedskoolRegistrations.paymentStatus, ["verified", "confirmed", "paid", "approved"]));
     for (const reg of verified) {
       let resolvedUserId = reg.userId;
       if (!resolvedUserId && reg.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq14(users.email, reg.email.toLowerCase().trim())).limit(1);
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq15(users.email, reg.email.toLowerCase().trim())).limit(1);
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq14(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq15(breedskoolRegistrations.id, reg.id));
         }
       }
       if (!resolvedUserId) {
@@ -4397,20 +4418,20 @@ async function fixVerifiedBreedskoolEnrollments() {
       }
       let courseId = reg.linkedCourseId;
       if (!courseId && reg.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq14(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
         courseId = pricing?.linkedCourseId || null;
       }
       if (!courseId) {
         noLink++;
         continue;
       }
-      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and10(
-        eq14(courseEnrollments.courseId, courseId),
-        eq14(courseEnrollments.userId, reg.userId)
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and11(
+        eq15(courseEnrollments.courseId, courseId),
+        eq15(courseEnrollments.userId, reg.userId)
       )).limit(1);
       if (existing) {
         if (existing.status !== "active") {
-          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq14(courseEnrollments.id, existing.id));
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq15(courseEnrollments.id, existing.id));
           fixed++;
         } else {
           skipped++;
@@ -4427,7 +4448,7 @@ async function fixVerifiedBreedskoolEnrollments() {
         fixed++;
       }
       if (!reg.linkedCourseId && courseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq14(breedskoolRegistrations.id, reg.id));
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq15(breedskoolRegistrations.id, reg.id));
       }
     }
   } catch (e) {
@@ -5104,7 +5125,7 @@ __export(influencer_crm_service_exports, {
   getTierInfo: () => getTierInfo,
   sendInfluencerOutreach: () => sendInfluencerOutreach
 });
-import { eq as eq15, inArray as inArray10 } from "drizzle-orm";
+import { eq as eq16, inArray as inArray11 } from "drizzle-orm";
 function classifyTier(followers) {
   if (!followers || followers <= 0) return "unknown";
   for (const t of TIERS) {
@@ -5313,7 +5334,7 @@ async function crawlInfluencersAI(opts) {
   }
   if (includeInternal) {
     const { users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-    const internal = await db.select().from(users3).where(eq15(users3.userType, "influencer")).limit(100);
+    const internal = await db.select().from(users3).where(eq16(users3.userType, "influencer")).limit(100);
     if (internal.length > 0) sourcesUsed.push("internal");
     for (const u of internal) {
       const followers = u.totalFollowers || 0;
@@ -5358,7 +5379,7 @@ function dedupeByExternalId(items) {
   });
 }
 async function getInfluencerTierStats() {
-  const rows = await db.select().from(leads).where(eq15(leads.kind, "influencer"));
+  const rows = await db.select().from(leads).where(eq16(leads.kind, "influencer"));
   const tierCounts = {};
   const tierContacted = {};
   for (const r of rows) {
@@ -5407,12 +5428,12 @@ async function sendInfluencerOutreach(opts) {
     sentBy: sentBy || null
   });
   if (status === "sent" || status === "logged") {
-    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq15(leads.id, lead.id));
+    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id));
   }
   return { success: status !== "failed", channel: "email", error };
 }
 async function bulkInfluencerOutreach(opts) {
-  const all = await db.select().from(leads).where(inArray10(leads.id, opts.leadIds));
+  const all = await db.select().from(leads).where(inArray11(leads.id, opts.leadIds));
   const results = [];
   for (const lead of all) {
     const r = await sendInfluencerOutreach({ lead, subject: opts.subject, body: opts.body, sentBy: opts.sentBy });
@@ -8156,6 +8177,9 @@ function isValidUrl(u) {
 function isValidCustomSlug(s) {
   return /^[a-zA-Z0-9_-]{3,40}$/.test(s);
 }
+function shortenerBaseUrl() {
+  return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
+}
 function requireAuth(req, res, next) {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.id) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -8218,7 +8242,7 @@ function registerShortenerRoutes(app2) {
     const elig = await userCanShorten(u, settings);
     const [{ value: usedRaw }] = await db.select({ value: count() }).from(shortLinks).where(eq3(shortLinks.userId, req.userId));
     const used = Number(usedRaw) || 0;
-    res.json({ ...elig, used, enabled: settings.enabled });
+    res.json({ ...elig, used, enabled: settings.enabled, shortenerBaseUrl: shortenerBaseUrl() });
   });
   app2.get("/api/short-links", requireAuth, async (req, res) => {
     const links = await db.select().from(shortLinks).where(eq3(shortLinks.userId, req.userId)).orderBy(desc2(shortLinks.createdAt));
@@ -8287,6 +8311,7 @@ function registerShortenerRoutes(app2) {
     const byOs = {};
     const byCity = {};
     const byReferer = {};
+    const bySourcePage = {};
     const byDay = {};
     for (const c of clicks) {
       const co = c.country || "Unknown";
@@ -8308,6 +8333,16 @@ function registerShortenerRoutes(app2) {
         }
       }
       byReferer[ref] = (byReferer[ref] || 0) + 1;
+      let sourcePage = "Direct";
+      if (c.referer) {
+        try {
+          const parsedReferer = new URL(c.referer);
+          sourcePage = parsedReferer.pathname || "/";
+        } catch {
+          sourcePage = c.referer.slice(0, 150);
+        }
+      }
+      bySourcePage[sourcePage] = (bySourcePage[sourcePage] || 0) + 1;
       const day = c.clickedAt ? new Date(c.clickedAt).toISOString().slice(0, 10) : "unknown";
       byDay[day] = (byDay[day] || 0) + 1;
     }
@@ -8324,6 +8359,8 @@ function registerShortenerRoutes(app2) {
       byOs: toSorted(byOs),
       byCity: toSorted(byCity).slice(0, 25),
       byReferer: toSorted(byReferer).slice(0, 25),
+      bySourcePage: toSorted(bySourcePage).slice(0, 25),
+      shortenerBaseUrl: shortenerBaseUrl(),
       recent: clicks.slice(0, 50)
     });
   });
@@ -8360,10 +8397,265 @@ function registerShortenerRoutes(app2) {
   });
 }
 
+// server/adsterra.ts
+init_schema();
+init_db();
+import { and as and3, desc as desc3, eq as eq4, gte as gte2, inArray as inArray3 } from "drizzle-orm";
+var DEFAULT_PLACEMENTS = [
+  { id: "iframe-160x300", name: "160 \xD7 300 banner", format: "iframe", key: "d7698385134eb4874a8b03c75ec73d8e", width: 160, height: 300, enabled: true, position: "sidebar", pages: ["article"] },
+  { id: "iframe-160x600", name: "160 \xD7 600 skyscraper", format: "iframe", key: "1c8e455c08da2acaaf8ad13a9a904ed5", width: 160, height: 600, enabled: false, position: "sidebar", pages: ["article"] },
+  { id: "iframe-300x250", name: "300 \xD7 250 rectangle", format: "iframe", key: "d8908142688a819f84bcd7c2fec56af6", width: 300, height: 250, enabled: true, position: "article-inline", pages: ["article"] },
+  { id: "iframe-320x50", name: "320 \xD7 50 mobile banner", format: "iframe", key: "17a65f77fa3438b3fefdcb676ee98dee", width: 320, height: 50, enabled: true, position: "footer", pages: ["all"] },
+  { id: "iframe-468x60", name: "468 \xD7 60 banner", format: "iframe", key: "853091c54a9b97261a0c491b694fec3d", width: 468, height: 60, enabled: false, position: "footer", pages: ["all"] },
+  { id: "iframe-728x90", name: "728 \xD7 90 leaderboard", format: "iframe", key: "154db1845b00e0f67c9191df7bfaae41", width: 728, height: 90, enabled: true, position: "article-end", pages: ["article"] },
+  { id: "native-banner", name: "Native banner", format: "native", key: "5f2b3b9889056ddaef435c83d66cfe70", width: 640, height: 180, enabled: true, position: "blog-feed", pages: ["blog"] },
+  { id: "popunder", name: "Popunder", format: "popunder", key: "5f2b3b9889056ddaef435c83d66cfe70", width: 1, height: 1, enabled: false, position: "floating", pages: ["all"] },
+  { id: "smartlink", name: "Smartlink", format: "smartlink", key: "8c495b91cd0cddb28d0dc18b095eb0d1", enabled: false, position: "article-end", pages: ["article"] },
+  { id: "socialbar", name: "Social Bar", format: "socialbar", key: "74a8f64f8fe3f8d27ae89ac6b9528098", width: 360, height: 100, enabled: false, position: "floating", pages: ["all"] }
+];
+var DEFAULT_SETTINGS = { enabled: false, placements: DEFAULT_PLACEMENTS };
+var FORMATS = /* @__PURE__ */ new Set(["iframe", "native", "popunder", "smartlink", "socialbar"]);
+var POSITIONS = /* @__PURE__ */ new Set(["body", "blog-feed", "article-inline", "sidebar", "article-end", "footer", "floating"]);
+var PAGE_TARGETS = /* @__PURE__ */ new Set(["all", "site", "blog", "article"]);
+var ZONE_KEY = /^[a-f0-9]{32}$/i;
+function appBaseUrl() {
+  return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
+}
+function requireAdmin2(req, res, next) {
+  if (!req.isAuthenticated?.() || !req.user?.id) return res.status(401).json({ message: "Unauthorized" });
+  if (req.user.userType !== "admin" && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  next();
+}
+async function getSettings2() {
+  const [existing] = await db.select().from(adsterraSettings).where(eq4(adsterraSettings.id, "singleton")).limit(1);
+  if (existing?.settings?.placements?.length) return existing.settings;
+  if (existing) {
+    await db.update(adsterraSettings).set({ settings: DEFAULT_SETTINGS, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(adsterraSettings.id, "singleton"));
+    return DEFAULT_SETTINGS;
+  }
+  await db.insert(adsterraSettings).values({ id: "singleton", settings: DEFAULT_SETTINGS }).onConflictDoNothing();
+  const [created] = await db.select().from(adsterraSettings).where(eq4(adsterraSettings.id, "singleton")).limit(1);
+  return created?.settings || DEFAULT_SETTINGS;
+}
+function getShortDestination(key) {
+  return `https://arwf.org/4/${key}`;
+}
+function makeShortSlug(id) {
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `ad-${id}-${suffix}`.slice(0, 40);
+}
+async function ensureSmartlink(placement, adminId, oldSlug) {
+  const originalUrl = getShortDestination(placement.key);
+  const title = `Adsterra Smartlink \u2014 ${placement.name}`;
+  if (oldSlug) {
+    const [existing] = await db.select().from(shortLinks).where(eq4(shortLinks.slug, oldSlug)).limit(1);
+    if (existing) {
+      await db.update(shortLinks).set({ originalUrl, title }).where(eq4(shortLinks.id, existing.id));
+      return oldSlug;
+    }
+  }
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const slug = makeShortSlug(placement.id);
+    const [existing] = await db.select({ id: shortLinks.id }).from(shortLinks).where(eq4(shortLinks.slug, slug)).limit(1);
+    if (existing) continue;
+    await db.insert(shortLinks).values({
+      userId: adminId,
+      slug,
+      originalUrl,
+      title,
+      isReferral: false
+    });
+    return slug;
+  }
+  throw new Error("Could not allocate a Taskdrip short link for the Smartlink placement.");
+}
+function validateSettings(input, previous) {
+  if (!input || typeof input.enabled !== "boolean" || !Array.isArray(input.placements) || input.placements.length > 20) {
+    return { error: "Settings must include a global switch and no more than 20 placements." };
+  }
+  const ids = /* @__PURE__ */ new Set();
+  const placements = [];
+  for (const candidate of input.placements) {
+    if (!candidate || typeof candidate.id !== "string" || !/^[a-z0-9][a-z0-9_-]{1,39}$/i.test(candidate.id)) {
+      return { error: "Each placement needs a valid ID." };
+    }
+    if (ids.has(candidate.id)) return { error: `Duplicate placement ID: ${candidate.id}` };
+    ids.add(candidate.id);
+    if (typeof candidate.name !== "string" || !candidate.name.trim() || candidate.name.length > 100) {
+      return { error: `Placement ${candidate.id} needs a name of 1\u2013100 characters.` };
+    }
+    if (!FORMATS.has(candidate.format) || !POSITIONS.has(candidate.position)) {
+      return { error: `Placement ${candidate.id} has an unsupported ad format or location.` };
+    }
+    if (typeof candidate.enabled !== "boolean" || !ZONE_KEY.test(candidate.key || "")) {
+      return { error: `Placement ${candidate.id} needs a 32-character Adsterra zone ID and enabled state.` };
+    }
+    if (!Array.isArray(candidate.pages) || candidate.pages.length === 0 || candidate.pages.some((page2) => !PAGE_TARGETS.has(page2))) {
+      return { error: `Placement ${candidate.id} needs at least one valid page target.` };
+    }
+    const width = Number(candidate.width);
+    const height = Number(candidate.height);
+    if (candidate.format !== "smartlink" && (!Number.isInteger(width) || width < 1 || width > 1200 || !Number.isInteger(height) || height < 1 || height > 1200)) {
+      return { error: `Placement ${candidate.id} has invalid dimensions.` };
+    }
+    const oldPlacement = previous.placements.find((item) => item.id === candidate.id);
+    placements.push({
+      id: candidate.id,
+      name: candidate.name.trim(),
+      format: candidate.format,
+      key: candidate.key.toLowerCase(),
+      width: candidate.format === "smartlink" ? void 0 : width,
+      height: candidate.format === "smartlink" ? void 0 : height,
+      enabled: candidate.enabled,
+      position: candidate.position,
+      pages: Array.from(new Set(candidate.pages)),
+      shortSlug: candidate.format === "smartlink" ? oldPlacement?.shortSlug : void 0
+    });
+  }
+  return { settings: { enabled: input.enabled, placements } };
+}
+function pagePath(value) {
+  const path7 = typeof value === "string" ? value : "/";
+  return path7.startsWith("/") ? path7.slice(0, 512) : "/";
+}
+function registerAdsterraRoutes(app2) {
+  app2.get("/api/adsterra/public-settings", async (_req, res) => {
+    try {
+      const settings = await getSettings2();
+      res.set("Cache-Control", "no-store");
+      res.json({ ...settings, shortenerBaseUrl: appBaseUrl() });
+    } catch (error) {
+      console.error("[adsterra] public settings error", error);
+      res.status(503).json({ enabled: false, placements: [], shortenerBaseUrl: appBaseUrl() });
+    }
+  });
+  app2.post("/api/adsterra/impressions", async (req, res) => {
+    try {
+      const { placementId } = req.body || {};
+      if (typeof placementId !== "string" || !/^[a-z0-9][a-z0-9_-]{1,39}$/i.test(placementId)) {
+        return res.status(400).json({ message: "Invalid placement." });
+      }
+      const settings = await getSettings2();
+      const placement = settings.placements.find((item) => item.id === placementId);
+      if (!settings.enabled || !placement?.enabled || placement.format === "smartlink") {
+        return res.status(204).end();
+      }
+      await db.insert(adsterraEvents).values({
+        placementId,
+        eventType: "impression",
+        pagePath: pagePath(req.body?.pagePath)
+      });
+      res.status(204).end();
+    } catch (error) {
+      console.error("[adsterra] impression tracking error", error);
+      res.status(204).end();
+    }
+  });
+  app2.get("/api/admin/adsterra/settings", requireAdmin2, async (_req, res) => {
+    try {
+      res.json({ ...await getSettings2(), shortenerBaseUrl: appBaseUrl() });
+    } catch (error) {
+      console.error("[adsterra] admin settings error", error);
+      res.status(500).json({ message: "Unable to load Adsterra settings." });
+    }
+  });
+  app2.put("/api/admin/adsterra/settings", requireAdmin2, async (req, res) => {
+    try {
+      const previous = await getSettings2();
+      const validation = validateSettings(req.body, previous);
+      if (!validation.settings) return res.status(400).json({ message: validation.error });
+      for (const placement of validation.settings.placements) {
+        if (placement.format === "smartlink") {
+          placement.shortSlug = await ensureSmartlink(
+            placement,
+            req.user.id,
+            previous.placements.find((old) => old.id === placement.id)?.shortSlug
+          );
+        }
+      }
+      await db.insert(adsterraSettings).values({ id: "singleton", settings: validation.settings, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({
+        target: adsterraSettings.id,
+        set: { settings: validation.settings, updatedAt: /* @__PURE__ */ new Date() }
+      });
+      res.json({ ...validation.settings, shortenerBaseUrl: appBaseUrl() });
+    } catch (error) {
+      console.error("[adsterra] save settings error", error);
+      res.status(500).json({ message: error?.message || "Unable to save Adsterra settings." });
+    }
+  });
+  app2.get("/api/admin/adsterra/analytics", requireAdmin2, async (req, res) => {
+    try {
+      const days = Math.max(1, Math.min(90, Number.parseInt(String(req.query.days || "30"), 10) || 30));
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1e3);
+      const settings = await getSettings2();
+      const [events, smartlinkRows] = await Promise.all([
+        db.select().from(adsterraEvents).where(and3(eq4(adsterraEvents.eventType, "impression"), gte2(adsterraEvents.createdAt, since))).orderBy(desc3(adsterraEvents.createdAt)).limit(2e4),
+        settings.placements.some((placement) => placement.shortSlug) ? db.select({ linkId: shortLinks.id, slug: shortLinks.slug }).from(shortLinks).where(inArray3(shortLinks.slug, settings.placements.filter((placement) => placement.shortSlug).map((placement) => placement.shortSlug))) : Promise.resolve([])
+      ]);
+      const clicks = smartlinkRows.length ? await db.select().from(shortLinkClicks).where(and3(inArray3(shortLinkClicks.linkId, smartlinkRows.map((row) => row.linkId)), gte2(shortLinkClicks.clickedAt, since))).orderBy(desc3(shortLinkClicks.clickedAt)).limit(2e4) : [];
+      const stats = /* @__PURE__ */ new Map();
+      for (const placement of settings.placements) {
+        stats.set(placement.id, { impressions: 0, clicks: 0, pages: /* @__PURE__ */ new Map() });
+      }
+      for (const event of events) {
+        const item = stats.get(event.placementId);
+        if (!item) continue;
+        item.impressions += 1;
+        item.pages.set(event.pagePath, (item.pages.get(event.pagePath) || 0) + 1);
+      }
+      const slugToPlacement = new Map(
+        settings.placements.filter((placement) => placement.shortSlug).map((placement) => [placement.shortSlug, placement.id])
+      );
+      const linkToPlacement = new Map(smartlinkRows.map((row) => [row.linkId, slugToPlacement.get(row.slug)]));
+      const linkIds = new Set(smartlinkRows.map((row) => row.linkId));
+      for (const click of clicks) {
+        if (!linkIds.has(click.linkId)) continue;
+        const placementId = linkToPlacement.get(click.linkId);
+        const item = placementId ? stats.get(placementId) : void 0;
+        if (!item) continue;
+        item.clicks += 1;
+        let sourcePage = "Direct";
+        if (click.referer) {
+          try {
+            const referer = new URL(click.referer);
+            sourcePage = referer.pathname || "/";
+          } catch {
+            sourcePage = click.referer.slice(0, 150);
+          }
+        }
+        item.pages.set(sourcePage, (item.pages.get(sourcePage) || 0) + 1);
+      }
+      const byPlacement = settings.placements.map((placement) => {
+        const item = stats.get(placement.id);
+        return {
+          id: placement.id,
+          name: placement.name,
+          format: placement.format,
+          position: placement.position,
+          impressions: item.impressions,
+          smartlinkClicks: item.clicks,
+          byPage: Array.from(item.pages.entries()).map(([page2, count5]) => ({ page: page2, count: count5 })).sort((a, b) => b.count - a.count)
+        };
+      });
+      res.json({
+        days,
+        totalImpressions: byPlacement.reduce((sum, item) => sum + item.impressions, 0),
+        totalSmartlinkClicks: byPlacement.reduce((sum, item) => sum + item.smartlinkClicks, 0),
+        byPlacement
+      });
+    } catch (error) {
+      console.error("[adsterra] analytics error", error);
+      res.status(500).json({ message: "Unable to load Adsterra analytics." });
+    }
+  });
+}
+
 // server/keyword-analytics.ts
 init_db();
 init_schema();
-import { eq as eq4, desc as desc3, and as and3, sql as sql4 } from "drizzle-orm";
+import { eq as eq5, desc as desc4, and as and4, sql as sql4 } from "drizzle-orm";
 import googleTrends from "google-trends-api";
 import Parser from "rss-parser";
 var rssParser = new Parser({ timeout: 1e4 });
@@ -8497,7 +8789,7 @@ function buildPlatformSearchUrls(keyword) {
   };
 }
 async function refreshTracker(trackerId) {
-  const [tracker] = await db.select().from(keywordTrackers).where(eq4(keywordTrackers.id, trackerId));
+  const [tracker] = await db.select().from(keywordTrackers).where(eq5(keywordTrackers.id, trackerId));
   if (!tracker) return { added: 0 };
   const platforms = (tracker.platforms || []).length ? tracker.platforms : ["reddit", "hackernews", "news", "youtube"];
   const allItems = [];
@@ -8514,7 +8806,7 @@ async function refreshTracker(trackerId) {
     }
   }));
   if (allItems.length) {
-    await db.delete(trackedContent).where(eq4(trackedContent.trackerId, trackerId));
+    await db.delete(trackedContent).where(eq5(trackedContent.trackerId, trackerId));
     await db.insert(trackedContent).values(allItems.map((i) => ({
       trackerId,
       platform: i.platform,
@@ -8528,12 +8820,12 @@ async function refreshTracker(trackerId) {
       publishedAt: i.publishedAt || null
     })));
   }
-  await db.update(keywordTrackers).set({ lastRefreshedAt: /* @__PURE__ */ new Date() }).where(eq4(keywordTrackers.id, trackerId));
+  await db.update(keywordTrackers).set({ lastRefreshedAt: /* @__PURE__ */ new Date() }).where(eq5(keywordTrackers.id, trackerId));
   return { added: allItems.length };
 }
 function registerKeywordAnalyticsRoutes(app2) {
   app2.get("/api/admin/keyword-trackers", isAuthed, isAdmin2, async (req, res) => {
-    const rows = await db.select().from(keywordTrackers).orderBy(desc3(keywordTrackers.createdAt));
+    const rows = await db.select().from(keywordTrackers).orderBy(desc4(keywordTrackers.createdAt));
     res.json(rows);
   });
   app2.post("/api/admin/keyword-trackers", isAuthed, isAdmin2, async (req, res) => {
@@ -8553,7 +8845,7 @@ function registerKeywordAnalyticsRoutes(app2) {
     }
   });
   app2.delete("/api/admin/keyword-trackers/:id", isAuthed, isAdmin2, async (req, res) => {
-    await db.delete(keywordTrackers).where(eq4(keywordTrackers.id, req.params.id));
+    await db.delete(keywordTrackers).where(eq5(keywordTrackers.id, req.params.id));
     res.json({ ok: true });
   });
   app2.post("/api/admin/keyword-trackers/:id/refresh", isAuthed, isAdmin2, async (req, res) => {
@@ -8566,16 +8858,16 @@ function registerKeywordAnalyticsRoutes(app2) {
   });
   app2.get("/api/admin/keyword-trackers/:id/content", isAuthed, isAdmin2, async (req, res) => {
     const { platform, sort } = req.query;
-    const conds = [eq4(trackedContent.trackerId, req.params.id)];
-    if (platform && platform !== "all") conds.push(eq4(trackedContent.platform, String(platform)));
-    let orderCol = desc3(trackedContent.fetchedAt);
-    if (sort === "metric") orderCol = desc3(trackedContent.metric);
-    if (sort === "recent") orderCol = desc3(trackedContent.publishedAt);
-    const rows = await db.select().from(trackedContent).where(and3(...conds)).orderBy(orderCol).limit(300);
+    const conds = [eq5(trackedContent.trackerId, req.params.id)];
+    if (platform && platform !== "all") conds.push(eq5(trackedContent.platform, String(platform)));
+    let orderCol = desc4(trackedContent.fetchedAt);
+    if (sort === "metric") orderCol = desc4(trackedContent.metric);
+    if (sort === "recent") orderCol = desc4(trackedContent.publishedAt);
+    const rows = await db.select().from(trackedContent).where(and4(...conds)).orderBy(orderCol).limit(300);
     const counts = await db.select({
       platform: trackedContent.platform,
       count: sql4`count(*)::int`
-    }).from(trackedContent).where(eq4(trackedContent.trackerId, req.params.id)).groupBy(trackedContent.platform);
+    }).from(trackedContent).where(eq5(trackedContent.trackerId, req.params.id)).groupBy(trackedContent.platform);
     res.json({ items: rows, counts });
   });
   app2.post("/api/admin/keyword-search", isAuthed, isAdmin2, async (req, res) => {
@@ -8609,7 +8901,7 @@ function registerKeywordAnalyticsRoutes(app2) {
     const region = String(req.query.region || "US");
     const trends = await fetchGoogleDailyTrends(region);
     if (trends.length) {
-      await db.delete(trendingTopics).where(eq4(trendingTopics.region, region));
+      await db.delete(trendingTopics).where(eq5(trendingTopics.region, region));
       await db.insert(trendingTopics).values(trends.slice(0, 50).map((t, idx) => ({
         topic: t.topic || "",
         platform: "google",
@@ -8630,7 +8922,7 @@ function registerKeywordAnalyticsRoutes(app2) {
 // server/auto-blogger.ts
 init_db();
 init_schema();
-import { eq as eq5, desc as desc4 } from "drizzle-orm";
+import { eq as eq6, desc as desc5 } from "drizzle-orm";
 import Parser2 from "rss-parser";
 import OpenAI from "openai";
 import { createRequire } from "module";
@@ -9032,14 +9324,14 @@ async function rewriteToBlog(opts) {
     featuredImage
   };
 }
-async function getSettings2() {
-  const [s] = await db.select().from(autoBloggerSettings).where(eq5(autoBloggerSettings.id, "singleton"));
+async function getSettings3() {
+  const [s] = await db.select().from(autoBloggerSettings).where(eq6(autoBloggerSettings.id, "singleton"));
   if (s) return s;
   const [created] = await db.insert(autoBloggerSettings).values({ id: "singleton" }).returning();
   return created;
 }
 async function runSource(sourceId, perSource, createdBy) {
-  const [source] = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.id, sourceId));
+  const [source] = await db.select().from(autoBlogSources).where(eq6(autoBlogSources.id, sourceId));
   if (!source || !source.isActive) return [];
   const limit = Math.max(1, Math.min(5, perSource));
   let items = [];
@@ -9048,7 +9340,7 @@ async function runSource(sourceId, perSource, createdBy) {
   else if (source.type === "hackernews") items = await pullHackerNews(limit);
   else if (source.type === "youtube" && source.url) items = await pullYoutube(source.url, limit);
   else return [];
-  const settings = await getSettings2();
+  const settings = await getSettings3();
   const created = [];
   for (const item of items) {
     try {
@@ -9115,7 +9407,7 @@ ${t}`;
       });
     }
   }
-  await db.update(autoBlogSources).set({ lastRunAt: /* @__PURE__ */ new Date() }).where(eq5(autoBlogSources.id, source.id));
+  await db.update(autoBlogSources).set({ lastRunAt: /* @__PURE__ */ new Date() }).where(eq6(autoBlogSources.id, source.id));
   return created;
 }
 var autopilotTimer = null;
@@ -9124,19 +9416,19 @@ async function autopilotTick() {
   if (autopilotRunning) return;
   autopilotRunning = true;
   try {
-    const settings = await getSettings2();
+    const settings = await getSettings3();
     if (!settings.autopilotEnabled) return;
     const last = settings.lastAutopilotRunAt ? new Date(settings.lastAutopilotRunAt).getTime() : 0;
     const intervalMs = Math.max(15, settings.autopilotIntervalMinutes || 180) * 60 * 1e3;
     if (Date.now() - last < intervalMs) return;
-    const sources = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.isActive, true));
+    const sources = await db.select().from(autoBlogSources).where(eq6(autoBlogSources.isActive, true));
     for (const s of sources) {
       try {
         await runSource(s.id, settings.autopilotPerSource || 1, null);
       } catch {
       }
     }
-    await db.update(autoBloggerSettings).set({ lastAutopilotRunAt: /* @__PURE__ */ new Date() }).where(eq5(autoBloggerSettings.id, "singleton"));
+    await db.update(autoBloggerSettings).set({ lastAutopilotRunAt: /* @__PURE__ */ new Date() }).where(eq6(autoBloggerSettings.id, "singleton"));
   } catch (e) {
     console.error("[autopilot] tick error", e);
   } finally {
@@ -9150,16 +9442,16 @@ function startAutoBloggerAutopilot() {
 }
 function registerAutoBloggerRoutes(app2) {
   app2.get("/api/admin/auto-blogger/settings", isAuthed2, isAdmin3, async (req, res) => {
-    res.json(await getSettings2());
+    res.json(await getSettings3());
   });
   app2.patch("/api/admin/auto-blogger/settings", isAuthed2, isAdmin3, async (req, res) => {
     const updates = { ...req.body, updatedAt: /* @__PURE__ */ new Date() };
     delete updates.id;
-    const [updated] = await db.update(autoBloggerSettings).set(updates).where(eq5(autoBloggerSettings.id, "singleton")).returning();
-    res.json(updated || await getSettings2());
+    const [updated] = await db.update(autoBloggerSettings).set(updates).where(eq6(autoBloggerSettings.id, "singleton")).returning();
+    res.json(updated || await getSettings3());
   });
   app2.get("/api/admin/auto-blogger/sources", isAuthed2, isAdmin3, async (req, res) => {
-    const rows = await db.select().from(autoBlogSources).orderBy(desc4(autoBlogSources.createdAt));
+    const rows = await db.select().from(autoBlogSources).orderBy(desc5(autoBlogSources.createdAt));
     res.json(rows);
   });
   app2.post("/api/admin/auto-blogger/sources", isAuthed2, isAdmin3, async (req, res) => {
@@ -9181,11 +9473,11 @@ function registerAutoBloggerRoutes(app2) {
   app2.patch("/api/admin/auto-blogger/sources/:id", isAuthed2, isAdmin3, async (req, res) => {
     const updates = { ...req.body };
     delete updates.id;
-    const [row] = await db.update(autoBlogSources).set(updates).where(eq5(autoBlogSources.id, req.params.id)).returning();
+    const [row] = await db.update(autoBlogSources).set(updates).where(eq6(autoBlogSources.id, req.params.id)).returning();
     res.json(row);
   });
   app2.delete("/api/admin/auto-blogger/sources/:id", isAuthed2, isAdmin3, async (req, res) => {
-    await db.delete(autoBlogSources).where(eq5(autoBlogSources.id, req.params.id));
+    await db.delete(autoBlogSources).where(eq6(autoBlogSources.id, req.params.id));
     res.json({ ok: true });
   });
   app2.post("/api/admin/auto-blogger/sources/seed", isAuthed2, isAdmin3, async (req, res) => {
@@ -9201,14 +9493,14 @@ function registerAutoBloggerRoutes(app2) {
       { name: "YouTube \u2014 Marques Brownlee", type: "youtube", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ", category: "Tech" }
     ];
     for (const s of seeds) {
-      const [exists2] = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.name, s.name));
+      const [exists2] = await db.select().from(autoBlogSources).where(eq6(autoBlogSources.name, s.name));
       if (!exists2) await db.insert(autoBlogSources).values(s);
     }
     res.json({ ok: true });
   });
   app2.post("/api/admin/auto-blogger/sources/:id/discover", isAuthed2, isAdmin3, async (req, res) => {
     try {
-      const [source] = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.id, req.params.id));
+      const [source] = await db.select().from(autoBlogSources).where(eq6(autoBlogSources.id, req.params.id));
       if (!source) return res.status(404).json({ message: "Not found" });
       const limit = Math.min(20, Number(req.body?.limit) || 5);
       let items = [];
@@ -9217,7 +9509,7 @@ function registerAutoBloggerRoutes(app2) {
       else if (source.type === "hackernews") items = await pullHackerNews(limit);
       else if (source.type === "youtube" && source.url) items = await pullYoutube(source.url, limit);
       else return res.status(400).json({ message: "Unsupported source type" });
-      await db.update(autoBlogSources).set({ lastRunAt: /* @__PURE__ */ new Date() }).where(eq5(autoBlogSources.id, source.id));
+      await db.update(autoBlogSources).set({ lastRunAt: /* @__PURE__ */ new Date() }).where(eq6(autoBlogSources.id, source.id));
       res.json({ source: source.name, category: source.category, items });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -9227,7 +9519,7 @@ function registerAutoBloggerRoutes(app2) {
     try {
       const { sourceTitle, sourceContent, sourceUrl, sourceId, category, autoPublish, includeTranscript } = req.body || {};
       if (!sourceTitle) return res.status(400).json({ message: "sourceTitle required" });
-      const settings = await getSettings2();
+      const settings = await getSettings3();
       const [job] = await db.insert(autoBlogJobs).values({
         sourceId: sourceId || null,
         sourceTitle,
@@ -9280,14 +9572,14 @@ ${t}`;
           status: shouldPublish ? "published" : "completed",
           blogPostId: post.id,
           completedAt: /* @__PURE__ */ new Date()
-        }).where(eq5(autoBlogJobs.id, job.id)).returning();
+        }).where(eq6(autoBlogJobs.id, job.id)).returning();
         return res.json({ job: updatedJob, post });
       } catch (err) {
         await db.update(autoBlogJobs).set({
           status: "failed",
           errorMessage: err.message?.slice(0, 500) || "Unknown error",
           completedAt: /* @__PURE__ */ new Date()
-        }).where(eq5(autoBlogJobs.id, job.id));
+        }).where(eq6(autoBlogJobs.id, job.id));
         return res.status(500).json({ message: err.message, jobId: job.id });
       }
     } catch (e) {
@@ -9305,21 +9597,21 @@ ${t}`;
   });
   app2.post("/api/admin/auto-blogger/autopilot/run-now", isAuthed2, isAdmin3, async (req, res) => {
     try {
-      const settings = await getSettings2();
-      const sources = await db.select().from(autoBlogSources).where(eq5(autoBlogSources.isActive, true));
+      const settings = await getSettings3();
+      const sources = await db.select().from(autoBlogSources).where(eq6(autoBlogSources.isActive, true));
       const totals = [];
       for (const s of sources) {
         const created = await runSource(s.id, settings.autopilotPerSource || 1, req.user.id);
         totals.push({ source: s.name, created: created.length });
       }
-      await db.update(autoBloggerSettings).set({ lastAutopilotRunAt: /* @__PURE__ */ new Date() }).where(eq5(autoBloggerSettings.id, "singleton"));
+      await db.update(autoBloggerSettings).set({ lastAutopilotRunAt: /* @__PURE__ */ new Date() }).where(eq6(autoBloggerSettings.id, "singleton"));
       res.json({ totals });
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
   });
   app2.get("/api/admin/auto-blogger/jobs", isAuthed2, isAdmin3, async (req, res) => {
-    const rows = await db.select().from(autoBlogJobs).orderBy(desc4(autoBlogJobs.createdAt)).limit(100);
+    const rows = await db.select().from(autoBlogJobs).orderBy(desc5(autoBlogJobs.createdAt)).limit(100);
     res.json(rows);
   });
   app2.get("/api/admin/auto-blogger/health", isAuthed2, isAdmin3, async (req, res) => {
@@ -9337,7 +9629,303 @@ ${t}`;
 init_db();
 import bcrypt2 from "bcryptjs";
 init_schema();
-import { eq as eq6, sql as sql5, desc as desc5, inArray as inArray4 } from "drizzle-orm";
+import { eq as eq7, sql as sql5, desc as desc6, inArray as inArray5 } from "drizzle-orm";
+
+// server/tech-article-seed-data.ts
+var photo = (id, width = 1200) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=82`;
+var TECH_ARTICLES = [
+  {
+    title: "Why Are Phones Getting More Expensive? AI Memory Shortage Explained",
+    slug: "why-phones-laptops-getting-more-expensive-ai-memory-chip-shortage",
+    excerpt: "AI data centres are competing for memory chips used across consumer electronics. Here is how DRAM, NAND and HBM affect device prices\u2014and how to decide whether to keep, repair, buy new or buy refurbished.",
+    category: "Technology & AI",
+    tags: ["AI", "smartphones", "memory chips", "laptops", "consumer technology", "buying guide"],
+    featuredImage: photo("photo-1518770660439-4636190af475", 1600),
+    metaDescription: "Why are phones and laptops getting more expensive? Learn how AI-driven memory demand affects DRAM, NAND, device specifications and your next upgrade.",
+    seoKeywords: "why are phones getting more expensive, AI memory chip shortage, smartphone memory shortage, laptop prices, DRAM, NAND, HBM, refurbished phones",
+    readingTime: 12,
+    viewCount: 0,
+    likesCount: 0,
+    commentsCount: 0,
+    content: `
+<p><strong>Why are phones and laptops getting more expensive even when the next model does not feel like a major upgrade?</strong> One important part of the answer is memory. AI data centres need enormous quantities of fast memory and storage, and those buyers compete for investment, manufacturing capacity and supply that also serve everyday electronics. When memory becomes scarce or more expensive, device makers have to decide whether to raise prices, accept lower margins or change what goes into a product.</p>
+
+<p>That does not mean an AI data centre takes a finished phone memory chip and installs it in a server. The products are different. The pressure travels through shared factories, production priorities, equipment, packaging capacity and supplier investment. Understanding that distinction helps explain why a boom in AI infrastructure can affect a phone you buy in another country.</p>
+
+<p>This guide breaks down the three kinds of memory involved, what current analyst forecasts do and do not say, and how to make a sensible upgrade decision without assuming the newest model is automatically the best value.</p>
+
+<nav aria-label="Article contents" style="padding:1rem 1.25rem;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;margin:1.5rem 0;">
+  <p><strong>In this guide</strong></p>
+  <ul>
+    <li><a href="#memory-types">DRAM, NAND and HBM in plain English</a></li>
+    <li><a href="#ai-demand">Why AI data centres affect consumer devices</a></li>
+    <li><a href="#supply">Why chip supply cannot expand overnight</a></li>
+    <li><a href="#what-buyers-see">What shoppers may notice</a></li>
+    <li><a href="#upgrade-options">Keep, repair, buy new or buy refurbished?</a></li>
+    <li><a href="#upgrade-check">Try the upgrade decision checker</a></li>
+    <li><a href="#questions">Frequently asked questions</a></li>
+  </ul>
+</nav>
+
+<figure style="margin:2rem 0;">
+  <img src="${photo("photo-1518770660439-4636190af475", 1400)}" alt="Close-up of electronic circuitry and components on a printed circuit board" width="1400" height="933" loading="eager" style="width:100%;height:auto;border-radius:14px;" />
+  <figcaption style="font-size:.875rem;color:#6b7280;margin-top:.5rem;">Circuit-board stock photograph via <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Unsplash</a>.</figcaption>
+</figure>
+
+<h2 id="memory-types">DRAM, NAND and HBM: three kinds of memory, three different jobs</h2>
+<p>\u201CMemory\u201D is often used as if it means one thing. In a phone, laptop or data centre, it can refer to components with very different purposes. They are related by the semiconductor supply chain, but they are not interchangeable parts.</p>
+
+<h3>NAND flash: storage that keeps your files</h3>
+<p>NAND flash is non-volatile storage. It holds the operating system, photos, games, downloaded files and apps when the device is switched off. A phone advertised with 128 GB or 256 GB is describing its storage capacity, usually built from NAND. Laptop SSDs use NAND too.</p>
+<p>When storage prices rise, a manufacturer might charge more for a high-capacity version, offer fewer large-storage models, or use a lower-cost storage configuration. Cloud storage can help make room for photos, but it does not increase a phone\u2019s physical storage or give apps more working memory. It also cannot replace an SSD\u2019s local speed when a laptop is offline.</p>
+
+<h3>DRAM: the device\u2019s short-term working space</h3>
+<p>Dynamic random-access memory, or DRAM, is the fast temporary workspace a device uses while applications are open. More usable RAM can help a phone switch among apps without repeatedly reloading them, and it gives a computer more headroom for demanding software. Phones often use low-power DRAM such as LPDDR; laptops use other DRAM types, depending on the design.</p>
+<p>Less RAM can contribute to more app reloads, pauses or background tasks being closed, but memory is only one factor. The processor, software, storage speed, battery condition, heat and the apps being run all affect how responsive a device feels. A slow phone is not proof by itself that its memory is too small.</p>
+
+<h3>HBM: specialist high-bandwidth memory for AI accelerators</h3>
+<p>High-bandwidth memory (HBM) is a specialized form of DRAM used beside powerful processors in many AI servers and accelerators. It is designed to move very large amounts of data quickly. It is not the ordinary RAM inside a consumer phone. HBM is more complex to manufacture and package, and suppliers can earn more from it than from some mainstream memory products.</p>
+<p>The useful link is economic and industrial: memory makers have limited fabrication capacity, equipment and investment budgets. When the highest-margin orders are for AI infrastructure, suppliers have strong incentives to prioritize those products. This can constrain additions to the broader supply of DRAM and NAND used in phones, PCs and consumer SSDs.</p>
+
+<h2 id="ai-demand">Why AI data centres can make consumer devices cost more</h2>
+<p>Generative AI systems need memory during both training and everyday use, known as inference. A large data-centre deployment can use many accelerators, each paired with high-bandwidth memory, along with conventional server DRAM and enterprise solid-state storage. The total volume is large, the buyers are concentrated, and a delayed installation can be expensive for a cloud company. That combination makes long-term, high-value orders attractive to suppliers.</p>
+<p>Consumer electronics still represent substantial demand, but phones and laptops are built to very different price targets. A phone maker cannot simply pass every component increase to shoppers without risking weaker sales. Manufacturers can try to negotiate contracts, draw on inventory, accept a smaller margin, change product mix or pass some of the cost along. Smaller brands and low-cost devices generally have less room to absorb a surprise than a premium product line.</p>
+<p>Independent analyst reports describe this pressure from different angles. In its 26 August 2026 forecast, IDC projected worldwide smartphone shipments would fall 16.7% for the year while the average selling price rose 27.6% to US$581. Those are market-wide forecasts, not a claim that every individual phone became 27.6% more expensive. IDC also reported that component costs were rising sharply and that manufacturers were changing their product mix. Treat the numbers as IDC\u2019s dated forecast, not a live quote for a particular model or country.</p>
+<p>Deloitte\u2019s July 2026 analysis said AI-server DRAM costs had roughly doubled in the first quarter and forecast a much larger increase across the year for that particular category. It also noted that adding memory capacity takes years: new fabrication facilities and production lines require major investment and time to reach reliable yields. A forecast for AI-server DRAM should not be mistaken for a fourfold increase in the retail price of phone memory. The market segments and price measures are different.</p>
+
+<figure style="margin:2rem 0;">
+  <img src="${photo("photo-1558494949-ef010cbdcc31", 1200)}" alt="Rows of server racks inside a data centre" width="1200" height="800" loading="lazy" style="width:100%;height:auto;border-radius:14px;" />
+  <figcaption style="font-size:.875rem;color:#6b7280;margin-top:.5rem;">Data-centre stock photograph via <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Unsplash</a>.</figcaption>
+</figure>
+
+<h2 id="supply">Why chip makers cannot switch on a new factory next month</h2>
+<p>Memory fabrication is capital-intensive, specialized and slow to scale. A new cleanroom requires precision equipment, carefully controlled processes and a skilled workforce. After construction, the manufacturer still has to tune production, improve yields and qualify the output for customers. A chip that works in a test batch is not automatically a high-volume product with consistent quality and acceptable cost.</p>
+<p>Investment decisions are difficult because memory has a history of boom-and-bust cycles. Building capacity during a shortage can look sensible; if demand falls before the factory reaches full output, the supplier may be left with expensive equipment and excess inventory. The consumer electronics market can also shift quickly: brands can cancel a device, reduce orders or change a product line faster than a memory producer can close a factory and recover its investment.</p>
+<p>That does not mean suppliers never expand. It means new capacity is planned years ahead, and the mix of products a factory can make is not perfectly flexible. Deloitte\u2019s 2026 outlook says some of the new capacity announced in response to the current crunch is not expected to become available until 2029 or 2030. Actual timing can change, and each memory type has its own supply conditions.</p>
+<p>Prices can still move in both directions before that capacity arrives. Inventory, contract negotiations, product demand, new designs and the AI investment cycle all matter. A shortage is not a promise that prices will rise forever, and no analyst forecast can tell you the exact price of next year\u2019s phone.</p>
+
+<h2 id="what-buyers-see">What a memory shortage may mean when you shop</h2>
+<p>A tighter component market can show up in several ways, and not every buyer will see all of them:</p>
+<ul>
+  <li><strong>A higher launch price:</strong> a brand may pass part of its component bill to the customer.</li>
+  <li><strong>Fewer low-cost configurations:</strong> the entry model may disappear, arrive later or have less storage.</li>
+  <li><strong>Smaller specification changes:</strong> a new generation may keep the same RAM or storage capacity instead of increasing it.</li>
+  <li><strong>Less discounting on older models:</strong> a previous-year phone may stay closer to its launch price if supply is limited.</li>
+  <li><strong>Trade-offs elsewhere:</strong> manufacturers may adjust cameras, materials, accessories or other parts of a design to protect a target price.</li>
+  <li><strong>Uneven effects:</strong> countries, brands, price bands and device categories can experience different prices because of taxes, currencies, logistics and local competition.</li>
+</ul>
+<p>When comparing two models, look at the exact configuration, not just the model name. Check RAM, storage, battery health, update support, camera hardware and warranty. A large storage option does not compensate for too little working RAM, and a new processor does not automatically make a phone worthwhile if it does not solve a problem you actually have.</p>
+<p>Whether you are shopping in the United States, United Kingdom, Canada, Nigeria or another market, compare the same device across local retailers using the price you will really pay. A US listing may exclude sales tax; UK listings commonly show tax-inclusive prices; and shoppers elsewhere may need to check import charges, carrier terms, local network bands and regional warranty coverage. Currency-converted prices are a starting point, not a reliable checkout total.</p>
+
+<h2 id="upgrade-options">Keep, repair, buy new or buy refurbished?</h2>
+<p>The most affordable upgrade is often the one you postpone. If a phone still receives security updates, has enough battery life for your day and runs the apps you need, a new model may not offer enough practical improvement to justify its cost. Premium devices especially can remain useful for several years when they are maintained and supported.</p>
+<p>If the main problem is battery life, get a repair estimate before replacing the entire device. Compare the repair with the full replacement cost, including tax, case, charger, financing fees and any plan you must keep. A repair is not automatically the right choice: it may make little sense if the phone has serious damage, no remaining security support or other failures likely to require more spending soon.</p>
+<p>Refurbished and used devices can provide a large saving, but the word \u201Crefurbished\u201D is not a guarantee of condition. Check who inspected the device, the battery-health policy, the return window, the warranty, whether it is carrier-unlocked, and whether its model supports the bands and services used where you live. Compare the final price of a trusted refurbished phone with a discounted new model before deciding.</p>
+<p>It can be worth checking the release calendar if you are not in a hurry. Older models are sometimes discounted around a new launch, but the size and timing of the discount are not guaranteed\u2014especially when supply is tight. Do not wait for a rumored discount if your current device has become unreliable or is no longer safe to use for important accounts.</p>
+
+<figure style="margin:2rem 0;">
+  <img src="${photo("photo-1511707171634-5f897ff02aa9", 1200)}" alt="A smartphone viewed close up, representing a device replacement decision" width="1200" height="800" loading="lazy" style="width:100%;height:auto;border-radius:14px;" />
+  <figcaption style="font-size:.875rem;color:#6b7280;margin-top:.5rem;">Smartphone stock photograph via <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Unsplash</a>.</figcaption>
+</figure>
+
+<h2 id="upgrade-check">Try the interactive upgrade decision checker</h2>
+<p>Use the <a href="#upgrade-decision-tool">interactive upgrade checker</a> as a starting point. Enter repair and replacement prices in the same currency. Its simple comparison is not a substitute for checking software support, battery condition, the seller\u2019s warranty or the cost of a repair you trust.</p>
+
+<h2 id="watch-report">Watch the source report</h2>
+<p>The video below is the source material for this explainer. It features market commentary on the competition between AI infrastructure and consumer electronics for memory supply. The interview\u2019s price examples describe the market at the time of that report; component prices change and should not be read as current retail quotes.</p>
+<p><a href="https://www.youtube.com/watch?v=492uqqKInYI" target="_blank" rel="noopener noreferrer">Open the original report on YouTube</a>.</p>
+<div style="position:relative;width:100%;aspect-ratio:16/9;margin:1.25rem 0 2rem;">
+  <iframe src="https://www.youtube-nocookie.com/embed/492uqqKInYI?rel=0" title="Why AI memory demand is affecting phones and laptops \u2014 source video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:12px;"></iframe>
+</div>
+
+<h2 id="questions">Frequently asked questions</h2>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Is AI making every new phone more expensive?</strong></summary>
+  <p>No. AI infrastructure is one contributor to memory demand, but retail prices also reflect a phone\u2019s design, processor, camera, currency, taxes, distribution and brand strategy. The pressure differs across models and countries. Market-wide forecasts should not be applied to one product as if they were its price increase.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Will phone prices fall when more chip factories open?</strong></summary>
+  <p>Additional capacity can ease supply pressure, but new factories take time and the price also depends on demand, product mix and contracts. Even if component prices soften, a retail price does not always fall by the same amount or on the same schedule.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Should I buy a phone now or wait?</strong></summary>
+  <p>Start with your current device. If it is secure, reliable and meets your needs, there may be no reason to rush. If you need a replacement, compare current models, previous-generation discounts and reputable refurbished options using total local cost, support life and warranty\u2014not launch hype alone.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Does more storage make a slow phone faster?</strong></summary>
+  <p>Not usually. Storage is where files live; RAM is the short-term workspace apps use. Freeing storage can help if the device is nearly full, but it does not add RAM. Slowdowns can also come from an old battery, heat, software, a busy processor or unsupported apps.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Is a refurbished phone a safe choice?</strong></summary>
+  <p>It can be, if you can verify the seller, condition grade, battery policy, warranty, return period, network compatibility and remaining software support. Refurbished stock varies, so compare the protections\u2014not only the discount\u2014with a new or older discounted model.</p>
+</details>
+
+<h2 id="sources">Sources and reporting notes</h2>
+<ul>
+  <li><a href="https://www.idc.com/resource-center/blog/smartphone-shipments-set-for-record-16-7-drop-in-2026-as-the-memory-crisis-hits-full-force/" target="_blank" rel="noopener noreferrer">IDC, \u201CSmartphone Shipments Set for Record 16.7% Drop in 2026, as the Memory Crisis Hits Full Force\u201D</a> (26 August 2026). Figures in this article are IDC forecasts for the worldwide market, not confirmed outcomes or individual-device prices.</li>
+  <li><a href="https://www.deloitte.com/us/en/insights/industry/technology/why-memory-chip-crunch-is-greater-than-expected.html" target="_blank" rel="noopener noreferrer">Deloitte, \u201CWhy the memory chip crunch is greater than expected, and may not ease until 2029\u201D</a> (28 July 2026). Forecasts about AI-server DRAM and fabrication capacity refer to those categories, not every consumer memory component.</li>
+  <li><a href="https://www.trendforce.com/price/dram/dram_spot" target="_blank" rel="noopener noreferrer">TrendForce DRAM spot-price tracker</a>. Market prices change; check the current reporting period before using a historical comparison.</li>
+  <li><a href="https://www.youtube.com/watch?v=492uqqKInYI" target="_blank" rel="noopener noreferrer">Source video supplied with this article request</a>.</li>
+</ul>
+<p><strong>The practical takeaway:</strong> AI demand is changing the economics of memory, and that pressure can reach the devices people buy. It does not make every new phone a bad purchase or every refurbished phone a good one. Compare the real specifications, support, warranty and total price\u2014and upgrade when the device you have no longer does the job.</p>
+`
+  },
+  {
+    title: "AI ROI at Work: Why Companies Are Rethinking AI Spending",
+    slug: "ai-roi-workplace-ai-spending-costs-productivity",
+    excerpt: "Companies are not simply switching AI off. They are asking whether software, review time, token bills, integration and risk add up to measurable value\u2014and how to tell a useful deployment from an expensive pilot.",
+    category: "Technology & AI",
+    tags: ["AI ROI", "workplace AI", "business productivity", "AI costs", "AI governance", "enterprise software"],
+    featuredImage: photo("photo-1677442135703-1787eea5ce01", 1600),
+    metaDescription: "Why are companies rethinking AI spending? Learn how to measure workplace AI ROI, count review costs and separate selective pullbacks from an AI collapse.",
+    seoKeywords: "AI ROI, workplace AI spending, AI productivity, enterprise AI adoption, measure AI return on investment, AI token costs, AI governance",
+    readingTime: 14,
+    viewCount: 0,
+    likesCount: 0,
+    commentsCount: 0,
+    content: `
+<p>Companies are not all abandoning AI. Many are doing something less dramatic, and more useful: asking what the software costs, what work it improves, what work it creates and whether the result is worth paying for. That is why some firms are limiting access, slowing individual pilots or setting stricter budgets while other teams continue investing and expanding deployments.</p>
+<p>The key question has shifted from <em>\u201CCan this tool generate something?\u201D</em> to <em>\u201CDoes it improve an important business outcome after we count everything it takes to use it?\u201D</em> A fast first draft is not automatically a time saving. An automated step can make a process more complicated if people must check every answer, correct mistakes, protect sensitive data and maintain another system.</p>
+<p>This guide explains the workplace AI ROI problem in practical terms. It uses recent research to separate adoption from financial return, shows which costs are easy to miss, and includes a simple interactive calculator to help frame a pilot. The calculator is an estimate, not an audited business case.</p>
+
+<nav aria-label="Article contents" style="padding:1rem 1.25rem;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;margin:1.5rem 0;">
+  <p><strong>In this guide</strong></p>
+  <ul>
+    <li><a href="#pullback">Is corporate AI spending really collapsing?</a></li>
+    <li><a href="#research">What current surveys say about AI ROI</a></li>
+    <li><a href="#hidden-costs">Why workplace AI can create extra work</a></li>
+    <li><a href="#measure">How to measure net AI value</a></li>
+    <li><a href="#pilot">A practical pilot plan</a></li>
+    <li><a href="#calculator">Try the AI pilot break-even calculator</a></li>
+    <li><a href="#workers">What this means for workers and leaders</a></li>
+    <li><a href="#faq">Frequently asked questions</a></li>
+  </ul>
+</nav>
+
+<figure style="margin:2rem 0;">
+  <img src="${photo("photo-1677442135703-1787eea5ce01", 1400)}" alt="Abstract visual representing artificial intelligence and digital systems" width="1400" height="933" loading="eager" style="width:100%;height:auto;border-radius:14px;" />
+  <figcaption style="font-size:.875rem;color:#6b7280;margin-top:.5rem;">Artificial-intelligence themed stock photograph via <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Unsplash</a>.</figcaption>
+</figure>
+
+<h2 id="pullback">Is corporate AI spending really collapsing?</h2>
+<p>\u201CCompanies are pulling back on AI\u201D is an attention-grabbing headline, but it can hide several different decisions. A company might cancel one unreliable agent, cap token use, replace a premium model with a smaller one, restrict a tool that handles confidential data, or stop a pilot that cannot show results. None of those actions necessarily means that the same company has stopped investing in AI across the board.</p>
+<p>In an August 2026 global survey, McKinsey reported that organizations were scaling AI across functions and that most respondents expected investment to rise. At the same time, about one in five respondents said AI-related operating costs were constraining use. The survey therefore describes two things happening together: broader adoption and more scrutiny of the bill. That is more precise than describing the whole market as either a boom or a collapse.</p>
+<p>There is a difference between <strong>adoption</strong>, <strong>scale</strong> and <strong>return</strong>. A worker can use a chatbot every day without their employer having redesigned a process. A pilot can finish successfully without being rolled out to thousands of people. A deployment can scale widely without proving that it improved profit, service quality or customer retention. These are separate milestones, and good reporting should not treat them as the same statistic.</p>
+<p>A company's review of workplace software also does not tell the whole story about AI investment. Infrastructure and consumer technology are part of a different spending cycle; Taskdrip's explainer on <a href="/blog/why-phones-laptops-getting-more-expensive-ai-memory-chip-shortage">how AI memory demand can affect phone and laptop prices</a> looks at that side of the market.</p>
+
+<h2 id="research">What recent surveys say about workplace AI ROI</h2>
+<p>McKinsey\u2019s <a href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai" target="_blank" rel="noopener noreferrer">2026 State of AI survey</a>, published on 25 August, illustrates the gap between individual experience and company-level outcomes. Eight in ten respondents said AI had improved their individual productivity, and half said it helped them make better decisions. Yet 37% attributed at least some earnings-before-interest-and-taxes (EBIT) impact to AI use, a share McKinsey said was essentially unchanged from the previous year. About 6% of all respondents met the survey\u2019s definition of a high performer: at least 5% EBIT impact and a significant reported effect.</p>
+<p>Those figures are self-reported survey results, not a controlled experiment proving AI caused a measured financial outcome. But the contrast is useful. An employee may finish a task sooner while the organization still has to pay for software, quality review, integration, compliance and support. Personal productivity can be real and still fail to appear as a clean company-level return.</p>
+<p>McKinsey also reported that about 20% of respondents said AI operating costs\u2014including token costs\u2014constrained their organization\u2019s use. Most respondents nevertheless planned to increase AI investment. That combination supports a more careful explanation: some companies are changing how they buy and govern AI, while many continue to expand it.</p>
+<p>Controlled research helps explain why results differ by workflow. An <a href="https://www.nber.org/digest/20236/measuring-productivity-impact-generative-ai" target="_blank" rel="noopener noreferrer">NBER study of 5,179 customer-support agents</a> found that access to an AI assistant increased issues resolved per hour by 13.8% on average. Gains were greatest for newer and lower-performing agents; the most experienced workers saw little to no improvement. The study examined one company's support operation, not every kind of work, but it shows that useful gains are possible when the task and tool fit. The OECD's <a href="https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/06/the-effects-of-generative-ai-on-productivity-innovation-and-entrepreneurship_da1d085d/b21df222-en.pdf" target="_blank" rel="noopener noreferrer">review of experimental research</a> similarly finds that outcomes depend on the task and the user's expertise, while noting that longer-term business effects remain less well understood.</p>
+<p>An EY US AI Pulse Survey offers another example of why a headline number needs its denominator. In its latest wave, 82% of senior leaders at organizations investing in AI and using token-based tools said they were concerned about token use and related costs. Only 64% of that group said their organization actively monitored token usage and had clear budget guardrails. EY reported that 98% of those same leaders said token costs had caused their organization to reconsider its approach. That does not mean 98% of all companies are cancelling AI. Reconsidering can mean reprioritizing, controlling access, expanding selectively or slowing a rollout.</p>
+<p>EY\u2019s survey also found more respondents in that cohort considering expanding AI rollout scope because of token costs than narrowing it. The point is not that every survey agrees about the outlook. It is that \u201Creconsidering\u201D is not the same as \u201Cstopping,\u201D and survey populations, dates and question wording matter.</p>
+
+<figure style="margin:2rem 0;">
+  <img src="${photo("photo-1556761175-4b46a572b786", 1200)}" alt="Colleagues discussing work around a table in a modern office" width="1200" height="800" loading="lazy" style="width:100%;height:auto;border-radius:14px;" />
+  <figcaption style="font-size:.875rem;color:#6b7280;margin-top:.5rem;">Workplace collaboration stock photograph via <a href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Unsplash</a>.</figcaption>
+</figure>
+
+<h2 id="hidden-costs">Why workplace AI can create extra work</h2>
+<p>AI output can look finished before it is dependable. A generated summary may be fluent and still miss a key fact. A report may contain an invented citation. A support answer may be polite but wrong for a customer\u2019s account. The person reviewing the result has to know what \u201Ccorrect\u201D means, check the source, repair the mistake and sometimes explain why it went wrong. If that work is not included in the business case, the productivity estimate is incomplete.</p>
+<p>Content volume creates another trap. When it becomes cheap to create a first draft, organizations can produce more documents, emails, slides and code than people have time to evaluate. A team can appear busier without making better decisions. If colleagues spend their day summarizing AI-generated material for one another, the system may be increasing the amount of work rather than reducing it.</p>
+<p>There are also direct and indirect costs beyond a monthly subscription:</p>
+<ul>
+  <li><strong>Usage charges:</strong> token-based products may charge by the length and complexity of requests, not just by the number of seats.</li>
+  <li><strong>Model and vendor sprawl:</strong> overlapping tools can leave teams paying multiple providers for similar jobs.</li>
+  <li><strong>Integration:</strong> connecting a model to internal systems, documents and permissions takes engineering time.</li>
+  <li><strong>Human review:</strong> people check facts, handle edge cases, edit outputs and respond when automation fails.</li>
+  <li><strong>Training and change management:</strong> users need to know what the tool can do, where it fails and when not to use it.</li>
+  <li><strong>Security, privacy and legal review:</strong> the organization must decide which information may be shared and how outputs are retained.</li>
+  <li><strong>Maintenance:</strong> prompts, models, connectors, data and policies change; a pilot can become a service that someone must operate.</li>
+</ul>
+<p>For example, a team might save ten minutes writing each customer response but spend eight minutes checking it. That is not necessarily a bad result\u2014consistency may improve, or a worker may handle more cases\u2014but it is not an eight-minute saving. The right comparison includes the remaining human work and the quality of the answer.</p>
+<p>The video supplied with this article describes reported problems with workplace agents, low-value generated documents and operational alerts. An <a href="https://www.theguardian.com/technology/2026/oct/13/ai-companies-rushed-workers-fallout" target="_blank" rel="noopener noreferrer">October 13, 2026 Guardian report</a> also relayed reporting about Meta's AI-agent plans and Walmart workers' accounts of faulty schedules, routes and alerts. These are company-specific examples, not a controlled measurement of how often AI fails across organizations. A few visible incidents do not prove that every deployment is wasteful; they do show why testing on real workflows matters.</p>
+
+<h2 id="measure">How to measure net AI value</h2>
+<p>Begin with a process, not a product demo. Pick a task that is frequent enough to measure, expensive or frustrating enough to matter, and well-defined enough that a human can judge the result. \u201CUse AI across the company\u201D is not a measurable use case. \u201CPrepare the first draft of standard support replies, with a human approving every response\u201D is much easier to test.</p>
+<p>Before a pilot starts, record a baseline. Depending on the job, that might include minutes per task, cases completed per employee, error or rework rate, response time, customer satisfaction, or the percentage of work escalated to a specialist. Decide in advance which outcome would make the pilot worth continuing. Otherwise, teams can pick whichever metric looks best after the fact.</p>
+<p>A simple first-pass estimate is:</p>
+<blockquote style="border-left:4px solid #3b82f6;padding-left:1rem;color:#4b5563;">
+  <p><strong>Estimated monthly net value</strong> = (usable hours saved \u2212 extra review hours) \xD7 the value of an hour of work \u2212 AI software cost \u2212 monthly operating and governance costs.</p>
+</blockquote>
+<p>This is only a screening calculation. The value of an hour is not always cash that the company can save. If a worker spends the recovered time helping customers, the return may appear as better service rather than a smaller payroll. If a tool makes more mistakes, reduces trust or creates a compliance risk, a positive spreadsheet does not make the deployment safe.</p>
+<p>Track at least four kinds of result:</p>
+<ol>
+  <li><strong>Speed:</strong> Does the whole task take less time, including review, hand-offs and corrections?</li>
+  <li><strong>Quality:</strong> Are outputs accurate, complete and consistent? Count corrections and harmful errors, not just accepted drafts.</li>
+  <li><strong>Business effect:</strong> Do customers get a better outcome, does a backlog shrink, or can the team handle valuable work that was previously delayed?</li>
+  <li><strong>Risk and operating burden:</strong> Are privacy, security, reliability and staff workload acceptable at the intended scale?</li>
+</ol>
+<p>Do not count every minute a model produces text as a minute saved. Count the task from start to finish and compare it with the original process. If AI creates an answer that still needs expert review, the expert time is part of the cost.</p>
+
+<h2 id="pilot">A practical pilot plan for businesses</h2>
+<h3>1. Name the business problem</h3>
+<p>State who has the problem, how often it happens and what a better result looks like. Choose one workflow and one accountable owner. If the team cannot agree what success means, do not start by purchasing more seats.</p>
+<h3>2. Make the baseline measurable</h3>
+<p>Collect enough normal work to understand typical completion time, quality and rework. If the process changes every week, a short before-and-after comparison may be misleading. Record unusual conditions that could affect the result.</p>
+<h3>3. Test with representative cases</h3>
+<p>Include ordinary requests, difficult cases and known edge conditions. Compare the AI-assisted process with the existing one, not with a hypothetical zero-cost workflow. Decide who can approve, correct or stop the automation.</p>
+<h3>4. Count the full cost</h3>
+<p>Include software and token bills, employee time spent reviewing, integration and support, training, and the cost of oversight. If a product is free during a pilot, write down the expected price and usage limits at scale.</p>
+<h3>5. Set guardrails before connecting sensitive information</h3>
+<p>Define what information may be used, who can access the tool, where outputs go and how incidents are reported. Requirements depend on the organization and the jurisdictions where it operates. A vendor\u2019s \u201Centerprise\u201D label is not a substitute for checking data handling, retention, access and contractual terms.</p>
+<h3>6. Decide whether to scale, change or stop</h3>
+<p>At the review date, compare the measured result with the threshold chosen at the start. If quality is poor, investigate whether the task, tool or data can be improved. If the economics do not work even after reasonable changes, stop the pilot. Ending a weak experiment is a valid outcome, not proof that the whole technology has failed.</p>
+
+<h2 id="calculator">Try the AI pilot break-even calculator</h2>
+<p>Enter monthly costs and realistic time estimates in one currency in the <a href="#ai-pilot-calculator">interactive break-even calculator</a>. Subtract review time from time saved. The result is a rough monthly value estimate; it does not capture quality, customer outcomes or the full cost of risk.</p>
+
+<h2 id="workers">What this shift means for workers and leaders</h2>
+<p>For employees, learning a tool is useful, but judgment is still important. Workers who understand the process can spot when an answer is wrong, protect sensitive information and explain an exception that the model missed. Those skills are not a guarantee against job changes, and AI-related layoff announcements should not automatically be treated as proof that the technology caused every role reduction. Companies make staffing decisions for many reasons, and task automation can change some roles while creating review, integration and service work elsewhere.</p>
+<p>For leaders, the pressure to \u201Chave an AI strategy\u201D is not a reason to deploy a tool without a purpose. The stronger question is whether the organization can redesign a workflow responsibly and share the benefits with the people doing the work. If employees are expected to review every output, that labor belongs in the budget and the staffing plan.</p>
+<p>For software vendors, more usage is not the same as more customer value. Buyers are learning to ask which tasks are supported, how the product measures errors, whether costs are predictable and what happens when the model is uncertain. Products that can answer those questions have a better chance of earning a durable place in a company\u2019s workflow.</p>
+<p>The same question applies to independent creative work: does AI leave more room for the human decisions that make the final work distinctive? Taskdrip's guide to <a href="/blog/creator-economy-2026-trends">creator-economy trends in 2026</a> looks at where AI-assisted content fits into creators' workflows.</p>
+<p>The same discipline applies across markets. A company operating in the United States, United Kingdom, Canada, Nigeria or elsewhere should measure its own workflow and use local legal, privacy and employment guidance for its circumstances. A single global article cannot replace jurisdiction-specific advice, and the hourly value used in a calculator should be entered in the company\u2019s own currency and cost model.</p>
+
+<h2 id="watch-video">Watch the source video</h2>
+<p>The video below is the source material supplied for this article. It presents examples of companies reassessing AI use, costs and workplace outcomes. Individual examples are not a representative survey; the research sources listed below provide broader\u2014but still survey-based\u2014context.</p>
+<p><a href="https://www.youtube.com/watch?v=_aClW7Ba0-8" target="_blank" rel="noopener noreferrer">Open the original video on YouTube</a>.</p>
+<div style="position:relative;width:100%;aspect-ratio:16/9;margin:1.25rem 0 2rem;">
+  <iframe src="https://www.youtube-nocookie.com/embed/_aClW7Ba0-8?rel=0" title="Why businesses are rethinking workplace AI costs and value \u2014 source video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:12px;"></iframe>
+</div>
+
+<h2 id="faq">Frequently asked questions</h2>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Are companies stopping their AI investments?</strong></summary>
+  <p>Some organizations are limiting particular tools or projects, but current survey evidence does not describe a universal shutdown. McKinsey\u2019s 2026 survey found that most respondents expected investment to rise even as some said operating costs constrained use. Treat a targeted cut as a decision about a specific use case unless broader evidence says otherwise.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Why can an AI tool make employees less productive?</strong></summary>
+  <p>A tool can add review, correction, training or hand-off work. If the output is unreliable, if it does not fit the existing process, or if staff must duplicate work to verify it, the net time saved may be small or negative. Measure the entire workflow, not just the time to generate a response.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>How do you calculate AI ROI?</strong></summary>
+  <p>Compare the value of measurable outcomes with the full cost of the tool, usage, review, integration, training, support and oversight. Track quality and risk alongside time saved. Keep a baseline and a comparison group when practical, and be clear about which results are estimates rather than audited financial savings.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Should a company cancel an AI pilot that is not working?</strong></summary>
+  <p>It should be willing to. First check whether the problem is the task, workflow, tool or measurement. If the use case still fails the agreed quality, cost or risk threshold after reasonable changes, stopping is better than scaling a weak result.</p>
+</details>
+<details style="margin:1rem 0;padding:1rem;border:1px solid #e5e7eb;border-radius:10px;">
+  <summary><strong>Does AI productivity automatically mean fewer jobs?</strong></summary>
+  <p>No. A productivity improvement does not by itself prove a company will eliminate roles. It may change tasks, team capacity, service levels or the mix of work. Layoffs have multiple causes, so claims about job losses should be tied to evidence about the specific organization and decision.</p>
+</details>
+
+<h2 id="sources">Sources and reporting notes</h2>
+<ul>
+  <li><a href="https://www.theguardian.com/technology/2026/oct/13/ai-companies-rushed-workers-fallout" target="_blank" rel="noopener noreferrer">Taylor Telford, The Guardian, \u201CCompanies rushed in on AI. Now some are pulling back\u201D</a> (13 October 2026). The report summarizes company-specific examples and links to the underlying reporting.</li>
+  <li><a href="https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai" target="_blank" rel="noopener noreferrer">McKinsey, \u201CThe state of AI in 2026: On the road to ROI\u201D</a> (25 August 2026). Survey respondents\u2019 reports are not a controlled causal estimate of AI\u2019s effect on every company.</li>
+  <li><a href="https://www.ey.com/en_us/insights/emerging-technologies/quarterly-ai-survey" target="_blank" rel="noopener noreferrer">EY US AI Pulse Survey, Wave 5: \u201CThe reckoning over AI cost and value has begun\u201D</a>. Results cited above are specifically for surveyed senior leaders at organizations investing in AI and using token-based tools.</li>
+  <li><a href="https://www.nber.org/digest/20236/measuring-productivity-impact-generative-ai" target="_blank" rel="noopener noreferrer">National Bureau of Economic Research, \u201CMeasuring the Productivity Impact of Generative AI\u201D</a>. A summary of research on one large customer-support operation.</li>
+  <li><a href="https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/06/the-effects-of-generative-ai-on-productivity-innovation-and-entrepreneurship_da1d085d/b21df222-en.pdf" target="_blank" rel="noopener noreferrer">OECD, \u201CThe Effects of Generative AI on Productivity, Innovation and Entrepreneurship\u201D</a> (June 2025).</li>
+  <li><a href="https://www.semafor.com/article/05/28/2026/companies-evaluate-aggressive-ai-spending-as-costs-pile-up" target="_blank" rel="noopener noreferrer">Semafor, \u201CCompanies evaluate aggressive AI spending as costs pile up\u201D</a> (28 May 2026), reporting on cost controls and selective reassessment.</li>
+  <li><a href="https://www.youtube.com/watch?v=_aClW7Ba0-8" target="_blank" rel="noopener noreferrer">Source video supplied with this article request</a>.</li>
+</ul>
+<p><strong>The reality check is about evidence, not hype in either direction.</strong> AI can help people work faster, but useful scale takes more than a subscription. The companies most likely to benefit will be the ones that choose specific problems, count the human work around the model, protect their data and keep measuring whether the outcome is worth the cost.</p>
+`
+  }
+];
 
 // server/blog-seed-data.ts
 var DEFAULT_BLOGS = [
@@ -10930,13 +11518,14 @@ var DEFAULT_BLOGS = [
 
 <p>Questions about the referral program? Reach out on Telegram at <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer">t.me/taskdrip</a> or check the <a href="/documentation">documentation</a> for a full breakdown of how commissions are calculated and paid out.</p>
 `
-  }
+  },
+  ...TECH_ARTICLES
 ];
 
 // server/admin-demo-routes.ts
 async function getAppSetting(key) {
   try {
-    const rows = await db.select().from(appSettings).where(eq6(appSettings.key, key)).limit(1);
+    const rows = await db.select().from(appSettings).where(eq7(appSettings.key, key)).limit(1);
     return rows[0]?.value ?? null;
   } catch {
     return null;
@@ -10981,7 +11570,7 @@ async function seedDefaultBlogs(authorId) {
           metaDescription: b.metaDescription,
           seoKeywords: b.seoKeywords,
           readingTime: b.readingTime
-        }).where(eq6(blogPosts.slug, b.slug));
+        }).where(eq7(blogPosts.slug, b.slug));
         skipped++;
       } else {
         await db.insert(blogPosts).values({ ...values, publishedAt: now });
@@ -11011,31 +11600,31 @@ async function wipeAllDemoData() {
     const followGroups = await db.select({
       target: userFollows.followingId,
       n: sql5`count(*)::int`
-    }).from(userFollows).where(inArray4(userFollows.followerId, ids)).groupBy(userFollows.followingId);
+    }).from(userFollows).where(inArray5(userFollows.followerId, ids)).groupBy(userFollows.followingId);
     for (const g of followGroups) {
       await db.update(users).set({
         followers: sql5`GREATEST(0, COALESCE(${users.followers}, 0) - ${g.n})`,
         totalFollowers: sql5`GREATEST(0, COALESCE(${users.totalFollowers}, 0) - ${g.n})`
-      }).where(eq6(users.id, g.target));
+      }).where(eq7(users.id, g.target));
     }
     const likeGroups = await db.select({
       postId: postLikes.postId,
       n: sql5`count(*)::int`
-    }).from(postLikes).where(inArray4(postLikes.userId, ids)).groupBy(postLikes.postId);
+    }).from(postLikes).where(inArray5(postLikes.userId, ids)).groupBy(postLikes.postId);
     for (const g of likeGroups) {
       await db.update(posts).set({
         likeCount: sql5`GREATEST(0, COALESCE(${posts.likeCount}, 0) - ${g.n})`
-      }).where(eq6(posts.id, g.postId));
+      }).where(eq7(posts.id, g.postId));
     }
     const r1 = await db.delete(userFollows).where(sql5`${userFollows.followerId} = ANY(${ids}) OR ${userFollows.followingId} = ANY(${ids})`);
     result.followsDeleted = r1.rowCount ?? 0;
-    const r2 = await db.delete(postLikes).where(inArray4(postLikes.userId, ids));
+    const r2 = await db.delete(postLikes).where(inArray5(postLikes.userId, ids));
     result.likesDeleted = r2.rowCount ?? 0;
-    const r3 = await db.delete(courseEnrollments).where(inArray4(courseEnrollments.userId, ids));
+    const r3 = await db.delete(courseEnrollments).where(inArray5(courseEnrollments.userId, ids));
     result.enrollmentsDeleted = r3.rowCount ?? 0;
-    const r4 = await db.delete(productReviews).where(inArray4(productReviews.userId, ids));
+    const r4 = await db.delete(productReviews).where(inArray5(productReviews.userId, ids));
     result.productReviewsDeleted = r4.rowCount ?? 0;
-    const r5 = await db.delete(courseReviews).where(inArray4(courseReviews.userId, ids));
+    const r5 = await db.delete(courseReviews).where(inArray5(courseReviews.userId, ids));
     result.courseReviewsDeleted = r5.rowCount ?? 0;
     try {
       const r6 = await db.delete(userReviews).where(sql5`${userReviews.reviewerId} = ANY(${ids}) OR ${userReviews.revieweeId} = ANY(${ids})`);
@@ -11043,10 +11632,10 @@ async function wipeAllDemoData() {
     } catch {
     }
     try {
-      await db.delete(blogLikes).where(inArray4(blogLikes.userId, ids));
+      await db.delete(blogLikes).where(inArray5(blogLikes.userId, ids));
     } catch {
     }
-    const rDel = await db.delete(users).where(inArray4(users.id, ids));
+    const rDel = await db.delete(users).where(inArray5(users.id, ids));
     result.fakeUsersDeleted = rDel.rowCount ?? ids.length;
   }
   const rb = await db.update(users).set({
@@ -11136,7 +11725,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
         twitterFollowers: tw,
         tiktokFollowers: tk,
         youtubeFollowers: yt
-      }).where(eq6(users.id, userId));
+      }).where(eq7(users.id, userId));
       res.json({ ok: true, followers: f, following: fg });
     } catch (e) {
       console.error(e);
@@ -11154,12 +11743,12 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
         await db.update(users).set({
           availableBalance: amt.toFixed(2),
           totalEarned: amt.toFixed(2)
-        }).where(eq6(users.id, userId));
+        }).where(eq7(users.id, userId));
       } else {
         await db.update(users).set({
           availableBalance: sql5`COALESCE(${users.availableBalance}, 0) + ${amt}`,
           totalEarned: sql5`COALESCE(${users.totalEarned}, 0) + ${amt}`
-        }).where(eq6(users.id, userId));
+        }).where(eq7(users.id, userId));
       }
       res.json({ ok: true, amount: amt, mode: m });
     } catch (e) {
@@ -11177,7 +11766,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       if (likes !== void 0) updates.likeCount = clamp(likes, MAX_VIEWS);
       if (comments !== void 0) updates.commentCount = clamp(comments, MAX_VIEWS);
       if (Object.keys(updates).length === 0) return res.status(400).json({ message: "Nothing to update" });
-      await db.update(posts).set(updates).where(eq6(posts.id, postId));
+      await db.update(posts).set(updates).where(eq7(posts.id, postId));
       res.json({ ok: true, ...updates });
     } catch (e) {
       console.error(e);
@@ -11194,7 +11783,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       if (likes !== void 0) updates.likesCount = clamp(likes, MAX_VIEWS);
       if (comments !== void 0) updates.commentsCount = clamp(comments, MAX_VIEWS);
       if (Object.keys(updates).length === 0) return res.status(400).json({ message: "Nothing to update" });
-      await db.update(blogPosts).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq6(blogPosts.id, blogId));
+      await db.update(blogPosts).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq7(blogPosts.id, blogId));
       res.json({ ok: true, ...updates });
     } catch (e) {
       console.error(e);
@@ -11212,7 +11801,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       if (rating !== void 0) updates.rating = String(Math.max(0, Math.min(5, Number(rating) || 0)).toFixed(1));
       if (likes !== void 0) updates.likesCount = clamp(likes, MAX_VIEWS);
       if (Object.keys(updates).length > 0) {
-        await db.update(shopProducts).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq6(shopProducts.id, productId));
+        await db.update(shopProducts).set({ ...updates, updatedAt: /* @__PURE__ */ new Date() }).where(eq7(shopProducts.id, productId));
       }
       let reviewsCreated = 0;
       if (generateReviews) {
@@ -11352,7 +11941,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       await db.update(users).set({
         followers: sql5`COALESCE(${users.followers}, 0) + ${made}`,
         totalFollowers: sql5`COALESCE(${users.totalFollowers}, 0) + ${made}`
-      }).where(eq6(users.id, targetUserId));
+      }).where(eq7(users.id, targetUserId));
       res.json({ ok: true, follows: made, fakeUsersAvailable: fakeUsers.length });
     } catch (e) {
       console.error(e);
@@ -11376,7 +11965,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       }
       await db.update(posts).set({
         likeCount: sql5`COALESCE(${posts.likeCount}, 0) + ${liked}`
-      }).where(eq6(posts.id, postId));
+      }).where(eq7(posts.id, postId));
       res.json({ ok: true, liked, fakeUsersAvailable: fakeUsers.length });
     } catch (e) {
       console.error(e);
@@ -11397,10 +11986,10 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       userType: users.userType
     };
     const [meRow, others] = await Promise.all([
-      db.select(cols).from(users).where(eq6(users.id, adminId)).limit(1),
+      db.select(cols).from(users).where(eq7(users.id, adminId)).limit(1),
       db.select(cols).from(users).where(
         q ? sql5`(LOWER(${users.email}) LIKE ${`%${q}%`} OR LOWER(${users.username}) LIKE ${`%${q}%`} OR LOWER(${users.firstName}) LIKE ${`%${q}%`}) AND ${users.id} <> ${adminId}` : sql5`${users.id} <> ${adminId}`
-      ).orderBy(desc5(users.createdAt)).limit(40)
+      ).orderBy(desc6(users.createdAt)).limit(40)
     ]);
     res.json([...meRow, ...others]);
   });
@@ -11411,7 +12000,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       content: posts.content,
       likeCount: posts.likeCount,
       viewCount: posts.viewCount
-    }).from(posts).orderBy(desc5(posts.createdAt)).limit(40);
+    }).from(posts).orderBy(desc6(posts.createdAt)).limit(40);
     res.json(rows);
   });
   app2.get("/api/admin/demo/blogs-lookup", isAuthenticated2, async (req, res) => {
@@ -11422,7 +12011,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       slug: blogPosts.slug,
       viewCount: blogPosts.viewCount,
       likesCount: blogPosts.likesCount
-    }).from(blogPosts).orderBy(desc5(blogPosts.createdAt)).limit(60);
+    }).from(blogPosts).orderBy(desc6(blogPosts.createdAt)).limit(60);
     res.json(rows);
   });
   app2.get("/api/admin/demo/products-lookup", isAuthenticated2, async (req, res) => {
@@ -11433,7 +12022,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
       salesCount: shopProducts.salesCount,
       reviewCount: shopProducts.reviewCount,
       rating: shopProducts.rating
-    }).from(shopProducts).orderBy(desc5(shopProducts.createdAt)).limit(60);
+    }).from(shopProducts).orderBy(desc6(shopProducts.createdAt)).limit(60);
     res.json(rows);
   });
   app2.get("/api/admin/demo/courses-lookup", isAuthenticated2, async (req, res) => {
@@ -11441,7 +12030,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
     const rows = await db.select({
       id: courses.id,
       title: courses.title
-    }).from(courses).orderBy(desc5(courses.createdAt)).limit(60);
+    }).from(courses).orderBy(desc6(courses.createdAt)).limit(60);
     res.json(rows);
   });
   app2.post("/api/admin/demo/reset-user", isAuthenticated2, async (req, res) => {
@@ -11459,7 +12048,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
         twitterFollowers: 0,
         tiktokFollowers: 0,
         youtubeFollowers: 0
-      }).where(eq6(users.id, userId));
+      }).where(eq7(users.id, userId));
       res.json({ ok: true });
     } catch (e) {
       console.error(e);
@@ -11577,7 +12166,7 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
 // server/seo-intelligence-routes.ts
 init_db();
 init_schema();
-import { eq as eq7, desc as desc6, count as count2 } from "drizzle-orm";
+import { eq as eq8, desc as desc7, count as count2 } from "drizzle-orm";
 var isAuthed3 = (req, res, next) => {
   if (!req.isAuthenticated || !req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
   next();
@@ -11590,7 +12179,7 @@ var isAdmin4 = (req, res, next) => {
 };
 async function getSetting(key) {
   try {
-    const rows = await db.select().from(appSettings).where(eq7(appSettings.key, key)).limit(1);
+    const rows = await db.select().from(appSettings).where(eq8(appSettings.key, key)).limit(1);
     return rows[0]?.value || "";
   } catch {
     return "";
@@ -11642,7 +12231,7 @@ function registerSeoIntelligenceRoutes(app2) {
       if (googleSiteVerification !== void 0) vals.googleSiteVerification = googleSiteVerification;
       if (bingVerification !== void 0) vals.bingVerification = bingVerification;
       if (existing) {
-        await db.update(pwaSettings).set(vals).where(eq7(pwaSettings.id, existing.id));
+        await db.update(pwaSettings).set(vals).where(eq8(pwaSettings.id, existing.id));
       } else {
         await db.insert(pwaSettings).values(vals);
       }
@@ -11702,10 +12291,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         seoPages,
         [pwsRow]
       ] = await Promise.all([
-        db.select({ n: count2() }).from(blogPosts).where(eq7(blogPosts.isPublished, true)),
+        db.select({ n: count2() }).from(blogPosts).where(eq8(blogPosts.isPublished, true)),
         db.select({ n: count2() }).from(shopProducts),
         db.select({ n: count2() }).from(users),
-        db.select({ n: count2() }).from(courses).where(eq7(courses.isPublished, true)),
+        db.select({ n: count2() }).from(courses).where(eq8(courses.isPublished, true)),
         db.select({ n: count2() }).from(campaigns),
         db.select().from(pageSeoSettings),
         db.select().from(pwaSettings).limit(1)
@@ -11745,10 +12334,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         [allCourses],
         [allCampaigns]
       ] = await Promise.all([
-        db.select({ n: count2() }).from(blogPosts).where(eq7(blogPosts.isPublished, true)),
+        db.select({ n: count2() }).from(blogPosts).where(eq8(blogPosts.isPublished, true)),
         db.select({ n: count2() }).from(shopProducts),
-        db.select({ n: count2() }).from(users).where(eq7(users.userType, "creator")),
-        db.select({ n: count2() }).from(courses).where(eq7(courses.isPublished, true)),
+        db.select({ n: count2() }).from(users).where(eq8(users.userType, "creator")),
+        db.select({ n: count2() }).from(courses).where(eq8(courses.isPublished, true)),
         db.select({ n: count2() }).from(campaigns)
       ]);
       const staticCount = 21;
@@ -11799,7 +12388,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           featuredImage: blogPosts.featuredImage,
           isPublished: blogPosts.isPublished,
           content: blogPosts.content
-        }).from(blogPosts).where(eq7(blogPosts.isPublished, true))
+        }).from(blogPosts).where(eq8(blogPosts.isPublished, true))
       ]);
       const PAGES2 = [
         "home",
@@ -11902,7 +12491,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   });
   app2.get("/api/admin/seo-intelligence/keywords", isAuthed3, isAdmin4, async (req, res) => {
     try {
-      const rows = await db.select().from(keywordTrackers).orderBy(desc6(keywordTrackers.createdAt)).limit(100);
+      const rows = await db.select().from(keywordTrackers).orderBy(desc7(keywordTrackers.createdAt)).limit(100);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -11925,7 +12514,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   });
   app2.delete("/api/admin/seo-intelligence/keywords/:id", isAuthed3, isAdmin4, async (req, res) => {
     try {
-      await db.delete(keywordTrackers).where(eq7(keywordTrackers.id, req.params.id));
+      await db.delete(keywordTrackers).where(eq8(keywordTrackers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -12286,12 +12875,12 @@ function scanRequestBody(body, depth = 0) {
 init_schema();
 init_lead_service();
 init_db();
-import { desc as desc12, sql as sql13, eq as eq16, and as and12, count as count4, gte as gte2, inArray as inArray11, ilike as ilike2, or as or2 } from "drizzle-orm";
+import { desc as desc13, sql as sql13, eq as eq17, and as and13, count as count4, gte as gte3, inArray as inArray12, ilike as ilike2, or as or2 } from "drizzle-orm";
 
 // server/creator-publishing.ts
 init_schema();
 init_db();
-import { and as and7, count as count3, desc as desc8, eq as eq10, gt, inArray as inArray6, sql as sql7 } from "drizzle-orm";
+import { and as and8, count as count3, desc as desc9, eq as eq11, gt, inArray as inArray7, sql as sql7 } from "drizzle-orm";
 import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import path2 from "node:path";
 import multer2 from "multer";
@@ -12992,7 +13581,7 @@ ${storyWinks[stories.indexOf(story)]}`
 
 // server/notebook-studio.ts
 init_schema();
-import { and as and6, desc as desc7, eq as eq9 } from "drizzle-orm";
+import { and as and7, desc as desc8, eq as eq10 } from "drizzle-orm";
 import multer from "multer";
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -14847,7 +15436,7 @@ function serialize(row) {
   };
 }
 async function getOwnedProject(id, ownerId) {
-  const [project] = await db.select().from(creatorNotebookProjects).where(and6(eq9(creatorNotebookProjects.id, id), eq9(creatorNotebookProjects.ownerId, ownerId))).limit(1);
+  const [project] = await db.select().from(creatorNotebookProjects).where(and7(eq10(creatorNotebookProjects.id, id), eq10(creatorNotebookProjects.ownerId, ownerId))).limit(1);
   return project;
 }
 async function exists(file) {
@@ -14882,7 +15471,7 @@ function registerNotebookStudioRoutes(app2) {
   const base = "/api/admin/creator-studio/notebooks";
   app2.get(base, isAuthenticated, requirePublishingAdmin, async (req, res) => {
     try {
-      const projects = await db.select().from(creatorNotebookProjects).where(eq9(creatorNotebookProjects.ownerId, req.user.id)).orderBy(desc7(creatorNotebookProjects.updatedAt));
+      const projects = await db.select().from(creatorNotebookProjects).where(eq10(creatorNotebookProjects.ownerId, req.user.id)).orderBy(desc8(creatorNotebookProjects.updatedAt));
       res.json(projects.map(serialize));
     } catch (error) {
       console.error("[notebook-studio] Could not list projects:", error);
@@ -14935,7 +15524,7 @@ function registerNotebookStudioRoutes(app2) {
         changes.validation = null;
         changes.generationStatus = "stale";
       }
-      const [updated] = await db.update(creatorNotebookProjects).set(changes).where(and6(eq9(creatorNotebookProjects.id, previous.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      const [updated] = await db.update(creatorNotebookProjects).set(changes).where(and7(eq10(creatorNotebookProjects.id, previous.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
       res.json(serialize(updated));
     } catch (error) {
       if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
@@ -15001,7 +15590,7 @@ function registerNotebookStudioRoutes(app2) {
         generationStatus: "stale",
         validation: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
       res.json({ project: serialize(updated), image: imageInfo, recommended });
     } catch (error) {
       if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
@@ -15089,7 +15678,7 @@ function registerNotebookStudioRoutes(app2) {
         generationStatus: "stale",
         validation: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
       if (filename) await rm(pageArtPath(project.id, key, filename), { force: true }).catch(() => {
       });
       res.json({ project: serialize(updated) });
@@ -15125,7 +15714,7 @@ function registerNotebookStudioRoutes(app2) {
       }
       if (Object.keys(copiedArtwork).length !== Object.keys(sourceSettings.pageArtwork).length) {
         const settings = { ...sourceSettings, pageArtwork: copiedArtwork };
-        const [withArt] = await db.update(creatorNotebookProjects).set({ settings }).where(eq9(creatorNotebookProjects.id, copy.id)).returning();
+        const [withArt] = await db.update(creatorNotebookProjects).set({ settings }).where(eq10(creatorNotebookProjects.id, copy.id)).returning();
         res.status(201).json(serialize(withArt || { ...copy, settings }));
         return;
       }
@@ -15139,7 +15728,7 @@ function registerNotebookStudioRoutes(app2) {
     try {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
-      await db.delete(creatorNotebookProjects).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id)));
+      await db.delete(creatorNotebookProjects).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id)));
       await rm(projectDirectory(project.id), { recursive: true, force: true }).catch(() => {
       });
       res.json({ success: true });
@@ -15159,7 +15748,7 @@ function registerNotebookStudioRoutes(app2) {
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
       const plannerPdfAvailable = !settings.use2027PlannerPdf || Boolean(await taskdrip2027PlannerPdfPath());
       const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
-      await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id)));
+      await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id)));
       res.json({ validation });
     } catch (error) {
       console.error("[notebook-studio] Could not validate project:", error);
@@ -15183,7 +15772,7 @@ function registerNotebookStudioRoutes(app2) {
           validation: previousReport,
           generationStatus: "failed",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq9(creatorNotebookProjects.id, project.id));
+        }).where(eq10(creatorNotebookProjects.id, project.id));
         return res.status(400).json({
           message: fatalIssues.map((item) => item.message).join(" "),
           project: serialize({ ...project, validation: previousReport }),
@@ -15245,7 +15834,7 @@ function registerNotebookStudioRoutes(app2) {
         status: validation.status === "ready" ? "ready" : "needs_review",
         lastGeneratedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and6(eq9(creatorNotebookProjects.id, project.id), eq9(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
       res.json({ project: serialize(updated || provisional), validation });
     } catch (error) {
       if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
@@ -15253,7 +15842,7 @@ function registerNotebookStudioRoutes(app2) {
       await db.update(creatorNotebookProjects).set({
         generationStatus: "failed",
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq9(creatorNotebookProjects.id, req.params.id)).catch(() => {
+      }).where(eq10(creatorNotebookProjects.id, req.params.id)).catch(() => {
       });
       res.status(500).json({ message: error?.message || "Could not generate notebook files. Your saved settings are unchanged." });
     }
@@ -15387,7 +15976,7 @@ function normalizeCreatorStudioAIControls(input) {
   };
 }
 async function getCreatorStudioAIConfig() {
-  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_studio_ai_settings")).limit(1);
+  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_studio_ai_settings")).limit(1);
   let saved = {};
   try {
     saved = JSON.parse(row?.value || "{}");
@@ -15479,13 +16068,13 @@ function canPublish(user) {
   return Boolean(user?.id);
 }
 async function getCreatorStudioMonthlyPrice() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_studio_monthly_price")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_studio_monthly_price")).limit(1);
   const price = Number(setting?.value);
   return Number.isFinite(price) && price >= 0 && price <= 999999 ? Number(price.toFixed(2)) : 7;
 }
 var EMPTY_STUDIO_PAYMENT_OPTIONS = { cryptoWallets: [], bankAccounts: [] };
 async function getCreatorStudioPaymentOptions() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_studio_payment_options")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_studio_payment_options")).limit(1);
   try {
     const parsed = JSON.parse(setting?.value || "{}");
     return {
@@ -15521,7 +16110,7 @@ function validateStudioPaymentOptions(input) {
 }
 async function sendCreatorStudioExpiryReminders() {
   const now = /* @__PURE__ */ new Date();
-  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.status, "active"));
+  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.status, "active"));
   if (!activeRows.length) return;
   const emailService = await Promise.resolve().then(() => (init_email_service(), email_service_exports)).catch(() => null);
   for (const subscription of activeRows) {
@@ -15531,10 +16120,10 @@ async function sendCreatorStudioExpiryReminders() {
     const reminderType = daysLeft <= 0 ? "creator_studio_expired" : daysLeft <= 3 ? "creator_studio_expiry_reminder" : null;
     if (!reminderType) continue;
     const reminderLink = `/creator-studio?renewal=${subscription.id}&expires=${subscription.endDate.getTime()}`;
-    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and7(
-      eq10(notifications.relatedId, subscription.id),
-      eq10(notifications.type, reminderType),
-      eq10(notifications.actionUrl, reminderLink)
+    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and8(
+      eq11(notifications.relatedId, subscription.id),
+      eq11(notifications.type, reminderType),
+      eq11(notifications.actionUrl, reminderLink)
     )).limit(1);
     if (existing) continue;
     const expired = daysLeft <= 0;
@@ -15549,7 +16138,7 @@ async function sendCreatorStudioExpiryReminders() {
       isRead: false,
       priority: "high"
     }).catch((error) => console.warn("[creator-studio] Could not save expiry notification:", error));
-    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq10(users.id, subscription.userId)).limit(1);
+    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq11(users.id, subscription.userId)).limit(1);
     if (user?.email && emailService?.sendEmail) {
       await emailService.sendEmail({
         to: user.email,
@@ -15559,24 +16148,24 @@ async function sendCreatorStudioExpiryReminders() {
       }).catch((error) => console.warn("[creator-studio] Renewal email failed:", error?.message || error));
     }
     if (expired) {
-      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and7(
-        eq10(creatorStudioSubscriptions.id, subscription.id),
-        eq10(creatorStudioSubscriptions.status, "active")
+      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and8(
+        eq11(creatorStudioSubscriptions.id, subscription.id),
+        eq11(creatorStudioSubscriptions.status, "active")
       ));
     }
   }
 }
 async function getCreatorStudioAccess(userId) {
   const now = /* @__PURE__ */ new Date();
-  const [active] = await db.select().from(creatorStudioSubscriptions).where(and7(
-    eq10(creatorStudioSubscriptions.userId, userId),
-    eq10(creatorStudioSubscriptions.status, "active"),
+  const [active] = await db.select().from(creatorStudioSubscriptions).where(and8(
+    eq11(creatorStudioSubscriptions.userId, userId),
+    eq11(creatorStudioSubscriptions.status, "active"),
     gt(creatorStudioSubscriptions.endDate, now)
-  )).orderBy(desc8(creatorStudioSubscriptions.endDate)).limit(1);
-  const [pending] = await db.select().from(creatorStudioSubscriptions).where(and7(
-    eq10(creatorStudioSubscriptions.userId, userId),
-    eq10(creatorStudioSubscriptions.status, "pending")
-  )).orderBy(desc8(creatorStudioSubscriptions.createdAt)).limit(1);
+  )).orderBy(desc9(creatorStudioSubscriptions.endDate)).limit(1);
+  const [pending] = await db.select().from(creatorStudioSubscriptions).where(and8(
+    eq11(creatorStudioSubscriptions.userId, userId),
+    eq11(creatorStudioSubscriptions.status, "pending")
+  )).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(1);
   const monthlyPrice = await getCreatorStudioMonthlyPrice();
   return {
     hasAccess: monthlyPrice === 0 || !!active,
@@ -15779,16 +16368,16 @@ function validateDraft(body) {
   };
 }
 async function getPublishingFeePercent() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq10(appSettings.key, "creator_publishing_fee_percent")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_publishing_fee_percent")).limit(1);
   const value = Number(setting?.value);
   return Number.isFinite(value) && value >= 0 && value <= 100 ? value : 10;
 }
 async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
-  const [purchase] = await db.select().from(purchases).where(eq10(purchases.id, purchaseId)).limit(1);
+  const [purchase] = await db.select().from(purchases).where(eq11(purchases.id, purchaseId)).limit(1);
   if (!purchase || !DOWNLOADABLE_PURCHASE_STATES.includes(purchase.status)) return;
-  const [listing] = await db.select().from(creatorPublishingProducts).where(and7(
-    eq10(creatorPublishingProducts.shopProductId, purchase.productId),
-    eq10(creatorPublishingProducts.status, "published")
+  const [listing] = await db.select().from(creatorPublishingProducts).where(and8(
+    eq11(creatorPublishingProducts.shopProductId, purchase.productId),
+    eq11(creatorPublishingProducts.status, "published")
   )).limit(1);
   if (!listing || listing.creatorId === purchase.userId) return;
   const gross = Number(purchase.totalAmount || purchase.amount);
@@ -15819,7 +16408,7 @@ async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
       availableBalance: sql7`${users.availableBalance} + ${net}`,
       totalEarned: sql7`${users.totalEarned} + ${net}`,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq10(users.id, listing.creatorId));
+    }).where(eq11(users.id, listing.creatorId));
   });
 }
 function registerCreatorPublishingRoutes(app2) {
@@ -15923,7 +16512,7 @@ function registerCreatorPublishingRoutes(app2) {
         priority: "normal"
       }).catch(() => {
       });
-      const [admin2] = await db.select({ id: users.id }).from(users).where(eq10(users.userType, "admin")).limit(1);
+      const [admin2] = await db.select({ id: users.id }).from(users).where(eq11(users.userType, "admin")).limit(1);
       if (admin2) {
         await db.insert(notifications).values({
           userId: admin2.id,
@@ -15952,7 +16541,7 @@ function registerCreatorPublishingRoutes(app2) {
     if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const requestedStatus = String(req.query.status || "").trim();
-      const rows = requestedStatus ? await db.select().from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.status, requestedStatus)).orderBy(desc8(creatorStudioSubscriptions.createdAt)).limit(200) : await db.select().from(creatorStudioSubscriptions).orderBy(desc8(creatorStudioSubscriptions.createdAt)).limit(200);
+      const rows = requestedStatus ? await db.select().from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.status, requestedStatus)).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(200) : await db.select().from(creatorStudioSubscriptions).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(200);
       const enriched = await Promise.all(rows.map(async (row) => {
         const [user] = await db.select({
           id: users.id,
@@ -15960,7 +16549,7 @@ function registerCreatorPublishingRoutes(app2) {
           lastName: users.lastName,
           email: users.email,
           userType: users.userType
-        }).from(users).where(eq10(users.id, row.userId)).limit(1);
+        }).from(users).where(eq11(users.id, row.userId)).limit(1);
         const { paymentProofKey, ...safeRow } = row;
         return {
           ...safeRow,
@@ -15979,7 +16568,7 @@ function registerCreatorPublishingRoutes(app2) {
     try {
       const [subscription] = await db.select({
         paymentProofKey: creatorStudioSubscriptions.paymentProofKey
-      }).from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      }).from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.id, req.params.id)).limit(1);
       if (!subscription?.paymentProofKey) return res.status(404).json({ message: "Payment proof not found." });
       const filePath2 = path2.join(PRIVATE_STUDIO_PAYMENT_DIR, path2.basename(subscription.paymentProofKey));
       if (!existsSync(filePath2)) return res.status(404).json({ message: "Payment proof file is no longer available." });
@@ -15998,7 +16587,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason when rejecting a payment." });
     try {
-      const [subscription] = await db.select().from(creatorStudioSubscriptions).where(eq10(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      const [subscription] = await db.select().from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.id, req.params.id)).limit(1);
       if (!subscription) return res.status(404).json({ message: "Creator Studio subscription not found." });
       if (action === "approve" && subscription.status !== "pending") {
         return res.status(409).json({ message: "Only pending payments can be approved." });
@@ -16021,7 +16610,7 @@ function registerCreatorPublishingRoutes(app2) {
         reviewedBy: req.user.id,
         reviewedAt: now,
         updatedAt: now
-      }).where(eq10(creatorStudioSubscriptions.id, subscription.id)).returning();
+      }).where(eq11(creatorStudioSubscriptions.id, subscription.id)).returning();
       const title = action === "approve" ? "Creator Studio access approved" : action === "extend" ? "Creator Studio access extended" : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
       const content = action === "approve" ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.` : action === "extend" ? `Your Creator Studio subscription has been extended until ${endDate.toLocaleDateString()}.` : action === "reject" ? `Your Creator Studio payment was not approved. ${reviewNote}` : "An admin ended your Creator Studio access.";
       await db.insert(notifications).values({
@@ -16131,10 +16720,10 @@ function registerCreatorPublishingRoutes(app2) {
         title: creatorBooks.title,
         designerDocument: creatorBooks.designerDocument,
         status: creatorBooks.status
-      }).from(creatorBooks).where(and7(
-        eq10(creatorBooks.creatorId, req.user.id),
-        eq10(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
-        eq10(creatorBooks.genre, "Bible stories and coloring books")
+      }).from(creatorBooks).where(and8(
+        eq11(creatorBooks.creatorId, req.user.id),
+        eq11(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
+        eq11(creatorBooks.genre, "Bible stories and coloring books")
       )).limit(1);
       if (existing) {
         if (req.body?.replaceExisting !== true) {
@@ -16151,9 +16740,9 @@ function registerCreatorPublishingRoutes(app2) {
         const [book2] = await db.update(creatorBooks).set({
           ...draft2,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and7(
-          eq10(creatorBooks.id, existing.id),
-          eq10(creatorBooks.creatorId, req.user.id)
+        }).where(and8(
+          eq11(creatorBooks.id, existing.id),
+          eq11(creatorBooks.creatorId, req.user.id)
         )).returning({ id: creatorBooks.id, title: creatorBooks.title });
         if (!book2) return res.status(404).json({ message: "The existing book could not be found for upgrade." });
         return res.json({
@@ -16184,7 +16773,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: "Enter a creator email and an access period from 1 to 365 days." });
     }
     try {
-      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq10(users.email, email)).limit(1);
+      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq11(users.email, email)).limit(1);
       if (!user || user.userType !== "creator") return res.status(404).json({ message: "No creator account found for that email." });
       const access = await getCreatorStudioAccess(user.id);
       if (access.hasAccess) return res.status(409).json({ message: "This creator already has active access." });
@@ -16225,7 +16814,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: "Use a temporary password between 12 and 128 characters." });
     }
     try {
-      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq10(users.id, req.params.userId)).limit(1);
+      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq11(users.id, req.params.userId)).limit(1);
       if (!subscriber || subscriber.userType !== "creator") return res.status(404).json({ message: "Creator account not found." });
       await storage.resetUserPassword(subscriber.id, password);
       res.json({ success: true });
@@ -16237,7 +16826,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/books", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const books = await db.select().from(creatorBooks).where(eq10(creatorBooks.creatorId, req.user.id)).orderBy(desc8(creatorBooks.updatedAt));
+      const books = await db.select().from(creatorBooks).where(eq11(creatorBooks.creatorId, req.user.id)).orderBy(desc9(creatorBooks.updatedAt));
       res.json(books);
     } catch (error) {
       console.error("Failed to load creator books:", error);
@@ -16265,7 +16854,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.patch("/api/creator-studio/books/:id", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (book.status === "published" || book.status === "submitted") {
         return res.status(409).json({ message: "This book is under review or already published and cannot be edited here." });
@@ -16333,7 +16922,7 @@ function registerCreatorPublishingRoutes(app2) {
       if (changes.title !== void 0 && changes.title.length < 2) {
         return res.status(400).json({ message: "Book title must contain at least 2 characters." });
       }
-      const [updated] = await db.update(creatorBooks).set(changes).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.creatorId, req.user.id))).returning();
+      const [updated] = await db.update(creatorBooks).set(changes).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.creatorId, req.user.id))).returning();
       res.json(updated);
     } catch (error) {
       console.error("Failed to save book:", error);
@@ -16351,7 +16940,7 @@ function registerCreatorPublishingRoutes(app2) {
         generationMessage: creatorBooks.generationMessage,
         generationError: creatorBooks.generationError,
         updatedAt: creatorBooks.updatedAt
-      }).from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+      }).from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (["queued", "generating"].includes(book.generationStatus) && book.updatedAt && Date.now() - new Date(book.updatedAt).getTime() > 30 * 60 * 1e3) {
         const message = "This generation was interrupted. Your previous draft is unchanged; you can try again.";
@@ -16361,7 +16950,7 @@ function registerCreatorPublishingRoutes(app2) {
           generationMessage: null,
           generationError: message,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.generationJobId, book.generationJobId || "")));
+        }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.generationJobId, book.generationJobId || "")));
         return res.json({ ...book, generationStatus: "failed", generationProgress: 0, generationError: message });
       }
       res.json(book);
@@ -16379,7 +16968,7 @@ function registerCreatorPublishingRoutes(app2) {
     if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
     if (![4, 6, 8, 10, 12, 16, 20].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 20 chapters." });
     try {
-      const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (["published", "submitted"].includes(book.status)) {
         return res.status(409).json({ message: "Books submitted for review or already published cannot be regenerated." });
@@ -16403,7 +16992,7 @@ function registerCreatorPublishingRoutes(app2) {
         generationMessage: "Preparing the book generator",
         generationError: null,
         updatedAt: startedAt
-      }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.creatorId, req.user.id)));
+      }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.creatorId, req.user.id)));
       const authorName = `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim().slice(0, 160);
       const onProgress = async (progress, message) => {
         await db.update(creatorBooks).set({
@@ -16412,7 +17001,7 @@ function registerCreatorPublishingRoutes(app2) {
           generationMessage: String(message).slice(0, 240),
           generationError: null,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.generationJobId, jobId)));
+        }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.generationJobId, jobId)));
       };
       void (async () => {
         try {
@@ -16446,7 +17035,7 @@ function registerCreatorPublishingRoutes(app2) {
             generationMessage: "Complete draft and page designs are ready to edit.",
             generationError: null,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.creatorId, req.user.id), eq10(creatorBooks.generationJobId, jobId)));
+          }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.creatorId, req.user.id), eq11(creatorBooks.generationJobId, jobId)));
         } catch (error) {
           const message = String(error?.message || "Book generation failed. Please try again.").slice(0, 500);
           console.error("[ebook-studio] Full book generation failed:", message);
@@ -16456,7 +17045,7 @@ function registerCreatorPublishingRoutes(app2) {
             generationMessage: null,
             generationError: message,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and7(eq10(creatorBooks.id, book.id), eq10(creatorBooks.generationJobId, jobId)));
+          }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.generationJobId, jobId)));
         }
       })();
       res.status(202).json({
@@ -16480,7 +17069,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: "Upload the finished PDF or EPUB file for sale." });
     }
     try {
-      const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, req.params.id), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) {
         removeUpload(req.file);
         return res.status(404).json({ message: "Book not found." });
@@ -16536,7 +17125,7 @@ function registerCreatorPublishingRoutes(app2) {
           submittedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
         }).returning();
-        await tx.update(creatorBooks).set({ status: "submitted", updatedAt: /* @__PURE__ */ new Date() }).where(eq10(creatorBooks.id, book.id)).returning();
+        await tx.update(creatorBooks).set({ status: "submitted", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(creatorBooks.id, book.id)).returning();
         return product;
       });
       res.status(201).json({ ...safeProduct(submitted), bookStatus: "submitted" });
@@ -16549,7 +17138,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/products", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const products = await db.select().from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc8(creatorPublishingProducts.updatedAt));
+      const products = await db.select().from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc9(creatorPublishingProducts.updatedAt));
       res.json(products.map(safeProduct));
     } catch (error) {
       console.error("Failed to load creator products:", error);
@@ -16594,9 +17183,9 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: validation.error });
     }
     try {
-      const [existing] = await db.select().from(creatorPublishingProducts).where(and7(
-        eq10(creatorPublishingProducts.id, req.params.id),
-        eq10(creatorPublishingProducts.creatorId, req.user.id)
+      const [existing] = await db.select().from(creatorPublishingProducts).where(and8(
+        eq11(creatorPublishingProducts.id, req.params.id),
+        eq11(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!existing) {
         removeUpload(req.file);
@@ -16615,7 +17204,7 @@ function registerCreatorPublishingRoutes(app2) {
         status: "draft",
         reviewNote: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq10(creatorPublishingProducts.id, existing.id)).returning();
+      }).where(eq11(creatorPublishingProducts.id, existing.id)).returning();
       if (req.file && existing.fileKey && existing.fileKey !== updated.fileKey) {
         removeUpload({ path: path2.join(PRIVATE_PRODUCT_DIR, path2.basename(existing.fileKey)) });
       }
@@ -16629,9 +17218,9 @@ function registerCreatorPublishingRoutes(app2) {
   app2.post("/api/creator-studio/products/:id/submit", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and7(
-        eq10(creatorPublishingProducts.id, req.params.id),
-        eq10(creatorPublishingProducts.creatorId, req.user.id)
+      const [product] = await db.select().from(creatorPublishingProducts).where(and8(
+        eq11(creatorPublishingProducts.id, req.params.id),
+        eq11(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Digital product not found." });
       if (!["draft", "rejected"].includes(product.status)) {
@@ -16645,7 +17234,7 @@ function registerCreatorPublishingRoutes(app2) {
         reviewNote: null,
         submittedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq10(creatorPublishingProducts.id, product.id)).returning();
+      }).where(eq11(creatorPublishingProducts.id, product.id)).returning();
       res.json(safeProduct(updated));
     } catch (error) {
       console.error("Failed to submit digital product:", error);
@@ -16655,15 +17244,15 @@ function registerCreatorPublishingRoutes(app2) {
   app2.delete("/api/creator-studio/products/:id", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and7(
-        eq10(creatorPublishingProducts.id, req.params.id),
-        eq10(creatorPublishingProducts.creatorId, req.user.id)
+      const [product] = await db.select().from(creatorPublishingProducts).where(and8(
+        eq11(creatorPublishingProducts.id, req.params.id),
+        eq11(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Digital product not found." });
       if (!["draft", "rejected"].includes(product.status)) {
         return res.status(409).json({ message: "Only drafts and rejected products can be deleted." });
       }
-      await db.delete(creatorPublishingProducts).where(eq10(creatorPublishingProducts.id, product.id));
+      await db.delete(creatorPublishingProducts).where(eq11(creatorPublishingProducts.id, product.id));
       if (product.fileKey) removeUpload({ path: path2.join(PRIVATE_PRODUCT_DIR, path2.basename(product.fileKey)) });
       res.json({ deleted: true });
     } catch (error) {
@@ -16721,7 +17310,7 @@ Book concept: ${idea}` }
       bookType: creatorBooks.bookType,
       genre: creatorBooks.genre,
       idea: creatorBooks.idea
-    }).from(creatorBooks).where(and7(eq10(creatorBooks.id, bookId), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+    }).from(creatorBooks).where(and8(eq11(creatorBooks.id, bookId), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
     try {
@@ -16755,7 +17344,7 @@ Chapter: ${chapterTitle}` }
     if (!ai) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
     const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
-    const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, bookId), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, bookId), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (book.status === "published" || book.status === "submitted") {
       return res.status(409).json({ message: "Metadata for submitted books is locked." });
@@ -16808,7 +17397,7 @@ Current description: ${book.description || ""}`
     const tool = String(req.body.tool || "");
     const bookId = String(req.body.bookId || "");
     const chapterId = String(req.body.chapterId || "");
-    const [book] = await db.select().from(creatorBooks).where(and7(eq10(creatorBooks.id, bookId), eq10(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, bookId), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (book.status === "published" || book.status === "submitted") {
       return res.status(409).json({ message: "Writing tools are disabled for submitted or published books." });
@@ -16867,7 +17456,7 @@ ${config.settings.toolPrompts[tool]}` },
   app2.get("/api/admin/publishing-products", isAuthenticated, async (req, res) => {
     if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
-      const rows = await db.select().from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.status, "pending_review")).orderBy(desc8(creatorPublishingProducts.submittedAt));
+      const rows = await db.select().from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.status, "pending_review")).orderBy(desc9(creatorPublishingProducts.submittedAt));
       const results = await Promise.all(rows.map(async (product) => {
         const [creator] = await db.select({
           id: users.id,
@@ -16876,8 +17465,8 @@ ${config.settings.toolPrompts[tool]}` },
           email: users.email,
           username: users.username,
           profileImageUrl: users.profileImageUrl
-        }).from(users).where(eq10(users.id, product.creatorId)).limit(1);
-        const [book] = product.bookId ? await db.select().from(creatorBooks).where(eq10(creatorBooks.id, product.bookId)).limit(1) : [void 0];
+        }).from(users).where(eq11(users.id, product.creatorId)).limit(1);
+        const [book] = product.bookId ? await db.select().from(creatorBooks).where(eq11(creatorBooks.id, product.bookId)).limit(1) : [void 0];
         return { ...safeProduct(product), creator, book: book ? { ...book, chapters: book.chapters } : null };
       }));
       res.json(results);
@@ -16942,16 +17531,16 @@ ${config.settings.toolPrompts[tool]}` },
     if (!["approve", "reject"].includes(action)) return res.status(400).json({ message: "Choose approve or reject." });
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason so the creator can revise the submission." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.id, req.params.id)).limit(1);
+      const [product] = await db.select().from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.id, req.params.id)).limit(1);
       if (!product) return res.status(404).json({ message: "Publishing submission not found." });
       if (product.status !== "pending_review") return res.status(409).json({ message: "This submission has already been reviewed." });
       const updated = await db.transaction(async (tx) => {
         const [claim] = await tx.update(creatorPublishingProducts).set({
           status: "reviewing",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and7(
-          eq10(creatorPublishingProducts.id, product.id),
-          eq10(creatorPublishingProducts.status, "pending_review")
+        }).where(and8(
+          eq11(creatorPublishingProducts.id, product.id),
+          eq11(creatorPublishingProducts.status, "pending_review")
         )).returning({ id: creatorPublishingProducts.id });
         if (!claim) throw Object.assign(new Error("This submission has already been reviewed."), { statusCode: 409 });
         let shopProductId = product.shopProductId;
@@ -16972,7 +17561,7 @@ ${config.settings.toolPrompts[tool]}` },
           }).returning({ id: shopProducts.id });
           shopProductId = shopProduct.id;
         } else if (action === "approve" && shopProductId) {
-          await tx.update(shopProducts).set({ isActive: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq10(shopProducts.id, shopProductId));
+          await tx.update(shopProducts).set({ isActive: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(shopProducts.id, shopProductId));
         }
         const [reviewed] = await tx.update(creatorPublishingProducts).set({
           shopProductId,
@@ -16980,12 +17569,12 @@ ${config.settings.toolPrompts[tool]}` },
           reviewNote: action === "reject" ? reviewNote : null,
           reviewedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq10(creatorPublishingProducts.id, product.id)).returning();
+        }).where(eq11(creatorPublishingProducts.id, product.id)).returning();
         if (product.bookId) {
           await tx.update(creatorBooks).set({
             status: action === "approve" ? "published" : "rejected",
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq10(creatorBooks.id, product.bookId));
+          }).where(eq11(creatorBooks.id, product.bookId));
         }
         return reviewed;
       });
@@ -17038,11 +17627,11 @@ ${config.settings.toolPrompts[tool]}` },
         reviewCount: shopProducts.reviewCount,
         salesCount: shopProducts.salesCount,
         isFeatured: shopProducts.isFeatured
-      }).from(creatorPublishingProducts).innerJoin(shopProducts, eq10(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and7(
-        eq10(creatorPublishingProducts.creatorId, req.params.id),
-        eq10(creatorPublishingProducts.status, "published"),
-        eq10(shopProducts.isActive, true)
-      )).orderBy(desc8(creatorPublishingProducts.createdAt));
+      }).from(creatorPublishingProducts).innerJoin(shopProducts, eq11(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and8(
+        eq11(creatorPublishingProducts.creatorId, req.params.id),
+        eq11(creatorPublishingProducts.status, "published"),
+        eq11(shopProducts.isActive, true)
+      )).orderBy(desc9(creatorPublishingProducts.createdAt));
       res.json(rows);
     } catch (error) {
       console.error("Failed to load public creator products:", error);
@@ -17062,9 +17651,9 @@ ${config.settings.toolPrompts[tool]}` },
         amazonUrl: creatorPublishingProducts.amazonUrl,
         accessUrl: creatorPublishingProducts.accessUrl,
         creatorId: creatorPublishingProducts.creatorId
-      }).from(creatorPublishingProducts).where(and7(
-        eq10(creatorPublishingProducts.shopProductId, req.params.shopProductId),
-        eq10(creatorPublishingProducts.status, "published")
+      }).from(creatorPublishingProducts).where(and8(
+        eq11(creatorPublishingProducts.shopProductId, req.params.shopProductId),
+        eq11(creatorPublishingProducts.status, "published")
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Publishing product not found." });
       res.json(product);
@@ -17087,13 +17676,13 @@ ${config.settings.toolPrompts[tool]}` },
         amazonUrl: creatorPublishingProducts.amazonUrl,
         accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId
-      }).from(purchases).innerJoin(shopProducts, eq10(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq10(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and7(
-        eq10(purchases.userId, req.user.id),
-        inArray6(purchases.status, DOWNLOADABLE_PURCHASE_STATES),
-        eq10(creatorPublishingProducts.status, "published")
-      )).orderBy(desc8(purchases.paidAt));
+      }).from(purchases).innerJoin(shopProducts, eq11(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq11(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and8(
+        eq11(purchases.userId, req.user.id),
+        inArray7(purchases.status, DOWNLOADABLE_PURCHASE_STATES),
+        eq11(creatorPublishingProducts.status, "published")
+      )).orderBy(desc9(purchases.paidAt));
       const withCounts = await Promise.all(rows.map(async (row) => {
-        const [downloads] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq10(creatorProductDownloads.purchaseId, row.purchaseId));
+        const [downloads] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq11(creatorProductDownloads.purchaseId, row.purchaseId));
         return { ...row, downloadsRemaining: Math.max(0, 10 - Number(downloads?.total || 0)) };
       }));
       res.json(withCounts);
@@ -17104,18 +17693,18 @@ ${config.settings.toolPrompts[tool]}` },
   });
   app2.get("/api/publishing/download/:publishingProductId", isAuthenticated, async (req, res) => {
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and7(
-        eq10(creatorPublishingProducts.id, req.params.publishingProductId),
-        eq10(creatorPublishingProducts.status, "published")
+      const [product] = await db.select().from(creatorPublishingProducts).where(and8(
+        eq11(creatorPublishingProducts.id, req.params.publishingProductId),
+        eq11(creatorPublishingProducts.status, "published")
       )).limit(1);
       if (!product?.shopProductId || !product.fileKey) return res.status(404).json({ message: "Download not found." });
-      const [purchase] = await db.select().from(purchases).where(and7(
-        eq10(purchases.productId, product.shopProductId),
-        eq10(purchases.userId, req.user.id),
-        inArray6(purchases.status, DOWNLOADABLE_PURCHASE_STATES)
-      )).orderBy(desc8(purchases.paidAt)).limit(1);
+      const [purchase] = await db.select().from(purchases).where(and8(
+        eq11(purchases.productId, product.shopProductId),
+        eq11(purchases.userId, req.user.id),
+        inArray7(purchases.status, DOWNLOADABLE_PURCHASE_STATES)
+      )).orderBy(desc9(purchases.paidAt)).limit(1);
       if (!purchase) return res.status(403).json({ message: "A verified purchase is required to download this file." });
-      const [downloadCount] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq10(creatorProductDownloads.purchaseId, purchase.id));
+      const [downloadCount] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq11(creatorProductDownloads.purchaseId, purchase.id));
       if (Number(downloadCount?.total || 0) >= 10) {
         return res.status(429).json({ message: "This purchase has reached its 10-download limit. Contact support if you need access restored." });
       }
@@ -17146,7 +17735,7 @@ ${config.settings.toolPrompts[tool]}` },
           title: creatorBooks.title,
           status: creatorBooks.status,
           updatedAt: creatorBooks.updatedAt
-        }).from(creatorBooks).where(eq10(creatorBooks.creatorId, req.user.id)).orderBy(desc8(creatorBooks.updatedAt)),
+        }).from(creatorBooks).where(eq11(creatorBooks.creatorId, req.user.id)).orderBy(desc9(creatorBooks.updatedAt)),
         db.select({
           id: creatorPublishingProducts.id,
           title: creatorPublishingProducts.title,
@@ -17156,7 +17745,7 @@ ${config.settings.toolPrompts[tool]}` },
           updatedAt: creatorPublishingProducts.updatedAt,
           bookId: creatorPublishingProducts.bookId,
           shopProductId: creatorPublishingProducts.shopProductId
-        }).from(creatorPublishingProducts).where(eq10(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc8(creatorPublishingProducts.updatedAt))
+        }).from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc9(creatorPublishingProducts.updatedAt))
       ]);
       const newestProductByBook = /* @__PURE__ */ new Map();
       for (const product of products) {
@@ -17223,7 +17812,7 @@ ${config.settings.toolPrompts[tool]}` },
   app2.get("/api/creator-studio/earnings", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const rows = await db.select().from(creatorProductEarnings).where(eq10(creatorProductEarnings.creatorId, req.user.id)).orderBy(desc8(creatorProductEarnings.createdAt));
+      const rows = await db.select().from(creatorProductEarnings).where(eq11(creatorProductEarnings.creatorId, req.user.id)).orderBy(desc9(creatorProductEarnings.createdAt));
       const sum = (key) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
       res.json({
         totalSales: rows.length,
@@ -17232,7 +17821,7 @@ ${config.settings.toolPrompts[tool]}` },
         referralFees: sum("referralFee").toFixed(2),
         processingFees: sum("processingFee").toFixed(2),
         netEarnings: sum("netAmount").toFixed(2),
-        availableBalance: String((await db.select({ balance: users.availableBalance }).from(users).where(eq10(users.id, req.user.id)).limit(1))[0]?.balance || "0.00"),
+        availableBalance: String((await db.select({ balance: users.availableBalance }).from(users).where(eq11(users.id, req.user.id)).limit(1))[0]?.balance || "0.00"),
         feePercent: await getPublishingFeePercent(),
         sales: rows
       });
@@ -17246,7 +17835,7 @@ ${config.settings.toolPrompts[tool]}` },
 // server/plugin-studio.ts
 init_db();
 import multer3 from "multer";
-import { and as and9, desc as desc10, eq as eq12, isNull, or } from "drizzle-orm";
+import { and as and10, desc as desc11, eq as eq13, isNull, or } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
 
@@ -20252,7 +20841,7 @@ function buildCourseBridgePaidEdition(project) {
 init_schema();
 init_db();
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes as randomBytes2, timingSafeEqual, hkdfSync } from "node:crypto";
-import { and as and8, desc as desc9, eq as eq11, inArray as inArray7, lte as lte2, sql as sql8 } from "drizzle-orm";
+import { and as and9, desc as desc10, eq as eq12, inArray as inArray8, lte as lte2, sql as sql8 } from "drizzle-orm";
 init_email_service();
 var DAY = 24 * 60 * 60 * 1e3;
 var MAX_SUPPORT_MESSAGE = 8e3;
@@ -20369,22 +20958,22 @@ function escapeHtml(value) {
   })[character]);
 }
 async function activatePluginLicenseForPurchase(purchaseId) {
-  const [purchase] = await db.select().from(purchases).where(eq11(purchases.id, purchaseId)).limit(1);
+  const [purchase] = await db.select().from(purchases).where(eq12(purchases.id, purchaseId)).limit(1);
   if (!purchase || !["paid", "approved", "delivered"].includes(purchase.status)) return { issued: false };
-  const [existingLicense] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq11(pluginLicenses.purchaseId, purchase.id)).limit(1);
+  const [existingLicense] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq12(pluginLicenses.purchaseId, purchase.id)).limit(1);
   if (existingLicense) return { issued: false, licenseId: existingLicense.id };
-  const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.shopProductId, purchase.productId)).limit(1);
+  const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.shopProductId, purchase.productId)).limit(1);
   if (!project) return { issued: false };
-  const [product] = await db.select().from(shopProducts).where(eq11(shopProducts.id, purchase.productId)).limit(1);
+  const [product] = await db.select().from(shopProducts).where(eq12(shopProducts.id, purchase.productId)).limit(1);
   const selectedPlan = purchase.selectedAddons?.[0];
   const cadence = selectedPlan?.id === "plugin-monthly" ? "monthly" : selectedPlan?.id === "plugin-yearly" ? "yearly" : null;
   if (!product || !cadence) return { issued: false };
   const key = makeLicenseKey(project.slug);
   const now = /* @__PURE__ */ new Date();
-  const activeLicenses = await db.select().from(pluginLicenses).where(and8(
-    eq11(pluginLicenses.userId, purchase.userId),
-    eq11(pluginLicenses.projectId, project.id),
-    eq11(pluginLicenses.status, "active")
+  const activeLicenses = await db.select().from(pluginLicenses).where(and9(
+    eq12(pluginLicenses.userId, purchase.userId),
+    eq12(pluginLicenses.projectId, project.id),
+    eq12(pluginLicenses.status, "active")
   ));
   const existingExpiry = activeLicenses.reduce((latest, license) => license.expiresAt > now && (!latest || license.expiresAt > latest) ? license.expiresAt : latest, null);
   const startsAt = existingExpiry || now;
@@ -20393,10 +20982,10 @@ async function activatePluginLicenseForPurchase(purchaseId) {
   try {
     created = await db.transaction(async (tx) => {
       if (activeLicenses.length) {
-        await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and8(
-          eq11(pluginLicenses.userId, purchase.userId),
-          eq11(pluginLicenses.projectId, project.id),
-          eq11(pluginLicenses.status, "active")
+        await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and9(
+          eq12(pluginLicenses.userId, purchase.userId),
+          eq12(pluginLicenses.projectId, project.id),
+          eq12(pluginLicenses.status, "active")
         ));
       }
       const [license] = await tx.insert(pluginLicenses).values({
@@ -20422,11 +21011,11 @@ async function activatePluginLicenseForPurchase(purchaseId) {
       return license;
     });
   } catch (error) {
-    const [raced] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq11(pluginLicenses.purchaseId, purchase.id)).limit(1);
+    const [raced] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq12(pluginLicenses.purchaseId, purchase.id)).limit(1);
     if (raced) return { issued: false, licenseId: raced.id };
     throw error;
   }
-  const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq11(users.id, purchase.userId)).limit(1);
+  const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq12(users.id, purchase.userId)).limit(1);
   if (buyer?.email) {
     const appUrl = publicAppUrl();
     const orderUrl = `${appUrl}/orders/${encodeURIComponent(purchase.id)}`;
@@ -20520,9 +21109,9 @@ async function getPluginLicenseSummaryForPurchase(purchaseId, userId) {
     projectName: pluginStudioProjects.name,
     projectSlug: pluginStudioProjects.slug,
     projectVersion: pluginStudioProjects.version
-  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).where(and8(
-    eq11(pluginLicenses.purchaseId, purchaseId),
-    eq11(pluginLicenses.userId, userId)
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).where(and9(
+    eq12(pluginLicenses.purchaseId, purchaseId),
+    eq12(pluginLicenses.userId, userId)
   )).limit(1);
   if (!row) return null;
   const status = row.license.status === "active" && row.license.expiresAt <= /* @__PURE__ */ new Date() ? "expired" : row.license.status;
@@ -20549,13 +21138,13 @@ async function sendExpiryReminders() {
     projectName: pluginStudioProjects.name,
     email: users.email,
     firstName: users.firstName
-  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(users, eq11(pluginLicenses.userId, users.id)).where(and8(inArray7(pluginLicenses.status, ["active", "expired"]), lte2(pluginLicenses.expiresAt, horizon)));
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(users, eq12(pluginLicenses.userId, users.id)).where(and9(inArray8(pluginLicenses.status, ["active", "expired"]), lte2(pluginLicenses.expiresAt, horizon)));
   for (const row of rows) {
     const daysLeft = Math.ceil((row.license.expiresAt.getTime() - now.getTime()) / DAY);
     const stage = daysLeft <= 0 ? "expired" : daysLeft <= 1 ? "1day" : "7day";
     if (row.license.reminderStage === stage || stage === "7day" && row.license.reminderStage) continue;
     if (daysLeft <= 0) {
-      await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq11(pluginLicenses.id, row.license.id));
+      await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq12(pluginLicenses.id, row.license.id));
     }
     const result = await sendEmail({
       to: row.email,
@@ -20565,7 +21154,7 @@ async function sendExpiryReminders() {
       html: stage === "expired" ? `<p>Your <strong>${row.projectName}</strong> license has expired and premium plugin features are locked.</p><p>Sign in to Taskdrip, open My Plugins, and renew the license.</p>` : `<p>Your <strong>${row.projectName}</strong> license expires in ${daysLeft} day(s).</p><p>Renew it from My Plugins to avoid interruption.</p>`
     });
     if (result.success) {
-      await db.update(pluginLicenses).set({ reminderStage: stage, updatedAt: now }).where(eq11(pluginLicenses.id, row.license.id));
+      await db.update(pluginLicenses).set({ reminderStage: stage, updatedAt: now }).where(eq12(pluginLicenses.id, row.license.id));
     }
   }
 }
@@ -20577,17 +21166,17 @@ function registerPluginLicenseRoutes(app2, options) {
         license: pluginLicenses,
         project: pluginStudioProjects,
         product: shopProducts
-      }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq11(pluginLicenses.productId, shopProducts.id)).where(eq11(pluginLicenses.userId, req.user.id)).orderBy(desc9(pluginLicenses.createdAt));
+      }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq12(pluginLicenses.productId, shopProducts.id)).where(eq12(pluginLicenses.userId, req.user.id)).orderBy(desc10(pluginLicenses.createdAt));
       const licenseIds = rows.map((row) => row.license.id);
-      const sites = licenseIds.length ? await db.select().from(pluginLicenseSites).where(inArray7(pluginLicenseSites.licenseId, licenseIds)) : [];
+      const sites = licenseIds.length ? await db.select().from(pluginLicenseSites).where(inArray8(pluginLicenseSites.licenseId, licenseIds)) : [];
       const events = licenseIds.length ? await db.select({
         licenseId: pluginLicenseEvents.licenseId,
         eventType: pluginLicenseEvents.eventType,
         total: sql8`count(*)::int`
-      }).from(pluginLicenseEvents).where(inArray7(pluginLicenseEvents.licenseId, licenseIds)).groupBy(pluginLicenseEvents.licenseId, pluginLicenseEvents.eventType) : [];
-      const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and8(eq11(pluginSupportThreads.userId, req.user.id), inArray7(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc9(pluginSupportThreads.updatedAt)) : [];
+      }).from(pluginLicenseEvents).where(inArray8(pluginLicenseEvents.licenseId, licenseIds)).groupBy(pluginLicenseEvents.licenseId, pluginLicenseEvents.eventType) : [];
+      const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and9(eq12(pluginSupportThreads.userId, req.user.id), inArray8(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc10(pluginSupportThreads.updatedAt)) : [];
       const threadIds = threads.map((thread) => thread.id);
-      const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray7(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
+      const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray8(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
       const messageGroups = /* @__PURE__ */ new Map();
       messages2.forEach((message) => messageGroups.set(message.threadId, [...messageGroups.get(message.threadId) || [], message]));
       const siteGroups = /* @__PURE__ */ new Map();
@@ -20621,9 +21210,9 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/reveal", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and8(
-        eq11(pluginLicenses.id, req.params.id),
-        eq11(pluginLicenses.userId, req.user.id)
+      const [license] = await db.select().from(pluginLicenses).where(and9(
+        eq12(pluginLicenses.id, req.params.id),
+        eq12(pluginLicenses.userId, req.user.id)
       )).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
@@ -20634,10 +21223,10 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and8(
-        eq11(pluginLicenses.id, req.params.id),
-        eq11(pluginLicenses.userId, req.user.id),
-        eq11(pluginLicenses.status, "active")
+      const [license] = await db.select().from(pluginLicenses).where(and9(
+        eq12(pluginLicenses.id, req.params.id),
+        eq12(pluginLicenses.userId, req.user.id),
+        eq12(pluginLicenses.status, "active")
       )).limit(1);
       if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) {
         return res.status(403).json({ message: "An active plugin license is required to download this package." });
@@ -20656,16 +21245,16 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/support", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and8(
-        eq11(pluginLicenses.id, req.params.id),
-        eq11(pluginLicenses.userId, req.user.id)
+      const [license] = await db.select().from(pluginLicenses).where(and9(
+        eq12(pluginLicenses.id, req.params.id),
+        eq12(pluginLicenses.userId, req.user.id)
       )).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       const content = String(req.body?.content || "").trim().slice(0, MAX_SUPPORT_MESSAGE);
       const subject = String(req.body?.subject || "").trim().slice(0, 180);
       const requestType = req.body?.requestType === "update_request" ? "update_request" : "support";
       if (content.length < 2 || !subject) return res.status(400).json({ message: "Add a subject and message." });
-      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, license.projectId)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, license.projectId)).limit(1);
       const [thread] = await db.insert(pluginSupportThreads).values({
         licenseId: license.id,
         projectId: license.projectId,
@@ -20691,12 +21280,12 @@ function registerPluginLicenseRoutes(app2, options) {
       const projects = await db.select({
         project: pluginStudioProjects,
         product: shopProducts
-      }).from(pluginStudioProjects).leftJoin(shopProducts, eq11(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc9(pluginStudioProjects.createdAt));
+      }).from(pluginStudioProjects).leftJoin(shopProducts, eq12(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc10(pluginStudioProjects.createdAt));
       const licenses = await db.select({
         license: pluginLicenses,
         buyerEmail: users.email,
         projectName: pluginStudioProjects.name
-      }).from(pluginLicenses).innerJoin(users, eq11(pluginLicenses.userId, users.id)).innerJoin(pluginStudioProjects, eq11(pluginLicenses.projectId, pluginStudioProjects.id)).orderBy(desc9(pluginLicenses.createdAt));
+      }).from(pluginLicenses).innerJoin(users, eq12(pluginLicenses.userId, users.id)).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).orderBy(desc10(pluginLicenses.createdAt));
       const sites = await db.select().from(pluginLicenseSites);
       const events = await db.select({
         projectId: pluginLicenseEvents.projectId,
@@ -20708,9 +21297,9 @@ function registerPluginLicenseRoutes(app2, options) {
         productId: purchases.productId,
         amount: purchases.amount,
         selectedAddons: purchases.selectedAddons
-      }).from(purchases).where(and8(
-        inArray7(purchases.productId, productIds),
-        inArray7(purchases.status, ["paid", "approved", "delivered"])
+      }).from(purchases).where(and9(
+        inArray8(purchases.productId, productIds),
+        inArray8(purchases.status, ["paid", "approved", "delivered"])
       )) : [];
       const projectByProduct = new Map(
         projects.flatMap(({ project, product }) => product?.id ? [[product.id, project.id]] : [])
@@ -20779,7 +21368,7 @@ function registerPluginLicenseRoutes(app2, options) {
       if (!projectId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !validCadence(cadence)) {
         return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly or yearly license." });
       }
-      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.id, projectId)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, projectId)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin not found." });
       let licenseServer = null;
       try {
@@ -20790,7 +21379,7 @@ function registerPluginLicenseRoutes(app2, options) {
         return res.status(409).json({ message: "Set a public HTTPS Taskdrip license server URL in this plugin's settings before issuing a WordPress key." });
       }
       if (!project.shopProductId) return res.status(409).json({ message: "This plugin has no linked shop product and cannot receive a license yet." });
-      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq11(shopProducts.id, project.shopProductId)).limit(1);
+      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq12(shopProducts.id, project.shopProductId)).limit(1);
       if (!product) return res.status(409).json({ message: "The plugin's shop product is missing. Repair the listing before issuing a license." });
       const [recipient] = await db.select({ id: users.id, email: users.email }).from(users).where(sql8`lower(${users.email}) = ${email}`).limit(1);
       if (!recipient) return res.status(404).json({ message: "No Taskdrip account uses that email. The customer must create an account before a license can be assigned." });
@@ -20846,7 +21435,7 @@ function registerPluginLicenseRoutes(app2, options) {
   app2.post("/api/admin/plugin-studio/licenses/:id/reveal", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
-      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq11(pluginLicenses.id, req.params.id)).limit(1);
+      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq12(pluginLicenses.id, req.params.id)).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
     } catch (error) {
@@ -20861,9 +21450,9 @@ function registerPluginLicenseRoutes(app2, options) {
         thread: pluginSupportThreads,
         projectName: pluginStudioProjects.name,
         buyerEmail: users.email
-      }).from(pluginSupportThreads).innerJoin(pluginStudioProjects, eq11(pluginSupportThreads.projectId, pluginStudioProjects.id)).innerJoin(users, eq11(pluginSupportThreads.userId, users.id)).orderBy(desc9(pluginSupportThreads.updatedAt));
+      }).from(pluginSupportThreads).innerJoin(pluginStudioProjects, eq12(pluginSupportThreads.projectId, pluginStudioProjects.id)).innerJoin(users, eq12(pluginSupportThreads.userId, users.id)).orderBy(desc10(pluginSupportThreads.updatedAt));
       const threadIds = threads.map((row) => row.thread.id);
-      const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray7(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
+      const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray8(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
       res.json(threads.map(({ thread, projectName, buyerEmail }) => ({
         ...thread,
         projectName,
@@ -20878,10 +21467,10 @@ function registerPluginLicenseRoutes(app2, options) {
   app2.patch("/api/admin/plugin-studio/licenses/:id/revoke", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
-      const [license] = await db.select().from(pluginLicenses).where(eq11(pluginLicenses.id, req.params.id)).limit(1);
+      const [license] = await db.select().from(pluginLicenses).where(eq12(pluginLicenses.id, req.params.id)).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       if (license.status !== "active") return res.status(409).json({ message: "Only active licenses can be revoked." });
-      await db.update(pluginLicenses).set({ status: "revoked", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pluginLicenses.id, license.id));
+      await db.update(pluginLicenses).set({ status: "revoked", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pluginLicenses.id, license.id));
       await bumpEvent(license.projectId, "license_revoked", license.id);
       res.json({ success: true, status: "revoked" });
     } catch (error) {
@@ -20891,7 +21480,7 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/plugin-support/:threadId/messages", isAuthenticated, async (req, res) => {
     try {
-      const [thread] = await db.select().from(pluginSupportThreads).where(eq11(pluginSupportThreads.id, req.params.threadId)).limit(1);
+      const [thread] = await db.select().from(pluginSupportThreads).where(eq12(pluginSupportThreads.id, req.params.threadId)).limit(1);
       if (!thread || !isAdmin5(req.user) && thread.userId !== req.user.id) {
         return res.status(404).json({ message: "Support conversation not found." });
       }
@@ -20902,7 +21491,7 @@ function registerPluginLicenseRoutes(app2, options) {
         senderId: req.user.id,
         content
       }).returning();
-      await db.update(pluginSupportThreads).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq11(pluginSupportThreads.id, thread.id));
+      await db.update(pluginSupportThreads).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pluginSupportThreads.id, thread.id));
       res.status(201).json(message);
     } catch (error) {
       console.error("[plugin-license] Could not send support message:", error.message);
@@ -20916,31 +21505,31 @@ function registerPluginLicenseRoutes(app2, options) {
     }
     try {
       const slug = String(req.params.slug).slice(0, 80);
-      const [project] = await db.select().from(pluginStudioProjects).where(eq11(pluginStudioProjects.slug, slug)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.slug, slug)).limit(1);
       if (!project) return res.status(404).json({ valid: false, status: "plugin_not_found" });
       const key = String(req.body?.licenseKey || "").trim().toUpperCase().slice(0, 160);
       const installationId = String(req.body?.installationId || "").trim().slice(0, 120);
       if (!key || !/^[A-Za-z0-9_-]{12,120}$/.test(installationId)) {
         return res.status(400).json({ valid: false, status: "invalid_request" });
       }
-      const [license] = await db.select().from(pluginLicenses).where(and8(
-        eq11(pluginLicenses.keyHash, hashLicenseKey(key)),
-        eq11(pluginLicenses.projectId, project.id)
+      const [license] = await db.select().from(pluginLicenses).where(and9(
+        eq12(pluginLicenses.keyHash, hashLicenseKey(key)),
+        eq12(pluginLicenses.projectId, project.id)
       )).limit(1);
       const now = /* @__PURE__ */ new Date();
       if (!license) return res.status(200).json({ valid: false, status: "invalid_key" });
-      const [site] = await db.select().from(pluginLicenseSites).where(and8(
-        eq11(pluginLicenseSites.licenseId, license.id),
-        eq11(pluginLicenseSites.installationId, installationId)
+      const [site] = await db.select().from(pluginLicenseSites).where(and9(
+        eq12(pluginLicenseSites.licenseId, license.id),
+        eq12(pluginLicenseSites.installationId, installationId)
       )).limit(1);
       if (action === "deactivate") {
-        if (site) await db.update(pluginLicenseSites).set({ status: "inactive", updatedAt: now, lastSeenAt: now }).where(eq11(pluginLicenseSites.id, site.id));
+        if (site) await db.update(pluginLicenseSites).set({ status: "inactive", updatedAt: now, lastSeenAt: now }).where(eq12(pluginLicenseSites.id, site.id));
         await bumpEvent(project.id, "deactivated", license.id, installationId);
         return res.json({ valid: false, status: "deactivated" });
       }
       if (license.status !== "active") return res.status(200).json({ valid: false, status: license.status });
       if (license.expiresAt <= now) {
-        await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq11(pluginLicenses.id, license.id));
+        await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq12(pluginLicenses.id, license.id));
         return res.status(200).json({ valid: false, status: "expired", expiresAt: license.expiresAt });
       }
       const siteUrl = cleanSiteUrl(req.body?.siteUrl);
@@ -20949,9 +21538,9 @@ function registerPluginLicenseRoutes(app2, options) {
         return res.status(200).json({ valid: false, status: "not_activated" });
       }
       if (action === "activate" && (!site || site.status !== "active")) {
-        const activeSites = await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and8(
-          eq11(pluginLicenseSites.licenseId, license.id),
-          eq11(pluginLicenseSites.status, "active")
+        const activeSites = await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and9(
+          eq12(pluginLicenseSites.licenseId, license.id),
+          eq12(pluginLicenseSites.status, "active")
         ));
         if (activeSites.length >= license.maxActivations) {
           return res.status(200).json({ valid: false, status: "activation_limit", activeSites: activeSites.length, maxActivations: license.maxActivations });
@@ -20966,7 +21555,7 @@ function registerPluginLicenseRoutes(app2, options) {
         updatedAt: now
       };
       if (site) {
-        await db.update(pluginLicenseSites).set(values).where(eq11(pluginLicenseSites.id, site.id));
+        await db.update(pluginLicenseSites).set(values).where(eq12(pluginLicenseSites.id, site.id));
       } else {
         await db.insert(pluginLicenseSites).values({ licenseId: license.id, installationId, ...values });
       }
@@ -20980,9 +21569,9 @@ function registerPluginLicenseRoutes(app2, options) {
         status: "active",
         expiresAt: license.expiresAt.toISOString(),
         maxActivations: license.maxActivations,
-        activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and8(
-          eq11(pluginLicenseSites.licenseId, license.id),
-          eq11(pluginLicenseSites.status, "active")
+        activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and9(
+          eq12(pluginLicenseSites.licenseId, license.id),
+          eq12(pluginLicenseSites.status, "active")
         ))).length
       };
       if (action === "check-update") {
@@ -21014,18 +21603,18 @@ function registerPluginLicenseRoutes(app2, options) {
       if (!payload?.licenseId || !payload?.projectId || !payload?.installationId) {
         return res.status(403).json({ message: "This update link has expired. Check for updates again in WordPress." });
       }
-      const [license] = await db.select().from(pluginLicenses).where(and8(
-        eq11(pluginLicenses.id, String(payload.licenseId)),
-        eq11(pluginLicenses.projectId, String(payload.projectId)),
-        eq11(pluginLicenses.status, "active")
+      const [license] = await db.select().from(pluginLicenses).where(and9(
+        eq12(pluginLicenses.id, String(payload.licenseId)),
+        eq12(pluginLicenses.projectId, String(payload.projectId)),
+        eq12(pluginLicenses.status, "active")
       )).limit(1);
       if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) {
         return res.status(403).json({ message: "An active plugin license is required for this update." });
       }
-      const [site] = await db.select().from(pluginLicenseSites).where(and8(
-        eq11(pluginLicenseSites.licenseId, license.id),
-        eq11(pluginLicenseSites.installationId, String(payload.installationId)),
-        eq11(pluginLicenseSites.status, "active")
+      const [site] = await db.select().from(pluginLicenseSites).where(and9(
+        eq12(pluginLicenseSites.licenseId, license.id),
+        eq12(pluginLicenseSites.installationId, String(payload.installationId)),
+        eq12(pluginLicenseSites.status, "active")
       )).limit(1);
       if (!site) return res.status(403).json({ message: "This WordPress installation is no longer activated." });
       const archive = await options.buildPremiumArchive(license.projectId);
@@ -21074,7 +21663,7 @@ async function ensureStarterPlans(productId) {
   const [product] = await db.select({
     price: shopProducts.price,
     serviceAddons: shopProducts.serviceAddons
-  }).from(shopProducts).where(eq12(shopProducts.id, productId)).limit(1);
+  }).from(shopProducts).where(eq13(shopProducts.id, productId)).limit(1);
   if (!product) return;
   const plans = Array.isArray(product.serviceAddons) ? product.serviceAddons : [];
   const monthlyPrice = Number(plans.find((plan) => plan.id === "plugin-monthly")?.price) || Number(product.price) || STARTER_MONTHLY_PRICE;
@@ -21085,7 +21674,7 @@ async function ensureStarterPlans(productId) {
   await db.update(shopProducts).set({
     serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq12(shopProducts.id, productId));
+  }).where(eq13(shopProducts.id, productId));
 }
 function validateZipDirectory(data) {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
@@ -21157,7 +21746,7 @@ function adminOnly(req, res) {
   return true;
 }
 async function ensureStarterProject(adminId) {
-  const [existing] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+  const [existing] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
   const paidEdition = buildCourseBridgePaidEdition(STARTER);
   if (existing) {
     let shopProductId = existing.shopProductId || "";
@@ -21180,11 +21769,11 @@ async function ensureStarterProject(adminId) {
           isFree: false,
           createdBy: adminId
         }).returning();
-        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq12(shopProducts.id, product.id));
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq13(shopProducts.id, product.id));
         return product.id;
       });
     } else {
-      await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq12(shopProducts.id, shopProductId));
+      await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq13(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
     const refreshLegacyStarter = compareVersions2(existing.version, STARTER.version) < 0 || Object.keys(existing.coreFiles || {}).length > 0 || !existing.premiumFiles?.[`${STARTER.slug}.php`];
@@ -21210,9 +21799,9 @@ async function ensureStarterProject(adminId) {
         coreFiles: {},
         premiumFiles: paidEdition.files,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq12(pluginStudioProjects.id, existing.id));
+      }).where(eq13(pluginStudioProjects.id, existing.id));
     }
-    const [existingProduct] = await db.select().from(shopProducts).where(eq12(shopProducts.id, shopProductId)).limit(1);
+    const [existingProduct] = await db.select().from(shopProducts).where(eq13(shopProducts.id, shopProductId)).limit(1);
     const productMetadataNeedsSync = existingProduct && (existingProduct.title !== STARTER.name || existingProduct.shortDescription !== STARTER.shortDescription || existingProduct.description !== STARTER.description || existingProduct.featuredImage !== STARTER.featuredImage || JSON.stringify(existingProduct.features || []) !== JSON.stringify(paidEdition.features) || JSON.stringify(existingProduct.requirements || []) !== JSON.stringify(Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10)) || JSON.stringify(existingProduct.tags || []) !== JSON.stringify(["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"]));
     if (productMetadataNeedsSync) {
       await db.update(shopProducts).set({
@@ -21224,7 +21813,7 @@ async function ensureStarterProject(adminId) {
         requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
         tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq12(shopProducts.id, shopProductId));
+      }).where(eq13(shopProducts.id, shopProductId));
     }
     return;
   }
@@ -21259,10 +21848,10 @@ async function ensureStarterProject(adminId) {
         status: "draft",
         createdBy: adminId
       }).returning();
-      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq12(shopProducts.id, product.id));
+      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq13(shopProducts.id, product.id));
     });
   } catch (error) {
-    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq12(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq13(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
     if (!created) throw error;
   }
 }
@@ -21278,14 +21867,14 @@ function parseGeneratedPair(content) {
   }
 }
 async function getProjectFiles(id, edition) {
-  const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, id)).limit(1);
+  const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
   const singlePaid = project.templateKey === STARTER.templateKey;
   if (singlePaid && edition === "core" || !singlePaid && edition === "paid") return null;
   const packageEdition = singlePaid ? "paid" : edition;
   const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq12(shopProducts.id, project.shopProductId)).limit(1) : [];
+    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq13(shopProducts.id, project.shopProductId)).limit(1) : [];
     const release = buildPluginReleaseFiles(
       { ...project, features: product?.features || [] },
       packageEdition,
@@ -21338,7 +21927,7 @@ function registerPluginStudioRoutes(app2) {
       if (licenseApiBaseUrl) {
         await db.update(pluginStudioProjects).set({ licenseApiBaseUrl, updatedAt: /* @__PURE__ */ new Date() }).where(isNull(pluginStudioProjects.licenseApiBaseUrl));
       }
-      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq12(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc10(pluginStudioProjects.createdAt));
+      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq13(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc11(pluginStudioProjects.createdAt));
       res.json(rows.map(({ project, product }) => {
         const {
           sourcePrompt,
@@ -21391,7 +21980,7 @@ function registerPluginStudioRoutes(app2) {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 2) {
         return res.status(400).json({ message: "Use a WordPress-compatible slug containing lowercase letters, numbers, and hyphens." });
       }
-      const [existingProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq12(pluginStudioProjects.slug, slug)).limit(1);
+      const [existingProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq13(pluginStudioProjects.slug, slug)).limit(1);
       if (existingProject) return res.status(409).json({ message: "That plugin slug is already in use. Choose a different slug." });
       const config = await getCreatorStudioAIConfig();
       const ai = config.aiAvailable ? createStudioAIClient(config.model, config.provider, config.endpointUrl) : null;
@@ -21502,7 +22091,7 @@ ${description}`
           status: "draft",
           createdBy: req.user.id
         }).returning();
-        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq12(shopProducts.id, product.id));
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq13(shopProducts.id, product.id));
         created = {
           id: project.id,
           slug: project.slug,
@@ -21524,7 +22113,7 @@ ${description}`
   app2.patch("/api/admin/plugin-studio/projects/:id", isAuthenticated, async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
       const status = req.body?.status;
       if (status !== void 0 && !["draft", "published"].includes(status)) {
@@ -21572,7 +22161,7 @@ ${description}`
       }
       if (status) updates.status = status;
       const nextLicenseUrl = updates.licenseApiBaseUrl !== void 0 ? updates.licenseApiBaseUrl : project.licenseApiBaseUrl;
-      const nextPlans = updates.monthlyPrice !== void 0 ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice) : (await db.select({ serviceAddons: shopProducts.serviceAddons }).from(shopProducts).where(eq12(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
+      const nextPlans = updates.monthlyPrice !== void 0 ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice) : (await db.select({ serviceAddons: shopProducts.serviceAddons }).from(shopProducts).where(eq13(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
       if (status === "published" && (!nextLicenseUrl || !nextPlans.some((plan) => plan.id === "plugin-monthly") || !nextPlans.some((plan) => plan.id === "plugin-yearly"))) {
         return res.status(409).json({ message: "Set a public HTTPS license server URL and both monthly and yearly prices before publishing." });
       }
@@ -21580,19 +22169,19 @@ ${description}`
         const projectUpdates = { ...updates };
         delete projectUpdates.monthlyPrice;
         delete projectUpdates.yearlyPrice;
-        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq12(pluginStudioProjects.id, project.id));
+        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq13(pluginStudioProjects.id, project.id));
         if (projectUpdates.maxActivations !== void 0) {
-          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pluginLicenses.projectId, project.id));
+          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(pluginLicenses.projectId, project.id));
         }
         if (project.shopProductId && updates.monthlyPrice !== void 0) {
           await tx.update(shopProducts).set({
             price: Number(updates.monthlyPrice).toFixed(2),
             serviceAddons: PLAN_ADDONS(Number(updates.monthlyPrice), Number(updates.yearlyPrice)),
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq12(shopProducts.id, project.shopProductId));
+          }).where(eq13(shopProducts.id, project.shopProductId));
         }
         if (project.shopProductId && status) {
-          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(shopProducts.id, project.shopProductId));
+          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq13(shopProducts.id, project.shopProductId));
         }
       });
       res.json({ success: true, status: status || project.status });
@@ -21632,10 +22221,10 @@ ${description}`
         featuredImage: shopProducts.featuredImage,
         price: shopProducts.price,
         isActive: shopProducts.isActive
-      }).from(pluginStudioProjects).innerJoin(shopProducts, eq12(pluginStudioProjects.shopProductId, shopProducts.id)).where(and9(
-        or(eq12(pluginStudioProjects.shopProductId, key), eq12(pluginStudioProjects.slug, key)),
-        eq12(pluginStudioProjects.status, "published"),
-        eq12(shopProducts.isActive, true)
+      }).from(pluginStudioProjects).innerJoin(shopProducts, eq13(pluginStudioProjects.shopProductId, shopProducts.id)).where(and10(
+        or(eq13(pluginStudioProjects.shopProductId, key), eq13(pluginStudioProjects.slug, key)),
+        eq13(pluginStudioProjects.status, "published"),
+        eq13(shopProducts.isActive, true)
       )).limit(1);
       res.json(project || null);
     } catch (error) {
@@ -21645,9 +22234,9 @@ ${description}`
   });
   app2.get("/api/plugin-studio/projects/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project || !project.shopProductId) return res.status(404).json({ message: "Plugin product not found." });
-      const [product] = await db.select().from(shopProducts).where(eq12(shopProducts.id, project.shopProductId)).limit(1);
+      const [product] = await db.select().from(shopProducts).where(eq13(shopProducts.id, project.shopProductId)).limit(1);
       if (!product || !product.isActive || project.status !== "published") {
         return res.status(404).json({ message: "This plugin is not available for download." });
       }
@@ -21655,10 +22244,10 @@ ${description}`
       const admin2 = isAdmin6(user);
       let licenseId = null;
       if (!admin2) {
-        const [license] = await db.select().from(pluginLicenses).where(and9(
-          eq12(pluginLicenses.userId, user.id),
-          eq12(pluginLicenses.projectId, project.id),
-          eq12(pluginLicenses.status, "active")
+        const [license] = await db.select().from(pluginLicenses).where(and10(
+          eq13(pluginLicenses.userId, user.id),
+          eq13(pluginLicenses.projectId, project.id),
+          eq13(pluginLicenses.status, "active")
         )).limit(1);
         if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) return res.status(403).json({ message: "An active plugin license is required before downloading this package." });
         licenseId = license.id;
@@ -21686,7 +22275,7 @@ ${description}`
   app2.post("/api/admin/plugin-studio/projects/:id/release", isAuthenticated, releaseUpload.single("zip"), async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
       if (!req.file?.buffer) return res.status(400).json({ message: "Choose a premium plugin ZIP to release." });
       const version = String(req.body?.version || "").trim().slice(0, 30);
@@ -21732,7 +22321,7 @@ ${description}`
         premiumFiles,
         releaseNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq12(pluginStudioProjects.id, project.id));
+      }).where(eq13(pluginStudioProjects.id, project.id));
       res.json({ success: true, version, releaseNotes });
     } catch (error) {
       console.error("[plugin-studio] Could not publish update:", error.message);
@@ -22073,7 +22662,7 @@ async function addPluginSlugs(products) {
     productId: pluginStudioProjects.shopProductId,
     slug: pluginStudioProjects.slug,
     status: pluginStudioProjects.status
-  }).from(pluginStudioProjects).where(inArray11(pluginStudioProjects.shopProductId, productIds));
+  }).from(pluginStudioProjects).where(inArray12(pluginStudioProjects.shopProductId, productIds));
   const slugByProductId = new Map(projects.flatMap((project) => project.productId && project.status === "published" ? [[project.productId, project.slug]] : []));
   return products.map((product) => ({
     ...product,
@@ -22086,7 +22675,7 @@ async function getShopProductByPublicKey(key) {
     const [project2] = await db.select({
       slug: pluginStudioProjects.slug,
       status: pluginStudioProjects.status
-    }).from(pluginStudioProjects).where(eq16(pluginStudioProjects.shopProductId, productById.id)).limit(1);
+    }).from(pluginStudioProjects).where(eq17(pluginStudioProjects.shopProductId, productById.id)).limit(1);
     return {
       ...productById,
       ...project2?.status === "published" && productById.isActive ? { pluginSlug: project2.slug } : {}
@@ -22095,9 +22684,9 @@ async function getShopProductByPublicKey(key) {
   const [project] = await db.select({
     slug: pluginStudioProjects.slug,
     shopProductId: pluginStudioProjects.shopProductId
-  }).from(pluginStudioProjects).where(and12(
-    eq16(pluginStudioProjects.slug, key),
-    eq16(pluginStudioProjects.status, "published")
+  }).from(pluginStudioProjects).where(and13(
+    eq17(pluginStudioProjects.slug, key),
+    eq17(pluginStudioProjects.status, "published")
   )).limit(1);
   if (!project?.shopProductId) return void 0;
   const product = await storage.getShopProductById(project.shopProductId);
@@ -22264,7 +22853,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq16(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq17(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -22326,7 +22915,7 @@ async function enrichP2PListing(listing) {
 }
 async function enrichP2PTransaction(tx) {
   const [listing, buyer, seller, admin2] = await Promise.all([
-    db.select().from(p2pListings).where(eq16(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+    db.select().from(p2pListings).where(eq17(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -22954,7 +23543,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and12(eq16(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and13(eq17(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -22973,7 +23562,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and12(eq16(posts.userId, req.user.id), gte2(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and13(eq17(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -23269,7 +23858,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq16(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq17(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -23973,17 +24562,17 @@ async function registerRoutes(app2, existingServer) {
       const post = await storage.getBlogPostBySlug(req.params.slug);
       if (!post) return res.status(404).json({ message: "Blog post not found" });
       const conditions = [
-        eq16(blogPosts.isPublished, true),
+        eq17(blogPosts.isPublished, true),
         sql13`${blogPosts.slug} <> ${req.params.slug}`
       ];
-      if (post.category) conditions.push(eq16(blogPosts.category, post.category));
+      if (post.category) conditions.push(eq17(blogPosts.category, post.category));
       const related = await db.select({
         title: blogPosts.title,
         slug: blogPosts.slug,
         excerpt: blogPosts.excerpt,
         category: blogPosts.category,
         featuredImage: blogPosts.featuredImage
-      }).from(blogPosts).where(and12(...conditions)).orderBy(desc12(blogPosts.publishedAt)).limit(3);
+      }).from(blogPosts).where(and13(...conditions)).orderBy(desc13(blogPosts.publishedAt)).limit(3);
       res.json(related);
     } catch (error) {
       console.error("Error fetching related blog posts:", error);
@@ -24230,7 +24819,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         username: users.username,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray11(users.id, uniqueIds)) : [];
+      }).from(users).where(inArray12(users.id, uniqueIds)) : [];
       const userMap = {};
       for (const u of userRows) userMap[u.id] = u;
       const enrichedMessages = msgs.map((msg) => ({
@@ -24413,7 +25002,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq16(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq17(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -24513,10 +25102,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and12(eq16(campaignMicroTasks.campaignId, req.params.id), eq16(campaignMicroTasks.isActive, true))).orderBy(desc12(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and13(eq17(campaignMicroTasks.campaignId, req.params.id), eq17(campaignMicroTasks.isActive, true))).orderBy(desc13(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.campaignId, req.params.id), eq16(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.campaignId, req.params.id), eq17(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -24534,7 +25123,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq16(campaignMicroTasks.campaignId, campaigns.id)).where(eq16(campaignMicroTasks.brandId, userId)).orderBy(desc12(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq17(campaignMicroTasks.campaignId, campaigns.id)).where(eq17(campaignMicroTasks.brandId, userId)).orderBy(desc13(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -24592,7 +25181,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq16(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq17(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -24618,7 +25207,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.microTaskId, task.id), eq16(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.microTaskId, task.id), eq17(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -24642,7 +25231,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq16(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq17(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -24653,7 +25242,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq16(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq17(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -24662,11 +25251,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.microTaskId, task.id), eq16(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.microTaskId, task.id), eq17(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and12(eq16(microTaskSubmissions.microTaskId, task.id), eq16(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.microTaskId, task.id), eq17(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -24702,7 +25291,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq16(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq16(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq16(microTaskSubmissions.userId, users.id)).where(eq16(campaignMicroTasks.brandId, userId)).orderBy(desc12(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq17(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq17(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq17(microTaskSubmissions.userId, users.id)).where(eq17(campaignMicroTasks.brandId, userId)).orderBy(desc13(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -24718,14 +25307,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin2] = await db.select().from(users).where(eq16(users.id, userId));
+      const [admin2] = await db.select().from(users).where(eq17(users.id, userId));
       if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq16(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq16(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq16(microTaskSubmissions.userId, users.id)).orderBy(desc12(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq17(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq17(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq17(microTaskSubmissions.userId, users.id)).orderBy(desc13(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -24741,9 +25330,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq16(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq17(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq16(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq17(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -24758,7 +25347,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq17(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -24876,7 +25465,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "campaign_participation"), eq16(userReviews.referenceId, participation.id))).orderBy(desc12(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "campaign_participation"), eq17(userReviews.referenceId, participation.id))).orderBy(desc13(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -24896,7 +25485,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "campaign_participation"), eq16(userReviews.referenceId, participation.id), eq16(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "campaign_participation"), eq17(userReviews.referenceId, participation.id), eq17(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -24907,8 +25496,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq16(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq17(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -25272,8 +25861,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq23 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq23(transactions3.id, id));
+            const { eq: eq24 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq24(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -25304,7 +25893,7 @@ async function registerRoutes(app2, existingServer) {
       let courseRevenue = 0;
       for (const e of allEnrollmentRows) {
         if (e.status === "active" || e.paymentStatus === "approved") {
-          const course = await db.select({ price: courses.price }).from(courses).where(eq16(courses.id, e.courseId)).limit(1);
+          const course = await db.select({ price: courses.price }).from(courses).where(eq17(courses.id, e.courseId)).limit(1);
           courseRevenue += parseFloat(course[0]?.price || "0");
         }
       }
@@ -25349,7 +25938,7 @@ async function registerRoutes(app2, existingServer) {
       const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
       let courseTotal = 0;
       for (const e of approvedEnrollmentIds) {
-        const course = await db.select({ price: courses.price }).from(courses).where(eq16(courses.id, e.courseId)).limit(1);
+        const course = await db.select({ price: courses.price }).from(courses).where(eq17(courses.id, e.courseId)).limit(1);
         courseTotal += parseFloat(course[0]?.price || "0");
       }
       const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
@@ -25479,13 +26068,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
-        db.select().from(transactions).orderBy(desc12(transactions.createdAt)),
-        db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt)),
-        db.select().from(purchases).orderBy(desc12(purchases.createdAt)),
-        db.select().from(escrowPayments).orderBy(desc12(escrowPayments.createdAt)),
-        db.select().from(paymentDeposits).orderBy(desc12(paymentDeposits.createdAt)),
-        db.select().from(subscriptions).orderBy(desc12(subscriptions.createdAt)),
-        db.select().from(directHireOffers).orderBy(desc12(directHireOffers.createdAt)),
+        db.select().from(transactions).orderBy(desc13(transactions.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt)),
+        db.select().from(purchases).orderBy(desc13(purchases.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc13(escrowPayments.createdAt)),
+        db.select().from(paymentDeposits).orderBy(desc13(paymentDeposits.createdAt)),
+        db.select().from(subscriptions).orderBy(desc13(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc13(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)
       ]);
       const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
@@ -25652,7 +26241,7 @@ async function registerRoutes(app2, existingServer) {
         approvedAt: courseEnrollments.approvedAt,
         createdAt: courseEnrollments.createdAt,
         courseTitle: courses.title
-      }).from(courseEnrollments).leftJoin(courses, eq16(courseEnrollments.courseId, courses.id)).orderBy(desc12(courseEnrollments.createdAt));
+      }).from(courseEnrollments).leftJoin(courses, eq17(courseEnrollments.courseId, courses.id)).orderBy(desc13(courseEnrollments.createdAt));
       for (const t of enrollmentRows) {
         const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
         unified.push({
@@ -25713,13 +26302,13 @@ async function registerRoutes(app2, existingServer) {
         allCourses,
         allProducts
       ] = await Promise.all([
-        safeSelect(db.select().from(subscriptions).orderBy(desc12(subscriptions.createdAt))),
-        safeSelect(db.select().from(purchases).orderBy(desc12(purchases.createdAt))),
-        safeSelect(db.select().from(courseEnrollments).orderBy(desc12(courseEnrollments.createdAt))),
-        safeSelect(db.select().from(directHireOffers).orderBy(desc12(directHireOffers.createdAt))),
-        safeSelect(db.select().from(escrowPayments).orderBy(desc12(escrowPayments.createdAt))),
-        safeSelect(db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt))),
-        safeSelect(db.select().from(payoutRequests).orderBy(desc12(payoutRequests.createdAt))),
+        safeSelect(db.select().from(subscriptions).orderBy(desc13(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc13(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc13(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc13(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc13(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc13(payoutRequests.createdAt))),
         safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
         safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
         safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts))
@@ -26071,23 +26660,23 @@ async function registerRoutes(app2, existingServer) {
       }
       let verifiedPurchaseId;
       const { creatorPublishingProducts: publishingProducts, purchases: shopPurchases } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and12(
-        eq16(publishingProducts.shopProductId, req.params.id),
-        eq16(publishingProducts.status, "published")
+      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and13(
+        eq17(publishingProducts.shopProductId, req.params.id),
+        eq17(publishingProducts.status, "published")
       )).limit(1);
       if (publishingProduct) {
-        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and12(
-          eq16(shopPurchases.productId, req.params.id),
-          eq16(shopPurchases.userId, user.id),
-          inArray11(shopPurchases.status, ["paid", "approved", "delivered"])
+        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and13(
+          eq17(shopPurchases.productId, req.params.id),
+          eq17(shopPurchases.userId, user.id),
+          inArray12(shopPurchases.status, ["paid", "approved", "delivered"])
         )).limit(1);
         if (!verifiedPurchase) {
           return res.status(403).json({ message: "Only verified buyers can review this digital product." });
         }
         verifiedPurchaseId = verifiedPurchase.id;
-        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and12(
-          eq16(productReviews.productId, req.params.id),
-          eq16(productReviews.userId, user.id)
+        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and13(
+          eq17(productReviews.productId, req.params.id),
+          eq17(productReviews.userId, user.id)
         )).limit(1);
         if (existingReview) return res.status(409).json({ message: "You have already reviewed this product." });
       }
@@ -26127,7 +26716,7 @@ async function registerRoutes(app2, existingServer) {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq16(pluginStudioProjects.shopProductId, productId)).limit(1);
+      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq17(pluginStudioProjects.shopProductId, productId)).limit(1);
       if (pluginProject && !["plugin-monthly", "plugin-yearly"].includes(String(planId || ""))) {
         return res.status(400).json({ message: "Choose a monthly or yearly plugin license plan before checkout." });
       }
@@ -26736,7 +27325,7 @@ async function registerRoutes(app2, existingServer) {
       }).catch(() => {
       });
       try {
-        const admins = await db.select().from(users).where(eq16(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq17(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -26760,7 +27349,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const list = await db.select().from(contentReports).orderBy(desc12(contentReports.createdAt));
+      const list = await db.select().from(contentReports).orderBy(desc13(contentReports.createdAt));
       res.json(list);
     } catch (error) {
       res.status(500).json({ message: "Failed to list reports" });
@@ -26770,14 +27359,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq16(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq17(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq17(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -26799,13 +27388,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq16(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq17(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq17(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -26866,7 +27455,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq16(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq17(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -26900,7 +27489,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq16(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq17(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -26949,7 +27538,7 @@ async function registerRoutes(app2, existingServer) {
       const { status, adminNote } = req.body || {};
       const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
       if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(directHireOffers.id, req.params.id)).returning();
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(directHireOffers.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Hire request not found" });
       if (updated.brandId) {
         const statusLabels = {
@@ -27253,12 +27842,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq16(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq17(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -27294,8 +27883,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq16(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq17(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -27347,7 +27936,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, req.user.id)).orderBy(desc12(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, req.user.id)).orderBy(desc13(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -27389,7 +27978,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq16(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -27404,7 +27993,7 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq16(users.userType, "admin")).limit(3);
+      const adminUsers = await db.select().from(users).where(eq17(users.userType, "admin")).limit(3);
       for (const admin2 of adminUsers) {
         await storage.createNotification({
           userId: admin2.id,
@@ -27447,7 +28036,7 @@ async function registerRoutes(app2, existingServer) {
         commissionAmount: referralCommissions.commissionAmount,
         status: referralCommissions.status,
         createdAt: referralCommissions.createdAt
-      }).from(referralCommissions).leftJoin(referrerAlias, eq16(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc12(referralCommissions.createdAt)).limit(200);
+      }).from(referralCommissions).leftJoin(referrerAlias, eq17(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc13(referralCommissions.createdAt)).limit(200);
       const referralPayouts = await db.select({
         id: payoutRequests.id,
         userId: payoutRequests.userId,
@@ -27460,7 +28049,7 @@ async function registerRoutes(app2, existingServer) {
         lastName: users.lastName,
         username: users.username,
         email: users.email
-      }).from(payoutRequests).leftJoin(users, eq16(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc12(payoutRequests.createdAt)).limit(100);
+      }).from(payoutRequests).leftJoin(users, eq17(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc13(payoutRequests.createdAt)).limit(100);
       const filteredPayouts = referralPayouts.filter(
         (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
       );
@@ -27485,7 +28074,7 @@ async function registerRoutes(app2, existingServer) {
       const updateData = { status };
       if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
       if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(referralCommissions).set(updateData).where(eq16(referralCommissions.id, id)).returning();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq17(referralCommissions.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Commission not found" });
       res.json(updated);
     } catch (error) {
@@ -27498,9 +28087,9 @@ async function registerRoutes(app2, existingServer) {
       const isAdmin7 = req.user.userType === "admin";
       let allMessages;
       if (isAdmin7) {
-        allMessages = await db.select().from(messages).orderBy(desc12(messages.createdAt));
+        allMessages = await db.select().from(messages).orderBy(desc13(messages.createdAt));
       } else {
-        allMessages = await db.select().from(messages).where(sql13`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc12(messages.createdAt));
+        allMessages = await db.select().from(messages).where(sql13`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc13(messages.createdAt));
       }
       const convMap = {};
       for (const msg of allMessages) {
@@ -27528,8 +28117,8 @@ async function registerRoutes(app2, existingServer) {
         Object.values(convMap).map((conv) => conv.campaignId).filter(Boolean)
       )];
       const [participantRows, campaignRows] = await Promise.all([
-        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray11(users.id, allParticipantIds)) : [],
-        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray11(campaigns.id, allCampaignIds)) : []
+        allParticipantIds.length ? db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, userType: users.userType, companyName: users.companyName, profileImageUrl: users.profileImageUrl }).from(users).where(inArray12(users.id, allParticipantIds)) : [],
+        allCampaignIds.length ? db.select({ id: campaigns.id, title: campaigns.title }).from(campaigns).where(inArray12(campaigns.id, allCampaignIds)) : []
       ]);
       const participantMap = {};
       for (const u of participantRows) participantMap[u.id] = u;
@@ -27578,7 +28167,7 @@ async function registerRoutes(app2, existingServer) {
         userType: users.userType,
         companyName: users.companyName,
         profileImageUrl: users.profileImageUrl
-      }).from(users).where(inArray11(users.id, senderIds)) : [];
+      }).from(users).where(inArray12(users.id, senderIds)) : [];
       const senderMap = {};
       for (const s of senderRows) senderMap[s.id] = s;
       const enriched = rawMessages.map((msg) => ({ ...msg, sender: senderMap[msg.senderId] || null }));
@@ -27592,7 +28181,7 @@ async function registerRoutes(app2, existingServer) {
       });
       const unreadIds = rawMessages.filter((m) => m.receiverId === userId && !m.isRead).map((m) => m.id);
       if (unreadIds.length > 0) {
-        await db.update(messages).set({ isRead: true }).where(inArray11(messages.id, unreadIds));
+        await db.update(messages).set({ isRead: true }).where(inArray12(messages.id, unreadIds));
       }
       res.json(deduplicated);
     } catch (error) {
@@ -27705,7 +28294,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/admin/conversations", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const allMessages = await db.select().from(messages).orderBy(desc12(messages.createdAt));
+      const allMessages = await db.select().from(messages).orderBy(desc13(messages.createdAt));
       const convMap = {};
       for (const msg of allMessages) {
         if (!msg.campaignId) continue;
@@ -27733,7 +28322,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and12(eq16(blockedUsers.blockerId, blockerId), eq16(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and13(eq17(blockedUsers.blockerId, blockerId), eq17(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -27745,7 +28334,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and12(eq16(blockedUsers.blockerId, blockerId), eq16(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and13(eq17(blockedUsers.blockerId, blockerId), eq17(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -27755,8 +28344,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and12(eq16(blockedUsers.blockerId, myId), eq16(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and12(eq16(blockedUsers.blockerId, otherId), eq16(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and13(eq17(blockedUsers.blockerId, myId), eq17(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and13(eq17(blockedUsers.blockerId, otherId), eq17(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -28126,7 +28715,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -28253,7 +28842,7 @@ Instructions:
       });
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         let resolvedLinkedCourseId = pricing?.linkedCourseId || null;
         if (!resolvedLinkedCourseId && selectedCourseKey === "free_foundations") {
@@ -28262,9 +28851,9 @@ Instructions:
         }
         if (resolvedLinkedCourseId) {
           linkedCourseId = resolvedLinkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and12(
-            eq16(courseEnrollments.courseId, resolvedLinkedCourseId),
-            eq16(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and13(
+            eq17(courseEnrollments.courseId, resolvedLinkedCourseId),
+            eq17(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -28279,7 +28868,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq16(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq17(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -28362,7 +28951,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq16(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq17(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28371,7 +28960,7 @@ Instructions:
   app2.get("/api/admin/breedskool/registrations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc12(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc13(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28434,30 +29023,30 @@ Instructions:
         if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: "Invalid payment status." });
         updateData.paymentStatus = String(paymentStatus);
       }
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq16(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq17(breedskoolRegistrations.id, req.params.id)).returning();
       if (!row) return res.status(404).json({ message: "Registration not found" });
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq16(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq17(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq16(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq17(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and12(
-              eq16(courseEnrollments.courseId, courseIdToActivate),
-              eq16(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and13(
+              eq17(courseEnrollments.courseId, courseIdToActivate),
+              eq17(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq16(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq17(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -28469,7 +29058,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq16(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq17(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -28586,7 +29175,7 @@ Instructions:
     { id: "ton", label: "Toncoin", currency: "TON", network: "ton", address: "", isActive: true }
   ];
   const readBreedSkoolDonationWallets = async () => {
-    const [walletRow] = await db.select().from(appSettings).where(eq16(appSettings.key, "breedskool_donation_wallets"));
+    const [walletRow] = await db.select().from(appSettings).where(eq17(appSettings.key, "breedskool_donation_wallets"));
     if (walletRow?.value) {
       try {
         const stored = JSON.parse(walletRow.value);
@@ -28603,7 +29192,7 @@ Instructions:
       } catch {
       }
     }
-    const legacyRows = await db.select().from(appSettings).where(inArray11(appSettings.key, [
+    const legacyRows = await db.select().from(appSettings).where(inArray12(appSettings.key, [
       "breedskool_usdt_tron_address",
       "breedskool_usdt_ton_address",
       "breedskool_usdt_bnb_address"
@@ -28617,7 +29206,7 @@ Instructions:
   };
   app2.get("/api/breedskool/campaign", async (_req, res) => {
     try {
-      const [row] = await db.select().from(appSettings).where(eq16(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq17(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       let storedConfig = null;
       if (row?.value) {
@@ -28644,7 +29233,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const [row] = await db.select().from(appSettings).where(eq16(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq17(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       if (row?.value) {
         try {
@@ -28724,7 +29313,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray11(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray12(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json({ ...settings, wallets: await readBreedSkoolDonationWallets() });
@@ -28745,7 +29334,7 @@ Instructions:
         "breedskool_usdt_bnb_address",
         "breedskool_payment_instructions"
       ];
-      const rows = await db.select().from(appSettings).where(inArray11(appSettings.key, keys));
+      const rows = await db.select().from(appSettings).where(inArray12(appSettings.key, keys));
       const settings = {};
       for (const r of rows) settings[r.key] = r.value || "";
       res.json({ ...settings, wallets: await readBreedSkoolDonationWallets() });
@@ -28794,7 +29383,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign/donations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc12(paymentDeposits.createdAt));
+      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc13(paymentDeposits.createdAt));
       res.json(deposits.map((deposit) => {
         let details = {};
         try {
@@ -28821,7 +29410,7 @@ Instructions:
       if (!["submitted", "verified", "approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Choose a valid donation status." });
       }
-      const [existing] = await db.select().from(paymentDeposits).where(eq16(paymentDeposits.id, req.params.id));
+      const [existing] = await db.select().from(paymentDeposits).where(eq17(paymentDeposits.id, req.params.id));
       if (!existing || !String(existing.adminNotes || "").includes("breedskool_campaign")) {
         return res.status(404).json({ message: "Donation not found." });
       }
@@ -28839,7 +29428,7 @@ Instructions:
         approvedBy: status === "approved" || status === "verified" ? req.user.id : null,
         approvedAt: status === "approved" || status === "verified" ? /* @__PURE__ */ new Date() : null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq17(paymentDeposits.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28847,7 +29436,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq16(courseAssignments.userId, req.user.id)).orderBy(desc12(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq17(courseAssignments.userId, req.user.id)).orderBy(desc13(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28855,7 +29444,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq16(breedskoolRegistrations.userId, req.user.id)).orderBy(desc12(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq17(breedskoolRegistrations.userId, req.user.id)).orderBy(desc13(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29024,9 +29613,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq16(courseEnrollments.userId, users.id)).where(and12(
-        eq16(courseEnrollments.courseId, courseId),
-        eq16(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq17(courseEnrollments.userId, users.id)).where(and13(
+        eq17(courseEnrollments.courseId, courseId),
+        eq17(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -29062,11 +29651,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq16(courseCommunityPosts.userId, users.id)).where(and12(
-        eq16(courseCommunityPosts.courseId, courseId),
-        eq16(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq17(courseCommunityPosts.userId, users.id)).where(and13(
+        eq17(courseCommunityPosts.courseId, courseId),
+        eq17(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq16(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq17(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -29109,25 +29698,25 @@ Instructions:
       const postId = req.params.postId;
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7) {
-        const [course] = await db.select().from(courses).where(eq16(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq17(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and12(eq16(courseEnrollments.courseId, courseId), eq16(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and13(eq17(courseEnrollments.courseId, courseId), eq17(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and12(eq16(courseCommunityPosts.id, postId), eq16(courseCommunityPosts.courseId, courseId), eq16(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and13(eq17(courseCommunityPosts.id, postId), eq17(courseCommunityPosts.courseId, courseId), eq17(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and12(eq16(courseCommunityLikes.postId, postId), eq16(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and13(eq17(courseCommunityLikes.postId, postId), eq17(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and12(
-          eq16(courseCommunityLikes.postId, postId),
-          eq16(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and13(
+          eq17(courseCommunityLikes.postId, postId),
+          eq17(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq16(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq17(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
         await db.execute(sql13`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
@@ -29143,15 +29732,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and12(eq16(courseCommunityPosts.id, postId), eq16(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and13(eq17(courseCommunityPosts.id, postId), eq17(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq16(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq17(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq16(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq17(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -29160,7 +29749,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq16(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq17(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -29176,8 +29765,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq16(courseCommunityPosts.userId, users.id)).where(and12(inArray11(courseCommunityPosts.courseId, courseIds), eq16(courseCommunityPosts.isDeleted, false))).orderBy(desc12(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq16(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq17(courseCommunityPosts.userId, users.id)).where(and13(inArray12(courseCommunityPosts.courseId, courseIds), eq17(courseCommunityPosts.isDeleted, false))).orderBy(desc13(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq17(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -29187,7 +29776,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq16(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq17(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -29198,7 +29787,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq16(courseEnrollments.userId, users.id)).where(and12(inArray11(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq17(courseEnrollments.userId, users.id)).where(and13(inArray12(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -29490,10 +30079,10 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and12(
-        eq16(courseAssignments.courseId, req.params.id),
-        eq16(courseAssignments.userId, req.user.id)
-      )).orderBy(desc12(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(and13(
+        eq17(courseAssignments.courseId, req.params.id),
+        eq17(courseAssignments.userId, req.user.id)
+      )).orderBy(desc13(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -29548,7 +30137,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq16(courseAssignments.userId, users.id)).orderBy(desc12(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq17(courseAssignments.userId, users.id)).orderBy(desc13(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -29560,7 +30149,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq16(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq17(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -29608,13 +30197,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq23, desc: desc13 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq23(courseMessages2.courseId, req.params.id)).orderBy(desc13(courseMessages2.createdAt));
+      const { eq: eq24, desc: desc14 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq24(courseMessages2.courseId, req.params.id)).orderBy(desc14(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq23(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq24(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq23(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq24(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -29647,8 +30236,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq23, and: and16 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and16(eq23(productLikes2.productId, req.params.id), eq23(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq24, and: and17 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and17(eq24(productLikes2.productId, req.params.id), eq24(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -29658,26 +30247,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq23, and: and16, sql: sql17 } = await import("drizzle-orm");
+      const { eq: eq24, and: and17, sql: sql17 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and16(eq23(productLikes2.productId, req.params.id), eq23(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and17(eq24(productLikes2.productId, req.params.id), eq24(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq23(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq24(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             [type === "like" ? "likesCount" : "dislikesCount"]: sql17`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq23(shopProducts2.id, req.params.id));
+          }).where(eq24(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq23(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq24(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
             likesCount: sql17`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
             dislikesCount: sql17`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq23(shopProducts2.id, req.params.id));
+          }).where(eq24(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -29688,7 +30277,7 @@ Instructions:
         });
         await db2.update(shopProducts2).set({
           [type === "like" ? "likesCount" : "dislikesCount"]: sql17`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq23(shopProducts2.id, req.params.id));
+        }).where(eq24(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -30074,7 +30663,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and12(eq16(messages.referenceType, "direct_hire"), eq16(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and13(eq17(messages.referenceType, "direct_hire"), eq17(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -30182,7 +30771,7 @@ Instructions:
         totalEarned: sql13`${users.totalEarned} + ${payout}`,
         completedCampaigns: sql13`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(users.id, offer.influencerId));
+      }).where(eq17(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -30211,7 +30800,7 @@ Instructions:
           availableBalance: sql13`${users.availableBalance} + ${platformRevenue}`,
           totalEarned: sql13`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq16(users.id, primaryAdmin.id));
+        }).where(eq17(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -30251,7 +30840,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "direct_hire"), eq16(userReviews.referenceId, offer.id))).orderBy(desc12(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "direct_hire"), eq17(userReviews.referenceId, offer.id))).orderBy(desc13(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -30267,7 +30856,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and12(eq16(userReviews.referenceType, "direct_hire"), eq16(userReviews.referenceId, offer.id), eq16(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "direct_hire"), eq17(userReviews.referenceId, offer.id), eq17(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -30277,8 +30866,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq16(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq17(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -30443,7 +31032,7 @@ Instructions:
       await db.update(users).set({
         pendingBalance: sql13`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(users.id, offer.influencerId));
+      }).where(eq17(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -30637,8 +31226,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq16(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq16(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq17(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq17(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -30649,7 +31238,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq16(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq17(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -30658,7 +31247,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq16(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq17(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -31015,7 +31604,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and12(eq16(p2pListings.status, "approved"), eq16(p2pListings.isFeatured, true))).orderBy(desc12(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and13(eq17(p2pListings.status, "approved"), eq17(p2pListings.isFeatured, true))).orderBy(desc13(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31023,7 +31612,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -31040,12 +31629,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq16(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq16(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq16(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq16(p2pListings.country, country));
-      if (currency) conditions.push(eq16(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and12(...conditions)).orderBy(desc12(p2pListings.createdAt));
+      let conditions = [eq17(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq17(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq17(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq17(p2pListings.country, country));
+      if (currency) conditions.push(eq17(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and13(...conditions)).orderBy(desc13(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -31122,7 +31711,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -31138,7 +31727,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and12(eq16(p2pTaskAddonSubmissions.listingId, req.params.id), eq16(p2pTaskAddonSubmissions.userId, req.user.id), eq16(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and13(eq17(p2pTaskAddonSubmissions.listingId, req.params.id), eq17(p2pTaskAddonSubmissions.userId, req.user.id), eq17(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -31172,12 +31761,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq16(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc12(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq17(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31185,7 +31774,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq16(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc12(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq17(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31193,9 +31782,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq16(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq17(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -31208,7 +31797,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq17(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -31229,13 +31818,13 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq16(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq17(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
       const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
-        inArray11(p2pTaskAddonSubmissions.listingId, listingIds)
-      ).orderBy(desc12(p2pTaskAddonSubmissions.createdAt));
+        inArray12(p2pTaskAddonSubmissions.listingId, listingIds)
+      ).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
       const submissionsWithTitle = submissions.map((s) => ({ ...s, listingTitle: listingTitleMap[s.listingId] || "" }));
       res.json(submissionsWithTitle);
     } catch (e) {
@@ -31260,7 +31849,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
@@ -31334,7 +31923,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions", isAuthenticated, async (req, res) => {
     try {
-      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc12(p2pTransactions.createdAt));
+      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc13(p2pTransactions.createdAt));
       res.json(await Promise.all(rows.map(enrichP2PTransaction)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31342,7 +31931,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -31352,10 +31941,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq16(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq17(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31363,7 +31952,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -31381,7 +31970,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -31390,7 +31979,7 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -31404,10 +31993,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -31417,11 +32006,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -31431,11 +32020,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -31448,11 +32037,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -31466,11 +32055,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -31483,10 +32072,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -31507,7 +32096,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq16(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq17(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -31533,7 +32122,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq16(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq17(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -31550,14 +32139,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq16(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq16(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq16(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq17(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -31584,7 +32173,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq16(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq17(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -31595,7 +32184,7 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-listings", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = (await db.select().from(p2pListings).orderBy(desc12(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = (await db.select().from(p2pListings).orderBy(desc13(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const enriched = await Promise.all(rows.map(enrichP2PListing));
       res.json(enriched);
     } catch (e) {
@@ -31605,8 +32194,8 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-transactions", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = await db.select().from(p2pTransactions).orderBy(desc12(p2pTransactions.createdAt));
-      const allListings = (await db.select().from(p2pListings).orderBy(desc12(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = await db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt));
+      const allListings = (await db.select().from(p2pListings).orderBy(desc13(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const revenue = rows.filter((r) => r.status === "completed").reduce((sum, r) => sum + Number(r.fee || 0), 0);
       res.json({
         stats: {
@@ -31655,7 +32244,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq16(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq17(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31665,7 +32254,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq16(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq17(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -31677,9 +32266,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq16(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq17(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq16(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq17(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31961,7 +32550,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/all-submissions", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const submissions = await db.select().from(taskSubmissions).orderBy(desc12(taskSubmissions.submittedAt));
+      const submissions = await db.select().from(taskSubmissions).orderBy(desc13(taskSubmissions.submittedAt));
       const enriched = await Promise.all(submissions.map(async (s) => {
         const [creator, campaign] = await Promise.all([
           storage.getUser(s.userId),
@@ -32044,7 +32633,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq16(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq17(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -32269,7 +32858,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq16(adAnalytics.adId, req.params.id)).orderBy(desc12(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq17(adAnalytics.adId, req.params.id)).orderBy(desc13(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -32422,7 +33011,7 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const apps = await storage.getAllAdvertiseApplications();
-      const payments = await db.select().from(paymentDeposits).where(sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc12(paymentDeposits.createdAt));
+      const payments = await db.select().from(paymentDeposits).where(sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc13(paymentDeposits.createdAt));
       res.json(apps.map((app22) => ({
         ...app22,
         payment: payments.find((payment) => String(payment.adminNotes || "").includes(`ads_application:${app22.id}`)) || null
@@ -32466,8 +33055,8 @@ ${body}`,
       const status = String(req.query.status || "").trim();
       const search = String(req.query.search || "").trim();
       const conditions = [];
-      if (eventType && eventType !== "all") conditions.push(eq16(activityLogs.eventType, eventType));
-      if (status && status !== "all") conditions.push(eq16(activityLogs.status, status));
+      if (eventType && eventType !== "all") conditions.push(eq17(activityLogs.eventType, eventType));
+      if (status && status !== "all") conditions.push(eq17(activityLogs.status, status));
       if (search) {
         const pattern = `%${search.slice(0, 100)}%`;
         conditions.push(or2(
@@ -32478,9 +33067,9 @@ ${body}`,
           ilike2(activityLogs.entityId, pattern)
         ));
       }
-      const where = conditions.length ? and12(...conditions) : void 0;
+      const where = conditions.length ? and13(...conditions) : void 0;
       const [items, totalRows] = await Promise.all([
-        db.select().from(activityLogs).where(where).orderBy(desc12(activityLogs.createdAt)).limit(limit).offset(offset),
+        db.select().from(activityLogs).where(where).orderBy(desc13(activityLogs.createdAt)).limit(limit).offset(offset),
         db.select({ count: count4() }).from(activityLogs).where(where)
       ]);
       res.json({
@@ -32905,7 +33494,7 @@ ${body}`,
       const allUsers = await storage.getAllUsers?.() || [];
       const { courseEnrollments: courseEnrollments2, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
       const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const { eq: eq23, sql: sqlFn } = await import("drizzle-orm");
+      const { eq: eq24, sql: sqlFn } = await import("drizzle-orm");
       const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
       const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
       const studentUserIds = /* @__PURE__ */ new Set([
@@ -33091,7 +33680,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq16(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq17(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -33381,8 +33970,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq23, and: and16 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and16(eq23(pageHeroBackgrounds2.page, req.params.page), eq23(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq24, and: and17 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and17(eq24(pageHeroBackgrounds2.page, req.params.page), eq24(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -33404,12 +33993,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq23 } = await import("drizzle-orm");
+      const { eq: eq24 } = await import("drizzle-orm");
       const page2 = req.params.page;
       const data = { ...req.body, page: page2, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq23(pageHeroBackgrounds2.page, page2));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq24(pageHeroBackgrounds2.page, page2));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq23(pageHeroBackgrounds2.page, page2)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq24(pageHeroBackgrounds2.page, page2)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -33423,8 +34012,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq23 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq23(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq24 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq24(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -33530,7 +34119,7 @@ ${body}`,
       if (!user) return res.status(404).json({ message: "User not found" });
       const shopOrders = await storage.getUserPurchases(userId);
       const courseOrders = await storage.getMyEnrollments(userId);
-      const p2pRows = await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc12(p2pTransactions.createdAt));
+      const p2pRows = await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc13(p2pTransactions.createdAt));
       const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
       let escrowOrders = [];
       if (user.userType === "brand" || user.userType === "admin") {
@@ -33554,12 +34143,12 @@ ${body}`,
       const directHireOrders = Array.from(hireMap.values()).sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
-      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql13`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc12(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and12(
-        eq16(paymentDeposits.brandId, userId),
+      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql13`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc13(advertiseApplications.createdAt)) : [];
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and13(
+        eq17(paymentDeposits.brandId, userId),
         sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
-      )).orderBy(desc12(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq16(subscriptions.userId, userId)).orderBy(desc12(subscriptions.createdAt));
+      )).orderBy(desc13(paymentDeposits.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq17(subscriptions.userId, userId)).orderBy(desc13(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -33581,14 +34170,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq16(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq17(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq16(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq17(users.id, sellerId));
         seller = s || null;
       }
       const pluginLicense = isBuyer ? await getPluginLicenseSummaryForPurchase(purchase.id, req.user.id) : null;
@@ -33601,7 +34190,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq16(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq17(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -33696,7 +34285,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq16(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq17(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -33799,7 +34388,7 @@ ${body}`,
   });
   const readPortfolioContent = async () => {
     const rows = await db.select().from(siteContent).where(
-      inArray11(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects])
+      inArray12(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects])
     );
     const profileRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.profile);
     const projectsRow = rows.find((row) => row.contentKey === PORTFOLIO_CONTENT_KEYS.projects);
@@ -33880,7 +34469,7 @@ ${body}`,
       if (projects.some((project) => !project?.slug || !project?.title)) {
         return res.status(400).json({ message: "Every project needs a slug and title" });
       }
-      const existing = await db.select({ contentKey: siteContent.contentKey }).from(siteContent).where(inArray11(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects]));
+      const existing = await db.select({ contentKey: siteContent.contentKey }).from(siteContent).where(inArray12(siteContent.contentKey, [PORTFOLIO_CONTENT_KEYS.profile, PORTFOLIO_CONTENT_KEYS.projects]));
       const existingKeys = new Set(existing.map((row) => row.contentKey));
       const save = async (key, label, section, value, sortOrder) => {
         const serialized = JSON.stringify(value);
@@ -33907,7 +34496,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq16(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq17(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -33924,7 +34513,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq16(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq17(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -33941,7 +34530,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq16(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq17(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -33971,7 +34560,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq16(pageSeoSettings.pageSlug, req.params.slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq17(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page2 || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -33982,9 +34571,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq16(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq17(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -34049,7 +34638,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq16(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq17(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34058,7 +34647,7 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq16(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq17(footerColumns.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34116,7 +34705,7 @@ ${body}`,
       const since = /* @__PURE__ */ new Date();
       since.setUTCHours(0, 0, 0, 0);
       since.setUTCDate(since.getUTCDate() - (days - 1));
-      const totalRows = await db.select({ c: count4() }).from(pageViews).where(gte2(pageViews.createdAt, since));
+      const totalRows = await db.select({ c: count4() }).from(pageViews).where(gte3(pageViews.createdAt, since));
       const total = Number(totalRows[0]?.c || 0);
       const sessionRows = await db.execute(sql13`
         SELECT COUNT(DISTINCT session_id) AS c
@@ -34183,15 +34772,15 @@ ${body}`,
       res.status(500).json({ message: e.message });
     }
   });
-  const requireAdmin2 = (req, res, next) => {
+  const requireAdmin3 = (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
     if (req.user.userType !== "admin" && req.user.role !== "admin") return res.status(403).json({ message: "Admin only" });
     next();
   };
-  app2.get("/api/admin/leads/providers", isAuthenticated, requireAdmin2, (_req, res) => {
+  app2.get("/api/admin/leads/providers", isAuthenticated, requireAdmin3, (_req, res) => {
     res.json(providerStatus());
   });
-  app2.get("/api/admin/leads", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.get("/api/admin/leads", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const {
         kind,
@@ -34209,12 +34798,12 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq16(leads.kind, String(kind)));
+      if (kind) conds.push(eq17(leads.kind, String(kind)));
       if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
       if (businessType) conds.push(sql13`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq16(leads.country, String(country)));
+      if (country) conds.push(eq17(leads.country, String(country)));
       if (city) conds.push(sql13`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq16(leads.status, String(status)));
+      if (status) conds.push(eq17(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
         conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -34223,15 +34812,15 @@ ${body}`,
       if (hasPhone === "true") conds.push(sql13`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
       if (hasWebsite === "true") conds.push(sql13`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
       if (hasEmail === "true") conds.push(sql13`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and12(...conds) : void 0;
-      const rows = await db.select().from(leads).where(where).orderBy(desc12(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
+      const where = conds.length ? and13(...conds) : void 0;
+      const rows = await db.select().from(leads).where(where).orderBy(desc13(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count4() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
   });
-  app2.get("/api/admin/leads/stats", isAuthenticated, requireAdmin2, async (_req, res) => {
+  app2.get("/api/admin/leads/stats", isAuthenticated, requireAdmin3, async (_req, res) => {
     try {
       const [byKind, byStatus, byCountry, byNiche, totalRow] = await Promise.all([
         db.execute(sql13`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
@@ -34251,38 +34840,38 @@ ${body}`,
       res.status(500).json({ message: e.message });
     }
   });
-  app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq16(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq17(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq16(leadMessages.leadId, lead.id)).orderBy(desc12(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq17(leadMessages.leadId, lead.id)).orderBy(desc13(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
   });
-  app2.patch("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.patch("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const allowed = {};
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq16(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq17(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
     }
   });
-  app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq16(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq16(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq17(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq17(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/leads/manual", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.post("/api/admin/leads/manual", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const body = req.body || {};
       if (!body.name || !body.kind) return res.status(400).json({ message: "name and kind required" });
@@ -34292,7 +34881,7 @@ ${body}`,
       res.status(400).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/leads/discover/businesses", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.post("/api/admin/leads/discover/businesses", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const { query, location, country, maxResults } = req.body || {};
       if (!query) return res.status(400).json({ message: "query required" });
@@ -34303,7 +34892,7 @@ ${body}`,
       res.status(400).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/leads/discover/influencers", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.post("/api/admin/leads/discover/influencers", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const { query, country, maxResults, includeInternal } = req.body || {};
       const items = [];
@@ -34316,7 +34905,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq16(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq17(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -34343,22 +34932,22 @@ ${body}`,
       res.status(400).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq16(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq17(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/leads/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.post("/api/admin/leads/:id/messages", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq16(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq17(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -34383,14 +34972,14 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
       res.status(400).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/leads/bulk-sms", isAuthenticated, requireAdmin2, async (req, res) => {
+  app2.post("/api/admin/leads/bulk-sms", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
       const { leadIds, body, niche, country, kind } = req.body || {};
       if (!body) return res.status(400).json({ message: "body required" });
@@ -34398,9 +34987,9 @@ ${body}`,
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
         if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq16(leads.country, String(country)));
-        if (kind) conds.push(eq16(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and12(...conds)).limit(2e3);
+        if (country) conds.push(eq17(leads.country, String(country)));
+        if (kind) conds.push(eq17(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and13(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -34416,7 +35005,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq16(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq17(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -34429,13 +35018,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq16(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq17(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq16(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq16(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq17(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34490,10 +35079,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq16(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq17(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq16(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq17(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           sendAdminActivityEmail({
@@ -34530,7 +35119,7 @@ ${body}`,
   app2.get("/api/admin/newsletter-subscribers", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const rows = await db.select().from(newsletterSubscribers).orderBy(desc12(newsletterSubscribers.subscribedAt));
+      const rows = await db.select().from(newsletterSubscribers).orderBy(desc13(newsletterSubscribers.subscribedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34541,7 +35130,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq16(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq17(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34591,6 +35180,7 @@ ${body}`,
     }
   });
   registerShortenerRoutes(app2);
+  registerAdsterraRoutes(app2);
   registerKeywordAnalyticsRoutes(app2);
   registerAutoBloggerRoutes(app2);
   registerAdminDemoRoutes(app2, isAuthenticated);
@@ -34720,7 +35310,7 @@ ${body}`,
       TIERS: TIERS2,
       classifyTier: classifyTier2
     } = await Promise.resolve().then(() => (init_influencer_crm_service(), influencer_crm_service_exports));
-    app2.get("/api/admin/influencer-crm/tier-stats", isAuthenticated, requireAdmin2, async (_req, res) => {
+    app2.get("/api/admin/influencer-crm/tier-stats", isAuthenticated, requireAdmin3, async (_req, res) => {
       try {
         const stats = await getInfluencerTierStats2();
         res.json(stats);
@@ -34728,16 +35318,16 @@ ${body}`,
         res.status(500).json({ message: e.message });
       }
     });
-    app2.get("/api/admin/influencer-crm/tiers", isAuthenticated, requireAdmin2, (_req, res) => {
+    app2.get("/api/admin/influencer-crm/tiers", isAuthenticated, requireAdmin3, (_req, res) => {
       res.json(TIERS2);
     });
-    app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
-        const conds = [eq16(leads.kind, "influencer")];
+        const conds = [eq17(leads.kind, "influencer")];
         if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq16(leads.country, String(country)));
-        if (status) conds.push(eq16(leads.status, String(status)));
+        if (country) conds.push(eq17(leads.country, String(country)));
+        if (status) conds.push(eq17(leads.status, String(status)));
         if (search) {
           const s = `%${String(search).toLowerCase()}%`;
           conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -34754,15 +35344,15 @@ ${body}`,
             conds.push(sql13`${leads.followers} IS NULL OR ${leads.followers} = 0`);
           }
         }
-        const rows = await db.select().from(leads).where(and12(...conds)).orderBy(desc12(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
-        const totalRow = await db.select({ c: count4() }).from(leads).where(and12(...conds));
+        const rows = await db.select().from(leads).where(and13(...conds)).orderBy(desc13(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
+        const totalRow = await db.select({ c: count4() }).from(leads).where(and13(...conds));
         const items = rows.map((r) => ({ ...r, computedTier: classifyTier2(r.followers) }));
         res.json({ items, total: Number(totalRow[0]?.c || 0) });
       } catch (e) {
         res.status(500).json({ message: e.message });
       }
     });
-    app2.post("/api/admin/influencer-crm/crawl", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.post("/api/admin/influencer-crm/crawl", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const { niche, platforms, targetTiers, country, maxPerQuery, includeInternal } = req.body || {};
         if (!niche) return res.status(400).json({ message: "niche required" });
@@ -34782,7 +35372,7 @@ ${body}`,
         res.status(400).json({ message: e.message });
       }
     });
-    app2.post("/api/admin/influencer-crm/manual", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.post("/api/admin/influencer-crm/manual", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const body = req.body || {};
         if (!body.name) return res.status(400).json({ message: "name required" });
@@ -34792,32 +35382,32 @@ ${body}`,
         res.status(400).json({ message: e.message });
       }
     });
-    app2.patch("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.patch("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const allowed = {};
         const fields = ["name", "niche", "country", "city", "email", "website", "phone", "whatsapp", "socialLinks", "followers", "description", "tags", "status", "aiSummary", "aiReport"];
         for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
         allowed.updatedAt = /* @__PURE__ */ new Date();
-        const [updated] = await db.update(leads).set(allowed).where(and12(eq16(leads.id, req.params.id), eq16(leads.kind, "influencer"))).returning();
+        const [updated] = await db.update(leads).set(allowed).where(and13(eq17(leads.id, req.params.id), eq17(leads.kind, "influencer"))).returning();
         res.json(updated);
       } catch (e) {
         res.status(400).json({ message: e.message });
       }
     });
-    app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
-        await db.delete(leadMessages).where(eq16(leadMessages.leadId, req.params.id));
-        await db.delete(leads).where(eq16(leads.id, req.params.id));
+        await db.delete(leadMessages).where(eq17(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq17(leads.id, req.params.id));
         res.json({ ok: true });
       } catch (e) {
         res.status(500).json({ message: e.message });
       }
     });
-    app2.post("/api/admin/influencer-crm/:id/outreach", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.post("/api/admin/influencer-crm/:id/outreach", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const { subject, body, channel } = req.body || {};
         if (!body) return res.status(400).json({ message: "body required" });
-        const [lead] = await db.select().from(leads).where(and12(eq16(leads.id, req.params.id), eq16(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select().from(leads).where(and13(eq17(leads.id, req.params.id), eq17(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         if (channel === "email" || !channel) {
           const result = await sendInfluencerOutreach2({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
@@ -34832,25 +35422,25 @@ ${body}`,
           provider: "manual",
           sentBy: req.user?.id || null
         }).returning();
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id));
         res.json({ success: true, channel, message: msg });
       } catch (e) {
         res.status(400).json({ message: e.message });
       }
     });
-    app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
-        const msgs = await db.select().from(leadMessages).where(eq16(leadMessages.leadId, req.params.id)).orderBy(desc12(leadMessages.createdAt));
+        const msgs = await db.select().from(leadMessages).where(eq17(leadMessages.leadId, req.params.id)).orderBy(desc13(leadMessages.createdAt));
         res.json(msgs);
       } catch (e) {
         res.status(500).json({ message: e.message });
       }
     });
-    app2.post("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.post("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const body = String(req.body?.body || "").trim();
         if (!body) return res.status(400).json({ message: "Note body required" });
-        const [lead] = await db.select({ id: leads.id }).from(leads).where(and12(eq16(leads.id, req.params.id), eq16(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select({ id: leads.id }).from(leads).where(and13(eq17(leads.id, req.params.id), eq17(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         const [message] = await db.insert(leadMessages).values({
           leadId: lead.id,
@@ -34866,13 +35456,13 @@ ${body}`,
         res.status(400).json({ message: e.message });
       }
     });
-    app2.post("/api/admin/influencer-crm/bulk-outreach", isAuthenticated, requireAdmin2, async (req, res) => {
+    app2.post("/api/admin/influencer-crm/bulk-outreach", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const { leadIds, subject, body, tier, niche } = req.body || {};
         if (!body) return res.status(400).json({ message: "body required" });
         let ids = Array.isArray(leadIds) ? leadIds : [];
         if (!ids.length) {
-          const conds = [eq16(leads.kind, "influencer")];
+          const conds = [eq17(leads.kind, "influencer")];
           if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
           if (tier && tier !== "all") {
             const tierDef = TIERS2.find((t) => t.id === String(tier));
@@ -34882,7 +35472,7 @@ ${body}`,
               conds.push(sql13`${leads.followers} >= ${tierDef.min}`);
             }
           }
-          const rows = await db.select({ id: leads.id }).from(leads).where(and12(...conds)).limit(500);
+          const rows = await db.select({ id: leads.id }).from(leads).where(and13(...conds)).limit(500);
           ids = rows.map((r) => r.id);
         }
         if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
@@ -34902,7 +35492,7 @@ ${body}`,
 // server/public-seo-routes.ts
 init_schema();
 init_db();
-import { and as and13, eq as eq17, isNull as isNull3, or as or3 } from "drizzle-orm";
+import { and as and14, eq as eq18, isNull as isNull3, or as or3 } from "drizzle-orm";
 var SITE_ORIGIN = "https://taskdrip.online";
 var STATIC_SITEMAP_PATHS = [
   { path: "", priority: "1.0", changefreq: "daily" },
@@ -34961,7 +35551,7 @@ function registerPublicSeoRoutes(app2) {
       const publishedPosts = await db.select({
         slug: blogPosts.slug,
         updatedAt: blogPosts.updatedAt
-      }).from(blogPosts).where(eq17(blogPosts.isPublished, true)).limit(5e4);
+      }).from(blogPosts).where(eq18(blogPosts.isPublished, true)).limit(5e4);
       for (const post of publishedPosts) {
         if (post.slug) {
           const lastmod = post.updatedAt ? new Date(post.updatedAt).toISOString().slice(0, 10) : today;
@@ -34974,9 +35564,9 @@ function registerPublicSeoRoutes(app2) {
       const products = await db.select({
         id: shopProducts.id,
         pluginSlug: pluginStudioProjects.slug
-      }).from(shopProducts).leftJoin(pluginStudioProjects, eq17(pluginStudioProjects.shopProductId, shopProducts.id)).where(and13(
-        eq17(shopProducts.isActive, true),
-        or3(isNull3(pluginStudioProjects.id), eq17(pluginStudioProjects.status, "published"))
+      }).from(shopProducts).leftJoin(pluginStudioProjects, eq18(pluginStudioProjects.shopProductId, shopProducts.id)).where(and14(
+        eq18(shopProducts.isActive, true),
+        or3(isNull3(pluginStudioProjects.id), eq18(pluginStudioProjects.status, "published"))
       )).limit(500);
       for (const product of products) {
         addUrl(`${SITE_ORIGIN}/shop/product/${encodeURIComponent(product.pluginSlug || product.id)}`);
@@ -34985,7 +35575,7 @@ function registerPublicSeoRoutes(app2) {
     }
     for (const userType of ["influencer", "brand"]) {
       try {
-        const profiles = await db.select({ id: users.id }).from(users).where(eq17(users.userType, userType)).limit(500);
+        const profiles = await db.select({ id: users.id }).from(users).where(eq18(users.userType, userType)).limit(500);
         const path7 = userType === "brand" ? "brand" : "influencers";
         for (const profile of profiles) {
           addUrl(`${SITE_ORIGIN}/${path7}/${encodeURIComponent(profile.id)}`);
@@ -35018,7 +35608,7 @@ import path5 from "path";
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { and as and14, eq as eq18, or as or4 } from "drizzle-orm";
+import { and as and15, eq as eq19, or as or4 } from "drizzle-orm";
 import { load } from "cheerio";
 var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
@@ -35253,7 +35843,7 @@ async function lookupRoute(origin, pathname) {
     let post;
     try {
       const [found] = await db.select().from(blogPosts).where(
-        and14(eq18(blogPosts.slug, slug2), eq18(blogPosts.isPublished, true))
+        and15(eq19(blogPosts.slug, slug2), eq19(blogPosts.isPublished, true))
       );
       post = found;
     } catch (error) {
@@ -35269,9 +35859,11 @@ async function lookupRoute(origin, pathname) {
       const publishedAt = post.publishedAt ? new Date(post.publishedAt).toISOString() : void 0;
       const modifiedAt = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedAt;
       const canonicalUrl = `${origin}/blog/${encodeURIComponent(post.slug)}`;
+      const articleVideoId = post.content.match(/youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{11})/)?.[1];
       const structuredData = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "BlogPosting",
+        inLanguage: "en",
         headline: post.title,
         description: trimText(post.metaDescription || post.excerpt || post.content || "", 160),
         image: image ? [image] : void 0,
@@ -35281,7 +35873,15 @@ async function lookupRoute(origin, pathname) {
         publisher: { "@type": "Organization", name: "Taskdrip", url: origin },
         mainEntityOfPage: canonicalUrl,
         articleSection: post.category || void 0,
-        keywords: post.seoKeywords || void 0
+        keywords: post.seoKeywords || void 0,
+        video: articleVideoId ? {
+          "@type": "VideoObject",
+          name: `${post.title} \u2014 source video`,
+          description: trimText(post.metaDescription || post.excerpt || post.title, 500),
+          thumbnailUrl: [`https://i.ytimg.com/vi/${articleVideoId}/hqdefault.jpg`],
+          embedUrl: `https://www.youtube-nocookie.com/embed/${articleVideoId}`,
+          contentUrl: `https://www.youtube.com/watch?v=${articleVideoId}`
+        } : void 0
       });
       return {
         title: post.title,
@@ -35302,7 +35902,7 @@ async function lookupRoute(origin, pathname) {
   const campaignMatch = pathname.match(/^\/campaigns\/([^/?#]+)/);
   if (campaignMatch) {
     const id = decodeURIComponent(campaignMatch[1]);
-    const [c] = await db.select().from(campaigns).where(eq18(campaigns.id, id));
+    const [c] = await db.select().from(campaigns).where(eq19(campaigns.id, id));
     if (c) {
       return {
         title: `${c.title} | Taskdrip`,
@@ -35317,10 +35917,10 @@ async function lookupRoute(origin, pathname) {
     const [pluginListing] = await db.select({
       project: pluginStudioProjects,
       product: shopProducts
-    }).from(pluginStudioProjects).innerJoin(shopProducts, eq18(pluginStudioProjects.shopProductId, shopProducts.id)).where(and14(
-      or4(eq18(pluginStudioProjects.slug, key), eq18(pluginStudioProjects.shopProductId, key)),
-      eq18(pluginStudioProjects.status, "published"),
-      eq18(shopProducts.isActive, true)
+    }).from(pluginStudioProjects).innerJoin(shopProducts, eq19(pluginStudioProjects.shopProductId, shopProducts.id)).where(and15(
+      or4(eq19(pluginStudioProjects.slug, key), eq19(pluginStudioProjects.shopProductId, key)),
+      eq19(pluginStudioProjects.status, "published"),
+      eq19(shopProducts.isActive, true)
     )).limit(1);
     if (pluginListing) {
       const canonicalUrl = `${origin}/shop/product/${encodeURIComponent(pluginListing.project.slug)}`;
@@ -35333,11 +35933,11 @@ async function lookupRoute(origin, pathname) {
         canonicalUrl
       };
     }
-    const [p] = await db.select().from(shopProducts).where(eq18(shopProducts.id, key)) || [];
+    const [p] = await db.select().from(shopProducts).where(eq19(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
       try {
-        const [bySlug] = await db.select().from(shopProducts).where(eq18(shopProducts.slug, key));
+        const [bySlug] = await db.select().from(shopProducts).where(eq19(shopProducts.slug, key));
         product = bySlug;
       } catch {
       }
@@ -35355,13 +35955,13 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(profileMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq18(users.id, key));
+      const [byId] = await db.select().from(users).where(eq19(users.id, key));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq18(users.username, key));
+        const [byUsername] = await db.select().from(users).where(eq19(users.username, key));
         user = byUsername || null;
       } catch {
       }
@@ -35386,7 +35986,7 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
       const [course] = await db.select().from(courses).where(
-        and14(eq18(courses.id, key), eq18(courses.isPublished, true))
+        and15(eq19(courses.id, key), eq19(courses.isPublished, true))
       );
       if (course) {
         return {
@@ -35407,7 +36007,7 @@ async function lookupRoute(origin, pathname) {
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, id));
       if (listing) {
         return {
           title: `${listing.title || "P2P listing"} | Taskdrip`,
@@ -35421,7 +36021,7 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq18(pageSeoSettings.pageSlug, slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq19(pageSeoSettings.pageSlug, slug));
       if (page2) {
         return {
           title: page2.metaTitle || page2.pageTitle,
@@ -35644,7 +36244,7 @@ function serveStatic(app2) {
 // server/seed-demo.ts
 init_db();
 init_schema();
-import { eq as eq19, sql as sql14 } from "drizzle-orm";
+import { eq as eq20, sql as sql14 } from "drizzle-orm";
 import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
@@ -36401,7 +37001,7 @@ async function seedDemoData(adminUserId) {
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
     }
-    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq19(p2pListings.sellerId, adminUserId)).limit(1);
+    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq20(p2pListings.sellerId, adminUserId)).limit(1);
     if (existingP2P.length === 0) {
       console.log("[seed] Seeding demo P2P listings...");
       for (const listing of DEMO_P2P_LISTINGS) {
@@ -36527,7 +37127,7 @@ async function seedDemoData(adminUserId) {
     }
     let networksCreated = 0;
     for (const net of PAYMENT_NETWORKS_DATA) {
-      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq19(paymentNetworks.networkKey, net.networkKey)).limit(1);
+      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq20(paymentNetworks.networkKey, net.networkKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net);
         networksCreated++;
@@ -36832,7 +37432,7 @@ async function seedCmsContent() {
 // server/seed-legal.ts
 init_db();
 init_schema();
-import { eq as eq20 } from "drizzle-orm";
+import { eq as eq21 } from "drizzle-orm";
 var LEGAL_CONTENT = [
   {
     slug: "terms",
@@ -37192,7 +37792,7 @@ var ADSENSE_PRIVACY_DISCLOSURE = `
 async function seedLegalPages() {
   try {
     for (const page2 of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq20(legalPages.slug, page2.slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq21(legalPages.slug, page2.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
           slug: page2.slug,
@@ -37205,11 +37805,11 @@ async function seedLegalPages() {
           content: `${existing[0].content}
 ${ADSENSE_PRIVACY_DISCLOSURE}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq20(legalPages.slug, "privacy"));
+        }).where(eq21(legalPages.slug, "privacy"));
         console.log("[seed-legal] Added Google AdSense disclosure to the privacy policy");
       }
     }
-    const demoSub = await db.select().from(newsletterSubscribers).where(eq20(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
+    const demoSub = await db.select().from(newsletterSubscribers).where(eq21(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
     if (!demoSub.length) {
       await db.insert(newsletterSubscribers).values({
         email: "newsletter.demo@taskdrip.online",
@@ -37231,7 +37831,7 @@ init_seed_breedskool_courses();
 // server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq21, sql as sql15, and as and15 } from "drizzle-orm";
+import { eq as eq22, sql as sql15, and as and16 } from "drizzle-orm";
 import bcrypt5 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
@@ -37309,7 +37909,7 @@ async function seedSaasCourseDemo() {
   let enrollmentsCreated = 0;
   let reviewsCreated = 0;
   try {
-    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq21(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
+    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq22(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
     const courseId = pricing?.linkedCourseId;
     if (!courseId) {
       console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
@@ -37320,7 +37920,7 @@ async function seedSaasCourseDemo() {
     const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
     for (const student of DEMO_STUDENTS) {
       try {
-        const [existing] = await db.select({ id: users.id }).from(users).where(eq21(users.email, student.email)).limit(1);
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq22(users.email, student.email)).limit(1);
         let userId;
         if (existing) {
           userId = existing.id;
@@ -37338,9 +37938,9 @@ async function seedSaasCourseDemo() {
           userId = newUser.id;
           studentsCreated++;
         }
-        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and15(
-          eq21(courseEnrollments.courseId, courseId),
-          eq21(courseEnrollments.userId, userId)
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and16(
+          eq22(courseEnrollments.courseId, courseId),
+          eq22(courseEnrollments.userId, userId)
         )).limit(1);
         if (!existingEnroll) {
           const paidAt = randomDate(purchaseStart, purchaseEnd);
@@ -37361,19 +37961,19 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
     }
-    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and15(
-      eq21(courseEnrollments.courseId, courseId),
-      eq21(courseEnrollments.isPaid, true),
-      eq21(courseEnrollments.status, "active")
+    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and16(
+      eq22(courseEnrollments.courseId, courseId),
+      eq22(courseEnrollments.isPaid, true),
+      eq22(courseEnrollments.status, "active")
     ));
-    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq21(courses.id, courseId));
+    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq22(courses.id, courseId));
     for (const rev of DEMO_REVIEWS) {
       try {
-        const [userRow] = await db.select({ id: users.id }).from(users).where(eq21(users.email, rev.email)).limit(1);
+        const [userRow] = await db.select({ id: users.id }).from(users).where(eq22(users.email, rev.email)).limit(1);
         if (!userRow) continue;
-        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and15(
-          eq21(courseReviews.courseId, courseId),
-          eq21(courseReviews.userId, userRow.id)
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and16(
+          eq22(courseReviews.courseId, courseId),
+          eq22(courseReviews.userId, userRow.id)
         )).limit(1);
         if (!existingReview) {
           const reviewDate = randomDate(/* @__PURE__ */ new Date("2025-09-15"), /* @__PURE__ */ new Date("2026-07-28"));
@@ -37390,16 +37990,16 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for review ${rev.email}:`, e?.message);
       }
     }
-    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq21(courseReviews.courseId, courseId));
+    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq22(courseReviews.courseId, courseId));
     if (allReviews.length > 0) {
       const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
       await db.update(courses).set({
         reviewsCount: allReviews.length,
         averageRating: avg.toFixed(2),
         isFeatured: true
-      }).where(eq21(courses.id, courseId));
+      }).where(eq22(courses.id, courseId));
     } else {
-      await db.update(courses).set({ isFeatured: true }).where(eq21(courses.id, courseId));
+      await db.update(courses).set({ isFeatured: true }).where(eq22(courses.id, courseId));
     }
   } catch (e) {
     console.error("[seed-saas-demo] Fatal error:", e?.message);
@@ -37410,11 +38010,11 @@ async function seedSaasCourseDemo() {
 // server/seed-lawcolab.ts
 init_db();
 init_schema();
-import { eq as eq22 } from "drizzle-orm";
+import { eq as eq23 } from "drizzle-orm";
 var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
 async function seedLawcolab() {
   try {
-    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq22(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq23(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
     if (existing.length > 0) {
       return { inserted: false, skipped: true };
     }
@@ -38091,7 +38691,21 @@ var REQUIRED_COLUMNS = [
   { table: "creator_books", column: "genre", definition: "varchar(100) NOT NULL DEFAULT 'General nonfiction'" },
   { table: "creator_books", column: "trim_size", definition: "varchar(20) NOT NULL DEFAULT '6x9'" },
   { table: "creator_books", column: "access_url", definition: "text" },
-  { table: "creator_publishing_products", column: "access_url", definition: "text" }
+  { table: "creator_publishing_products", column: "access_url", definition: "text" },
+  // The legacy shortener table used short_code/clicks. Keep it readable by the
+  // current slug/click_count routes when an imported database hasn't migrated yet.
+  { table: "short_links", column: "slug", definition: "varchar" },
+  { table: "short_links", column: "is_referral", definition: "boolean DEFAULT false" },
+  { table: "short_links", column: "click_count", definition: "integer DEFAULT 0" },
+  { table: "short_links", column: "is_active", definition: "boolean DEFAULT true" },
+  { table: "short_links", column: "created_at", definition: "timestamp DEFAULT now()" },
+  { table: "short_link_clicks", column: "clicked_at", definition: "timestamp DEFAULT now()" },
+  { table: "short_link_clicks", column: "country_code", definition: "varchar" },
+  { table: "short_link_clicks", column: "region", definition: "varchar" },
+  { table: "short_link_clicks", column: "city", definition: "varchar" },
+  { table: "short_link_clicks", column: "browser", definition: "varchar" },
+  { table: "short_link_clicks", column: "os", definition: "varchar" },
+  { table: "short_link_clicks", column: "device", definition: "varchar" }
 ];
 var REQUIRED_TABLES = [
   // Core courses table — must exist before course_lessons and any seeding
@@ -38282,25 +38896,47 @@ var REQUIRED_TABLES = [
   // Short links
   `CREATE TABLE IF NOT EXISTS "short_links" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-    "short_code" varchar NOT NULL UNIQUE,
+    "user_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "slug" varchar NOT NULL UNIQUE,
     "original_url" text NOT NULL,
-    "user_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
     "title" varchar,
-    "clicks" integer DEFAULT 0,
+    "is_referral" boolean DEFAULT false,
     "is_active" boolean DEFAULT true,
-    "expires_at" timestamp,
+    "click_count" integer DEFAULT 0,
     "created_at" timestamp DEFAULT now()
   )`,
   // Short link clicks
   `CREATE TABLE IF NOT EXISTS "short_link_clicks" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
     "link_id" varchar NOT NULL REFERENCES "short_links"("id") ON DELETE CASCADE,
+    "clicked_at" timestamp DEFAULT now(),
     "ip_address" varchar,
     "user_agent" text,
-    "referer" varchar,
+    "browser" varchar,
+    "os" varchar,
+    "device" varchar,
+    "referer" text,
     "country" varchar,
+    "country_code" varchar,
+    "region" varchar,
+    "city" varchar
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "short_links_slug_unique_idx" ON "short_links" ("slug") WHERE "slug" IS NOT NULL`,
+  // Adsterra settings and viewable placement impressions
+  `CREATE TABLE IF NOT EXISTS "adsterra_settings" (
+    "id" varchar PRIMARY KEY DEFAULT 'singleton',
+    "settings" jsonb NOT NULL DEFAULT '{"enabled":false,"placements":[]}'::jsonb,
+    "updated_at" timestamp DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "adsterra_events" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "placement_id" varchar NOT NULL,
+    "event_type" varchar NOT NULL DEFAULT 'impression',
+    "page_path" varchar(512) NOT NULL,
     "created_at" timestamp DEFAULT now()
   )`,
+  `CREATE INDEX IF NOT EXISTS "adsterra_events_placement_created_idx" ON "adsterra_events" ("placement_id", "created_at")`,
+  `CREATE INDEX IF NOT EXISTS "adsterra_events_created_idx" ON "adsterra_events" ("created_at")`,
   // Page hero backgrounds
   `CREATE TABLE IF NOT EXISTS "page_hero_backgrounds" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -38738,6 +39374,38 @@ async function runStartupMigrations() {
       );
     }
   }
+  try {
+    await db.execute(sql16.raw(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'short_links'
+            AND column_name = 'short_code'
+        ) THEN
+          EXECUTE 'UPDATE short_links SET slug = short_code WHERE slug IS NULL';
+        END IF;
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'short_links'
+            AND column_name = 'clicks'
+        ) THEN
+          EXECUTE 'UPDATE short_links SET click_count = clicks WHERE click_count = 0';
+        END IF;
+      END $$;
+    `));
+  } catch (err) {
+    console.error(`[startup-migration] Failed to backfill legacy short links: ${err?.message}`);
+  }
+  try {
+    await db.execute(sql16.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "short_links_slug_unique_idx" ON "short_links" ("slug") WHERE "slug" IS NOT NULL;`
+    ));
+  } catch (err) {
+    console.error(`[startup-migration] Failed to ensure short_links.slug index: ${err?.message}`);
+  }
 }
 
 // server/index.ts
@@ -38776,7 +39444,9 @@ if (isProd) {
             "blob:",
             "https://pagead2.googlesyndication.com",
             "https://googleads.g.doubleclick.net",
-            "https://tpc.googlesyndication.com"
+            "https://tpc.googlesyndication.com",
+            "https://bicea.org",
+            "https://afders.org"
           ],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],

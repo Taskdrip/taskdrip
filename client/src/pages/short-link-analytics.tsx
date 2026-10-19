@@ -17,8 +17,8 @@ export default function ShortLinkAnalyticsPage() {
   const { data, isLoading } = useQuery<any>({ queryKey: ["/api/short-links", id, "analytics"], enabled: !!id });
 
   if (isLoading || !data) return <div className="p-8 text-gray-500">Loading analytics...</div>;
-  const { link, totalClicks, uniqueCountries, timeline, byCountry, byDevice, byBrowser, byOs, byCity, byReferer, recent } = data;
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const { link, totalClicks, uniqueCountries, timeline, byCountry, byDevice, byBrowser, byOs, byCity, byReferer, bySourcePage = [], recent } = data;
+  const baseUrl = data.shortenerBaseUrl || "https://taskdrip.online";
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -149,6 +149,24 @@ export default function ShortLinkAnalyticsPage() {
             )}
           </CardContent>
         </Card>
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Pages where people clicked</CardTitle>
+            <p className="text-sm text-muted-foreground">Taskdrip records the referring page path when the browser provides it.</p>
+          </CardHeader>
+          <CardContent>
+            {bySourcePage.length === 0 ? <p className="text-gray-500 text-sm">No referring page data yet.</p> : (
+              <ul className="space-y-1 text-sm">
+                {bySourcePage.slice(0, 20).map((page: any) => (
+                  <li key={page.name} className="flex justify-between gap-3 border-b py-1">
+                    <span className="truncate font-mono">{page.name}</span>
+                    <Badge variant="outline">{page.value}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -157,7 +175,7 @@ export default function ShortLinkAnalyticsPage() {
           {recent.length === 0 ? <p className="text-gray-500 text-sm">No clicks recorded yet.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-gray-500 border-b"><th className="py-2">When</th><th>Country</th><th>City</th><th>Device</th><th>Browser</th><th>Source</th></tr></thead>
+                <thead><tr className="text-left text-gray-500 border-b"><th className="py-2">When</th><th>Country</th><th>City</th><th>Device</th><th>Browser</th><th>Source</th><th>Clicked from</th></tr></thead>
                 <tbody>
                   {recent.map((c: any) => (
                     <tr key={c.id} className="border-b last:border-0">
@@ -167,6 +185,7 @@ export default function ShortLinkAnalyticsPage() {
                       <td className="capitalize">{c.device || "—"}</td>
                       <td>{c.browser || "—"}</td>
                       <td className="truncate max-w-[200px]">{c.referer ? (() => { try { return new URL(c.referer).hostname; } catch { return c.referer; } })() : "Direct"}</td>
+                      <td className="truncate max-w-[220px] font-mono">{c.referer ? (() => { try { return new URL(c.referer).pathname || "/"; } catch { return "—"; } })() : "Direct"}</td>
                     </tr>
                   ))}
                 </tbody>

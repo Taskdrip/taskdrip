@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -13,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SharePanel, ShareButton } from "@/components/ui/share-panel";
 import { SeoHead } from "@/components/SeoHead";
 import { AiPilotCalculator, DeviceUpgradeCalculator } from "@/components/blog/ArticleCalculators";
+import { AdsterraSlot } from "@/components/ads/AdsterraSlot";
 import {
   Heart, MessageCircle, Share2, Eye, Clock, Calendar, ArrowLeft,
   Facebook, Twitter, Link2, Send, ChevronDown, ChevronUp,
@@ -324,6 +326,8 @@ export default function BlogPost() {
   const [showAllComments, setShowAllComments] = useState(false);
   const [shared, setShared] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [adMountNode, setAdMountNode] = useState<HTMLDivElement | null>(null);
+  const articleBodyRef = useRef<HTMLDivElement>(null);
 
   const slug = params?.slug;
 
@@ -332,6 +336,21 @@ export default function BlogPost() {
     queryFn: () => fetch(`/api/blog/${slug}`).then(r => r.json()),
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    const body = articleBodyRef.current;
+    if (!body || !post?.content) return;
+    const paragraphs = Array.from(body.querySelectorAll("p"));
+    if (paragraphs.length === 0) return;
+    const mountNode = document.createElement("div");
+    mountNode.dataset.taskdripInlineAd = "true";
+    paragraphs[Math.min(2, paragraphs.length - 1)].insertAdjacentElement("afterend", mountNode);
+    setAdMountNode(mountNode);
+    return () => {
+      setAdMountNode(null);
+      mountNode.remove();
+    };
+  }, [post?.content]);
 
   const { data: relatedPosts = [] } = useQuery<any[]>({
     queryKey: ["/api/blog", slug, "related"],
@@ -573,18 +592,23 @@ export default function BlogPost() {
           </div>
         )}
 
+        <AdsterraSlot position="sidebar" />
+
         {/* Content */}
         <div
+          ref={articleBodyRef}
           className="prose prose-lg prose-gray max-w-none mb-12"
           dangerouslySetInnerHTML={{ __html: post.content }}
           style={{ lineHeight: '1.8', fontSize: '1.05rem' }}
         />
+        {adMountNode && createPortal(<AdsterraSlot position="article-inline" />, adMountNode)}
         {post.slug === "why-phones-laptops-getting-more-expensive-ai-memory-chip-shortage" && (
           <DeviceUpgradeCalculator />
         )}
         {post.slug === "ai-roi-workplace-ai-spending-costs-productivity" && (
           <AiPilotCalculator />
         )}
+        <AdsterraSlot position="article-end" />
         <style>{`
           .prose h1, .prose h2, .prose h3 { font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
           .prose h2 { font-size: 1.5rem; color: #1a1a2e; }

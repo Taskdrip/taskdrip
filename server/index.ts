@@ -62,6 +62,8 @@ if (isProd) {
             "https://pagead2.googlesyndication.com",
             "https://googleads.g.doubleclick.net",
             "https://tpc.googlesyndication.com",
+            "https://bicea.org",
+            "https://afders.org",
           ],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],

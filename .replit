@@ -53,7 +53,3 @@ RESEND_FROM_EMAIL = "noreply@taskdrip.online"
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 23636
-externalPort = 3000
-

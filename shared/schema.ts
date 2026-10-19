@@ -2372,6 +2372,53 @@ export type InsertShortLink = z.infer<typeof insertShortLinkSchema>;
 export type ShortLinkClick = typeof shortLinkClicks.$inferSelect;
 export type ShortenerSettings = typeof shortenerSettings.$inferSelect;
 
+// ──────────────────────────────────────────────────────────────
+// Adsterra ad controls + first-party placement impressions
+// ──────────────────────────────────────────────────────────────
+export type AdsterraFormat = "iframe" | "native" | "popunder" | "smartlink" | "socialbar";
+export type AdsterraPosition = "body" | "blog-feed" | "article-inline" | "sidebar" | "article-end" | "footer" | "floating";
+export type AdsterraPageTarget = "all" | "site" | "blog" | "article";
+
+export type AdsterraPlacement = {
+  id: string;
+  name: string;
+  format: AdsterraFormat;
+  key: string;
+  width?: number;
+  height?: number;
+  enabled: boolean;
+  position: AdsterraPosition;
+  pages: AdsterraPageTarget[];
+  shortSlug?: string;
+};
+
+export type AdsterraSettingsValue = {
+  enabled: boolean;
+  placements: AdsterraPlacement[];
+};
+
+export const adsterraSettings = pgTable("adsterra_settings", {
+  id: varchar("id").primaryKey().default("singleton"),
+  settings: jsonb("settings").$type<AdsterraSettingsValue>().notNull()
+    .default(sql`'{"enabled":false,"placements":[]}'::jsonb`),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const adsterraEvents = pgTable(
+  "adsterra_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    placementId: varchar("placement_id").notNull(),
+    eventType: varchar("event_type").notNull().default("impression"),
+    pagePath: varchar("page_path", { length: 512 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("adsterra_events_placement_created_idx").on(table.placementId, table.createdAt),
+    index("adsterra_events_created_idx").on(table.createdAt),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Keyword Analytics + Auto-Blogger
 // ─────────────────────────────────────────────────────────────────────────────

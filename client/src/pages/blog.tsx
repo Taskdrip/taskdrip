@@ -5,6 +5,7 @@ import { queryClient } from "@/lib/queryClient";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { Footer } from "@/components/ui/footer";
 import { Spotlight } from "@/components/Spotlight";
+import { AdsterraSlot } from "@/components/ads/AdsterraSlot";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -534,6 +535,10 @@ export default function Blog() {
         </div>
       </div>
 
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AdsterraSlot position="body" />
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid lg:grid-cols-4 gap-8">
 
@@ -553,6 +558,8 @@ export default function Blog() {
                 onNavigate={(href) => setLocation(href)}
               />
             )}
+
+            <AdsterraSlot position="blog-feed" />
 
             {/* Filters bar */}
             <div className="flex flex-wrap items-center gap-3 mb-6">

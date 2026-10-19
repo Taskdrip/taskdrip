@@ -68,6 +68,7 @@ const UnifiedProfile = lazy(() => import("@/pages/unified-profile"));
 const TasksPage = lazy(() => import("@/pages/tasks"));
 const AdminPayments = lazy(() => import("@/pages/admin-payments"));
 const AdminAds = lazy(() => import("@/pages/admin-ads"));
+const AdminAdsterra = lazy(() => import("@/pages/admin-adsterra"));
 const AdminEmail = lazy(() => import("@/pages/admin-email"));
 const AdminActivityHistory = lazy(() => import("@/pages/admin-activity-history"));
 const AdvertiseWithUs = lazy(() => import("@/pages/advertise-with-us"));
@@ -290,6 +291,11 @@ function Router() {
             <Route path="/admin/payments" component={AdminPayments} />
             <Route path="/admin-ads" component={AdminAds} />
             <Route path="/admin/ads" component={AdminAds} />
+            <Route path="/admin/adsterra" component={() =>
+              (user as any)?.userType === "admin" || (user as any)?.role === "admin"
+                ? <AdminErrorBoundary title="Adsterra Ads Control failed to load"><AdminAdsterra /></AdminErrorBoundary>
+                : <NotFound />
+            } />
             <Route path="/admin/email" component={AdminEmail} />
             <Route path="/admin/activity-history" component={AdminActivityHistory} />
             <Route path="/admin/p2p-transactions" component={AdminP2PTransactions} />
@@ -332,6 +338,7 @@ function Router() {
             <Route path="/admin/plugin-studio" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin/plugin-studio')}`; return null; }} />
             <Route path="/admin-ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent('/admin-ads')}`; return null; }} />
             <Route path="/admin/ads" component={() => { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
+            <Route path="/admin/adsterra" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`; return null; }} />
             <Route path="/admin/influencer-crm" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/influencer-crm')}`; return null; }} />
             <Route path="/admin/ai-marketing-bot" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/ai-marketing-bot')}`; return null; }} />
             <Route path="/admin/auto-blogger" component={() => { window.location.href = `/admin-login?redirect=${encodeURIComponent('/admin/auto-blogger')}`; return null; }} />

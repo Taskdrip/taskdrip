@@ -30,6 +30,7 @@ import {
 import { SiTelegram, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok, SiWhatsapp, SiDiscord } from "react-icons/si";
 import { FaLinkedin } from "react-icons/fa";
 import { SOCIALS, OFFICES } from "@/config/socials";
+import { AdsterraSlot } from "@/components/ads/AdsterraSlot";
 
 const PLATFORM_ICON_MAP: Record<string, React.ReactNode> = {
   twitter: <SiX className="h-4 w-4 text-white" />,
@@ -96,6 +97,10 @@ export function Footer() {
 
   return (
     <footer className="bg-gray-900 text-white py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AdsterraSlot position="footer" />
+      </div>
+      <AdsterraSlot position="floating" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`grid gap-12 mb-12 ${activeColumns.length > 0 ? `md:grid-cols-${Math.min(activeColumns.length + 1, 5)}` : "md:grid-cols-4"}`}>
           {/* Brand Section */}
