@@ -9,6 +9,7 @@ import { GuideBot } from "@/components/ui/guide-bot";
 import { SocialTasksWelcomeModal } from "@/components/ui/social-tasks-welcome-modal";
 import { useAuth } from "@/hooks/useAuth";
 import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
+import { AsiafilmSmartlinkCard } from "@/components/AsiafilmSmartlinkCard";
 
 const FinalLanding = lazy(() => import("@/pages/final-landing"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
@@ -421,6 +422,7 @@ function App() {
         <ScrollToTop />
         <DailyLoginBonus />
         <Router />
+        <AsiafilmSmartlinkCard />
         <PWAInstallPrompt />
         <GuideBot />
         <SocialTasksWelcomeModal />

@@ -123,6 +123,41 @@ function shortenerBaseUrl() {
   return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
 }
 
+const ASIAFILM_DESTINATION_URL = "https://asiafilm.org/4/72d75744fc3a6e2252d1294d1f8778e0";
+
+export async function ensureAsiafilmSmartlink(adminUserId: string): Promise<string> {
+  const baseSlug = "asiafilm-featured";
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+    const [existing] = await db.select().from(shortLinks).where(eq(shortLinks.slug, slug)).limit(1);
+
+    if (existing) {
+      if (existing.originalUrl === ASIAFILM_DESTINATION_URL) {
+        if (!existing.isActive) {
+          await db.update(shortLinks).set({ isActive: true }).where(eq(shortLinks.id, existing.id));
+        }
+        return slug;
+      }
+      continue;
+    }
+
+    const [created] = await db.insert(shortLinks).values({
+      userId: adminUserId,
+      slug,
+      originalUrl: ASIAFILM_DESTINATION_URL,
+      title: "Featured AsiaFilm link",
+      isReferral: false,
+    }).onConflictDoNothing().returning({ slug: shortLinks.slug });
+    if (created) return created.slug;
+
+    const [raced] = await db.select().from(shortLinks).where(eq(shortLinks.slug, slug)).limit(1);
+    if (raced?.originalUrl === ASIAFILM_DESTINATION_URL) return slug;
+  }
+
+  throw new Error("Could not reserve a Taskdrip short-link slug for the AsiaFilm destination.");
+}
+
 // ── Auth middleware (passport-based) ──────────────────────────
 function requireAuth(req: any, res: Response, next: any) {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.id) {
@@ -144,6 +179,27 @@ function requireAdmin(req: any, res: Response, next: any) {
 
 // ── Routes ────────────────────────────────────────────────────
 export function registerShortenerRoutes(app: Express) {
+  app.get("/api/featured-smartlink", async (_req, res) => {
+    try {
+      const [link] = await db
+        .select({ slug: shortLinks.slug })
+        .from(shortLinks)
+        .where(and(
+          eq(shortLinks.originalUrl, ASIAFILM_DESTINATION_URL),
+          eq(shortLinks.isActive, true),
+        ))
+        .orderBy(desc(shortLinks.createdAt))
+        .limit(1);
+
+      if (!link) return res.status(404).json({ message: "Featured link is not available." });
+      res.set("Cache-Control", "no-store");
+      res.json({ href: `${shortenerBaseUrl()}/s/${encodeURIComponent(link.slug)}` });
+    } catch (error) {
+      console.error("[shortener] featured link lookup error", error);
+      res.status(503).json({ message: "Featured link is temporarily unavailable." });
+    }
+  });
+
   // Public redirect — must be registered AFTER static handlers won't catch /s/
   app.get("/s/:slug", async (req, res) => {
     try {

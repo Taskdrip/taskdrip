@@ -18,6 +18,7 @@ import { seedLawcolab } from "./seed-lawcolab";
 import { seedPageSeo } from "./seed-page-seo";
 import { storage } from "./storage";
 import { runStartupMigrations } from "./startup-migrations";
+import { ensureAsiafilmSmartlink } from "./url-shortener";
 import bcrypt from "bcryptjs";
 
 // ── Global crash guards — must be first so the server never silently dies ──
@@ -340,6 +341,9 @@ server.listen({
     await ensureAdminExists();
     const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
     if (adminUser) {
+      await ensureAsiafilmSmartlink(adminUser.id)
+        .then((slug) => log(`[Shortener] AsiaFilm featured link ready at /s/${slug}`))
+        .catch((error) => console.error("[Shortener] AsiaFilm link seed error:", error));
       await seedBreedskoolPricing()
         .then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`))
         .catch((e) => console.error("seedBreedskoolPricing:", e));

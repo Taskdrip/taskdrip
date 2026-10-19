@@ -101,6 +101,9 @@ export function Footer() {
         <AdsterraSlot position="footer" />
       </div>
       <AdsterraSlot position="floating" />
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div data-asiafilm-smartlink-mount />
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`grid gap-12 mb-12 ${activeColumns.length > 0 ? `md:grid-cols-${Math.min(activeColumns.length + 1, 5)}` : "md:grid-cols-4"}`}>
           {/* Brand Section */}
