@@ -58,9 +58,14 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
     retry: false,
   });
   const pageTarget = getPageTarget(location);
-  const placements = settings?.enabled
+  const eligiblePlacements = settings?.enabled
     ? settings.placements.filter((item) => item.enabled && item.position === position && pageAllows(item, pageTarget))
     : [];
+  const placements = eligiblePlacements.filter((item) =>
+    item.format !== "popunder" || !settings?.placements.some((other) =>
+      other.enabled && other.id !== item.id && other.key === item.key && other.format !== item.format,
+    ),
+  );
   const placementSignature = placements
     .map((item) => `${item.id}:${item.format}:${item.key}:${item.width || 0}:${item.height || 0}:${item.shortSlug || ""}`)
     .join("|");

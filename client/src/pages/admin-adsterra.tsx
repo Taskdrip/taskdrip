@@ -65,6 +65,16 @@ function placementPreviewPath(placement: AdsterraPlacement) {
   return "/";
 }
 
+function findRepeatedZoneIds(placements: AdsterraPlacement[]) {
+  const byZoneId = new Map<string, AdsterraPlacement[]>();
+  for (const placement of placements) {
+    const group = byZoneId.get(placement.key) || [];
+    group.push(placement);
+    byZoneId.set(placement.key, group);
+  }
+  return Array.from(byZoneId.entries()).filter(([, group]) => group.length > 1);
+}
+
 function updatePlacement(
   settings: AdsterraSettingsValue,
   placementId: string,
@@ -114,6 +124,7 @@ export default function AdminAdsterraPage() {
   });
 
   const baseUrl = savedSettings?.shortenerBaseUrl || "https://taskdrip.online";
+  const repeatedZoneIds = findRepeatedZoneIds(draft.placements);
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6">
@@ -171,6 +182,21 @@ export default function AdminAdsterraPage() {
           </CardContent>
         </Card>
 
+        {repeatedZoneIds.length > 0 && (
+          <Card className="border-amber-500/40 bg-amber-500/10 text-amber-100">
+            <CardContent className="space-y-2 p-5 text-sm">
+              <p className="font-semibold">Check repeated Adsterra zone IDs</p>
+              {repeatedZoneIds.map(([zoneId, placements]) => (
+                <p key={zoneId}>
+                  The same zone ID is assigned to {placements.map((placement) => `${placement.name} (${formatLabel(placement.format)})`).join(" and ")}.
+                  Confirm these placements use the intended Adsterra Ad Unit codes; duplicate/conflicting tags can stop units from displaying.
+                </p>
+              ))}
+              <p>Taskdrip skips a Popunder when another enabled format uses the same zone ID. Give each format its own Ad Unit code to run both.</p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <StatCard label="Viewable ad impressions · 30 days" value={analytics?.totalImpressions ?? 0} icon={<Eye className="h-5 w-5" />} />
           <StatCard label="Smartlink clicks · 30 days" value={analytics?.totalSmartlinkClicks ?? 0} icon={<MousePointerClick className="h-5 w-5" />} />
@@ -179,7 +205,7 @@ export default function AdminAdsterraPage() {
         <div className="space-y-4">
           <div>
             <h2 className="text-xl font-semibold">Ad placements</h2>
-            <p className="mt-1 text-sm text-slate-400">Taskdrip loads one enabled tag per location and page target, with a maximum of four locations per page.</p>
+            <p className="mt-1 text-sm text-slate-400">Taskdrip loads enabled tags that match the location and page target. Tags sharing a location are stacked; a maximum of four locations can appear on one page.</p>
           </div>
 
           {isLoading ? (
@@ -212,7 +238,7 @@ export default function AdminAdsterraPage() {
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`text-sm ${placement.enabled ? "text-emerald-300" : "text-slate-400"}`}>{placement.enabled ? "On" : "Off"}</span>
+                        <span className={`text-sm ${placement.enabled ? "text-emerald-300" : "text-slate-400"}`}>{placement.enabled ? "Tag on" : "Tag off"}</span>
                       <Switch
                         checked={placement.enabled}
                         onCheckedChange={(enabled) => setDraft((current) => updatePlacement(current, placement.id, { enabled }))}
@@ -297,7 +323,7 @@ export default function AdminAdsterraPage() {
             <p><strong>1. Start safely:</strong> Enable the master switch, enable the placements you want, then save. This only activates the tags; it cannot activate a paused or unapproved website/zone in Adsterra.</p>
             <p><strong>2. Test the right page:</strong> Blog-feed ads appear on <code>/blog</code>; sidebar, inline, and article-end ads appear on <code>/blog/:slug</code>. The sidebar is hidden on mobile. On other pages, use the footer placement and scroll to the bottom. The current setup is mostly blog-focused, so the homepage will not show the article placements.</p>
             <p><strong>3. Check visibility:</strong> Taskdrip records a viewable impression only after at least half of a slot stays on screen for one second. A zero count before scrolling to an ad is expected. Taskdrip tracks views and Smartlink clicks; use Adsterra for banner clicks, CTR, CPM, and revenue.</p>
-            <p><strong>4. Confirm your tags:</strong> In the <a className="text-cyan-300 underline" href="https://beta.publishers.adsterra.com/websites" target="_blank" rel="noreferrer">Adsterra publisher dashboard</a>, make sure <code>taskdrip.online</code> is approved and copy each active zone’s current code/zone ID. Replace any outdated IDs here, keep the format and location matched to that zone, then save. Do not use an account API key.</p>
+            <p><strong>4. Confirm your tags:</strong> In the <a className="text-cyan-300 underline" href="https://beta.publishers.adsterra.com/websites" target="_blank" rel="noreferrer">Adsterra publisher dashboard</a>, expand <code>taskdrip.online</code> and open each Ad Unit’s code. Copy that unit’s zone key into its matching row—not the numeric website ID or account API key. Confirm each individual Ad Unit is active, and give each format its own zone key.</p>
             <p><strong>5. Rule out browser blocking:</strong> Test in a regular Chrome window with ad blockers and Brave Shields disabled for <code>taskdrip.online</code>. Third-party ad scripts can be blocked by browser privacy tools. Never click your own ads to test.</p>
             <p><strong>6. Keep the networks separate:</strong> The screenshot showing “account wasn’t approved” is Google AdSense. AdSense ads will not serve until Google approves that account, but this does not approve or disable Adsterra; check Adsterra’s own website and zone statuses separately.</p>
             <p><strong>7. Smartlinks:</strong> The Taskdrip Smartlink uses the <code>/s/</code> shortener and its clicks appear in short-link analytics. If a banner and Smartlink share a location, both now render there.</p>
