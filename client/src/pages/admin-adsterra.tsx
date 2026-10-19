@@ -190,7 +190,7 @@ export default function AdminAdsterraPage() {
           <CardHeader>
             <CardTitle>Featured AsiaFilm smartlink</CardTitle>
             <CardDescription className="text-slate-400">
-              Choose where the compact tracked link button appears. These positions follow the Adsterra master switch.
+              Choose where the compact tracked link button appears. These switches work independently from Adsterra banner tags.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">

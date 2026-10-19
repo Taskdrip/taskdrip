@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import type { AdsterraSettingsValue } from "@shared/schema";
 
 type SmartlinkPosition = keyof AdsterraSettingsValue["featuredSmartlink"];
-type PublicSettings = Pick<AdsterraSettingsValue, "enabled" | "featuredSmartlink">;
+type PublicSettings = Pick<AdsterraSettingsValue, "featuredSmartlink">;
 
 const POSITION_LABELS: Record<SmartlinkPosition, string> = {
   afterHeader: "after the article header",
@@ -63,15 +63,25 @@ export function AsiafilmSmartlinkCard() {
         href={data?.href ?? "/s/asiafilm-featured"}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-violet-700 bg-violet-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:border-violet-800 hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
+        className="group relative inline-flex aspect-[5/1] w-full max-w-[750px] items-center justify-between gap-3 overflow-hidden rounded-xl border border-white/20 bg-slate-950 bg-cover bg-center px-4 text-left text-xs font-semibold text-white shadow-md transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 sm:rounded-2xl sm:px-6 sm:text-sm"
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, rgba(15, 23, 42, .92) 0%, rgba(15, 23, 42, .68) 48%, rgba(15, 23, 42, .18) 100%), url('/asiafilm-featured.svg')",
+        }}
         data-testid="button-asiafilm-smartlink"
       >
-        Discover the featured AsiaFilm link <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+        <span className="relative z-10 flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="truncate">Discover the featured AsiaFilm link</span>
+          <ArrowUpRight className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:h-5 sm:w-5" aria-hidden="true" />
+        </span>
+        <span className="relative z-10 hidden shrink-0 rounded-md border border-white/35 bg-white/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm sm:inline-flex sm:items-center">
+          Sponsored link
+        </span>
       </a>
     </aside>
   );
 
-  if (!settings?.enabled) return null;
+  if (!settings?.featuredSmartlink) return null;
   return (
     <>
       {mountNodes.map(({ node, position }) =>

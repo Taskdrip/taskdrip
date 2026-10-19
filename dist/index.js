@@ -32859,6 +32859,7 @@ Looking forward to collaborating with you!`;
     { contentKey: "global.seo.og_title", label: "Open Graph Title (Social Share)", contentType: "text", page: "global", section: "SEO & Meta", defaultValue: "Taskdrip \u2014 Turn Your Influence Into Crypto Income", value: "", sortOrder: 11 },
     { contentKey: "global.seo.og_image", label: "Open Graph Image URL (Social Share)", contentType: "image", page: "global", section: "SEO & Meta", defaultValue: "", value: "", sortOrder: 12 }
   ];
+  registerAdsterraRoutes(app2);
   await storage.initSiteContent(SITE_CONTENT_DEFAULTS);
   app2.get("/api/site-content", async (req, res) => {
     try {
@@ -35307,7 +35308,6 @@ ${body}`,
     }
   });
   registerShortenerRoutes(app2);
-  registerAdsterraRoutes(app2);
   registerKeywordAnalyticsRoutes(app2);
   registerAutoBloggerRoutes(app2);
   registerAdminDemoRoutes(app2, isAuthenticated);

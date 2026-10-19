@@ -11278,6 +11278,10 @@ Instructions:
     { contentKey: 'global.seo.og_image', label: 'Open Graph Image URL (Social Share)', contentType: 'image', page: 'global', section: 'SEO & Meta', defaultValue: '', value: '', sortOrder: 12 },
   ];
 
+  // Register ad controls before optional site-content initialization so a missing
+  // site_content table cannot prevent public ad settings from being served.
+  registerAdsterraRoutes(app);
+
   // Init site content defaults on startup
   await storage.initSiteContent(SITE_CONTENT_DEFAULTS as any);
 
@@ -13895,7 +13899,6 @@ Instructions:
 
   // URL Shortener routes
   registerShortenerRoutes(app);
-  registerAdsterraRoutes(app);
   registerKeywordAnalyticsRoutes(app);
   registerAutoBloggerRoutes(app);
   registerAdminDemoRoutes(app, isAuthenticated);
