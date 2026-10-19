@@ -92,6 +92,17 @@
 .fd-category-chip { display:flex; align-items:center; gap:9px; padding:11px 15px; min-width:max-content; text-decoration:none; border:1px solid var(--fd-line); border-radius:3px 18px 3px 3px; color:#4b465f; background:var(--fd-panel); font-size:12px; font-weight:700; transition:transform .18s, border-color .18s; }
 .fd-category-chip:hover { transform:translateY(-2px); border-color:#bcb3d2; }
 .fd-category-chip span { color:#a09cab; font-size:10px; font-weight:500; }
+.fd-category-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.fd-category-card { display:grid; grid-template-columns:44px minmax(0,1fr) 16px; align-items:center; gap:12px; min-height:98px; padding:15px; border:1px solid var(--fd-line); border-radius:3px 20px 3px 3px; background:var(--fd-panel); color:var(--fd-ink); text-decoration:none; transition:transform .18s,border-color .18s,box-shadow .18s; }
+.fd-category-card:hover { transform:translateY(-2px); border-color:#bcb3d2; box-shadow:0 10px 24px rgba(39,34,56,.07); }
+.fd-category-card:focus-visible { outline:2px solid #7b6bae; outline-offset:2px; }
+.fd-category-card img,.fd-category-card-mark { display:grid; place-items:center; width:44px; height:44px; border-radius:3px 14px 3px 3px; object-fit:cover; }
+.fd-category-card-mark { background:linear-gradient(145deg,#eeeaf8,#ded7ed); color:#65568f; font:800 17px "Manrope"; }
+.fd-category-card > div:nth-child(2) { display:grid; min-width:0; gap:4px; }
+.fd-category-card strong { font:700 13px "Manrope"; }
+.fd-category-card span { overflow:hidden; color:var(--fd-muted); font-size:10px; line-height:1.45; text-overflow:ellipsis; }
+.fd-category-card small { color:#9b6c58; font-size:9px; font-weight:700; }
+.fd-category-card > svg:last-child { color:#8d83a7; }
 .fd-feature-band { margin:4px 0 50px; padding:24px 26px; background:#2d2940; color:#f7f4ec; border-radius:4px 32px 4px 4px; display:flex; justify-content:space-between; align-items:center; gap:20px; }
 .fd-feature-band h2 { font-size:24px; margin:5px 0; }
 .fd-feature-band p { color:#c3bfd0; font-size:12px; margin:0; }
@@ -235,4 +246,6 @@
   .fd-filter-drawer-head { top:calc(-15px - env(safe-area-inset-top)); margin:-15px -15px 10px; padding:15px; padding-top:calc(15px + env(safe-area-inset-top)); }
  .fd-modal { padding:16px; }
 }
+@media(max-width:900px) { .fd-category-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:560px) { .fd-category-grid { grid-template-columns:1fr; } }
 @media(prefers-reduced-motion:reduce) { .fd-page *, .fd-page *:before, .fd-page *:after { animation-duration:.01ms!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }

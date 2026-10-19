@@ -87,6 +87,7 @@ export type FreeDownloadFilters = {
   q?: string;
   category?: string;
   subcategory?: string;
+  fileType?: "document" | "archive" | "audio" | "video" | "image" | "software";
   format?: string;
   preacher?: string;
   minSize?: number;

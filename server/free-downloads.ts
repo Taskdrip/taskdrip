@@ -765,6 +765,19 @@ export function registerFreeDownloadsRoutes(app: Express) {
       }
       if (req.query.category) conditions.push(`c.slug = ${add(String(req.query.category).slice(0, 140))}`);
       if (req.query.subcategory) conditions.push(`s.slug = ${add(String(req.query.subcategory).slice(0, 140))}`);
+      const fileTypeConditions: Record<string, string> = {
+        document: `(d.source_mime_type IN ('application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain','application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+          OR UPPER(d.format) = ANY(ARRAY['PDF','DOC','DOCX','TXT','PPT','PPTX','XLS','XLSX']::text[]))`,
+        archive: `(d.source_mime_type IN ('application/zip','application/x-zip-compressed','application/vnd.rar','application/x-rar-compressed')
+          OR UPPER(d.format) = ANY(ARRAY['ZIP','RAR']::text[]))`,
+        audio: `(d.source_mime_type LIKE 'audio/%' OR UPPER(d.format) = ANY(ARRAY['MP3','M4A','WAV']::text[]))`,
+        video: `(d.source_mime_type LIKE 'video/%' OR UPPER(d.format) = ANY(ARRAY['MP4','MOV','WEBM']::text[]))`,
+        image: `(d.source_mime_type LIKE 'image/%' OR UPPER(d.format) = ANY(ARRAY['PNG','JPG','JPEG','WEBP']::text[]))`,
+        software: `(d.source_mime_type IN ('application/vnd.android.package-archive','application/vnd.microsoft.portable-executable','application/x-msdownload')
+          OR UPPER(d.format) = ANY(ARRAY['APP','APK','EXE','SOFTWARE','AI']::text[]))`,
+      };
+      const fileType = String(req.query.fileType || "");
+      if (fileTypeConditions[fileType]) conditions.push(fileTypeConditions[fileType]);
       if (req.query.format) conditions.push(`d.format ILIKE ${add(String(req.query.format).slice(0, 40))}`);
       if (req.query.preacher) conditions.push(`p.slug = ${add(String(req.query.preacher).slice(0, 200))}`);
       if (req.query.minSize) conditions.push(`COALESCE(d.source_size_bytes, 0) >= ${add(Math.max(0, Number(req.query.minSize) || 0))}`);
@@ -1523,7 +1536,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
       const [events, requestStats, registered, popular, categories, daily] = await Promise.all([
         pool.query(
           `SELECT event_type AS "eventType",
-             COUNT(*) FILTER (WHERE event_type <> 'ad_redirect' OR completed_at IS NOT NULL)::int AS total
+              COUNT(*)::int AS total
            FROM free_download_events
            WHERE created_at >= NOW() - $1::interval GROUP BY event_type`,
           [interval],
@@ -1551,7 +1564,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
         pool.query(
           `SELECT created_at::date AS date,
              COUNT(*) FILTER (WHERE event_type='detail_view')::int AS views,
-             COUNT(*) FILTER (WHERE event_type='ad_redirect' AND completed_at IS NOT NULL)::int AS redirects,
+              COUNT(*) FILTER (WHERE event_type='ad_redirect')::int AS redirects,
              COUNT(*) FILTER (WHERE event_type='unlock')::int AS unlocks,
              COUNT(*) FILTER (WHERE event_type='download_click')::int AS downloads
            FROM free_download_events WHERE created_at >= NOW() - $1::interval

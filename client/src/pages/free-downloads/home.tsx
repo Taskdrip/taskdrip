@@ -14,6 +14,7 @@ export function FreeDownloadsHomePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
+  const [fileType, setFileType] = useState<"" | "document" | "archive" | "audio" | "video" | "image" | "software">("");
   const [format, setFormat] = useState("");
   const [preacher, setPreacher] = useState("");
   const [preacherSlug, setPreacherSlug] = useState("");
@@ -34,6 +35,7 @@ export function FreeDownloadsHomePage() {
     q: query.trim() || undefined,
     category: category || undefined,
     subcategory: subcategory || undefined,
+    fileType: fileType || undefined,
     format: format || undefined,
     preacher: preacherSlug || undefined,
     minSize: minSize ? Math.round(Number(minSize) * 1_000_000) : undefined,
@@ -43,7 +45,7 @@ export function FreeDownloadsHomePage() {
     sort,
     page,
     limit: 9,
-  }), [query, category, subcategory, format, preacherSlug, minSize, maxSize, from, to, sort, page]);
+  }), [query, category, subcategory, fileType, format, preacherSlug, minSize, maxSize, from, to, sort, page]);
   const list = useFreeDownloadList(filters);
   const suggestionQuery = useFreeDownloadSuggestions(query);
   const preacherQuery = useFreeDownloadPreacherSuggestions(preacher);
@@ -104,7 +106,7 @@ export function FreeDownloadsHomePage() {
   }
 
   function clearFilters() {
-    setQuery(""); setCategory(""); setSubcategory(""); setFormat(""); setPreacher(""); setPreacherSlug("");
+    setQuery(""); setCategory(""); setSubcategory(""); setFileType(""); setFormat(""); setPreacher(""); setPreacherSlug("");
     setMinSize(""); setMaxSize(""); setFrom(""); setTo(""); setSort("latest"); setPage(1);
   }
 
@@ -162,14 +164,15 @@ export function FreeDownloadsHomePage() {
         <button className="fd-button fd-button-outline" type="button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>
           <SlidersHorizontal size={14} /> Filters
         </button>
-        {Object.values({ category, subcategory, format, preacherSlug, minSize, maxSize, from, to }).some(Boolean) && <span>Filters applied</span>}
+        {Object.values({ category, subcategory, fileType, format, preacherSlug, minSize, maxSize, from, to }).some(Boolean) && <span>Filters applied</span>}
       </div>
       {filtersOpen && <button className="fd-filter-scrim" type="button" aria-label="Close filters" onClick={() => setFiltersOpen(false)} />}
       <div className={`fd-filter-panel ${filtersOpen ? "is-open" : ""}`} aria-label="Filter downloads">
         <div className="fd-filter-drawer-head"><strong>Filter downloads</strong><button type="button" aria-label="Close filters" onClick={() => setFiltersOpen(false)}><X size={18} /></button></div>
         <label>Category<select className="fd-select" value={category} onChange={e => { setCategory(e.target.value); setSubcategory(""); setPage(1); }}><option value="">All categories</option>{(categoriesQuery.data || []).map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}</select></label>
         <label>Subcategory<select className="fd-select" value={subcategory} disabled={!activeCategory?.subcategories?.length} onChange={e => { setSubcategory(e.target.value); setPage(1); }}><option value="">All subcategories</option>{(activeCategory?.subcategories || []).map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}</select></label>
-        <label>Format<select className="fd-select" value={format} onChange={e => { setFormat(e.target.value); setPage(1); }}><option value="">All formats</option>{["PDF", "ZIP", "MP3", "MP4", "AI", "Software", "PPTX", "APK"].map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label>File type<select className="fd-select" value={fileType} onChange={e => { setFileType(e.target.value as typeof fileType); setPage(1); }}><option value="">All file types</option><option value="document">Documents</option><option value="archive">Archives</option><option value="audio">Audio</option><option value="video">Video</option><option value="image">Images</option><option value="software">Software & apps</option></select></label>
+        <label>Format<select className="fd-select" value={format} onChange={e => { setFormat(e.target.value); setPage(1); }}><option value="">All formats</option>{["PDF", "DOC", "DOCX", "TXT", "ZIP", "RAR", "MP3", "MP4", "AI", "Software", "PPTX", "XLSX", "APK", "EXE"].map(item => <option key={item} value={item}>{item}</option>)}</select></label>
         <label>Preacher / contributor<input className="fd-input" list="fd-preacher-suggestions" value={preacher} onChange={e => { const name = e.target.value; setPreacher(name); const match = preacherSuggestions.find(item => item.fullName.toLowerCase() === name.trim().toLowerCase()); setPreacherSlug(match?.slug || ""); setPage(1); }} placeholder="Type a name" /><datalist id="fd-preacher-suggestions">{preacherSuggestions.map(item => <option key={item.id} value={item.fullName}>{item.ministryName}</option>)}</datalist></label>
         <label>Minimum size (MB)<input className="fd-input" type="number" min="0" step="1" value={minSize} onChange={e => { setMinSize(e.target.value); setPage(1); }} placeholder="No minimum" /></label>
         <label>Maximum size (MB)<input className="fd-input" type="number" min="0" step="1" value={maxSize} onChange={e => { setMaxSize(e.target.value); setPage(1); }} placeholder="No maximum" /></label>
