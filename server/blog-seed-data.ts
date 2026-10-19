@@ -4,6 +4,7 @@
  * so content improvements here propagate on redeploy.
  */
 import { TECH_ARTICLES } from "./tech-article-seed-data";
+import { ADSTERRA_DIRECT_LINK_ARTICLE } from "./adsterra-direct-link-article";
 
 export type DefaultBlog = {
   title: string;
@@ -1692,4 +1693,5 @@ export const DEFAULT_BLOGS: DefaultBlog[] = [
 `,
   },
   ...TECH_ARTICLES,
+  ADSTERRA_DIRECT_LINK_ARTICLE,
 ];
