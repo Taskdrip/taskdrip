@@ -21,6 +21,7 @@ import { runStartupMigrations } from "./startup-migrations";
 import { ensureAsiafilmSmartlink } from "./url-shortener";
 import bcrypt from "bcryptjs";
 import { startSeoCrawlerScheduler } from "./seo-intelligence-routes";
+import { seedFreeCreatorTools } from "./free-download-seeds";
 
 // ── Global crash guards — must be first so the server never silently dies ──
 process.on("uncaughtException", (err) => {
@@ -340,6 +341,9 @@ server.listen({
   // ── Phase 4a: Critical seeds — run synchronously before marking ready ────────
   // Courses must exist before the first request hits /api/courses on Railway.
   try {
+    await seedFreeCreatorTools()
+      .then((count) => log(`[Free Downloads] ${count} curated creator tools added`))
+      .catch((error) => console.error("[Free Downloads] Curated resource seed error:", error));
     await ensureAdminExists();
     const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
     if (adminUser) {

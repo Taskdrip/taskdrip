@@ -15,28 +15,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Bell, MessageCircle, Menu, X, LogOut, User, Settings, CreditCard, DollarSign, Briefcase, Share2, Users, Landmark, Package, Wallet, CheckCheck, Megaphone, UserCheck, Target, Star, Sparkles, Crown, GraduationCap, Code2, Gift, BookOpen } from "lucide-react";
-import { SiTelegram, SiWhatsapp, SiX, SiInstagram, SiFacebook, SiYoutube, SiTiktok } from "react-icons/si";
-import { SOCIALS } from "@/config/socials";
 import taskedripLogo from "@assets/taskdrip_icon_logo_1775964032389.jpeg";
-
-const socialLinks = [
-  { href: SOCIALS.telegram, icon: SiTelegram, color: "#229ED9", label: "Telegram" },
-  { href: SOCIALS.whatsapp, icon: SiWhatsapp, color: "#25D366", label: "WhatsApp" },
-  { href: SOCIALS.x, icon: SiX, color: "#111111", label: "X" },
-  { href: SOCIALS.instagram, icon: SiInstagram, color: "#E1306C", label: "Instagram" },
-  { href: SOCIALS.facebook, icon: SiFacebook, color: "#1877F2", label: "Facebook" },
-  { href: SOCIALS.youtube, icon: SiYoutube, color: "#FF0000", label: "YouTube" },
-  { href: SOCIALS.tiktok, icon: SiTiktok, color: "#010101", label: "TikTok" },
-];
-
-const publicMainItems = [
-  { href: "/", label: "Home" },
-  { href: "/tasks", label: "Tasks" },
-  { href: "/shop", label: "Shop" },
-  { href: "/influencers", label: "Influencers" },
-  { href: "/brands", label: "Brands" },
-  { href: "/breedskool", label: "BreedSkool" },
-];
 
 const secondaryMainItems = [
   { href: "/feed", label: "Feed" },
@@ -181,6 +160,7 @@ export function NavigationFixed() {
           { href: "/", label: "Home" },
           { href: "/tasks", label: "Tasks" },
           { href: "/shop", label: "Shop" },
+          { href: "/downloads", label: "Downloads" },
           { href: "/influencers", label: "Influencers" },
           { href: "/brands", label: "Brands" },
         ],
@@ -203,6 +183,7 @@ export function NavigationFixed() {
         primary: [
           { href: "/", label: "Home" },
           { href: "/brand-dashboard", label: "Dashboard" },
+          { href: "/downloads", label: "Downloads" },
           { href: "/influencers", label: "Influencers" },
           { href: "/campaigns", label: "Campaigns" },
           { href: "/referrals", label: "Referrals 💰" },
@@ -230,6 +211,7 @@ export function NavigationFixed() {
         primary: [
           { href: "/", label: "Home" },
           { href: "/admin-dashboard", label: "Admin" },
+          { href: "/downloads", label: "Downloads" },
           { href: "/influencers", label: "Influencers" },
           { href: "/brands", label: "Brands" },
           { href: "/campaigns", label: "Campaigns" },
@@ -262,6 +244,7 @@ export function NavigationFixed() {
       primary: [
         { href: "/", label: "Home" },
         { href: "/tasks", label: "Tasks" },
+        { href: "/downloads", label: "Downloads" },
         { href: "/dashboard", label: "Dashboard" },
         { href: "/brands", label: "Brands" },
         { href: "/referrals", label: "Referrals 💰" },
@@ -378,25 +361,6 @@ export function NavigationFixed() {
                 </DropdownMenu>
               )}
             </div>
-          </div>
-
-          {/* Social Icons Strip (desktop only) */}
-          <div className="hidden xl:flex items-center gap-1 border-l border-gray-200 pl-3 mr-1">
-            {socialLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={link.label}
-                  className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
-                >
-                  <Icon className="h-3.5 w-3.5" style={{ color: link.color }} />
-                </a>
-              );
-            })}
           </div>
 
           {/* Right side */}
@@ -686,28 +650,6 @@ export function NavigationFixed() {
                 </div>
               )}
 
-              {/* Mobile Social Links */}
-              <div className="px-2 pt-3 pb-1 border-t border-gray-100 mt-1">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Follow Us</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {socialLinks.map((link) => {
-                    const Icon = link.icon;
-                    return (
-                      <a
-                        key={link.href}
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-1 py-2 px-1 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <Icon className="h-5 w-5" style={{ color: link.color }} />
-                        <span className="text-[10px] text-gray-500 font-medium">{link.label}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </div>
         )}

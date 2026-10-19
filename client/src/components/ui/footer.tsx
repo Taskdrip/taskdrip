@@ -359,6 +359,9 @@ export function Footer() {
               © 2026 Taskdrip LLC. All rights reserved. Points = Off-chain rewards, convertible to $TDRIP token.
             </p>
             <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center">
+              <Link href="/downloads" className="text-gray-400 hover:text-white transition-colors text-sm" data-testid="link-footer-free-downloads">
+                Free Downloads
+              </Link>
               <Link href="/terms" className="text-gray-400 hover:text-white transition-colors text-sm">
                 Terms of Service
               </Link>

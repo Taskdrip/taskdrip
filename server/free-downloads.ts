@@ -903,22 +903,12 @@ export function registerFreeDownloadsRoutes(app: Express) {
         return res.json({ alreadyUnlocked: true, smartlinkUrl: null });
       }
       if (!settings.smartlink_url) return res.status(503).json({ message: "The advertising partner is not configured yet." });
-      req.session.freeDownloadAdIntents = req.session.freeDownloadAdIntents || {};
-      const previousIntent = req.session.freeDownloadAdIntents[row.id];
-      if (previousIntent && Date.now() - Number(previousIntent.startedAt) < 15 * 60 * 1000) {
-        return res.json({
-          alreadyUnlocked: false,
-          redirectId: previousIntent.redirectId,
-          redirectUrl: `/api/free-downloads/${encodeURIComponent(row.slug)}/ad-redirect/${encodeURIComponent(previousIntent.redirectId)}`,
-        });
-      }
       const redirectId = randomUUID();
       await pool.query(
         `INSERT INTO free_download_events (id, user_id, download_id, event_type)
          VALUES ($1, $2, $3, 'ad_redirect')`,
         [redirectId, req.user.id, row.id],
       );
-      req.session.freeDownloadAdIntents[row.id] = { redirectId, startedAt: Date.now() };
       return res.json({
         alreadyUnlocked: false,
         redirectId,
@@ -940,19 +930,6 @@ export function registerFreeDownloadsRoutes(app: Express) {
       if (!settings.ad_requirement_enabled || !smartlinkUrl) {
         return res.status(409).send("The advertising redirect is not available.");
       }
-      const intent = req.session.freeDownloadAdIntents?.[row.id];
-      if (!intent || intent.redirectId !== req.params.redirectId ||
-          Date.now() - Number(intent.startedAt) > 15 * 60 * 1000) {
-        return res.status(410).send("This partner redirect has expired. Return to Taskdrip and retry.");
-      }
-      const existingUnlock = await pool.query(
-        "SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2",
-        [req.user.id, row.id],
-      );
-      if (existingUnlock.rowCount) {
-        delete req.session.freeDownloadAdIntents[row.id];
-        return res.status(409).send("This download is already unlocked. Return to its Taskdrip page.");
-      }
       client = await pool.connect();
       await client.query("BEGIN");
       const completion = await client.query(
@@ -960,7 +937,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
          WHERE id=$1 AND user_id=$2 AND download_id=$3 AND event_type='ad_redirect'
            AND completed_at IS NULL AND created_at > NOW() - INTERVAL '15 minutes'
          RETURNING id`,
-        [intent.redirectId, req.user.id, row.id],
+        [req.params.redirectId, req.user.id, row.id],
       );
       if (completion.rowCount) {
         await client.query(
@@ -987,11 +964,9 @@ export function registerFreeDownloadsRoutes(app: Express) {
         await client.query("COMMIT");
         client.release();
         client = null;
-        delete req.session.freeDownloadAdIntents[row.id];
         return res.status(409).send("This download is already unlocked. Return to its Taskdrip page.");
       }
       await client.query("COMMIT");
-      delete req.session.freeDownloadAdIntents[row.id];
       res.setHeader("Cache-Control", "no-store");
       return res.redirect(302, smartlinkUrl);
     } catch (error) {

@@ -173,6 +173,7 @@ export function FreeDownloadDetailPage() {
   if (activeQuery.isError || !resource) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><ErrorBlock message={(activeQuery.error as Error)?.message} retry={() => activeQuery.refetch()} /></FreeDownloadsShell>;
 
   const secureFilePath = `/api/free-downloads/${encodeURIComponent(slug)}/file`;
+  const isExternalResource = Boolean(resource.externalDemoUrl);
   const formatSize = resource.fileSizeBytes ? resource.fileSizeBytes > 1_000_000_000 ? `${(resource.fileSizeBytes / 1_000_000_000).toFixed(1)} GB` : `${Math.max(1, Math.round(resource.fileSizeBytes / 1_000_000))} MB` : "Not specified";
   const previewEmbed = getPreviewEmbedUrl(resource.previewVideoUrl);
   const pageUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -216,10 +217,11 @@ export function FreeDownloadDetailPage() {
         <h2>Resource details</h2>
         <dl><div><dt>Format</dt><dd>{resource.format}</dd></div><div><dt>File size</dt><dd>{formatSize}</dd></div>{resource.version && <div><dt>Version</dt><dd>{resource.version}</dd></div>}<div><dt>Downloads</dt><dd>{Number(resource.downloadCount || 0).toLocaleString()}</dd></div><div><dt>Permission</dt><dd>Shared for use</dd></div></dl>
         {unlockError && <InlineNotice kind="error">{unlockError}</InlineNotice>}
+        {!isAdminPreview && resource.adRequired && !resource.smartlinkConfigured && <InlineNotice kind="error">The partner link is not configured yet. Please contact the library team.</InlineNotice>}
         {isAdminPreview ? <p className="fd-ad-explain">Publishing is required before users can download this resource.</p>
-          : unlocked ? <><InlineNotice><ShieldCheck size={14} /> Access confirmed. Your secure download is ready.</InlineNotice><a className="fd-button" href={secureFilePath}><Download size={15} />DOWNLOAD NOW</a></>
-            : <button className="fd-button" onClick={unlock} disabled={working || unlockStatus.isLoading}>{working ? "Opening partner redirect…" : resource.adRequired ? "GET FREE DOWNLOAD" : "Get the download"}<Download size={15} /></button>}
-        {!isAdminPreview && resource.adRequired && <p className="fd-ad-explain">To access your free download, you'll first be redirected to our advertising partner. Once you've completed this step, your download button will be unlocked. You can then download the file directly without another redirect.</p>}
+          : unlocked ? <><InlineNotice><ShieldCheck size={14} /> Access confirmed. {isExternalResource ? "The official resource is ready." : "Your secure download is ready."}</InlineNotice><a className="fd-button" href={secureFilePath}>{isExternalResource ? <ExternalLink size={15} /> : <Download size={15} />}{isExternalResource ? "OPEN OFFICIAL RESOURCE" : "DOWNLOAD NOW"}</a></>
+            : <button className="fd-button" onClick={unlock} disabled={working || unlockStatus.isLoading || (resource.adRequired && !resource.smartlinkConfigured)}>{working ? "Opening partner redirect…" : resource.adRequired ? "GET FREE RESOURCE" : isExternalResource ? "OPEN FREE RESOURCE" : "Get the download"}{isExternalResource ? <ExternalLink size={15} /> : <Download size={15} />}</button>}
+        {!isAdminPreview && resource.adRequired && <p className="fd-ad-explain">To access this free resource, you'll first be redirected to our advertising partner. Once the redirect completes, the resource button will be unlocked.</p>}
         <div className="fd-share-block"><span><Share2 size={13} /> Share this resource</span><div><a href={`https://wa.me/?text=${shareTitle}%20${shareUrl}`} target="_blank" rel="noopener noreferrer">WhatsApp</a><a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">Facebook</a><a href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`} target="_blank" rel="noopener noreferrer">X</a><a href={`https://t.me/share/url?url=${shareUrl}&text=${shareTitle}`} target="_blank" rel="noopener noreferrer">Telegram</a></div></div>
         {unlockStatus.isError && <p className="fd-ad-explain">Unlock status could not be refreshed. You can retry the partner step.</p>}
         {resource.telegramUrl && <a className="fd-text-link" style={{ marginTop: 15 }} href={resource.telegramUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> More from this community</a>}
