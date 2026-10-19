@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SandboxedAdFrame } from "@/components/ads/SandboxedAdFrame";
 
 const POPUP_LS_KEY = "td_popup_ad_seen";
 
@@ -37,7 +38,6 @@ function markSeen(adId: string, frequency: string) {
 
 function PopupAdRenderer({ ad }: { ad: any }) {
   const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const delay = (ad.popupDelay ?? 5) * 1000;
 
   useEffect(() => {
@@ -47,23 +47,10 @@ function PopupAdRenderer({ ad }: { ad: any }) {
   }, [ad.id, ad.popupFrequency, delay]);
 
   useEffect(() => {
-    if (!visible || !ref.current) return;
-    ref.current.innerHTML = "";
-    const range = document.createRange();
-    range.selectNode(ref.current);
-    const fragment = range.createContextualFragment(ad.adCode);
-    const scripts = Array.from(fragment.querySelectorAll("script"));
-    ref.current.appendChild(fragment);
-    scripts.forEach(oldScript => {
-      const newScript = document.createElement("script");
-      Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-      newScript.textContent = oldScript.textContent;
-      document.head.appendChild(newScript);
-    });
-    markSeen(ad.id, ad.popupFrequency || "session");
-  }, [visible, ad]);
+    if (visible) markSeen(ad.id, ad.popupFrequency || "session");
+  }, [visible, ad.id, ad.popupFrequency]);
 
-  const dismiss = () => setVisible(false);
+  const dismiss = useCallback(() => setVisible(false), []);
 
   if (!visible) return null;
 
@@ -90,7 +77,13 @@ function PopupAdRenderer({ ad }: { ad: any }) {
           </Button>
         </div>
         <div className="p-4 overflow-auto max-h-[70vh]">
-          <div ref={ref} />
+          <SandboxedAdFrame
+            id={`popup-ad-${ad.id}`}
+            title="Sponsored advertisement"
+            html={ad.adCode}
+            initialHeight={360}
+            onUnavailable={dismiss}
+          />
         </div>
       </div>
     </div>

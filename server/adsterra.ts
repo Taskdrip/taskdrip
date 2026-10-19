@@ -20,17 +20,19 @@ const DEFAULT_PLACEMENTS: AdsterraPlacement[] = [
   { id: "iframe-320x50", name: "320 × 50 mobile banner", format: "iframe", key: "17a65f77fa3438b3fefdcb676ee98dee", width: 320, height: 50, enabled: true, position: "footer", pages: ["all"] },
   { id: "iframe-468x60", name: "468 × 60 banner", format: "iframe", key: "853091c54a9b97261a0c491b694fec3d", width: 468, height: 60, enabled: false, position: "footer", pages: ["all"] },
   { id: "iframe-728x90", name: "728 × 90 leaderboard", format: "iframe", key: "154db1845b00e0f67c9191df7bfaae41", width: 728, height: 90, enabled: true, position: "article-end", pages: ["article"] },
-  { id: "native-banner", name: "Native banner", format: "native", key: "5f2b3b9889056ddaef435c83d66cfe70", width: 640, height: 180, enabled: true, position: "blog-feed", pages: ["blog"] },
+  { id: "native-banner", name: "Native banner", format: "native", key: "35bce858b3dee27caf3dea71fee79861", width: 640, height: 320, enabled: true, position: "blog-feed", pages: ["blog"] },
   { id: "popunder", name: "Popunder", format: "popunder", key: "5f2b3b9889056ddaef435c83d66cfe70", width: 1, height: 1, enabled: false, position: "floating", pages: ["all"] },
   { id: "smartlink", name: "Smartlink", format: "smartlink", key: "8c495b91cd0cddb28d0dc18b095eb0d1", enabled: false, position: "article-end", pages: ["article"] },
   { id: "socialbar", name: "Social Bar", format: "socialbar", key: "74a8f64f8fe3f8d27ae89ac6b9528098", width: 360, height: 100, enabled: false, position: "floating", pages: ["all"] },
 ];
 
-const DEFAULT_SETTINGS: AdsterraSettingsValue = { enabled: false, placements: DEFAULT_PLACEMENTS };
+const DEFAULT_SETTINGS: AdsterraSettingsValue = { enabled: true, placements: DEFAULT_PLACEMENTS };
 const FORMATS = new Set<AdsterraFormat>(["iframe", "native", "popunder", "smartlink", "socialbar"]);
 const POSITIONS = new Set<AdsterraPosition>(["body", "blog-feed", "article-inline", "sidebar", "article-end", "footer", "floating"]);
 const PAGE_TARGETS = new Set<AdsterraPageTarget>(["all", "site", "blog", "article"]);
 const ZONE_KEY = /^[a-f0-9]{32}$/i;
+const LEGACY_NATIVE_ZONE_KEY = "5f2b3b9889056ddaef435c83d66cfe70";
+const NATIVE_BANNER_ZONE_KEY = "35bce858b3dee27caf3dea71fee79861";
 
 function appBaseUrl() {
   return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
@@ -46,7 +48,24 @@ function requireAdmin(req: any, res: Response, next: (error?: any) => void) {
 
 async function getSettings(): Promise<AdsterraSettingsValue> {
   const [existing] = await db.select().from(adsterraSettings).where(eq(adsterraSettings.id, "singleton")).limit(1);
-  if (existing?.settings?.placements?.length) return existing.settings;
+  if (existing?.settings?.placements?.length) {
+    return {
+      ...existing.settings,
+      placements: existing.settings.placements.map((placement) => {
+        if (
+          placement.id === "native-banner" &&
+          placement.format === "native" &&
+          placement.key.toLowerCase() === LEGACY_NATIVE_ZONE_KEY
+        ) {
+          return { ...placement, key: NATIVE_BANNER_ZONE_KEY };
+        }
+        if (placement.format === "popunder" && placement.enabled) {
+          return { ...placement, enabled: false };
+        }
+        return placement;
+      }),
+    };
+  }
   if (existing) {
     await db.update(adsterraSettings)
       .set({ settings: DEFAULT_SETTINGS, updatedAt: new Date() })
@@ -114,6 +133,9 @@ function validateSettings(input: any, previous: AdsterraSettingsValue): { settin
     }
     if (typeof candidate.enabled !== "boolean" || !ZONE_KEY.test(candidate.key || "")) {
       return { error: `Placement ${candidate.id} needs a 32-character Adsterra zone ID and enabled state.` };
+    }
+    if (candidate.format === "popunder" && candidate.enabled) {
+      return { error: "Popunder ads are disabled because they can open unsolicited redirects from site interactions." };
     }
     if (!Array.isArray(candidate.pages) || candidate.pages.length === 0 ||
       candidate.pages.some((page: string) => !PAGE_TARGETS.has(page as AdsterraPageTarget))) {

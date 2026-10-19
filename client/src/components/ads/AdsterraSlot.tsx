@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { AdsterraPageTarget, AdsterraPlacement, AdsterraPosition, AdsterraSettingsValue } from "@shared/schema";
+import { SandboxedAdFrame } from "@/components/ads/SandboxedAdFrame";
 
 type PublicSettings = AdsterraSettingsValue & { shortenerBaseUrl?: string };
 
 const pageClaims = new Map<string, Set<string>>();
 const MAX_VISIBLE_SLOTS_PER_PAGE = 4;
+const NATIVE_BANNER_SCRIPT_BASE = "https://bicea.org/21/";
+const SOCIAL_BAR_SCRIPT_BASE = "https://bicea.org/14/";
+const IFRAME_BANNER_SCRIPT_BASE = "https://bicea.org/22/";
 
 function getPageTarget(path: string): AdsterraPageTarget {
   if (path === "/blog") return "blog";
@@ -14,26 +18,20 @@ function getPageTarget(path: string): AdsterraPageTarget {
   return "site";
 }
 
-function getAdScriptUrl(placement: AdsterraPlacement) {
-  if (placement.format === "native" || placement.format === "popunder") {
-    return `https://afders.org/1/${placement.key}`;
-  }
-  if (placement.format === "socialbar") {
-    return `https://bicea.org/14/${placement.key}`;
-  }
-  return "";
-}
-
-function getIframeDocument(placement: AdsterraPlacement) {
+function getAdMarkup(placement: AdsterraPlacement) {
   const width = placement.width || 300;
   const height = placement.height || 250;
-  const scriptUrl = placement.format === "native" || placement.format === "socialbar"
-    ? getAdScriptUrl(placement)
-    : `https://bicea.org/22/${placement.key}`;
-  const options = JSON.stringify({ key: placement.key, format: "iframe", width, height, params: {} });
-  const optionScript = placement.format === "iframe" ? `<script>var atOptions=${options};</script>` : "";
-  const cfAsync = placement.format === "native" || placement.format === "socialbar" ? ` data-cfasync="false"` : "";
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;width:100%;height:100%;display:flex;align-items:center;justify-content:center}</style></head><body>${optionScript}<script${cfAsync} src="${scriptUrl}"></script></body></html>`;
+  if (placement.format === "iframe") {
+    const options = JSON.stringify({ key: placement.key, format: "iframe", width, height, params: {} });
+    return `<script>var atOptions=${options};</script><script src="${IFRAME_BANNER_SCRIPT_BASE}${placement.key}"></script>`;
+  }
+  if (placement.format === "native") {
+    return `<div id="container-${placement.key}" style="width:100%;max-width:100%"></div><script async="async" data-cfasync="false" src="${NATIVE_BANNER_SCRIPT_BASE}${placement.key}"></script>`;
+  }
+  if (placement.format === "socialbar") {
+    return `<script data-cfasync="false" src="${SOCIAL_BAR_SCRIPT_BASE}${placement.key}"></script>`;
+  }
+  return "";
 }
 
 function pageAllows(placement: AdsterraPlacement, pageTarget: AdsterraPageTarget) {
@@ -59,13 +57,11 @@ export function AdsterraSlot({ position }: { position: AdsterraPosition }) {
   });
   const pageTarget = getPageTarget(location);
   const eligiblePlacements = settings?.enabled
-    ? settings.placements.filter((item) => item.enabled && item.position === position && pageAllows(item, pageTarget))
+    ? settings.placements.filter((item) =>
+      item.enabled && item.format !== "popunder" && item.position === position && pageAllows(item, pageTarget),
+    )
     : [];
-  const placements = eligiblePlacements.filter((item) =>
-    item.format !== "popunder" || !settings?.placements.some((other) =>
-      other.enabled && other.id !== item.id && other.key === item.key && other.format !== item.format,
-    ),
-  );
+  const placements = eligiblePlacements;
   const placementSignature = placements
     .map((item) => `${item.id}:${item.format}:${item.key}:${item.width || 0}:${item.height || 0}:${item.shortSlug || ""}`)
     .join("|");
@@ -124,10 +120,12 @@ function AdsterraPlacement({
 }) {
   const containerRef = useRef<HTMLElement | null>(null);
   const impressionTracked = useRef(false);
+  const [unavailable, setUnavailable] = useState(false);
   const width = placement.width || 300;
   const height = placement.height || 250;
   const isSidebar = position === "sidebar";
   const isFloating = position === "floating";
+  const hideUnavailableAd = useCallback(() => setUnavailable(true), []);
 
   useEffect(() => {
     if (impressionTracked.current) return;
@@ -137,19 +135,6 @@ function AdsterraPlacement({
       impressionTracked.current = true;
       trackImpression(placement.id, location.split("?")[0] || "/");
     };
-
-    if (placement.format === "popunder") {
-      const script = document.createElement("script");
-      script.src = getAdScriptUrl(placement);
-      script.async = true;
-      script.setAttribute("data-cfasync", "false");
-      script.dataset.taskdripAdsterra = placement.id;
-      document.body.appendChild(script);
-      record();
-      return () => {
-        script.remove();
-      };
-    }
 
     const node = containerRef.current;
     if (!node) return;
@@ -173,6 +158,7 @@ function AdsterraPlacement({
     };
   }, [location, placement.id, placement.format, placement.key]);
 
+  if (unavailable) return null;
   if (placement.format === "popunder") return null;
   if (placement.format === "smartlink") {
     if (!placement.shortSlug) return null;
@@ -211,17 +197,13 @@ function AdsterraPlacement({
       ].join(" ")}
       style={{ width: isSidebar ? `${width}px` : isFloating ? `min(${width}px, calc(100vw - 24px))` : "100%" }}
     >
-      <div className="max-w-full overflow-hidden">
-        <iframe
+      <div className="max-w-full overflow-hidden" style={{ width: `min(${width}px, calc(100vw - 32px))` }}>
+        <SandboxedAdFrame
+          id={placement.id}
           title={`Advertisement: ${placement.name}`}
-          srcDoc={getIframeDocument(placement)}
-          width={width}
-          height={height}
-          loading="lazy"
-          referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-          className="max-w-full border-0"
-          style={{ width: `min(${width}px, calc(100vw - 32px))`, height }}
+          html={getAdMarkup(placement)}
+          initialHeight={placement.format === "native" ? Math.max(height, 320) : height}
+          onUnavailable={hideUnavailableAd}
         />
       </div>
       <span className="sr-only">Advertisement</span>

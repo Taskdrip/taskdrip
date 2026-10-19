@@ -213,6 +213,7 @@ export default function AdminAdsterraPage() {
           ) : draft.placements.map((placement) => {
             const stats = analytics?.byPlacement.find((item) => item.id === placement.id);
             const fixedLocation = placement.format === "popunder" || placement.format === "socialbar";
+            const popunderBlocked = placement.format === "popunder";
             return (
               <Card key={placement.id} className="border-white/10 bg-slate-900 text-white">
                 <CardHeader>
@@ -238,9 +239,10 @@ export default function AdminAdsterraPage() {
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className={`text-sm ${placement.enabled ? "text-emerald-300" : "text-slate-400"}`}>{placement.enabled ? "Tag on" : "Tag off"}</span>
+                        <span className={`text-sm ${placement.enabled ? "text-emerald-300" : "text-slate-400"}`}>{popunderBlocked ? "Blocked" : placement.enabled ? "Tag on" : "Tag off"}</span>
                       <Switch
-                        checked={placement.enabled}
+                        checked={popunderBlocked ? false : placement.enabled}
+                        disabled={popunderBlocked}
                         onCheckedChange={(enabled) => setDraft((current) => updatePlacement(current, placement.id, { enabled }))}
                         aria-label={`Enable ${placement.name}`}
                       />
@@ -281,7 +283,9 @@ export default function AdminAdsterraPage() {
                     >
                       {Object.entries(POSITION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
-                    {fixedLocation && <p className="mt-1 text-xs text-slate-500">This tag runs in its network-defined floating behavior.</p>}
+                    {popunderBlocked
+                      ? <p className="mt-1 text-xs text-amber-300">Not served: popunder scripts can redirect unrelated site clicks.</p>
+                      : fixedLocation && <p className="mt-1 text-xs text-slate-500">This tag runs in its network-defined floating behavior.</p>}
                   </div>
                   <div>
                     <Label htmlFor={`pages-${placement.id}`} className="text-slate-300">Which pages</Label>
@@ -320,7 +324,7 @@ export default function AdminAdsterraPage() {
             <CardDescription className="text-slate-400">Changes are saved here and applied to public pages automatically.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm leading-6 text-slate-300">
-            <p><strong>1. Start safely:</strong> Enable the master switch, enable the placements you want, then save. This only activates the tags; it cannot activate a paused or unapproved website/zone in Adsterra.</p>
+            <p><strong>1. Start safely:</strong> Enable the master switch, enable the placements you want, then save. Banner, native, and social placements are isolated from the app; popunders remain blocked because they can redirect unrelated site clicks. This only activates the tags; it cannot activate a paused or unapproved website/zone in Adsterra.</p>
             <p><strong>2. Test the right page:</strong> Blog-feed ads appear on <code>/blog</code>; sidebar, inline, and article-end ads appear on <code>/blog/:slug</code>. The sidebar is hidden on mobile. On other pages, use the footer placement and scroll to the bottom. The current setup is mostly blog-focused, so the homepage will not show the article placements.</p>
             <p><strong>3. Check visibility:</strong> Taskdrip records a viewable impression only after at least half of a slot stays on screen for one second. A zero count before scrolling to an ad is expected. Taskdrip tracks views and Smartlink clicks; use Adsterra for banner clicks, CTR, CPM, and revenue.</p>
             <p><strong>4. Confirm your tags:</strong> In the <a className="text-cyan-300 underline" href="https://beta.publishers.adsterra.com/websites" target="_blank" rel="noreferrer">Adsterra publisher dashboard</a>, expand <code>taskdrip.online</code> and open each Ad Unit’s code. Copy that unit’s zone key into its matching row—not the numeric website ID or account API key. Confirm each individual Ad Unit is active, and give each format its own zone key.</p>

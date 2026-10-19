@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { SandboxedAdFrame } from "@/components/ads/SandboxedAdFrame";
 
 interface AdSlotProps {
   page: string;
@@ -8,25 +9,21 @@ interface AdSlotProps {
 }
 
 function AdSlotRenderer({ adCode, id }: { adCode: string; id: string }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  const hideUnavailableAd = useCallback(() => setUnavailable(true), []);
+  if (unavailable) return null;
 
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.innerHTML = "";
-    const range = document.createRange();
-    range.selectNode(ref.current);
-    const fragment = range.createContextualFragment(adCode);
-    const scripts = Array.from(fragment.querySelectorAll("script"));
-    ref.current.appendChild(fragment);
-    scripts.forEach(oldScript => {
-      const newScript = document.createElement("script");
-      Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-      newScript.textContent = oldScript.textContent;
-      document.head.appendChild(newScript);
-    });
-  }, [adCode, id]);
-
-  return <div ref={ref} data-testid={`ad-slot-${id}`} />;
+  return (
+    <div data-testid={`ad-slot-${id}`}>
+      <SandboxedAdFrame
+        id={`site-ad-${id}`}
+        title="Sponsored advertisement"
+        html={adCode}
+        initialHeight={280}
+        onUnavailable={hideUnavailableAd}
+      />
+    </div>
+  );
 }
 
 export function AdSlot({ page, placementType, className = "" }: AdSlotProps) {
