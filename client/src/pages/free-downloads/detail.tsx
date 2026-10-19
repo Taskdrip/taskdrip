@@ -6,6 +6,7 @@ import { freeDownloadsApi, useAdminFreeDownloadPreview, useFreeDownloadDetail, u
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, FreeDownloadsShell, InlineNotice, LoadingBlock, ResourceGrid } from "./shared";
 import { SeoHead } from "@/components/SeoHead";
+import { getFreeDownloadArtwork } from "./artwork";
 
 const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
 
@@ -162,7 +163,7 @@ export function FreeDownloadDetailPage() {
       </nav>
       <div className="fd-detail-layout">
         <article className="fd-detail-main">
-          <div className="fd-detail-cover">{guest.thumbnailUrl ? <img src={guest.thumbnailUrl} alt={`${guest.title} cover`} /> : <div className="fd-art-placeholder"><Download size={36} /><span>{guest.format || "DIGITAL RESOURCE"}</span></div>}</div>
+          <div className="fd-detail-cover"><img src={guest.thumbnailUrl || getFreeDownloadArtwork(guest.title, guest.format, guest.slug)} alt={`${guest.title} featured artwork`} /></div>
           <div className="fd-eyebrow"><span />{guest.categoryName}</div><h1>{guest.title}</h1>
           <p className="fd-lede">{guest.shortDescription}</p>
           {guest.downloadCode && <p className="fd-download-code">Download code: <strong>{guest.downloadCode}</strong></p>}
@@ -223,7 +224,7 @@ export function FreeDownloadDetailPage() {
     </nav>
     <div className="fd-detail-layout">
       <article className="fd-detail-main">
-        <div className="fd-detail-cover">{resource.thumbnailUrl ? <img src={resource.thumbnailUrl} alt={`${resource.title} cover`} /> : <div className="fd-art-placeholder"><Download size={36} /><span>{resource.format || "DIGITAL RESOURCE"}</span></div>}</div>
+        <div className="fd-detail-cover"><img src={resource.thumbnailUrl || getFreeDownloadArtwork(resource.title, resource.format, resource.slug)} alt={`${resource.title} featured artwork`} /></div>
         <div className="fd-eyebrow"><span />{resource.categoryName} {resource.subcategoryName ? ` / ${resource.subcategoryName}` : ""}</div>
         <h1>{resource.title}</h1><p className="fd-lede">{resource.shortDescription}</p>
         {resource.downloadCode && <p className="fd-download-code">Download code: <strong>{resource.downloadCode}</strong></p>}

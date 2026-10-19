@@ -114,8 +114,8 @@
 .fd-resource-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
 .fd-resource-card { background:var(--fd-panel); border:1px solid var(--fd-line); position:relative; transition:transform .2s, box-shadow .2s; min-width:0; }
 .fd-resource-card:hover { transform:translateY(-3px); box-shadow:0 14px 30px rgba(39,34,56,.08); }
-.fd-card-hit { position:absolute; inset:0; z-index:1; }
 .fd-card-art { height:180px; position:relative; background:#e9e5f2; overflow:hidden; }
+.fd-card-art-link { position:absolute; inset:0; display:block; }
 .fd-card-art img { width:100%; height:100%; object-fit:cover; display:block; }
 .fd-art-placeholder { height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:#635783; background:radial-gradient(circle at 70% 16%,#faf5e6 0 3%,transparent 3.5%),linear-gradient(135deg,#e9e5f2,#d8d1e7); }
 .fd-art-placeholder span { font:700 9px "DM Sans"; letter-spacing:.14em; }

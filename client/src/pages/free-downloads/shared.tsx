@@ -4,6 +4,7 @@ import { Search, ArrowUpRight, Download, FileArchive, Music2, Video, Sparkles, P
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "@/components/ui/footer";
 import { useFreeDownloadCategories, type FreeDownloadSummary } from "@/lib/free-downloads-api";
+import { getFreeDownloadArtwork } from "./artwork";
 import "./free-downloads.css";
 
 export const basePath = "/downloads";
@@ -82,21 +83,23 @@ export function ResourceCard({ resource, featured = false }: { resource: FreeDow
     : item.format?.toLowerCase().includes("video") || item.format?.toLowerCase().includes("mp4") ? Video
     : item.format?.toLowerCase().includes("ai") ? Sparkles : FileArchive;
   const size = item.fileSizeBytes ? item.fileSizeBytes > 1_000_000_000 ? `${(item.fileSizeBytes / 1_000_000_000).toFixed(1)} GB` : `${Math.max(1, Math.round(item.fileSizeBytes / 1_000_000))} MB` : "";
+  const detailsHref = `${basePath}/${item.slug}`;
   return <article className={`fd-resource-card ${featured ? "fd-resource-featured" : ""}`}>
-    <Link href={`${basePath}/${item.slug}`} className="fd-card-hit" aria-label={`View ${item.title}`} />
-    <div className="fd-card-art">{item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" loading="lazy" /> : <div className="fd-art-placeholder"><Icon size={27} strokeWidth={1.5} /><span>{item.format || "RESOURCE"}</span></div>}
+    <div className="fd-card-art"><Link href={detailsHref} className="fd-card-art-link" aria-label={`View details for ${item.title}`}>
+      <img src={item.thumbnailUrl || getFreeDownloadArtwork(item.title, item.format, item.slug)} alt={`${item.title} featured artwork`} loading="lazy" />
+    </Link>
       <span className="fd-card-format"><Icon size={12} />{item.format || "Digital"}</span>
       {item.isFeatured && <span className="fd-featured-tag">Staff pick</span>}
       {item.previewVideoUrl && <span className="fd-preview-tag">Preview</span>}
     </div>
     <div className="fd-card-content">
       <div className="fd-card-meta"><Link href={`${basePath}/category/${item.categorySlug}`} className="fd-category-link">{item.categoryName || "Resource"}</Link>{size && <span>{size}</span>}</div>
-      <h3><Link href={`${basePath}/${item.slug}`}>{item.title}</Link></h3>
+      <h3><Link href={detailsHref}>{item.title}</Link></h3>
       <p>{item.shortDescription}</p>
       <div className="fd-card-foot"><span>{item.preacherSlug ? <Link href={`${basePath}/preachers/${item.preacherSlug}`}>{item.preacherName}</Link> : item.creator || "Taskdrip library"}</span><span className="fd-count"><Download size={13} />{Number(item.downloadCount || 0).toLocaleString()}</span></div>
       {item.publishedAt && <small className="fd-card-date">Added {new Date(item.publishedAt).toLocaleDateString()}</small>}
       {item.downloadCode && <span className="fd-resource-code" title="Unique download code">{item.downloadCode}</span>}
-      <Link className="fd-card-detail-link" href={`${basePath}/${item.slug}`}>View details <ArrowUpRight size={13} /></Link>
+      <Link className="fd-card-detail-link" href={detailsHref}>View details <ArrowUpRight size={13} /></Link>
     </div>
   </article>;
 }

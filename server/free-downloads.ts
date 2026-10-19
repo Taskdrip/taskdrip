@@ -14,6 +14,7 @@ const privateFilesDir = path.resolve(
   process.env.FREE_DOWNLOADS_STORAGE_DIR || path.join(process.cwd(), "private-downloads"),
 );
 const publicMediaDir = path.resolve(process.cwd(), "uploads", "free-downloads");
+const DEFAULT_FREE_DOWNLOAD_SMARTLINK = "https://taskdrip.online/s/asiafilm-featured";
 mkdirSync(privateFilesDir, { recursive: true });
 mkdirSync(publicMediaDir, { recursive: true });
 
@@ -361,39 +362,20 @@ async function getAnyBySlug(slug: string) {
 }
 
 async function getAdSettings() {
-  const [downloadSettings, siteSettings] = await Promise.all([
-    pool.query(
-      `SELECT smartlink_url, ad_requirement_enabled, telegram_url
-       FROM free_download_settings WHERE id = 'default' LIMIT 1`,
-    ),
-    pool.query(`SELECT settings FROM adsterra_settings WHERE id = 'singleton' LIMIT 1`),
-  ]);
+  const downloadSettings = await pool.query(
+    `SELECT smartlink_url, ad_requirement_enabled, telegram_url
+     FROM free_download_settings WHERE id = 'default' LIMIT 1`,
+  );
   const saved = downloadSettings.rows[0] || {
     smartlink_url: "",
     ad_requirement_enabled: false,
     telegram_url: "https://t.me/taskdrip",
   };
   const configuredUrl = safeExternalUrl(saved.smartlink_url);
-  const adSettings = siteSettings.rows[0]?.settings;
-  const activeSmartlink = adSettings?.enabled
-    ? adSettings.placements?.find((placement: any) =>
-      placement.enabled && placement.format === "smartlink" && typeof placement.shortSlug === "string" && placement.shortSlug,
-    )
-    : null;
-  let siteSmartlinkUrl: string | null = null;
-  if (!configuredUrl && activeSmartlink?.shortSlug) {
-    const baseUrl = safeExternalUrl(process.env.PUBLIC_APP_URL || "https://taskdrip.online");
-    if (baseUrl) {
-      siteSmartlinkUrl = safeExternalUrl(
-        new URL(`/s/${encodeURIComponent(activeSmartlink.shortSlug)}`, baseUrl).toString(),
-      );
-    }
-  }
-  const usesSiteSmartlink = Boolean(siteSmartlinkUrl);
   return {
     ...saved,
-    smartlink_url: configuredUrl || siteSmartlinkUrl || "",
-    ad_requirement_enabled: Boolean(saved.ad_requirement_enabled || usesSiteSmartlink),
+    smartlink_url: configuredUrl || DEFAULT_FREE_DOWNLOAD_SMARTLINK,
+    ad_requirement_enabled: true,
   };
 }
 
@@ -1368,7 +1350,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
   app.put("/api/free-downloads/admin/settings", isAuthenticated, isAdmin, async (req, res) => {
     const smartlinkUrl = String(req.body?.smartlinkUrl || "").trim();
     const telegramUrl = String(req.body?.telegramUrl || "https://t.me/taskdrip").trim();
-    const adRequirementEnabled = req.body?.adRequirementEnabled === true;
+    const adRequirementEnabled = true;
     const safeSmartlink = safeExternalUrl(smartlinkUrl);
     const safeTelegram = safeExternalUrl(telegramUrl);
     if (smartlinkUrl && !safeSmartlink) return res.status(400).json({ message: "Adsterra Smartlink must be a valid HTTPS URL." });
