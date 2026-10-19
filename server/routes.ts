@@ -17,6 +17,7 @@ import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or, isNull } from "drizzle-orm";
 import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./creator-publishing";
 import { registerPluginStudioRoutes } from "./plugin-studio";
+import { registerFreeDownloadsRoutes } from "./free-downloads";
 import { activatePluginLicenseForPurchase, getPluginLicenseSummaryForPurchase } from "./plugin-licensing";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
@@ -13903,6 +13904,7 @@ Instructions:
   registerAutoBloggerRoutes(app);
   registerAdminDemoRoutes(app, isAuthenticated);
   registerSeoIntelligenceRoutes(app);
+  registerFreeDownloadsRoutes(app);
   startAutoBloggerAutopilot();
 
   // ── AI Marketing Robot — Social Leads ──────────────────────────────────────

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { appSettings, blogPosts, courses, pageSeoSettings, p2pListings, pluginStudioProjects, portfolioItems, shopProducts, users } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 
 const SITE_ORIGIN = "https://taskdrip.online";
 
@@ -10,6 +10,7 @@ const STATIC_SITEMAP_PATHS: { path: string; title: string; priority: string; cha
   { path: "/tasks", title: "Tasks and campaigns", priority: "0.9", changefreq: "daily" },
   { path: "/p2p-hub", title: "P2P marketplace", priority: "0.9", changefreq: "daily" },
   { path: "/shop", title: "Shop", priority: "0.9", changefreq: "daily" },
+  { path: "/downloads", title: "Free Downloads", priority: "0.9", changefreq: "daily" },
   { path: "/influencers", title: "Creator directory", priority: "0.9", changefreq: "daily" },
   { path: "/brands", title: "Brands", priority: "0.8", changefreq: "daily" },
   { path: "/blog", title: "Blog", priority: "0.8", changefreq: "daily" },
@@ -248,7 +249,68 @@ export async function getPublicSeoUrls(): Promise<PublicSeoUrl[]> {
       metaDescription: creator.seoDescription || creator.bio,
     });
   }
-  return Array.from(new Map(visiblePages.concat(pages.slice(STATIC_SITEMAP_PATHS.length)).map((page) => [page.url, page])).values());
+  const downloadPages: PublicSeoUrl[] = [];
+  try {
+    const [downloads, categories, preachers] = await Promise.all([
+      pool.query(
+        `SELECT title,slug,seo_title,seo_description,updated_at
+         FROM free_download_items WHERE publication_status='published' ORDER BY updated_at DESC`,
+      ),
+      pool.query(
+        `SELECT name,slug FROM free_download_categories WHERE is_active=TRUE ORDER BY sort_order,name`,
+      ),
+      pool.query(
+        `SELECT DISTINCT p.full_name,p.slug FROM free_download_preachers p
+         JOIN free_download_items d ON d.preacher_id=p.id
+         WHERE d.publication_status='published'`,
+      ),
+    ]);
+    for (const category of categories.rows) {
+      const path = `/downloads/category/${encodeURIComponent(category.slug)}`;
+      downloadPages.push({
+        url: `${SITE_ORIGIN}${path}`,
+        path,
+        title: `${category.name} | Free Downloads`,
+        type: "download-category",
+        priority: "0.7",
+        changefreq: "daily",
+      });
+    }
+    for (const preacher of preachers.rows) {
+      const path = `/downloads/preachers/${encodeURIComponent(preacher.slug)}`;
+      downloadPages.push({
+        url: `${SITE_ORIGIN}${path}`,
+        path,
+        title: `${preacher.full_name} sermons | Taskdrip`,
+        type: "preacher",
+        priority: "0.6",
+        changefreq: "weekly",
+      });
+    }
+    for (const download of downloads.rows) {
+      const path = `/downloads/${encodeURIComponent(download.slug)}`;
+      downloadPages.push({
+        url: `${SITE_ORIGIN}${path}`,
+        path,
+        title: download.seo_title || download.title,
+        type: "free-download",
+        lastmod: day(download.updated_at),
+        priority: "0.7",
+        changefreq: "weekly",
+        metaTitle: download.seo_title || download.title,
+        metaDescription: download.seo_description,
+      });
+    }
+  } catch (error) {
+    // Keep the existing sitemap available before the additive feature migration is applied.
+    console.warn("[SEO] Free Downloads sitemap entries unavailable:", error);
+  }
+  return Array.from(new Map(
+    visiblePages
+      .concat(pages.slice(STATIC_SITEMAP_PATHS.length))
+      .concat(downloadPages)
+      .map((page) => [page.url, page]),
+  ).values());
 }
 
 export function registerPublicSeoRoutes(app: Express) {

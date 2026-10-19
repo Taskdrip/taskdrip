@@ -3264,6 +3264,13 @@ export default function AdminMaster() {
                     </Button>
                   </RouterLink>
                 )}
+                {isFullAdmin && (
+                  <RouterLink href="/admin/free-downloads">
+                    <Button size="sm" className="rounded-xl bg-cyan-600 text-white shadow-lg hover:bg-cyan-700">
+                      <Download className="mr-1.5 h-4 w-4" /> Free Downloads Management
+                    </Button>
+                  </RouterLink>
+                )}
                 <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 rounded-xl shadow-lg hover:opacity-90">

@@ -173,6 +173,7 @@ export function Navigation() {
 
   const navItems = [
     { href: "/", label: "Home" },
+    { href: "/downloads", label: "Free Downloads" },
     { href: "/tasks", label: "Earn Rewards" },
     { href: "/influencers", label: "Influencers" },
     { href: "/shop", label: "Shop" },
