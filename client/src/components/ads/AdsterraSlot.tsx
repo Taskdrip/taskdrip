@@ -8,9 +8,10 @@ type PublicSettings = AdsterraSettingsValue & { shortenerBaseUrl?: string };
 
 const pageClaims = new Map<string, Set<string>>();
 const MAX_VISIBLE_SLOTS_PER_PAGE = 4;
-const NATIVE_BANNER_SCRIPT_BASE = "https://bicea.org/21/";
-const SOCIAL_BAR_SCRIPT_BASE = "https://bicea.org/14/";
-const IFRAME_BANNER_SCRIPT_BASE = "https://bicea.org/22/";
+
+function escapeAttribute(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 
 function getPageTarget(path: string): AdsterraPageTarget {
   if (path === "/blog") return "blog";
@@ -23,13 +24,16 @@ function getAdMarkup(placement: AdsterraPlacement) {
   const height = placement.height || 250;
   if (placement.format === "iframe") {
     const options = JSON.stringify({ key: placement.key, format: "iframe", width, height, params: {} });
-    return `<script>var atOptions=${options};</script><script src="${IFRAME_BANNER_SCRIPT_BASE}${placement.key}"></script>`;
+    const source = placement.tagUrl || `https://www.highperformanceformat.com/${placement.key}/invoke.js`;
+    return `<script>var atOptions=${options};</script><script type="text/javascript" src="${escapeAttribute(source)}"></script>`;
   }
   if (placement.format === "native") {
-    return `<div id="container-${placement.key}" style="width:100%;max-width:100%"></div><script async="async" data-cfasync="false" src="${NATIVE_BANNER_SCRIPT_BASE}${placement.key}"></script>`;
+    if (!placement.tagUrl) return "";
+    return `<div id="container-${placement.key}" style="width:100%;max-width:100%"></div><script async="async" data-cfasync="false" src="${escapeAttribute(placement.tagUrl)}"></script>`;
   }
   if (placement.format === "socialbar") {
-    return `<script data-cfasync="false" src="${SOCIAL_BAR_SCRIPT_BASE}${placement.key}"></script>`;
+    if (!placement.tagUrl) return "";
+    return `<script data-cfasync="false" src="${escapeAttribute(placement.tagUrl)}"></script>`;
   }
   return "";
 }

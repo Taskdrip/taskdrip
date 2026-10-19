@@ -8180,6 +8180,34 @@ function isValidCustomSlug(s) {
 function shortenerBaseUrl() {
   return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
 }
+var ASIAFILM_DESTINATION_URL = "https://asiafilm.org/4/72d75744fc3a6e2252d1294d1f8778e0";
+async function ensureAsiafilmSmartlink(adminUserId) {
+  const baseSlug = "asiafilm-featured";
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+    const [existing] = await db.select().from(shortLinks).where(eq3(shortLinks.slug, slug)).limit(1);
+    if (existing) {
+      if (existing.originalUrl === ASIAFILM_DESTINATION_URL) {
+        if (!existing.isActive) {
+          await db.update(shortLinks).set({ isActive: true }).where(eq3(shortLinks.id, existing.id));
+        }
+        return slug;
+      }
+      continue;
+    }
+    const [created] = await db.insert(shortLinks).values({
+      userId: adminUserId,
+      slug,
+      originalUrl: ASIAFILM_DESTINATION_URL,
+      title: "Featured AsiaFilm link",
+      isReferral: false
+    }).onConflictDoNothing().returning({ slug: shortLinks.slug });
+    if (created) return created.slug;
+    const [raced] = await db.select().from(shortLinks).where(eq3(shortLinks.slug, slug)).limit(1);
+    if (raced?.originalUrl === ASIAFILM_DESTINATION_URL) return slug;
+  }
+  throw new Error("Could not reserve a Taskdrip short-link slug for the AsiaFilm destination.");
+}
 function requireAuth(req, res, next) {
   if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.id) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -8198,6 +8226,20 @@ function requireAdmin(req, res, next) {
   next();
 }
 function registerShortenerRoutes(app2) {
+  app2.get("/api/featured-smartlink", async (_req, res) => {
+    try {
+      const [link] = await db.select({ slug: shortLinks.slug }).from(shortLinks).where(and2(
+        eq3(shortLinks.originalUrl, ASIAFILM_DESTINATION_URL),
+        eq3(shortLinks.isActive, true)
+      )).orderBy(desc2(shortLinks.createdAt)).limit(1);
+      if (!link) return res.status(404).json({ message: "Featured link is not available." });
+      res.set("Cache-Control", "no-store");
+      res.json({ href: `${shortenerBaseUrl()}/s/${encodeURIComponent(link.slug)}` });
+    } catch (error) {
+      console.error("[shortener] featured link lookup error", error);
+      res.status(503).json({ message: "Featured link is temporarily unavailable." });
+    }
+  });
   app2.get("/s/:slug", async (req, res) => {
     try {
       const slug = req.params.slug;
@@ -8408,16 +8450,23 @@ var DEFAULT_PLACEMENTS = [
   { id: "iframe-320x50", name: "320 \xD7 50 mobile banner", format: "iframe", key: "17a65f77fa3438b3fefdcb676ee98dee", width: 320, height: 50, enabled: true, position: "footer", pages: ["all"] },
   { id: "iframe-468x60", name: "468 \xD7 60 banner", format: "iframe", key: "853091c54a9b97261a0c491b694fec3d", width: 468, height: 60, enabled: false, position: "footer", pages: ["all"] },
   { id: "iframe-728x90", name: "728 \xD7 90 leaderboard", format: "iframe", key: "154db1845b00e0f67c9191df7bfaae41", width: 728, height: 90, enabled: true, position: "article-end", pages: ["article"] },
-  { id: "native-banner", name: "Native banner", format: "native", key: "5f2b3b9889056ddaef435c83d66cfe70", width: 640, height: 180, enabled: true, position: "blog-feed", pages: ["blog"] },
+  { id: "native-banner", name: "Native banner", format: "native", key: "35bce858b3dee27caf3dea71fee79861", width: 640, height: 320, enabled: true, position: "blog-feed", pages: ["blog"] },
   { id: "popunder", name: "Popunder", format: "popunder", key: "5f2b3b9889056ddaef435c83d66cfe70", width: 1, height: 1, enabled: false, position: "floating", pages: ["all"] },
   { id: "smartlink", name: "Smartlink", format: "smartlink", key: "8c495b91cd0cddb28d0dc18b095eb0d1", enabled: false, position: "article-end", pages: ["article"] },
   { id: "socialbar", name: "Social Bar", format: "socialbar", key: "74a8f64f8fe3f8d27ae89ac6b9528098", width: 360, height: 100, enabled: false, position: "floating", pages: ["all"] }
 ];
-var DEFAULT_SETTINGS = { enabled: false, placements: DEFAULT_PLACEMENTS };
+var DEFAULT_SETTINGS = {
+  enabled: true,
+  placements: DEFAULT_PLACEMENTS,
+  featuredSmartlink: { afterHeader: true, middleBody: true, footer: true }
+};
+var DISABLED_FEATURED_SMARTLINK = { afterHeader: false, middleBody: false, footer: false };
 var FORMATS = /* @__PURE__ */ new Set(["iframe", "native", "popunder", "smartlink", "socialbar"]);
 var POSITIONS = /* @__PURE__ */ new Set(["body", "blog-feed", "article-inline", "sidebar", "article-end", "footer", "floating"]);
 var PAGE_TARGETS = /* @__PURE__ */ new Set(["all", "site", "blog", "article"]);
 var ZONE_KEY = /^[a-f0-9]{32}$/i;
+var LEGACY_NATIVE_ZONE_KEY = "5f2b3b9889056ddaef435c83d66cfe70";
+var NATIVE_BANNER_ZONE_KEY = "35bce858b3dee27caf3dea71fee79861";
 function appBaseUrl() {
   return (process.env.PUBLIC_APP_URL || "https://taskdrip.online").trim().replace(/\/+$/, "");
 }
@@ -8428,16 +8477,59 @@ function requireAdmin2(req, res, next) {
   }
   next();
 }
+function isHttpsTagUrl(value) {
+  if (typeof value !== "string" || !value.trim() || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+function normalizePlacement(placement) {
+  if (placement.format === "popunder" && placement.enabled) {
+    return { ...placement, enabled: false };
+  }
+  if (placement.enabled && (placement.format === "native" || placement.format === "socialbar") && !isHttpsTagUrl(placement.tagUrl)) {
+    return { ...placement, enabled: false };
+  }
+  return placement;
+}
 async function getSettings2() {
   const [existing] = await db.select().from(adsterraSettings).where(eq4(adsterraSettings.id, "singleton")).limit(1);
-  if (existing?.settings?.placements?.length) return existing.settings;
+  if (existing?.settings?.placements?.length) {
+    return {
+      ...existing.settings,
+      featuredSmartlink: {
+        ...DEFAULT_SETTINGS.featuredSmartlink,
+        ...existing.settings.featuredSmartlink
+      },
+      placements: existing.settings.placements.map((placement) => {
+        if (placement.id === "native-banner" && placement.format === "native" && placement.key.toLowerCase() === LEGACY_NATIVE_ZONE_KEY) {
+          return normalizePlacement({ ...placement, key: NATIVE_BANNER_ZONE_KEY });
+        }
+        return normalizePlacement(placement);
+      })
+    };
+  }
   if (existing) {
     await db.update(adsterraSettings).set({ settings: DEFAULT_SETTINGS, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(adsterraSettings.id, "singleton"));
-    return DEFAULT_SETTINGS;
+    return {
+      ...DEFAULT_SETTINGS,
+      placements: DEFAULT_SETTINGS.placements.map(normalizePlacement)
+    };
   }
   await db.insert(adsterraSettings).values({ id: "singleton", settings: DEFAULT_SETTINGS }).onConflictDoNothing();
   const [created] = await db.select().from(adsterraSettings).where(eq4(adsterraSettings.id, "singleton")).limit(1);
-  return created?.settings || DEFAULT_SETTINGS;
+  const settings = created?.settings || DEFAULT_SETTINGS;
+  return {
+    ...settings,
+    featuredSmartlink: {
+      ...DEFAULT_SETTINGS.featuredSmartlink,
+      ...settings.featuredSmartlink
+    },
+    placements: settings.placements.map(normalizePlacement)
+  };
 }
 function getShortDestination(key) {
   return `https://arwf.org/4/${key}`;
@@ -8475,6 +8567,12 @@ function validateSettings(input, previous) {
   if (!input || typeof input.enabled !== "boolean" || !Array.isArray(input.placements) || input.placements.length > 20) {
     return { error: "Settings must include a global switch and no more than 20 placements." };
   }
+  const featuredSmartlink = input.featuredSmartlink ?? previous.featuredSmartlink;
+  if (!featuredSmartlink || ["afterHeader", "middleBody", "footer"].some(
+    (placement) => typeof featuredSmartlink[placement] !== "boolean"
+  )) {
+    return { error: "Featured Smartlink settings must include a switch for each placement." };
+  }
   const ids = /* @__PURE__ */ new Set();
   const placements = [];
   for (const candidate of input.placements) {
@@ -8492,6 +8590,19 @@ function validateSettings(input, previous) {
     if (typeof candidate.enabled !== "boolean" || !ZONE_KEY.test(candidate.key || "")) {
       return { error: `Placement ${candidate.id} needs a 32-character Adsterra zone ID and enabled state.` };
     }
+    let tagUrl;
+    if (candidate.tagUrl !== void 0 && candidate.tagUrl !== "") {
+      if (!isHttpsTagUrl(candidate.tagUrl)) {
+        return { error: `Placement ${candidate.id} needs a valid HTTPS Adsterra script URL.` };
+      }
+      tagUrl = candidate.tagUrl.trim();
+    }
+    if (candidate.enabled && ["native", "socialbar"].includes(candidate.format) && !tagUrl) {
+      return { error: `Placement ${candidate.id} needs the exact HTTPS script URL from its Adsterra ad code before it can be enabled.` };
+    }
+    if (candidate.format === "popunder" && candidate.enabled) {
+      return { error: "Popunder ads are disabled because they can open unsolicited redirects from site interactions." };
+    }
     if (!Array.isArray(candidate.pages) || candidate.pages.length === 0 || candidate.pages.some((page2) => !PAGE_TARGETS.has(page2))) {
       return { error: `Placement ${candidate.id} needs at least one valid page target.` };
     }
@@ -8506,6 +8617,7 @@ function validateSettings(input, previous) {
       name: candidate.name.trim(),
       format: candidate.format,
       key: candidate.key.toLowerCase(),
+      tagUrl,
       width: candidate.format === "smartlink" ? void 0 : width,
       height: candidate.format === "smartlink" ? void 0 : height,
       enabled: candidate.enabled,
@@ -8514,7 +8626,17 @@ function validateSettings(input, previous) {
       shortSlug: candidate.format === "smartlink" ? oldPlacement?.shortSlug : void 0
     });
   }
-  return { settings: { enabled: input.enabled, placements } };
+  return {
+    settings: {
+      enabled: input.enabled,
+      placements,
+      featuredSmartlink: {
+        afterHeader: featuredSmartlink.afterHeader,
+        middleBody: featuredSmartlink.middleBody,
+        footer: featuredSmartlink.footer
+      }
+    }
+  };
 }
 function pagePath(value) {
   const path7 = typeof value === "string" ? value : "/";
@@ -8528,7 +8650,12 @@ function registerAdsterraRoutes(app2) {
       res.json({ ...settings, shortenerBaseUrl: appBaseUrl() });
     } catch (error) {
       console.error("[adsterra] public settings error", error);
-      res.status(503).json({ enabled: false, placements: [], shortenerBaseUrl: appBaseUrl() });
+      res.status(503).json({
+        enabled: false,
+        placements: [],
+        featuredSmartlink: DISABLED_FEATURED_SMARTLINK,
+        shortenerBaseUrl: appBaseUrl()
+      });
     }
   });
   app2.post("/api/adsterra/impressions", async (req, res) => {
@@ -39681,6 +39808,7 @@ server.listen({
     await ensureAdminExists();
     const adminUser = await storage.getUserByEmail("demo@taskdrip.online");
     if (adminUser) {
+      await ensureAsiafilmSmartlink(adminUser.id).then((slug) => log(`[Shortener] AsiaFilm featured link ready at /s/${slug}`)).catch((error) => console.error("[Shortener] AsiaFilm link seed error:", error));
       await seedBreedskoolPricing().then((r) => log(`[BreedSkool] Pricing: ${r.upserted} new, ${r.skipped} updated`)).catch((e) => console.error("seedBreedskoolPricing:", e));
       await seedBreedskoolCourses(adminUser.id).then((r) => log(`[BreedSkool] Courses: ${r.created} created, ${r.linked} linked`)).catch((e) => console.error("seedBreedskoolCourses:", e));
     } else {

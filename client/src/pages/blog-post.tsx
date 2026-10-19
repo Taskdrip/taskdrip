@@ -341,14 +341,28 @@ export default function BlogPost() {
     const body = articleBodyRef.current;
     if (!body || !post?.content) return;
     const paragraphs = Array.from(body.querySelectorAll("p"));
-    if (paragraphs.length === 0) return;
-    const mountNode = document.createElement("div");
-    mountNode.dataset.taskdripInlineAd = "true";
-    paragraphs[Math.min(2, paragraphs.length - 1)].insertAdjacentElement("afterend", mountNode);
-    setAdMountNode(mountNode);
+    const inlineAdNode = document.createElement("div");
+    inlineAdNode.dataset.taskdripInlineAd = "true";
+    const smartlinkNode = document.createElement("div");
+    smartlinkNode.dataset.asiafilmSmartlinkMount = "middleBody";
+
+    if (paragraphs.length > 0) {
+      const inlineAdParagraph = paragraphs[Math.min(2, paragraphs.length - 1)];
+      const middleParagraph = paragraphs[Math.floor((paragraphs.length - 1) / 2)];
+      inlineAdParagraph.insertAdjacentElement("afterend", inlineAdNode);
+      if (middleParagraph === inlineAdParagraph) {
+        inlineAdNode.insertAdjacentElement("afterend", smartlinkNode);
+      } else {
+        middleParagraph.insertAdjacentElement("afterend", smartlinkNode);
+      }
+    } else {
+      body.append(inlineAdNode, smartlinkNode);
+    }
+    setAdMountNode(inlineAdNode);
     return () => {
       setAdMountNode(null);
-      mountNode.remove();
+      inlineAdNode.remove();
+      smartlinkNode.remove();
     };
   }, [post?.content]);
 
@@ -565,6 +579,8 @@ export default function BlogPost() {
             <span className="flex items-center gap-1"><MessageCircle className="h-4 w-4" /> {comments.length} comments</span>
           </div>
         </div>
+
+        <div data-asiafilm-smartlink-mount="afterHeader" />
 
         {/* Featured Image */}
         {post.featuredImage ? (

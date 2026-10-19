@@ -51,6 +51,30 @@ function requireAdmin(req: any, res: Response, next: (error?: any) => void) {
   next();
 }
 
+function isHttpsTagUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim() || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function normalizePlacement(placement: AdsterraPlacement): AdsterraPlacement {
+  if (placement.format === "popunder" && placement.enabled) {
+    return { ...placement, enabled: false };
+  }
+  if (
+    placement.enabled &&
+    (placement.format === "native" || placement.format === "socialbar") &&
+    !isHttpsTagUrl(placement.tagUrl)
+  ) {
+    return { ...placement, enabled: false };
+  }
+  return placement;
+}
+
 async function getSettings(): Promise<AdsterraSettingsValue> {
   const [existing] = await db.select().from(adsterraSettings).where(eq(adsterraSettings.id, "singleton")).limit(1);
   if (existing?.settings?.placements?.length) {
@@ -66,12 +90,9 @@ async function getSettings(): Promise<AdsterraSettingsValue> {
           placement.format === "native" &&
           placement.key.toLowerCase() === LEGACY_NATIVE_ZONE_KEY
         ) {
-          return { ...placement, key: NATIVE_BANNER_ZONE_KEY };
+          return normalizePlacement({ ...placement, key: NATIVE_BANNER_ZONE_KEY });
         }
-        if (placement.format === "popunder" && placement.enabled) {
-          return { ...placement, enabled: false };
-        }
-        return placement;
+        return normalizePlacement(placement);
       }),
     };
   }
@@ -79,11 +100,22 @@ async function getSettings(): Promise<AdsterraSettingsValue> {
     await db.update(adsterraSettings)
       .set({ settings: DEFAULT_SETTINGS, updatedAt: new Date() })
       .where(eq(adsterraSettings.id, "singleton"));
-    return DEFAULT_SETTINGS;
+    return {
+      ...DEFAULT_SETTINGS,
+      placements: DEFAULT_SETTINGS.placements.map(normalizePlacement),
+    };
   }
   await db.insert(adsterraSettings).values({ id: "singleton", settings: DEFAULT_SETTINGS }).onConflictDoNothing();
   const [created] = await db.select().from(adsterraSettings).where(eq(adsterraSettings.id, "singleton")).limit(1);
-  return created?.settings || DEFAULT_SETTINGS;
+  const settings = created?.settings || DEFAULT_SETTINGS;
+  return {
+    ...settings,
+    featuredSmartlink: {
+      ...DEFAULT_SETTINGS.featuredSmartlink,
+      ...settings.featuredSmartlink,
+    },
+    placements: settings.placements.map(normalizePlacement),
+  };
 }
 
 function getShortDestination(key: string) {
@@ -149,6 +181,16 @@ function validateSettings(input: any, previous: AdsterraSettingsValue): { settin
     if (typeof candidate.enabled !== "boolean" || !ZONE_KEY.test(candidate.key || "")) {
       return { error: `Placement ${candidate.id} needs a 32-character Adsterra zone ID and enabled state.` };
     }
+    let tagUrl: string | undefined;
+    if (candidate.tagUrl !== undefined && candidate.tagUrl !== "") {
+      if (!isHttpsTagUrl(candidate.tagUrl)) {
+        return { error: `Placement ${candidate.id} needs a valid HTTPS Adsterra script URL.` };
+      }
+      tagUrl = candidate.tagUrl.trim();
+    }
+    if (candidate.enabled && ["native", "socialbar"].includes(candidate.format) && !tagUrl) {
+      return { error: `Placement ${candidate.id} needs the exact HTTPS script URL from its Adsterra ad code before it can be enabled.` };
+    }
     if (candidate.format === "popunder" && candidate.enabled) {
       return { error: "Popunder ads are disabled because they can open unsolicited redirects from site interactions." };
     }
@@ -168,6 +210,7 @@ function validateSettings(input: any, previous: AdsterraSettingsValue): { settin
       name: candidate.name.trim(),
       format: candidate.format,
       key: candidate.key.toLowerCase(),
+      tagUrl,
       width: candidate.format === "smartlink" ? undefined : width,
       height: candidate.format === "smartlink" ? undefined : height,
       enabled: candidate.enabled,

@@ -96,7 +96,11 @@ export default function AdminAdsterraPage() {
   const { data: analytics } = useQuery<Analytics>({
     queryKey: ["/api/admin/adsterra/analytics"],
   });
-  const [draft, setDraft] = useState<AdsterraSettingsValue>({ enabled: false, placements: [] });
+  const [draft, setDraft] = useState<AdsterraSettingsValue>({
+    enabled: false,
+    placements: [],
+    featuredSmartlink: { afterHeader: false, middleBody: false, footer: false },
+  });
 
   useEffect(() => {
     if (savedSettings) setDraft(savedSettings);
@@ -146,7 +150,7 @@ export default function AdminAdsterraPage() {
             <a href="/admin/url-shortener" className="inline-flex h-9 items-center gap-2 rounded-md border border-white/15 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white">
               <Link2 className="h-4 w-4" /> Shortener Admin
             </a>
-            <Button onClick={() => saveMutation.mutate()} disabled={isLoading || saveMutation.isPending || draft.placements.length === 0}>
+              <Button onClick={() => saveMutation.mutate()} disabled={isLoading || saveMutation.isPending}>
               <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? "Saving…" : "Save changes"}
             </Button>
           </div>
@@ -179,6 +183,34 @@ export default function AdminAdsterraPage() {
           </CardHeader>
           <CardContent className="text-sm leading-6 text-slate-300">
             This switch only tells Taskdrip whether to inject the saved tags. It does not confirm Adsterra approval, zone status, or ad availability. Changes take effect after saving; refresh public pages that were already open.
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-slate-900 text-white">
+          <CardHeader>
+            <CardTitle>Featured AsiaFilm smartlink</CardTitle>
+            <CardDescription className="text-slate-400">
+              Choose where the compact tracked link button appears. These positions follow the Adsterra master switch.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            {([
+              ["afterHeader", "After the article header"],
+              ["middleBody", "In the middle of the article"],
+              ["footer", "In the footer"],
+            ] as const).map(([position, label]) => (
+              <label key={position} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950 p-4">
+                <span className="text-sm font-medium text-slate-200">{label}</span>
+                <Switch
+                  checked={draft.featuredSmartlink?.[position] ?? false}
+                  onCheckedChange={(enabled) => setDraft((current) => ({
+                    ...current,
+                    featuredSmartlink: { ...current.featuredSmartlink, [position]: enabled },
+                  }))}
+                  aria-label={`Show featured AsiaFilm link ${label.toLowerCase()}`}
+                />
+              </label>
+            ))}
           </CardContent>
         </Card>
 
@@ -222,6 +254,9 @@ export default function AdminAdsterraPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <CardTitle className="text-lg">{placement.name}</CardTitle>
                         <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 text-xs text-sky-200">{formatLabel(placement.format)}</span>
+                        {["native", "socialbar"].includes(placement.format) && !placement.tagUrl && (
+                          <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-xs text-amber-200">Exact tag URL required</span>
+                        )}
                         {placement.width && placement.height && placement.format === "iframe" && (
                           <span className="text-xs text-slate-400">{placement.width} × {placement.height}</span>
                         )}
@@ -272,6 +307,27 @@ export default function AdminAdsterraPage() {
                     />
                     <p className="mt-1 text-xs text-slate-500">Use the 32-character placement/zone ID from the ad tag, not your Adsterra account API key.</p>
                   </div>
+                  {placement.format !== "smartlink" && placement.format !== "popunder" && (
+                    <div>
+                      <Label htmlFor={`tag-url-${placement.id}`} className="text-slate-300">
+                        Adsterra script URL{["native", "socialbar"].includes(placement.format) ? " (required)" : " (optional)"}
+                      </Label>
+                      <Input
+                        id={`tag-url-${placement.id}`}
+                        type="url"
+                        value={placement.tagUrl || ""}
+                        placeholder={placement.format === "iframe" ? "Leave blank to use the standard banner tag" : "Paste the src URL from this Ad Unit’s generated code"}
+                        onChange={(event) => setDraft((current) => updatePlacement(current, placement.id, { tagUrl: event.target.value || undefined }))}
+                        className="mt-1 font-mono text-xs border-white/10 bg-slate-950 text-white"
+                        autoComplete="off"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        {placement.format === "iframe"
+                          ? "Banner placements use Adsterra’s invoke.js format by default; provide the exact script URL only if your Ad Unit code differs."
+                          : "Copy the complete HTTPS script src from this exact Ad Unit’s code. Taskdrip does not guess provider-specific hostnames."}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <Label htmlFor={`position-${placement.id}`} className="text-slate-300">Where it appears</Label>
                     <select
@@ -327,7 +383,7 @@ export default function AdminAdsterraPage() {
             <p><strong>1. Start safely:</strong> Enable the master switch, enable the placements you want, then save. Banner, native, and social placements are isolated from the app; popunders remain blocked because they can redirect unrelated site clicks. This only activates the tags; it cannot activate a paused or unapproved website/zone in Adsterra.</p>
             <p><strong>2. Test the right page:</strong> Blog-feed ads appear on <code>/blog</code>; sidebar, inline, and article-end ads appear on <code>/blog/:slug</code>. The sidebar is hidden on mobile. On other pages, use the footer placement and scroll to the bottom. The current setup is mostly blog-focused, so the homepage will not show the article placements.</p>
             <p><strong>3. Check visibility:</strong> Taskdrip records a viewable impression only after at least half of a slot stays on screen for one second. A zero count before scrolling to an ad is expected. Taskdrip tracks views and Smartlink clicks; use Adsterra for banner clicks, CTR, CPM, and revenue.</p>
-            <p><strong>4. Confirm your tags:</strong> In the <a className="text-cyan-300 underline" href="https://beta.publishers.adsterra.com/websites" target="_blank" rel="noreferrer">Adsterra publisher dashboard</a>, expand <code>taskdrip.online</code> and open each Ad Unit’s code. Copy that unit’s zone key into its matching row—not the numeric website ID or account API key. Confirm each individual Ad Unit is active, and give each format its own zone key.</p>
+            <p><strong>4. Confirm your tags:</strong> In the <a className="text-cyan-300 underline" href="https://beta.publishers.adsterra.com/websites" target="_blank" rel="noreferrer">Adsterra publisher dashboard</a>, expand <code>taskdrip.online</code> and open each Ad Unit’s code. Copy the 32-character zone key for banners and the complete HTTPS script URL for Native/Social Bar placements—not the numeric website ID or account API key. Confirm each Ad Unit is active.</p>
             <p><strong>5. Rule out browser blocking:</strong> Test in a regular Chrome window with ad blockers and Brave Shields disabled for <code>taskdrip.online</code>. Third-party ad scripts can be blocked by browser privacy tools. Never click your own ads to test.</p>
             <p><strong>6. Keep the networks separate:</strong> The screenshot showing “account wasn’t approved” is Google AdSense. AdSense ads will not serve until Google approves that account, but this does not approve or disable Adsterra; check Adsterra’s own website and zone statuses separately.</p>
             <p><strong>7. Smartlinks:</strong> The Taskdrip Smartlink uses the <code>/s/</code> shortener and its clicks appear in short-link analytics. If a banner and Smartlink share a location, both now render there.</p>

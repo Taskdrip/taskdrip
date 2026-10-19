@@ -2384,6 +2384,7 @@ export type AdsterraPlacement = {
   name: string;
   format: AdsterraFormat;
   key: string;
+  tagUrl?: string;
   width?: number;
   height?: number;
   enabled: boolean;

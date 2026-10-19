@@ -2,9 +2,19 @@ import { ArrowUpRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import type { AdsterraSettingsValue } from "@shared/schema";
+
+type SmartlinkPosition = keyof AdsterraSettingsValue["featuredSmartlink"];
+type PublicSettings = Pick<AdsterraSettingsValue, "enabled" | "featuredSmartlink">;
+
+const POSITION_LABELS: Record<SmartlinkPosition, string> = {
+  afterHeader: "after the article header",
+  middleBody: "in the article body",
+  footer: "in the footer",
+};
 
 export function AsiafilmSmartlinkCard() {
-  const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+  const [mountNodes, setMountNodes] = useState<Array<{ node: HTMLElement; position: SmartlinkPosition }>>([]);
   const { data } = useQuery<{ href: string }>({
     queryKey: ["/api/featured-smartlink"],
     queryFn: async () => {
@@ -15,57 +25,58 @@ export function AsiafilmSmartlinkCard() {
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
+  const { data: settings } = useQuery<PublicSettings>({
+    queryKey: ["/api/adsterra/public-settings"],
+    staleTime: 0,
+    refetchInterval: 15_000,
+    retry: false,
+  });
 
   useEffect(() => {
-    const findMountNode = () => {
-      const nextNode = document.querySelector<HTMLElement>("[data-asiafilm-smartlink-mount]");
-      setMountNode((current) => (current === nextNode ? current : nextNode));
+    const findMountNodes = () => {
+      const nextNodes = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-asiafilm-smartlink-mount]"),
+      ).flatMap((node) => {
+        const position = node.dataset.asiafilmSmartlinkMount as SmartlinkPosition;
+        return ["afterHeader", "middleBody", "footer"].includes(position) ? [{ node, position }] : [];
+      });
+      setMountNodes((current) => {
+        const unchanged = current.length === nextNodes.length &&
+          current.every((item, index) => item.node === nextNodes[index].node && item.position === nextNodes[index].position);
+        return unchanged ? current : nextNodes;
+      });
     };
 
-    findMountNode();
-    const observer = new MutationObserver(findMountNode);
+    findMountNodes();
+    const observer = new MutationObserver(findMountNodes);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
-  const card = (
+  const card = (position: SmartlinkPosition) => (
     <aside
-      aria-labelledby="asiafilm-smartlink-title"
-      data-testid="asiafilm-smartlink-card"
-      className="mx-auto my-10 w-full max-w-7xl px-4"
+      aria-label={`Sponsored link ${POSITION_LABELS[position]}`}
+      data-testid={`asiafilm-smartlink-${position}`}
+      className="my-5 flex justify-center px-4"
     >
-      <div className="grid overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="min-h-48 bg-slate-950 md:min-h-64">
-          <img
-            src="/asiafilm-featured.svg"
-            alt="Abstract cinema-inspired artwork for the featured AsiaFilm link"
-            className="h-full min-h-48 w-full object-cover md:min-h-64"
-            loading="lazy"
-          />
-        </div>
-        <div className="flex flex-col items-start justify-center p-6 sm:p-8">
-          <span className="mb-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-violet-700">
-            Sponsored link
-          </span>
-          <h2 id="asiafilm-smartlink-title" className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Discover the featured AsiaFilm link
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
-            Open the featured destination through Taskdrip’s tracked short link.
-          </p>
-          <a
-            href={data?.href ?? "/s/asiafilm-featured"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
-            data-testid="button-asiafilm-smartlink"
-          >
-            View featured link <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-          </a>
-        </div>
-      </div>
+      <a
+        href={data?.href ?? "/s/asiafilm-featured"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-violet-700 bg-violet-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:border-violet-800 hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2"
+        data-testid="button-asiafilm-smartlink"
+      >
+        Discover the featured AsiaFilm link <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+      </a>
     </aside>
   );
 
-  return mountNode ? createPortal(card, mountNode) : card;
+  if (!settings?.enabled) return null;
+  return (
+    <>
+      {mountNodes.map(({ node, position }) =>
+        settings.featuredSmartlink?.[position] ? createPortal(card(position), node, position) : null,
+      )}
+    </>
+  );
 }
