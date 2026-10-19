@@ -202,7 +202,7 @@ const downloadPayloadSchema = z.object({
   ogTitle: z.string().trim().max(220).optional().default(""),
   ogDescription: z.string().trim().max(320).optional().default(""),
   ogImage: z.string().max(1000).optional().nullable().default(null),
-  publicationStatus: z.enum(["draft", "published"]).optional().default("draft"),
+  publicationStatus: z.enum(["draft", "preview", "published"]).optional().default("draft"),
   isFeatured: z.boolean().optional().default(false),
 });
 
@@ -351,6 +351,15 @@ async function getPublishedBySlug(slug: string) {
   return result.rows[0];
 }
 
+async function getAnyBySlug(slug: string) {
+  const result = await pool.query(
+    `SELECT ${detailSelect} ${detailJoins}
+     WHERE d.slug = $1 AND c.is_active = TRUE LIMIT 1`,
+    [slug],
+  );
+  return result.rows[0];
+}
+
 async function getAdSettings() {
   const result = await pool.query(
     `SELECT smartlink_url, ad_requirement_enabled, telegram_url
@@ -359,7 +368,64 @@ async function getAdSettings() {
   return result.rows[0] || { smartlink_url: "", ad_requirement_enabled: false, telegram_url: "https://t.me/taskdrip" };
 }
 
+async function fullDownloadDetail(row: any, settings: any, unlocked: boolean, adminPreview = false) {
+  const related = await pool.query(
+    `SELECT ${detailSelect} ${detailJoins}
+     WHERE d.publication_status='published' AND d.category_id=$1 AND d.id<>$2 AND c.is_active=TRUE
+     ORDER BY d.is_featured DESC, d.download_count DESC LIMIT 4`,
+    [row.category_id, row.id],
+  );
+  return {
+    ...publicDownload(row, unlocked),
+    descriptionHtml: row.description_html || "",
+    galleryUrls: row.gallery_urls || [],
+    previewVideoUrl: row.preview_video_url || "",
+    externalDemoUrl: row.external_demo_url || "",
+    systemRequirements: row.system_requirements || "",
+    installationInstructions: row.installation_instructions || "",
+    features: row.features || [],
+    preacher: row.preacher_id ? {
+      id: row.preacher_id,
+      fullName: row.preacher_name,
+      slug: row.preacher_slug,
+      photographUrl: row.preacher_photograph_url,
+      biography: row.preacher_biography,
+      ministryName: row.preacher_ministry_name,
+    } : null,
+    isUnlocked: unlocked,
+    adRequired: adminPreview ? false : Boolean(settings.ad_requirement_enabled),
+    smartlinkConfigured: Boolean(settings.smartlink_url),
+    telegramUrl: settings.telegram_url,
+    publicationStatus: row.publication_status,
+    adminPreview,
+    seo: {
+      title: row.seo_title || row.title,
+      description: row.seo_description || row.short_description,
+      focusKeyword: row.focus_keyword,
+      canonicalUrl: row.canonical_url,
+      ogTitle: row.og_title || row.seo_title || row.title,
+      ogDescription: row.og_description || row.seo_description || row.short_description,
+      ogImage: row.og_image || row.thumbnail_url,
+    },
+    related: related.rows.map((item) => publicDownload(item)),
+  };
+}
+
 async function saveDownload(req: Request, res: Response, id?: string) {
+  const uploaded = (req as any).file as Express.Multer.File | undefined;
+  try {
+    const result = await saveDownloadRecord(req, res, id);
+    if (res.statusCode >= 400 && uploaded) {
+      await unlinkAsync(path.join(privateFilesDir, uploaded.filename)).catch(() => {});
+    }
+    return result;
+  } catch (error) {
+    if (uploaded) await unlinkAsync(path.join(privateFilesDir, uploaded.filename)).catch(() => {});
+    throw error;
+  }
+}
+
+async function saveDownloadRecord(req: Request, res: Response, id?: string) {
   const rawPayload = getPayload(req);
   const parsed = downloadPayloadSchema.safeParse(rawPayload);
   if (!parsed.success) {
@@ -410,7 +476,7 @@ async function saveDownload(req: Request, res: Response, id?: string) {
       ? previous?.external_download_url || null
       : null);
   const uploaded = (req as any).file as Express.Multer.File | undefined;
-      const fileKey = uploaded?.filename || previous?.source_file_key || null;
+  const fileKey = uploaded?.filename || previous?.source_file_key || null;
   const fileName = uploaded
     ? path.basename(uploaded.originalname).replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255)
     : previous?.source_file_name || null;
@@ -752,7 +818,18 @@ export function registerFreeDownloadsRoutes(app: Express) {
     try {
       const row = await getPublishedBySlug(req.params.slug);
       if (!row) return res.status(404).json({ message: "Download not found." });
-      res.json(publicDownload(row));
+      res.json({
+        ...publicDownload(row),
+        seo: {
+          title: row.seo_title || row.title,
+          description: row.seo_description || row.short_description,
+          focusKeyword: row.focus_keyword,
+          canonicalUrl: row.canonical_url,
+          ogTitle: row.og_title || row.seo_title || row.title,
+          ogDescription: row.og_description || row.seo_description || row.short_description,
+          ogImage: row.og_image || row.thumbnail_url,
+        },
+      });
     } catch (error) {
       console.error("[free-downloads] Public preview failed:", error);
       res.status(503).json({ message: "Download preview is temporarily unavailable." });
@@ -789,45 +866,11 @@ export function registerFreeDownloadsRoutes(app: Express) {
       );
       await addEvent("detail_view", row.id, req.user.id, true);
       const settings = await getAdSettings();
-      const result: any = {
-        ...publicDownload(row, Boolean(unlock.rowCount) || !settings.ad_requirement_enabled),
-        descriptionHtml: row.description_html || "",
-        galleryUrls: row.gallery_urls || [],
-        previewVideoUrl: row.preview_video_url || "",
-        systemRequirements: row.system_requirements || "",
-        installationInstructions: row.installation_instructions || "",
-        features: row.features || [],
-        preacher: row.preacher_id ? {
-          id: row.preacher_id,
-          fullName: row.preacher_name,
-          slug: row.preacher_slug,
-          photographUrl: row.preacher_photograph_url,
-          biography: row.preacher_biography,
-          ministryName: row.preacher_ministry_name,
-        } : null,
-        isUnlocked: Boolean(unlock.rowCount) || !settings.ad_requirement_enabled,
-        adRequired: Boolean(settings.ad_requirement_enabled),
-        smartlinkConfigured: Boolean(settings.smartlink_url),
-        telegramUrl: settings.telegram_url,
-        seo: {
-          title: row.seo_title || row.title,
-          description: row.seo_description || row.short_description,
-          focusKeyword: row.focus_keyword,
-          canonicalUrl: row.canonical_url,
-          ogTitle: row.og_title || row.seo_title || row.title,
-          ogDescription: row.og_description || row.seo_description || row.short_description,
-          ogImage: row.og_image || row.thumbnail_url,
-        },
-        related: [],
-      };
-      const related = await pool.query(
-        `SELECT ${detailSelect} ${detailJoins}
-         WHERE d.publication_status='published' AND d.category_id=$1 AND d.id<>$2
-         ORDER BY d.is_featured DESC, d.download_count DESC LIMIT 4`,
-        [row.category_id, row.id],
-      );
-      result.related = related.rows.map((item) => publicDownload(item));
-      res.json(result);
+      res.json(await fullDownloadDetail(
+        row,
+        settings,
+        Boolean(unlock.rowCount) || !settings.ad_requirement_enabled,
+      ));
     } catch (error) {
       console.error("[free-downloads] Detail failed:", error);
       res.status(503).json({ message: "Download details are temporarily unavailable." });
@@ -847,69 +890,115 @@ export function registerFreeDownloadsRoutes(app: Express) {
         return res.json({ alreadyUnlocked: true, smartlinkUrl: null });
       }
       if (!settings.smartlink_url) return res.status(503).json({ message: "The advertising partner is not configured yet." });
+      req.session.freeDownloadAdIntents = req.session.freeDownloadAdIntents || {};
+      const previousIntent = req.session.freeDownloadAdIntents[row.id];
+      if (previousIntent && Date.now() - Number(previousIntent.startedAt) < 15 * 60 * 1000) {
+        return res.json({
+          alreadyUnlocked: false,
+          redirectId: previousIntent.redirectId,
+          redirectUrl: `/api/free-downloads/${encodeURIComponent(row.slug)}/ad-redirect/${encodeURIComponent(previousIntent.redirectId)}`,
+        });
+      }
       const redirectId = randomUUID();
       await pool.query(
         `INSERT INTO free_download_events (id, user_id, download_id, event_type)
          VALUES ($1, $2, $3, 'ad_redirect')`,
         [redirectId, req.user.id, row.id],
       );
-      req.session.freeDownloadAdIntents = req.session.freeDownloadAdIntents || {};
       req.session.freeDownloadAdIntents[row.id] = { redirectId, startedAt: Date.now() };
-      return res.json({ alreadyUnlocked: false, redirectId, smartlinkUrl: settings.smartlink_url });
+      return res.json({
+        alreadyUnlocked: false,
+        redirectId,
+        redirectUrl: `/api/free-downloads/${encodeURIComponent(row.slug)}/ad-redirect/${encodeURIComponent(redirectId)}`,
+      });
     } catch (error) {
       console.error("[free-downloads] Ad redirect start failed:", error);
       return res.status(503).json({ message: "Could not start the advertising partner redirect." });
     }
   });
 
-  app.post("/api/free-downloads/:slug/ad-complete", isAuthenticated, async (req: any, res) => {
+  app.get("/api/free-downloads/:slug/ad-redirect/:redirectId", isAuthenticated, async (req: any, res) => {
+    let client: any;
     try {
       const row = await getPublishedBySlug(req.params.slug);
       if (!row) return res.status(404).json({ message: "Download not found." });
       const settings = await getAdSettings();
-      if (!settings.ad_requirement_enabled) {
-        await pool.query(
-          `INSERT INTO free_download_unlocks (id, user_id, download_id)
-           VALUES ($1, $2, $3) ON CONFLICT (user_id, download_id) DO NOTHING`,
-          [randomUUID(), req.user.id, row.id],
-        );
-        await addEvent("unlock", row.id, req.user.id);
-        return res.json({ unlocked: true });
+      const smartlinkUrl = safeExternalUrl(settings.smartlink_url);
+      if (!settings.ad_requirement_enabled || !smartlinkUrl) {
+        return res.status(409).send("The advertising redirect is not available.");
       }
       const intent = req.session.freeDownloadAdIntents?.[row.id];
-      if (!intent || intent.redirectId !== req.body?.redirectId) {
-        return res.status(400).json({ message: "This partner redirect has expired. Please try again." });
+      if (!intent || intent.redirectId !== req.params.redirectId ||
+          Date.now() - Number(intent.startedAt) > 15 * 60 * 1000) {
+        return res.status(410).send("This partner redirect has expired. Return to Taskdrip and retry.");
       }
-      if (Date.now() - Number(intent.startedAt) < 1400) {
-        return res.status(400).json({ message: "The partner tab has not been open long enough yet." });
+      const existingUnlock = await pool.query(
+        "SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2",
+        [req.user.id, row.id],
+      );
+      if (existingUnlock.rowCount) {
+        delete req.session.freeDownloadAdIntents[row.id];
+        return res.status(409).send("This download is already unlocked. Return to its Taskdrip page.");
       }
-      const completion = await pool.query(
-        `UPDATE free_download_events
-         SET completed_at=NOW()
+      client = await pool.connect();
+      await client.query("BEGIN");
+      const completion = await client.query(
+        `UPDATE free_download_events SET completed_at=NOW()
          WHERE id=$1 AND user_id=$2 AND download_id=$3 AND event_type='ad_redirect'
            AND completed_at IS NULL AND created_at > NOW() - INTERVAL '15 minutes'
          RETURNING id`,
         [intent.redirectId, req.user.id, row.id],
       );
-      if (!completion.rowCount) {
-        const existing = await pool.query(
+      if (completion.rowCount) {
+        await client.query(
+          `INSERT INTO free_download_unlocks (id, user_id, download_id, ad_redirected_at)
+           VALUES ($1, $2, $3, NOW()) ON CONFLICT (user_id, download_id) DO NOTHING`,
+          [randomUUID(), req.user.id, row.id],
+        );
+        await client.query(
+          `INSERT INTO free_download_events (id, user_id, download_id, event_type)
+           VALUES ($1, $2, $3, 'unlock')`,
+          [randomUUID(), req.user.id, row.id],
+        );
+      } else {
+        const existing = await client.query(
           "SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2",
           [req.user.id, row.id],
         );
-        if (existing.rowCount) return res.json({ unlocked: true, alreadyUnlocked: true });
-        return res.status(400).json({ message: "This partner redirect has expired. Please try again." });
+        if (!existing.rowCount) {
+          await client.query("ROLLBACK");
+          client.release();
+          client = null;
+          return res.status(410).send("This partner redirect has expired. Return to Taskdrip and retry.");
+        }
+        await client.query("COMMIT");
+        client.release();
+        client = null;
+        delete req.session.freeDownloadAdIntents[row.id];
+        return res.status(409).send("This download is already unlocked. Return to its Taskdrip page.");
       }
-      await pool.query(
-        `INSERT INTO free_download_unlocks (id, user_id, download_id, ad_redirected_at)
-         VALUES ($1, $2, $3, NOW()) ON CONFLICT (user_id, download_id) DO NOTHING`,
-        [randomUUID(), req.user.id, row.id],
-      );
-      await addEvent("unlock", row.id, req.user.id);
+      await client.query("COMMIT");
       delete req.session.freeDownloadAdIntents[row.id];
-      return res.json({ unlocked: true });
+      res.setHeader("Cache-Control", "no-store");
+      return res.redirect(302, smartlinkUrl);
     } catch (error) {
+      if (client) await client.query("ROLLBACK").catch(() => {});
       console.error("[free-downloads] Ad redirect completion failed:", error);
-      return res.status(503).json({ message: "The download did not unlock. You can retry the partner redirect." });
+      return res.status(503).send("The partner redirect could not be completed. Return to Taskdrip and retry.");
+    } finally {
+      if (client) client.release();
+    }
+  });
+
+  app.get("/api/free-downloads/admin/preview/:slug", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const row = await getAnyBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download preview not found." });
+      const settings = await getAdSettings();
+      res.json(await fullDownloadDetail(row, settings, false, true));
+    } catch (error) {
+      console.error("[free-downloads] Admin preview failed:", error);
+      res.status(503).json({ message: "The private preview is temporarily unavailable." });
     }
   });
 
@@ -1433,7 +1522,9 @@ export function registerFreeDownloadsRoutes(app: Express) {
       const interval = allowedRanges[range] || allowedRanges["30d"];
       const [events, requestStats, registered, popular, categories, daily] = await Promise.all([
         pool.query(
-          `SELECT event_type AS "eventType",COUNT(*)::int AS total FROM free_download_events
+          `SELECT event_type AS "eventType",
+             COUNT(*) FILTER (WHERE event_type <> 'ad_redirect' OR completed_at IS NOT NULL)::int AS total
+           FROM free_download_events
            WHERE created_at >= NOW() - $1::interval GROUP BY event_type`,
           [interval],
         ),
@@ -1460,7 +1551,7 @@ export function registerFreeDownloadsRoutes(app: Express) {
         pool.query(
           `SELECT created_at::date AS date,
              COUNT(*) FILTER (WHERE event_type='detail_view')::int AS views,
-             COUNT(*) FILTER (WHERE event_type='ad_redirect')::int AS redirects,
+             COUNT(*) FILTER (WHERE event_type='ad_redirect' AND completed_at IS NOT NULL)::int AS redirects,
              COUNT(*) FILTER (WHERE event_type='unlock')::int AS unlocks,
              COUNT(*) FILTER (WHERE event_type='download_click')::int AS downloads
            FROM free_download_events WHERE created_at >= NOW() - $1::interval

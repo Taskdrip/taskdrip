@@ -21,6 +21,14 @@ npm run db:push   # interactive schema push via drizzle-kit (requires a TTY)
 
 The dev server runs on port 5000.
 
+## Free Downloads
+
+- Open `/downloads` for the public resource library and `/admin/free-downloads` for the admin workspace.
+- Apply additive database migrations with `npm run db:migrate` before enabling this feature in a deployment. This includes the private-preview publication status and download-code sequence; do not use `db:push --force`.
+- Configure the Adsterra Smartlink and whether the redirect is required from **Admin → Free Downloads → Adsterra**. The requirement stays disabled until a valid HTTPS Smartlink is saved.
+- Downloaded files are stored outside public web paths in `FREE_DOWNLOADS_STORAGE_DIR` (defaults to `private-downloads`). For production, mount that directory and `uploads/free-downloads` on durable storage before adding large files.
+- Only publish files and media you have permission to distribute. Public download pages are included in the sitemap; drafts and private previews are not.
+
 ## Environment variables
 
 | Variable | Purpose | Required |

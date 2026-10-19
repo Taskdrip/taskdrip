@@ -9,7 +9,7 @@ import {
 } from "@/lib/free-downloads-api";
 import { ErrorBlock, FreeDownloadsShell, InlineNotice, LoadingBlock, PageHeading, useDownloadAuthRedirect } from "./shared";
 
-type Tab = "downloads" | "categories" | "preachers" | "requests" | "slides" | "settings" | "analytics";
+type Tab = "downloads" | "categories" | "preachers" | "requests" | "slides" | "seo" | "settings" | "analytics";
 type FormKind = "download" | "category" | "preacher" | "slide";
 type FormValues = Record<string, string>;
 
@@ -47,6 +47,7 @@ export function AdminFreeDownloadsPage() {
   const [privateFile, setPrivateFile] = useState<File | null>(null);
   const [publicImage, setPublicImage] = useState<File | null>(null);
   const [galleryImages, setGalleryImages] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [requestDrafts, setRequestDrafts] = useState<Record<string, FormValues>>({});
@@ -99,6 +100,7 @@ export function AdminFreeDownloadsPage() {
     event.preventDefault();
     if (!modal) return;
     setBusy(true); setNotice(null);
+    setUploadProgress(privateFile ? 0 : null);
     try {
       const kind = modal.kind;
       const data: Record<string, unknown> = { ...values };
@@ -116,7 +118,7 @@ export function AdminFreeDownloadsPage() {
           const uploadedGallery = await Promise.all(galleryImages.map(file => freeDownloadsApi.uploadMedia(file)));
           data.galleryUrls = [...(data.galleryUrls as string[]), ...uploadedGallery.map(image => image.url)];
         }
-        await freeDownloadsApi.saveDownload(data, privateFile, modal.item?.id);
+        await freeDownloadsApi.saveDownload(data, privateFile, modal.item?.id, setUploadProgress);
       } else if (kind === "category") {
         data.sortOrder = Number(values.sortOrder || 0);
         if (publicImage) data.imageUrl = (await freeDownloadsApi.uploadMedia(publicImage)).url;
@@ -137,7 +139,7 @@ export function AdminFreeDownloadsPage() {
       setNotice({ kind: "success", text: `${fieldLabel(labelFor[kind])} saved.` });
       setModal(null);
     } catch (error) { setNotice({ kind: "error", text: (error as Error).message || "The item could not be saved." }); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setUploadProgress(null); }
   }
 
   async function deleteItem(kind: "download" | "category" | "preacher" | "slide", item: any) {
@@ -155,11 +157,22 @@ export function AdminFreeDownloadsPage() {
   }
   async function addSubcategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const name = String(data.get("name") || "");
     const categoryId = String(data.get("categoryId") || "");
     await act(() => freeDownloadsApi.createSubcategory({ name, slug: slugify(name), categoryId }), "Subcategory added.");
-    event.currentTarget.reset();
+    form.reset();
+  }
+  async function editSubcategory(item: any, categoryId: string) {
+    const name = window.prompt("Edit subcategory name:", item.name);
+    if (name === null || !name.trim()) return;
+    await act(() => freeDownloadsApi.updateSubcategory(String(item.id), {
+      name: name.trim(),
+      slug: slugify(name),
+      categoryId,
+      sortOrder: item.sortOrder || 0,
+    }), "Subcategory updated.");
   }
   async function deleteSubcategory(item: any) {
     if (!window.confirm(`Delete subcategory “${item.name}”?`)) return;
@@ -201,18 +214,18 @@ export function AdminFreeDownloadsPage() {
     {failures.length > 0 && <ErrorBlock message={(failures[0].error as Error)?.message} retry={() => { downloads.refetch(); categories.refetch(); preachers.refetch(); settings.refetch(); slides.refetch(); requests.refetch(); analytics.refetch(); }} />}
     <div className="fd-admin-layout">
       <div className="fd-admin-tabs" role="tablist" aria-label="Free Downloads administration">
-        <TabButton value="downloads" active={tab} onClick={setTab}>Resources</TabButton><TabButton value="categories" active={tab} onClick={setTab}>Categories</TabButton><TabButton value="preachers" active={tab} onClick={setTab}>Contributors</TabButton><TabButton value="requests" active={tab} onClick={setTab}>Requests</TabButton><TabButton value="slides" active={tab} onClick={setTab}>Hero slides</TabButton><TabButton value="settings" active={tab} onClick={setTab}>Smartlink</TabButton><TabButton value="analytics" active={tab} onClick={setTab}>Analytics</TabButton>
+        <TabButton value="downloads" active={tab} onClick={setTab}>Resources</TabButton><TabButton value="categories" active={tab} onClick={setTab}>Categories</TabButton><TabButton value="preachers" active={tab} onClick={setTab}>Contributors</TabButton><TabButton value="requests" active={tab} onClick={setTab}>Requests</TabButton><TabButton value="slides" active={tab} onClick={setTab}>Hero slides</TabButton><TabButton value="seo" active={tab} onClick={setTab}>SEO settings</TabButton><TabButton value="settings" active={tab} onClick={setTab}>Adsterra</TabButton><TabButton value="analytics" active={tab} onClick={setTab}>Analytics</TabButton>
       </div>
 
       {tab === "downloads" && <section className="fd-admin-panel">
-        <div className="fd-admin-heading-row"><h2>Published resources <span className="fd-legal-note">({downloadItems.length})</span></h2><button className="fd-button" onClick={() => openForm("download")}><Plus size={14} />Add resource</button></div>
-        {downloadItems.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Resource</th><th>Category</th><th>Status</th><th>Format</th><th>Downloads</th><th>Actions</th></tr></thead><tbody>{downloadItems.map((item, i) => <tr key={item.id || i}><td><strong>{item.title}</strong><div className="fd-legal-note">{item.downloadCode} · {item.slug}</div></td><td>{item.categoryName || categoryItems.find(c => c.id === item.categoryId)?.name || "—"}</td><td><span className={`fd-status ${item.publicationStatus === "published" ? "approved" : "pending"}`}>{item.publicationStatus || "draft"}</span></td><td>{item.format || "—"}</td><td>{Number(item.downloadCount || 0).toLocaleString()}</td><td><div className="fd-admin-actions"><button className="fd-button fd-button-outline" onClick={() => openForm("download", item)} aria-label={`Edit ${item.title}`}><Edit3 size={13} />Edit</button><button className="fd-button fd-button-outline" onClick={() => duplicate(item)} aria-label={`Duplicate ${item.title}`}><Copy size={13} />Copy</button><button className="fd-button fd-button-outline" onClick={() => deleteItem("download", item)} aria-label={`Delete ${item.title}`}><Trash2 size={13} /></button></div></td></tr>)}</tbody></table></div> : <div className="fd-state"><strong>No resources published yet</strong><p>Add a resource with a private file and a separate public preview image.</p></div>}
+        <div className="fd-admin-heading-row"><h2>Resources <span className="fd-legal-note">({downloadItems.length})</span></h2><button className="fd-button" onClick={() => openForm("download")}><Plus size={14} />Add resource</button></div>
+        {downloadItems.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Resource</th><th>Category</th><th>Status</th><th>Format</th><th>Downloads</th><th>Actions</th></tr></thead><tbody>{downloadItems.map((item, i) => <tr key={item.id || i}><td><strong>{item.title}</strong><div className="fd-legal-note">{item.downloadCode} · {item.slug}</div></td><td>{item.categoryName || categoryItems.find(c => c.id === item.categoryId)?.name || "—"}</td><td><span className={`fd-status ${item.publicationStatus === "published" ? "approved" : "pending"}`}>{item.publicationStatus || "draft"}</span></td><td>{item.format || "—"}</td><td>{Number(item.downloadCount || 0).toLocaleString()}</td><td><div className="fd-admin-actions">{item.publicationStatus !== "published" && <Link className="fd-button fd-button-outline" href={`/downloads/${encodeURIComponent(item.slug)}?preview=1`}>Preview</Link>}<button className="fd-button fd-button-outline" onClick={() => openForm("download", item)} aria-label={`Edit ${item.title}`}><Edit3 size={13} />Edit</button><button className="fd-button fd-button-outline" onClick={() => duplicate(item)} aria-label={`Duplicate ${item.title}`}><Copy size={13} />Copy</button><button className="fd-button fd-button-outline" onClick={() => deleteItem("download", item)} aria-label={`Delete ${item.title}`}><Trash2 size={13} /></button></div></td></tr>)}</tbody></table></div> : <div className="fd-state"><strong>No resources published yet</strong><p>Add a resource with a private file and a separate public preview image.</p></div>}
       </section>}
 
       {tab === "categories" && <section className="fd-admin-panel">
         <div className="fd-admin-heading-row"><h2>Categories & subcategories</h2><button className="fd-button" onClick={() => openForm("category")}><Plus size={14} />Add category</button></div>
         <div className="fd-admin-panel"><h2>Add a subcategory</h2><form className="fd-form-grid" onSubmit={addSubcategory}><div className="fd-field"><label htmlFor="sub-category">Parent category</label><select className="fd-select" id="sub-category" name="categoryId" required>{categoryItems.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="fd-field"><label htmlFor="sub-name">Subcategory name</label><input className="fd-input" id="sub-name" name="name" required placeholder="For example, Brand kits" /></div><div><button className="fd-button" disabled={busy || !categoryItems.length}><Plus size={14} />Create subcategory</button></div></form></div>
-        {categoryItems.map((cat, i) => <div className="fd-admin-panel" key={cat.id || i}><div className="fd-admin-heading-row"><div><h2>{cat.name}</h2><span className="fd-legal-note">{cat.slug} · {Number(cat.downloadCount || 0).toLocaleString()} resources</span></div><div className="fd-admin-actions"><button className="fd-button fd-button-outline" onClick={() => openForm("category", cat)}><Edit3 size={13} />Edit</button><button className="fd-button fd-button-outline" onClick={() => deleteItem("category", cat)}><Trash2 size={13} />Delete</button></div></div><p className="fd-legal-note">{cat.description}</p><div className="fd-admin-actions">{(cat.subcategories || []).map((sub: any) => <span key={sub.id} className="fd-tag">{sub.name}<button onClick={() => deleteSubcategory(sub)} aria-label={`Delete ${sub.name}`} style={{ border: 0, background: "transparent", cursor: "pointer" }}><X size={11} /></button></span>)}</div></div>)}
+         {categoryItems.map((cat, i) => <div className="fd-admin-panel" key={cat.id || i}><div className="fd-admin-heading-row"><div><h2>{cat.name}</h2><span className="fd-legal-note">{cat.slug} · {Number(cat.downloadCount || 0).toLocaleString()} resources</span></div><div className="fd-admin-actions"><button className="fd-button fd-button-outline" onClick={() => openForm("category", cat)}><Edit3 size={13} />Edit</button><button className="fd-button fd-button-outline" onClick={() => deleteItem("category", cat)}><Trash2 size={13} />Delete</button></div></div><p className="fd-legal-note">{cat.description}</p><div className="fd-admin-actions">{(cat.subcategories || []).map((sub: any) => <span key={sub.id} className="fd-tag">{sub.name}<button onClick={() => editSubcategory(sub, String(cat.id))} aria-label={`Edit ${sub.name}`} style={{ border: 0, background: "transparent", cursor: "pointer" }}><Edit3 size={11} /></button><button onClick={() => deleteSubcategory(sub)} aria-label={`Delete ${sub.name}`} style={{ border: 0, background: "transparent", cursor: "pointer" }}><X size={11} /></button></span>)}</div></div>)}
       </section>}
 
       {tab === "preachers" && <section className="fd-admin-panel">
@@ -232,7 +245,17 @@ export function AdminFreeDownloadsPage() {
 
       {tab === "slides" && <section className="fd-admin-panel"><div className="fd-admin-heading-row"><h2>Homepage hero slides</h2><button className="fd-button" onClick={() => openForm("slide")}><Plus size={14} />Add slide</button></div>{slideItems.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Slide</th><th>Order</th><th>Visibility</th><th>Actions</th></tr></thead><tbody>{slideItems.map((item, i) => <tr key={item.id || i}><td><strong>{item.title}</strong><div className="fd-legal-note">{item.description}</div></td><td>{item.sortOrder ?? "—"}</td><td><span className={`fd-status ${item.isActive ? "approved" : "pending"}`}>{item.isActive ? "Visible" : "Hidden"}</span></td><td><div className="fd-admin-actions"><button className="fd-button fd-button-outline" onClick={() => openForm("slide", item)}><Edit3 size={13} />Edit</button><button className="fd-button fd-button-outline" onClick={() => deleteItem("slide", item)}><Trash2 size={13} /></button></div></td></tr>)}</tbody></table></div> : <div className="fd-state"><strong>No hero slides configured</strong><p>Add a slide to present a current collection on the library home.</p></div>}</section>}
 
-      {tab === "settings" && <section className="fd-admin-panel"><div className="fd-admin-heading-row"><h2><Settings2 size={18} /> Smartlink settings</h2></div><p className="fd-legal-note">Members reach the secure download after the partner redirect has opened and remained available for the short verification window. The URL must use HTTPS, and an empty Smartlink cannot be enabled.</p><form className="fd-form" onSubmit={saveSettings}><div className="fd-field"><label htmlFor="smartlink">HTTPS Smartlink URL</label><input className="fd-input" id="smartlink" type="url" placeholder="https://…" value={settingsDraft.smartlinkUrl ?? settingsData.smartlinkUrl ?? ""} onChange={e => setSettingsDraft(old => ({ ...old, smartlinkUrl: e.target.value }))} /></div><div className="fd-field"><label htmlFor="ad-enabled">Partner redirect requirement</label><select className="fd-select" id="ad-enabled" value={String(settingsDraft.adRequirementEnabled ?? settingsData.adRequirementEnabled ?? false)} onChange={e => setSettingsDraft(old => ({ ...old, adRequirementEnabled: e.target.value }))}><option value="false">Disabled — show secure download immediately</option><option value="true" disabled={!String(settingsDraft.smartlinkUrl ?? settingsData.smartlinkUrl ?? "").trim()}>Enabled — require partner redirect</option></select></div><div><button className="fd-button" disabled={busy}><Save size={14} />Save settings</button></div></form></section>}
+      {tab === "seo" && <section className="fd-admin-panel">
+        <div className="fd-admin-heading-row"><div><h2>Download page SEO settings</h2><p className="fd-legal-note">Each published download has its own search, canonical and social metadata. Draft and preview items are excluded from the public sitemap.</p></div></div>
+        {downloadItems.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Download page</th><th>SEO title & description</th><th>Focus keyword</th><th>Status</th><th>Actions</th></tr></thead><tbody>{downloadItems.map((item, i) => <tr key={item.id || i}>
+          <td><strong>{item.title}</strong><div className="fd-legal-note">/downloads/{item.slug}</div></td>
+          <td>{item.seoTitle || item.title}<div className="fd-legal-note">{item.seoDescription || item.shortDescription || "No description set"}</div></td>
+          <td>{item.focusKeyword || "—"}</td><td><span className={`fd-status ${item.publicationStatus === "published" ? "approved" : "pending"}`}>{item.publicationStatus || "draft"}</span></td>
+          <td><button className="fd-button fd-button-outline" onClick={() => openForm("download", item)}><Edit3 size={13} />Edit SEO</button></td>
+        </tr>)}</tbody></table></div> : <div className="fd-state"><strong>No download pages yet</strong><p>Create a resource to set its title, description, canonical URL and social preview.</p></div>}
+      </section>}
+
+      {tab === "settings" && <section className="fd-admin-panel"><div className="fd-admin-heading-row"><h2><Settings2 size={18} /> Adsterra Smartlink settings</h2></div><p className="fd-legal-note">When enabled, members are sent through the configured HTTPS Smartlink before the secure download is unlocked. A valid Smartlink is required to enable the redirect.</p><form className="fd-form" onSubmit={saveSettings}><div className="fd-field"><label htmlFor="smartlink">HTTPS Smartlink URL</label><input className="fd-input" id="smartlink" type="url" placeholder="https://…" value={settingsDraft.smartlinkUrl ?? settingsData.smartlinkUrl ?? ""} onChange={e => setSettingsDraft(old => ({ ...old, smartlinkUrl: e.target.value }))} /></div><div className="fd-field"><label htmlFor="ad-enabled">Partner redirect requirement</label><select className="fd-select" id="ad-enabled" value={String(settingsDraft.adRequirementEnabled ?? settingsData.adRequirementEnabled ?? false)} onChange={e => setSettingsDraft(old => ({ ...old, adRequirementEnabled: e.target.value }))}><option value="false">Disabled — show secure download immediately</option><option value="true" disabled={!String(settingsDraft.smartlinkUrl ?? settingsData.smartlinkUrl ?? "").trim()}>Enabled — require partner redirect</option></select></div><div><button className="fd-button" disabled={busy}><Save size={14} />Save settings</button></div></form></section>}
 
       {tab === "analytics" && <section className="fd-admin-panel"><div className="fd-admin-heading-row"><h2><BarChart3 size={18} /> Library analytics</h2><label className="fd-legal-note">Date range <select className="fd-select" value={range} onChange={e => setRange(e.target.value)}><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option><option value="365d">Last year</option></select></label></div>{analytics.isLoading ? <LoadingBlock rows={1} /> : analytics.isError ? <ErrorBlock message={(analytics.error as Error)?.message} retry={() => analytics.refetch()} /> : <AnalyticsView data={(analytics.data || {}) as Record<string, any>} />}</section>}
     </div>
@@ -242,14 +265,14 @@ export function AdminFreeDownloadsPage() {
         if (key === "descriptionHtml") return <div className="fd-field" key={key}><label id="field-descriptionHtml-label">Full resource content</label><RichTextEditor value={value} onChange={next => setValue(key, next)} placeholder="Add useful details, links, instructions and media embeds." /></div>;
         if (["systemRequirements", "installationInstructions", "biography", "shortDescription", "description"].includes(key)) return <div className="fd-field" key={key}><label htmlFor={`field-${key}`}>{fieldLabel(key)}</label><textarea className="fd-textarea" id={`field-${key}`} value={value} onChange={e => setValue(key, e.target.value)} /></div>;
         if (["isFeatured", "isActive"].includes(key)) return <div className="fd-field" key={key}><label htmlFor={`field-${key}`}>{fieldLabel(key)}</label><select className="fd-select" id={`field-${key}`} value={value} onChange={e => setValue(key, e.target.value)}><option value="false">No</option><option value="true">Yes</option></select></div>;
-        if (key === "publicationStatus") return <div className="fd-field" key={key}><label htmlFor="field-publicationStatus">Publication status</label><select className="fd-select" id="field-publicationStatus" value={value} onChange={e => setValue(key, e.target.value)}><option value="draft">Save as draft</option><option value="published">Publish</option></select></div>;
+        if (key === "publicationStatus") return <div className="fd-field" key={key}><label htmlFor="field-publicationStatus">Publication status</label><select className="fd-select" id="field-publicationStatus" value={value} onChange={e => setValue(key, e.target.value)}><option value="draft">Save as draft</option><option value="preview">Save as private preview</option><option value="published">Publish</option></select></div>;
         if (key === "categoryId") return <div className="fd-field" key={key}><label htmlFor="field-categoryId">Category</label><select className="fd-select" id="field-categoryId" value={value} onChange={e => setValue(key, e.target.value)}><option value="">Choose a category</option>{categoryItems.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>;
         if (key === "subcategoryId") { const subs = categoryItems.find(c => c.id === values.categoryId)?.subcategories || []; return <div className="fd-field" key={key}><label htmlFor="field-subcategoryId">Subcategory</label><select className="fd-select" id="field-subcategoryId" value={value} onChange={e => setValue(key, e.target.value)}><option value="">None</option>{subs.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>; }
         if (key === "preacherId") return <div className="fd-field" key={key}><label htmlFor="field-preacherId">Contributor</label><select className="fd-select" id="field-preacherId" value={value} onChange={e => setValue(key, e.target.value)}><option value="">None</option>{preacherItems.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}</select></div>;
         if (key === "tags" || key === "features") return <div className="fd-field" key={key}><label htmlFor={`field-${key}`}>{fieldLabel(key)}</label><textarea className="fd-textarea" id={`field-${key}`} value={value} onChange={e => setValue(key, e.target.value)} placeholder={key === "tags" ? "Comma separated" : "One feature per line"} /></div>;
-        return <div className="fd-field" key={key}><label htmlFor={`field-${key}`}>{fieldLabel(key)}</label><input className="fd-input" id={`field-${key}`} type={key === "fileSizeBytes" || key === "sortOrder" ? "number" : key.toLowerCase().includes("url") ? "url" : "text"} value={value} onChange={e => { setValue(key, e.target.value); if (key === "title" && !modal.item) setValue("slug", slugify(e.target.value)); if (key === "name" && !modal.item) setValue("slug", slugify(e.target.value)); if (key === "fullName" && !modal.item) setValue("slug", slugify(e.target.value)); }} /></div>;
+        return <div className="fd-field" key={key}><label htmlFor={`field-${key}`}>{fieldLabel(key)}</label><input className="fd-input" id={`field-${key}`} type={key === "releaseDate" ? "date" : key === "fileSizeBytes" || key === "sortOrder" ? "number" : key.toLowerCase().includes("url") ? "url" : "text"} value={value} onChange={e => { setValue(key, e.target.value); if (key === "title" && !modal.item) setValue("slug", slugify(e.target.value)); if (key === "name" && !modal.item) setValue("slug", slugify(e.target.value)); if (key === "fullName" && !modal.item) setValue("slug", slugify(e.target.value)); }} /></div>;
       })}
-      {modal.kind === "download" && <div className="fd-field"><label htmlFor="private-download">Private downloadable file {modal.item ? "(optional replacement)" : "*"}</label><input id="private-download" className="fd-input" type="file" accept=".pdf,.doc,.docx,.zip,.rar,.mp3,.mp4,.png,.jpg,.jpeg,.webp,.txt,.pptx,.xlsx,.apk,.exe" onChange={e => setPrivateFile(e.target.files?.[0] || null)} /><small>This file is uploaded through the protected download endpoint and is not a public image URL.</small></div>}
+      {modal.kind === "download" && <div className="fd-field"><label htmlFor="private-download">Private downloadable file {modal.item ? "(optional replacement)" : "*"}</label><input id="private-download" className="fd-input" type="file" accept=".pdf,.doc,.docx,.zip,.rar,.mp3,.mp4,.png,.jpg,.jpeg,.webp,.txt,.pptx,.xlsx,.apk,.exe" onChange={e => setPrivateFile(e.target.files?.[0] || null)} /><small>Maximum 500 MB. This file is uploaded through the protected download endpoint and is not a public image URL.</small>{uploadProgress !== null && <div className="fd-upload-progress"><progress max="100" value={uploadProgress} aria-label="Private file upload progress" /><span>{uploadProgress}% uploaded</span></div>}</div>}
       <div className="fd-field"><label htmlFor="public-image"><ImagePlus size={13} /> Public cover image {modal.item ? "(optional replacement)" : ""}</label><input id="public-image" className="fd-input" type="file" accept=".jpg,.jpeg,.png,.webp" onChange={e => setPublicImage(e.target.files?.[0] || null)} /><small>Public cover / profile / slide art is uploaded separately and stored as media.</small></div>
       {modal.kind === "download" && <div className="fd-field"><label htmlFor="gallery-images">Additional gallery images</label><input id="gallery-images" className="fd-input" type="file" accept=".jpg,.jpeg,.png,.webp" multiple onChange={e => setGalleryImages(Array.from(e.target.files || []))} /><small>Existing gallery URLs remain; new images are added when saved.</small></div>}
       <p className="fd-legal-note">Only publish assets you have permission to share. Use the secure file upload for the downloadable resource and the image upload for public media.</p>
@@ -259,7 +282,57 @@ export function AdminFreeDownloadsPage() {
 }
 
 function AnalyticsView({ data }: { data: Record<string, any> }) {
-  const fields = Object.entries(data).filter(([, value]) => typeof value === "number" || typeof value === "string").slice(0, 8);
-  const top = data.topDownloads || data.topResources || data.popularDownloads || [];
-  return <div><div className="fd-admin-cards">{fields.length ? fields.map(([key, value]) => <div className="fd-admin-stat" key={key}><span>{fieldLabel(key)}</span><strong>{typeof value === "number" ? value.toLocaleString() : value}</strong></div>) : <div className="fd-admin-stat"><span>Overview</span><strong>—</strong></div>}</div>{Array.isArray(top) && top.length > 0 && <div className="fd-admin-panel" style={{ marginTop: 18 }}><h2>Most requested resources</h2><div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Resource</th><th>Downloads</th></tr></thead><tbody>{top.map((item: any, i: number) => <tr key={item.id || i}><td>{item.title || item.name}</td><td>{Number(item.downloadCount || item.downloads || 0).toLocaleString()}</td></tr>)}</tbody></table></div></div>}</div>;
+  const [granularity, setGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
+  const statCards = [
+    ["Download clicks", data.actualDownloadClicks],
+    ["Registered users", data.registeredUsers],
+    ["Download requests", data.totalRequests],
+    ["Partner redirects", data.adRedirectClicks],
+    ["Access unlocks", data.completedAdvertisingRequirements],
+    ["Detail views", data.detailViews],
+    ["View-to-download rate", `${Number(data.conversionRate || 0).toFixed(2)}%`],
+  ];
+  const aggregates = new Map<string, { label: string; views: number; redirects: number; unlocks: number; downloads: number; order: string }>();
+  for (const item of Array.isArray(data.daily) ? data.daily : []) {
+    const rawDate = String(item.date || "").slice(0, 10);
+    const date = new Date(`${rawDate}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) continue;
+    let key: string;
+    let label: string;
+    if (granularity === "monthly") {
+      key = rawDate.slice(0, 7);
+      label = key;
+    } else if (granularity === "weekly") {
+      const monday = new Date(date);
+      monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+      key = monday.toISOString().slice(0, 10);
+      label = `Week of ${key}`;
+    } else {
+      key = rawDate;
+      label = key;
+    }
+    const current = aggregates.get(key) || { label, views: 0, redirects: 0, unlocks: 0, downloads: 0, order: key };
+    current.views += Number(item.views || 0);
+    current.redirects += Number(item.redirects || 0);
+    current.unlocks += Number(item.unlocks || 0);
+    current.downloads += Number(item.downloads || 0);
+    aggregates.set(key, current);
+  }
+  const trendRows = Array.from(aggregates.values()).sort((a, b) => b.order.localeCompare(a.order))
+    .slice(0, granularity === "daily" ? 31 : granularity === "weekly" ? 52 : 24);
+  const popularDownloads = Array.isArray(data.popularDownloads) ? data.popularDownloads : [];
+  const popularCategories = Array.isArray(data.popularCategories) ? data.popularCategories : [];
+  const requestStatuses = Array.isArray(data.requestStatuses) ? data.requestStatuses : [];
+  return <div>
+    <div className="fd-admin-cards">{statCards.map(([key, value]) => <div className="fd-admin-stat" key={key}><span>{key}</span><strong>{typeof value === "number" ? value.toLocaleString() : value ?? "—"}</strong></div>)}</div>
+    <div className="fd-admin-panel" style={{ marginTop: 18 }}>
+      <div className="fd-admin-heading-row"><h2>Download activity</h2><label className="fd-legal-note">Group by <select className="fd-select" value={granularity} onChange={e => setGranularity(e.target.value as typeof granularity)}><option value="daily">Day</option><option value="weekly">Week</option><option value="monthly">Month</option></select></label></div>
+      {trendRows.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Period</th><th>Detail views</th><th>Partner redirects</th><th>Unlocks</th><th>Download clicks</th></tr></thead><tbody>{trendRows.map(row => <tr key={row.order}><td>{row.label}</td><td>{row.views.toLocaleString()}</td><td>{row.redirects.toLocaleString()}</td><td>{row.unlocks.toLocaleString()}</td><td>{row.downloads.toLocaleString()}</td></tr>)}</tbody></table></div> : <div className="fd-state"><strong>No activity in this date range</strong><p>Download views and actions will appear here.</p></div>}
+    </div>
+    <div className="fd-admin-cards" style={{ marginTop: 18, gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))" }}>
+      <div className="fd-admin-panel"><h2>Most downloaded</h2>{popularDownloads.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Resource</th><th>Clicks</th></tr></thead><tbody>{popularDownloads.map((item: any, index: number) => <tr key={item.id || index}><td>{item.title}</td><td>{Number(item.downloadCount || 0).toLocaleString()}</td></tr>)}</tbody></table></div> : <p className="fd-legal-note">No downloads have been recorded yet.</p>}</div>
+      <div className="fd-admin-panel"><h2>Popular categories</h2>{popularCategories.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Category</th><th>Clicks</th></tr></thead><tbody>{popularCategories.map((item: any, index: number) => <tr key={`${item.category}-${index}`}><td>{item.category}</td><td>{Number(item.downloads || 0).toLocaleString()}</td></tr>)}</tbody></table></div> : <p className="fd-legal-note">No category activity in this date range.</p>}</div>
+      <div className="fd-admin-panel"><h2>Request status</h2>{requestStatuses.length ? <div className="fd-table-wrap"><table className="fd-table"><thead><tr><th>Status</th><th>Requests</th></tr></thead><tbody>{requestStatuses.map((item: any, index: number) => <tr key={`${item.status}-${index}`}><td>{item.status}</td><td>{Number(item.total || 0).toLocaleString()}</td></tr>)}</tbody></table></div> : <p className="fd-legal-note">No requests in this date range.</p>}</div>
+    </div>
+  </div>;
 }

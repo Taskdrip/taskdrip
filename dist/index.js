@@ -3558,7 +3558,7 @@ var init_analytics_injector = __esm({
 });
 
 // server/lead-service.ts
-import { eq as eq9, inArray as inArray6 } from "drizzle-orm";
+import { eq as eq10, inArray as inArray6 } from "drizzle-orm";
 function strHash(s) {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
@@ -3715,7 +3715,7 @@ async function persistLeads(items) {
   for (const it of items) {
     if (!it.name) continue;
     if (it.externalId && it.source) {
-      const existing = await db.select().from(leads).where(eq9(leads.externalId, it.externalId)).limit(1);
+      const existing = await db.select().from(leads).where(eq10(leads.externalId, it.externalId)).limit(1);
       if (existing.length) {
         saved.push(existing[0]);
         continue;
@@ -3822,7 +3822,7 @@ async function bulkSms(opts) {
       sentBy: opts.sentBy,
       campaignId: opts.campaignId
     });
-    if (!out.error) await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq9(leads.id, lead.id));
+    if (!out.error) await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq10(leads.id, lead.id));
     results.push({ leadId: lead.id, ...out });
   }
   return results;
@@ -3902,7 +3902,7 @@ var seed_breedskool_courses_exports = {};
 __export(seed_breedskool_courses_exports, {
   seedBreedskoolCourses: () => seedBreedskoolCourses
 });
-import { eq as eq14, sql as sql9 } from "drizzle-orm";
+import { eq as eq15, sql as sql9 } from "drizzle-orm";
 async function seedBreedskoolCourses(adminId) {
   let created = 0;
   let linked = 0;
@@ -3925,7 +3925,7 @@ async function seedBreedskoolCourses(adminId) {
             whatYouLearn: course.whatYouLearn,
             requirements: course.requirements,
             syllabus: course.syllabus
-          }).where(eq14(courses.id, courseId));
+          }).where(eq15(courses.id, courseId));
         }
       } else {
         const [newCourse] = await db.insert(courses).values({
@@ -3949,7 +3949,7 @@ async function seedBreedskoolCourses(adminId) {
         courseId = newCourse.id;
         created++;
       }
-      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq14(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq15(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
           await db.insert(courseLessons).values({
@@ -3972,7 +3972,7 @@ async function seedBreedskoolCourses(adminId) {
               content: lesson.content,
               isPreview: lesson.isPreview,
               order: lesson.order
-            }).where(eq14(courseLessons.id, existingLesson.id));
+            }).where(eq15(courseLessons.id, existingLesson.id));
           } else {
             await db.insert(courseLessons).values({
               courseId,
@@ -3987,7 +3987,7 @@ async function seedBreedskoolCourses(adminId) {
           sql9`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
       }
-      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq14(breedskoolCoursePricing.courseKey, course.courseKey));
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq15(breedskoolCoursePricing.courseKey, course.courseKey));
       linked++;
     } catch (e) {
       console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
@@ -4349,11 +4349,11 @@ __export(seed_breedskool_exports, {
   seedBreedskoolPaymentSettings: () => seedBreedskoolPaymentSettings,
   seedBreedskoolPricing: () => seedBreedskoolPricing
 });
-import { eq as eq15, inArray as inArray10, and as and11 } from "drizzle-orm";
+import { eq as eq16, inArray as inArray10, and as and12 } from "drizzle-orm";
 async function seedBreedskoolPaymentSettings() {
   for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
     try {
-      const existing = await db.select().from(appSettings).where(eq15(appSettings.key, key)).limit(1);
+      const existing = await db.select().from(appSettings).where(eq16(appSettings.key, key)).limit(1);
       if (existing.length === 0) {
         await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
       }
@@ -4367,7 +4367,7 @@ async function seedBreedskoolPricing() {
   let skipped = 0;
   for (const course of BREEDSKOOL_COURSES) {
     try {
-      const existing = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
+      const existing = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(breedskoolCoursePricing).values({
           ...course,
@@ -4390,7 +4390,7 @@ async function seedBreedskoolPricing() {
           isActive: course.isActive,
           acceptedPayments: course.acceptedPayments,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq15(breedskoolCoursePricing.courseKey, course.courseKey));
+        }).where(eq16(breedskoolCoursePricing.courseKey, course.courseKey));
         skipped++;
       }
     } catch (e) {
@@ -4406,10 +4406,10 @@ async function fixVerifiedBreedskoolEnrollments() {
     for (const reg of verified) {
       let resolvedUserId = reg.userId;
       if (!resolvedUserId && reg.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq15(users.email, reg.email.toLowerCase().trim())).limit(1);
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq16(users.email, reg.email.toLowerCase().trim())).limit(1);
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq15(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq16(breedskoolRegistrations.id, reg.id));
         }
       }
       if (!resolvedUserId) {
@@ -4418,20 +4418,20 @@ async function fixVerifiedBreedskoolEnrollments() {
       }
       let courseId = reg.linkedCourseId;
       if (!courseId && reg.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq15(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
         courseId = pricing?.linkedCourseId || null;
       }
       if (!courseId) {
         noLink++;
         continue;
       }
-      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and11(
-        eq15(courseEnrollments.courseId, courseId),
-        eq15(courseEnrollments.userId, reg.userId)
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and12(
+        eq16(courseEnrollments.courseId, courseId),
+        eq16(courseEnrollments.userId, reg.userId)
       )).limit(1);
       if (existing) {
         if (existing.status !== "active") {
-          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq15(courseEnrollments.id, existing.id));
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq16(courseEnrollments.id, existing.id));
           fixed++;
         } else {
           skipped++;
@@ -4448,7 +4448,7 @@ async function fixVerifiedBreedskoolEnrollments() {
         fixed++;
       }
       if (!reg.linkedCourseId && courseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq15(breedskoolRegistrations.id, reg.id));
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq16(breedskoolRegistrations.id, reg.id));
       }
     }
   } catch (e) {
@@ -5125,7 +5125,7 @@ __export(influencer_crm_service_exports, {
   getTierInfo: () => getTierInfo,
   sendInfluencerOutreach: () => sendInfluencerOutreach
 });
-import { eq as eq16, inArray as inArray11 } from "drizzle-orm";
+import { eq as eq17, inArray as inArray11 } from "drizzle-orm";
 function classifyTier(followers) {
   if (!followers || followers <= 0) return "unknown";
   for (const t of TIERS) {
@@ -5334,7 +5334,7 @@ async function crawlInfluencersAI(opts) {
   }
   if (includeInternal) {
     const { users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-    const internal = await db.select().from(users3).where(eq16(users3.userType, "influencer")).limit(100);
+    const internal = await db.select().from(users3).where(eq17(users3.userType, "influencer")).limit(100);
     if (internal.length > 0) sourcesUsed.push("internal");
     for (const u of internal) {
       const followers = u.totalFollowers || 0;
@@ -5379,7 +5379,7 @@ function dedupeByExternalId(items) {
   });
 }
 async function getInfluencerTierStats() {
-  const rows = await db.select().from(leads).where(eq16(leads.kind, "influencer"));
+  const rows = await db.select().from(leads).where(eq17(leads.kind, "influencer"));
   const tierCounts = {};
   const tierContacted = {};
   for (const r of rows) {
@@ -5428,7 +5428,7 @@ async function sendInfluencerOutreach(opts) {
     sentBy: sentBy || null
   });
   if (status === "sent" || status === "logged") {
-    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq16(leads.id, lead.id));
+    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id));
   }
   return { success: status !== "failed", channel: "email", error };
 }
@@ -5482,25 +5482,25 @@ __export(vite_config_exports, {
 });
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path4 from "path";
+import path5 from "path";
 import { fileURLToPath } from "url";
 var __dirname, vite_config_default;
 var init_vite_config = __esm({
   "vite.config.ts"() {
     "use strict";
-    __dirname = path4.dirname(fileURLToPath(import.meta.url));
+    __dirname = path5.dirname(fileURLToPath(import.meta.url));
     vite_config_default = defineConfig({
       plugins: [react()],
       resolve: {
         alias: {
-          "@": path4.resolve(__dirname, "client", "src"),
-          "@shared": path4.resolve(__dirname, "shared"),
-          "@assets": path4.resolve(__dirname, "attached_assets")
+          "@": path5.resolve(__dirname, "client", "src"),
+          "@shared": path5.resolve(__dirname, "shared"),
+          "@assets": path5.resolve(__dirname, "attached_assets")
         }
       },
-      root: path4.resolve(__dirname, "client"),
+      root: path5.resolve(__dirname, "client"),
       build: {
-        outDir: path4.resolve(__dirname, "dist/public"),
+        outDir: path5.resolve(__dirname, "dist/public"),
         emptyOutDir: true,
         chunkSizeWarningLimit: 5e3,
         rollupOptions: {
@@ -5524,7 +5524,7 @@ var init_vite_config = __esm({
 
 // server/index.ts
 import express3 from "express";
-import path6 from "path";
+import path7 from "path";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { createServer as createServer2 } from "http";
@@ -8385,8 +8385,8 @@ function registerShortenerRoutes(app2) {
         }
       }
       bySourcePage[sourcePage] = (bySourcePage[sourcePage] || 0) + 1;
-      const day = c.clickedAt ? new Date(c.clickedAt).toISOString().slice(0, 10) : "unknown";
-      byDay[day] = (byDay[day] || 0) + 1;
+      const day2 = c.clickedAt ? new Date(c.clickedAt).toISOString().slice(0, 10) : "unknown";
+      byDay[day2] = (byDay[day2] || 0) + 1;
     }
     const toSorted = (m) => Object.entries(m).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     const days = Object.entries(byDay).map(([date, count5]) => ({ date, count: count5 })).sort((a, b) => a.date.localeCompare(b.date));
@@ -8639,8 +8639,8 @@ function validateSettings(input, previous) {
   };
 }
 function pagePath(value) {
-  const path7 = typeof value === "string" ? value : "/";
-  return path7.startsWith("/") ? path7.slice(0, 512) : "/";
+  const path8 = typeof value === "string" ? value : "/";
+  return path8.startsWith("/") ? path8.slice(0, 512) : "/";
 }
 function registerAdsterraRoutes(app2) {
   app2.get("/api/adsterra/public-settings", async (_req, res) => {
@@ -8887,8 +8887,8 @@ async function fetchGoogleDailyTrends(region = "US") {
     const json = JSON.parse(raw);
     const days = json?.default?.trendingSearchesDays || [];
     const items = [];
-    for (const day of days) {
-      for (const t of day.trendingSearches || []) {
+    for (const day2 of days) {
+      for (const t of day2.trendingSearches || []) {
         items.push({
           topic: t.title?.query,
           volume: parseInt(String(t.formattedTraffic || "0").replace(/[^0-9]/g, "")) || 0,
@@ -10053,6 +10053,216 @@ var TECH_ARTICLES = [
 `
   }
 ];
+
+// server/adsterra-direct-link-article.ts
+var ADSTERRA_DIRECT_LINK_ARTICLE = {
+  title: "Adsterra Direct Link: A Practical Setup Guide",
+  slug: "adsterra-direct-link-setup-guide",
+  excerpt: "A practical, risk-aware guide to Adsterra Smartlinks: understand how direct links work, build a useful Blogger page, attract compliant traffic, and measure results without income promises.",
+  category: "monetization",
+  tags: [
+    "Adsterra",
+    "Smartlink",
+    "direct link advertising",
+    "Blogger",
+    "publisher monetization",
+    "traffic quality"
+  ],
+  featuredImage: "/uploads/blog/adsterra-smartlink-social-traffic.jpg",
+  metaDescription: "Learn how Adsterra Direct Links work, set up a transparent Blogger landing page, measure traffic, and avoid misleading claims and invalid clicks.",
+  seoKeywords: "Adsterra direct link, Adsterra Smartlink tutorial, Adsterra publisher guide, monetize social media traffic, Blogger landing page monetization, direct link advertising",
+  readingTime: 13,
+  viewCount: 0,
+  likesCount: 0,
+  commentsCount: 0,
+  content: `
+<p><strong>Disclosure:</strong> The Adsterra signup link in this article is a referral link. If you register through it, Taskdrip may receive a referral benefit. That relationship does not guarantee approval or earnings, and it does not change the setup and policy cautions below.</p>
+
+<p>An Adsterra Direct Link, also called a Smartlink, is a URL that takes a visitor to an advertising offer after they choose to click it. That makes it technically simple to place, but it does not make the business simple: revenue depends on real people, relevant traffic, advertiser demand, and actions that the network actually records. No link, calculator, or tutorial can promise a particular income.</p>
+
+<p>This guide explains how to build a small, transparent publishing funnel around a Smartlink, including a Blogger landing page, responsible traffic sources, and practical tracking. It also corrects a risky shortcut in many old walkthroughs: a generic page that disguises an ad link as a download, software tool, or guaranteed money-making offer can mislead visitors and put an account or paid-ad campaign at risk.</p>
+
+<nav aria-label="Table of contents" style="border:1px solid #dbe3ef;border-radius:12px;padding:1rem 1.25rem;margin:1.5rem 0;background:#f8fafc;">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#what-is-a-direct-link">What an Adsterra Direct Link does</a></li>
+    <li><a href="#before-you-start">Decide what you are offering first</a></li>
+    <li><a href="#create-smartlink">Create and check your Smartlink</a></li>
+    <li><a href="#blogger-page">Build a useful Blogger landing page</a></li>
+    <li><a href="#place-the-link">Place the link clearly</a></li>
+    <li><a href="#traffic-safely">Bring in traffic without risking your account</a></li>
+    <li><a href="#measure-results">Measure results and costs</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#faq">Frequently asked questions</a></li>
+  </ol>
+</nav>
+
+<h2 id="what-is-a-direct-link">What an Adsterra Direct Link does</h2>
+
+<p>Adsterra describes its Direct Link as a URL-based publisher ad format. Instead of displaying a fixed banner on your page, the link routes a visitor to an advertising landing page after a click. The offer shown can vary. That is why the same Smartlink may send different visitors to different destinations; publishers should not promise a particular product, price, or result unless they can verify that it will appear for every visitor.</p>
+
+<p>A Smartlink is not the same thing as your Adsterra referral link. The Smartlink is an ad destination you get inside an approved publisher account. A referral link invites another publisher to sign up. This article uses the latter only for its signup recommendation. Do not put a publisher referral URL behind a button that says \u201Cview offers,\u201D and do not present a rotating advertising destination as if it were a file, a free app, or a service you operate.</p>
+
+<p>It is also different from owning an affiliate offer. With a conventional affiliate link, you normally know which merchant and product you are recommending. With a Smartlink, the ad network selects a destination from its available inventory. That flexibility can be useful for a publisher testing broad audiences, but it makes clear labeling and audience trust more important, not less.</p>
+
+<figure>
+  <img src="/uploads/blog/adsterra-blogger-landing-page.jpg" alt="Laptop on a desk representing the Blogger page a publisher should prepare before adding a monetized link" width="1200" height="630" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:12px;" />
+  <figcaption>Photo by <a href="https://unsplash.com/photos/a-laptop-on-a-desk-r9v4Sc0pHMU" target="_blank" rel="noopener noreferrer">Polina Kuzovkova on Unsplash</a>. Used under the <a href="https://unsplash.com/license" target="_blank" rel="noopener noreferrer">Unsplash License</a>.</figcaption>
+</figure>
+
+<h2 id="before-you-start">Decide what you are offering first</h2>
+
+<p>Start with the reader, not the payout estimate. Write down the audience you can genuinely reach, what they came to learn or do, and what useful information you can provide before you place any advertising link. A short guide for people comparing budget phones, for example, should actually help them compare devices. A generic \u201Ctap here to make money\u201D page gives visitors little reason to trust the site or return.</p>
+
+<p>If you are developing a broader publishing plan, Taskdrip\u2019s <a href="/blog/creator-economy-2026-trends">overview of creator-economy trends</a> is a useful companion read on building a durable audience rather than relying on a single monetization link.</p>
+
+<p>Think about the context and the destination together. A link that leads to a rotating offer should be described in plain language, such as \u201CSee sponsored offers\u201D or \u201CContinue to partner offers.\u201D Avoid buttons like \u201CDownload your free software,\u201D \u201CGet the guaranteed payout,\u201D or \u201CUnlock the tool\u201D unless that is precisely what the destination provides. Do not use a fake status checker, a copied brand logo, a fake warning, or an invented download to create clicks.</p>
+
+<p>Choose the audience and content category before creating the link. Adsterra offers different Smartlink settings, including mainstream and adult categories. Select only a category that fits your site, intended audience, the laws where visitors live, and the network\u2019s current terms. Do not use adult destinations on a general-audience page or direct them to minors. If the offers would be out of place beside your content, choose another monetization method.</p>
+
+<p>One useful test is to ask a person who has not seen your page to describe what they expect after clicking the button. If their answer is different from the likely advertising experience, rewrite the label and explanation before publishing.</p>
+
+<h2 id="create-smartlink">Create and check your Smartlink</h2>
+
+<ol>
+  <li><strong>Open the official publisher site.</strong> Start from <a href="https://adsterra.com/publishers/" target="_blank" rel="noopener noreferrer">Adsterra\u2019s publisher information</a> and review the current requirements for your location and traffic sources. The signup invitation in this guide is a referral link: <a href="https://beta.publishers.adsterra.com/referral/Z6Uk6tKDhX" target="_blank" rel="sponsored nofollow noopener noreferrer">visit Adsterra through the disclosed referral link</a>.</li>
+  <li><strong>Register accurately and secure the account.</strong> Use your own valid details, confirm your email if requested, and store the password safely. Never open extra accounts to evade a review or refer an account that you control to yourself.</li>
+  <li><strong>Open the Smartlinks or Direct Links area.</strong> Create a link for the intended site, app, or approved traffic source. Give it an internal label that identifies the page and campaign so that you can distinguish tests later.</li>
+  <li><strong>Pick the right category and settings.</strong> Choose mainstream or adult only when it matches the content and permitted audience. Check whether the network needs to review or activate the link before use.</li>
+  <li><strong>Wait for an active status.</strong> Do not assume a pending link is ready. Copy the link only after its dashboard status allows use, then keep the original intact. Avoid adding redirect layers or changing parameters unless Adsterra says that method is supported.</li>
+  <li><strong>Record the setup.</strong> Note the Smartlink label, the page where it will appear, the date it was approved, and the traffic source you plan to test. This gives you a clean baseline if a link later stops working.</li>
+</ol>
+
+<p>The linked walkthroughs supplied with this brief are embedded below for reference. Interfaces and approval times can change, so treat the current publisher dashboard and terms as authoritative rather than copying an old click-by-click screen recording.</p>
+
+<div style="position:relative;width:100%;padding-top:56.25%;margin:1rem 0 1.5rem;overflow:hidden;border-radius:12px;background:#111827;">
+  <iframe src="https://www.youtube-nocookie.com/embed/L3QqEnoVkQQ" title="Adsterra Direct Link and publisher setup walkthrough" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe>
+</div>
+
+<details style="margin:1rem 0 1.5rem;">
+  <summary><strong>Open the two additional supplied video references</strong></summary>
+  <div style="position:relative;width:100%;padding-top:56.25%;margin:1rem 0;overflow:hidden;border-radius:12px;background:#111827;">
+    <iframe src="https://www.youtube-nocookie.com/embed/LXor1M4GjQ8" title="Additional supplied Adsterra traffic walkthrough" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe>
+  </div>
+  <div style="position:relative;width:100%;padding-top:56.25%;margin:1rem 0;overflow:hidden;border-radius:12px;background:#111827;">
+    <iframe src="https://www.youtube-nocookie.com/embed/JseMBiUpONE" title="Additional supplied Adsterra campaign walkthrough" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe>
+  </div>
+</details>
+
+<h2 id="blogger-page">Build a useful Blogger landing page</h2>
+
+<p>Blogger can host a simple information page, but it should be a real page\u2014not a blank doorway whose only purpose is forwarding visitors to ads. A clean theme, readable copy, mobile layout, and working navigation help people understand what the site is and decide whether an offer is relevant.</p>
+
+<ol>
+  <li><strong>Create a blog and choose an available address.</strong> Sign in at <a href="https://www.blogger.com/" target="_blank" rel="noopener noreferrer">Blogger</a>, create the blog, and choose a name that accurately describes its subject. Use a standard responsive theme as a starting point.</li>
+  <li><strong>Publish useful original content.</strong> Write an explanation, comparison, checklist, or resource that answers the searcher\u2019s question before asking them to leave the page. Include accurate claims, a contact method, and a clear site identity.</li>
+  <li><strong>Add the basic policy pages.</strong> Publish a privacy policy that explains the data collection and sharing taking place on the site, a contact page, and a visible advertising/referral disclosure. Adsterra\u2019s <a href="https://adsterra.com/publishers-terms/" target="_blank" rel="noopener noreferrer">publisher terms</a> require a privacy-policy section and call for cookie consent when the site places and reads cookies to collect information. Check the privacy rules that apply in the countries you target.</li>
+  <li><strong>Back up before editing the theme.</strong> Blogger\u2019s current Theme tools let you choose and customize a theme; the official help pages also explain downloading a backup and editing theme HTML. If you edit the template, save the original first, preview the result, and keep the template\u2019s required XML structure intact.</li>
+  <li><strong>Do not follow the \u201Cswitch to classic, select all, delete everything\u201D shortcut.</strong> That instruction can erase a working theme, and a normal HTML landing page is not automatically a valid Blogger theme. Use the page or post editor\u2019s HTML view for page content. Change the full theme only when you have a valid Blogger template and a restorable backup.</li>
+  <li><strong>Test on a phone.</strong> Confirm that the page loads, text is readable, the menu works, images fit the screen, and the advertising link is visible without covering or interrupting the content.</li>
+</ol>
+
+<p>For official interface guidance, see <a href="https://support.google.com/blogger/answer/1227173?hl=en" target="_blank" rel="noopener noreferrer">Blogger\u2019s theme help</a> and its <a href="https://www.blogger.com/go/templates" target="_blank" rel="noopener noreferrer">template HTML editor instructions</a>. Google may revise labels and menus, so follow the interface currently shown in your account.</p>
+
+<figure>
+  <img src="/uploads/blog/adsterra-traffic-analytics.jpg" alt="Creator reviewing a dashboard on a laptop before judging whether a traffic campaign is profitable" width="1200" height="630" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:12px;" />
+  <figcaption>Photo by <a href="https://unsplash.com/photos/a-person-typing-on-a-laptop-computer-on-a-desk-J_x-Dd7oXfo" target="_blank" rel="noopener noreferrer">ConvertKit on Unsplash</a>. Used under the <a href="https://unsplash.com/license" target="_blank" rel="noopener noreferrer">Unsplash License</a>.</figcaption>
+</figure>
+
+<h2 id="place-the-link">Place the link clearly</h2>
+
+<p>Put the Smartlink where a reader can understand why it is there: after a related explanation, inside a clearly marked sponsored-offer section, or beside a short note explaining that the click opens an advertiser\u2019s page. Keep it separate from site navigation and ordinary editorial links. Make the link text describe the next step instead of manufacturing urgency.</p>
+
+<p>Do not make every image, navigation item, or paragraph click through to the same ad URL. Visitors should be able to use the site normally, select text, open external references, and go back without being surprised. Do not trigger the Smartlink automatically on page load, make it open behind the page, or tell visitors to click ads to \u201Csupport\u201D you. A visitor must choose the advertising link for themselves.</p>
+
+<p>If you recommend Adsterra as a publisher option, disclose the referral relationship close to that recommendation. The U.S. Federal Trade Commission says a material connection that readers would not reasonably expect should be disclosed clearly and conspicuously. Rules differ by country, so publishers serving readers in the UK, Canada, Australia, Nigeria, and elsewhere should check the requirements that apply to their own audience. A short, plain-language disclosure above the link is more useful than a vague note hidden in a footer.</p>
+
+<h2 id="traffic-safely">Bring in traffic without risking your account</h2>
+
+<p>There is no sustainable \u201Cfree traffic\u201D trick. Organic search takes work, social reach fluctuates, and paid visitors cost money. Choose a source that allows the destination and monetization method, then send people who are likely to value the page\u2014not random clicks purchased from a traffic seller.</p>
+
+<ul>
+  <li><strong>Search traffic:</strong> answer a specific question with original, useful content, descriptive headings, and a page title that matches the promise. Avoid pages written only to push a click.</li>
+  <li><strong>Social traffic:</strong> share a post in the format and communities where the audience expects it. Follow each platform\u2019s current rules for affiliate links, advertising, and destination pages. Do not spam groups, comments, direct messages, or unrelated hashtags. Taskdrip\u2019s <a href="/blog/personal-brand-instagram-90-days">step-by-step guide to building an Instagram personal brand</a> covers audience development separately from ad-link placement.</li>
+  <li><strong>Classifieds and forums:</strong> use them only if commercial links are allowed and the post genuinely answers the community\u2019s question. Follow the site\u2019s disclosure rules and do not repost the same link indiscriminately.</li>
+  <li><strong>Paid ads:</strong> set a small test budget that you can afford to lose, and review the ad platform\u2019s destination rules before launch. Google Ads explicitly restricts deceptive destinations and pages built primarily to send visitors elsewhere or show ads; a thin bridge page can therefore be a poor or disallowed destination. Do not assume a social post that remains online is automatically eligible for a paid campaign.</li>
+</ul>
+
+<p>Most importantly, never buy bots, use click exchanges, ask people to click ads for a reward, or generate your own clicks to test earnings. Adsterra\u2019s current publisher terms prohibit artificial or fraudulent inflation of impressions, clicks, and actions, including incentives and bot traffic; they also prohibit spam. A suspected breach can lead to suspension and loss of an account balance. Read the <a href="https://adsterra.com/publishers-terms/" target="_blank" rel="noopener noreferrer">current publisher terms</a> before sending traffic.</p>
+
+<p>If you plan to buy Google Ads, review its <a href="https://support.google.com/adspolicy/answer/6008942?hl=en" target="_blank" rel="noopener noreferrer">advertising policies</a> and build a destination that gives visitors substantial, relevant value. Do not use a landing page that pretends to be a product while functioning only as a pass-through to an ad. For any other paid channel, read that channel\u2019s latest destination and monetization policies as well.</p>
+
+<h2 id="measure-results">Measure results and costs</h2>
+
+<p>Track a small test in a spreadsheet or analytics tool. Record the date, source, campaign, landing-page sessions, voluntary outbound clicks, network-reported impressions or actions, recorded revenue, and paid acquisition cost. Use the network\u2019s dashboard as the source for its counted events and your traffic analytics as the source for visits. Those totals may not match: not every visit becomes an ad click, and not every click becomes a billable action.</p>
+
+<p>Use your own observed data rather than a public earnings calculator. A simple break-even check is:</p>
+
+<blockquote><strong>Net test result = recorded publisher earnings \u2212 traffic spend \u2212 other direct campaign costs</strong></blockquote>
+
+<p>For example, if a paid test costs more than the revenue the network records for that same test period, the campaign has not broken even. That statement is arithmetic, not an earnings forecast. A bigger budget does not fix an unprofitable source; it can increase the loss. Separate sources and audiences so a strong result from one channel does not hide a weak one.</p>
+
+<p>Keep enough context to explain changes: country or region where permitted, device category, page version, and campaign dates. Do not collect sensitive personal data just to improve a Smartlink. If you add tracking parameters, confirm they are supported and do not alter the network URL in a way that breaks attribution. Pause a source when traffic quality looks suspicious, the user experience is poor, or costs continue to exceed recorded income.</p>
+
+<h2 id="troubleshooting">Troubleshooting common problems</h2>
+
+<ul>
+  <li><strong>The link is pending:</strong> wait for the dashboard review to finish. Do not substitute a different link or send paid traffic to a link that is not active.</li>
+  <li><strong>Clicks appear but revenue does not:</strong> allow for reporting delays, check the reporting time zone and the network\u2019s event definitions, and compare a longer period. A click is not a promise of a conversion or payout.</li>
+  <li><strong>The page receives visits but few people click:</strong> check whether the page answers the visitor\u2019s question, whether the offer is relevant, and whether the link label is clear. Do not disguise the link or add disruptive pop-ups to force interaction.</li>
+  <li><strong>Blogger formatting breaks:</strong> restore the saved theme backup if a template edit caused the problem. Keep page content changes in the page editor rather than pasting a complete theme into a content field.</li>
+  <li><strong>A traffic source is rejected or quality drops:</strong> stop that source, save the campaign details, and ask the network or platform for clarification. Never try to evade a review with cloaking, redirects, or alternate accounts.</li>
+</ul>
+
+<h2 id="faq">Frequently asked questions</h2>
+
+<details>
+  <summary><strong>What is an Adsterra Direct Link?</strong></summary>
+  <p>It is a URL-based publisher ad format, also called a Smartlink, that routes a visitor to an advertising destination after the visitor clicks. The offer can vary, so describe it as advertising or sponsored offers rather than promising a specific product.</p>
+</details>
+
+<details>
+  <summary><strong>Can I use an Adsterra Smartlink without a website?</strong></summary>
+  <p>Adsterra describes Smartlinks as usable with website and social traffic, but each social or advertising platform has its own rules about external links and monetization. Check the rules for the exact source and format before sharing. A website is useful when it adds genuine context and value; it should not be a disguised redirect.</p>
+</details>
+
+<details>
+  <summary><strong>Can I use Adsterra on Blogger?</strong></summary>
+  <p>Blogger can host a page that contains an external link, but you remain responsible for the page, disclosures, privacy notices, and any applicable platform rules. Use the page editor for normal content. Back up your theme before making template-level HTML changes.</p>
+</details>
+
+<details>
+  <summary><strong>How much can a Smartlink earn?</strong></summary>
+  <p>There is no fixed rate or guaranteed amount. Results depend on factors such as real traffic volume and quality, visitor location, device, offer availability, and whether advertisers record a qualifying action. Use your own dashboard data and subtract traffic and operating costs.</p>
+</details>
+
+<details>
+  <summary><strong>Can I buy traffic for an Adsterra link?</strong></summary>
+  <p>Only use a paid source when both the traffic provider and Adsterra permit the traffic, and the destination complies with the ad platform\u2019s policies. Start with a controlled budget and a substantive landing page. Do not use bots, click exchanges, incentivized ad clicks, or misleading bridge pages.</p>
+</details>
+
+<details>
+  <summary><strong>Should I choose mainstream or adult offers?</strong></summary>
+  <p>Choose only a category that matches your content, visitor expectations, audience age, local law, and the publisher network\u2019s rules. Do not send adult offers to minors or place them on a general-audience page without appropriate audience controls and disclosures.</p>
+</details>
+
+<h2>Sources and further reading</h2>
+
+<ul>
+  <li><a href="https://adsterra.com/blog/guide-for-working-with-direct-links/" target="_blank" rel="noopener noreferrer">Adsterra: Direct Link monetization guide</a></li>
+  <li><a href="https://adsterra.com/publishers-terms/" target="_blank" rel="noopener noreferrer">Adsterra: Publisher terms</a></li>
+  <li><a href="https://support.google.com/adspolicy/answer/6008942?hl=en" target="_blank" rel="noopener noreferrer">Google Ads: Advertising policies</a></li>
+  <li><a href="https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking" target="_blank" rel="noopener noreferrer">U.S. Federal Trade Commission: Endorsement disclosures</a></li>
+  <li><a href="https://support.google.com/blogger/answer/1227173?hl=en" target="_blank" rel="noopener noreferrer">Blogger Help: Themes and customization</a></li>
+</ul>
+
+<h2>Make the next step a measured one</h2>
+
+<p>Adsterra Direct Links are easy to create; building a trustworthy audience and a compliant, useful page takes more care. Start with one clear topic, publish something worth reading, disclose the advertising relationship, use only an approved link, and test one permitted traffic source at a time. Treat earnings as an outcome to measure\u2014not a claim to promise.</p>
+
+<p>If you decide to open a publisher account, you can use the <a href="https://beta.publishers.adsterra.com/referral/Z6Uk6tKDhX" target="_blank" rel="sponsored nofollow noopener noreferrer">Adsterra referral link disclosed at the start of this article</a>. Review the terms yourself before signing up, and only promote a link you can explain honestly to your audience.</p>
+`
+};
 
 // server/blog-seed-data.ts
 var DEFAULT_BLOGS = [
@@ -11646,7 +11856,8 @@ var DEFAULT_BLOGS = [
 <p>Questions about the referral program? Reach out on Telegram at <a href="https://t.me/taskdrip" target="_blank" rel="noopener noreferrer">t.me/taskdrip</a> or check the <a href="/documentation">documentation</a> for a full breakdown of how commissions are calculated and paid out.</p>
 `
   },
-  ...TECH_ARTICLES
+  ...TECH_ARTICLES,
+  ADSTERRA_DIRECT_LINK_ARTICLE
 ];
 
 // server/admin-demo-routes.ts
@@ -12293,7 +12504,358 @@ function registerAdminDemoRoutes(app2, isAuthenticated2) {
 // server/seo-intelligence-routes.ts
 init_db();
 init_schema();
-import { eq as eq8, desc as desc7, count as count2 } from "drizzle-orm";
+import { randomBytes as randomBytes2 } from "crypto";
+import { eq as eq9, desc as desc7, count as count2 } from "drizzle-orm";
+
+// server/public-seo-routes.ts
+init_schema();
+init_db();
+import { and as and6, eq as eq8, isNull, or } from "drizzle-orm";
+var SITE_ORIGIN = "https://taskdrip.online";
+var STATIC_SITEMAP_PATHS = [
+  { path: "", title: "Taskdrip", priority: "1.0", changefreq: "daily" },
+  { path: "/tasks", title: "Tasks and campaigns", priority: "0.9", changefreq: "daily" },
+  { path: "/p2p-hub", title: "P2P marketplace", priority: "0.9", changefreq: "daily" },
+  { path: "/shop", title: "Shop", priority: "0.9", changefreq: "daily" },
+  { path: "/downloads", title: "Free Downloads", priority: "0.9", changefreq: "daily" },
+  { path: "/influencers", title: "Creator directory", priority: "0.9", changefreq: "daily" },
+  { path: "/brands", title: "Brands", priority: "0.8", changefreq: "daily" },
+  { path: "/blog", title: "Blog", priority: "0.8", changefreq: "daily" },
+  { path: "/feed", title: "Creator feed", priority: "0.6", changefreq: "daily" },
+  { path: "/realtrainai-ai-training-guide", title: "RealTrainAI guide", priority: "0.7", changefreq: "monthly" },
+  { path: "/abraham-tahbat", title: "Abraham Tahbat \u2014 Developer Portfolio", priority: "0.6", changefreq: "monthly" },
+  { path: "/olajumoke-owoeye", title: "Olajumoke Owoeye \u2014 Creator Portfolio", priority: "0.6", changefreq: "monthly" },
+  { path: "/breedskool", title: "BreedSkool", priority: "0.8", changefreq: "weekly" },
+  { path: "/leaderboard", title: "Leaderboard", priority: "0.7", changefreq: "daily" },
+  { path: "/advertise", title: "Advertise with Taskdrip", priority: "0.7", changefreq: "monthly" },
+  { path: "/about", title: "About Taskdrip", priority: "0.6", changefreq: "monthly" },
+  { path: "/contact", title: "Contact Taskdrip", priority: "0.6", changefreq: "monthly" },
+  { path: "/tdrip", title: "TDRIP", priority: "0.7", changefreq: "weekly" },
+  { path: "/docs", title: "Documentation", priority: "0.5", changefreq: "monthly" },
+  { path: "/hire-developer", title: "Hire a developer", priority: "0.6", changefreq: "monthly" },
+  { path: "/get-started", title: "Get started", priority: "0.6", changefreq: "monthly" },
+  { path: "/roadmap", title: "Roadmap", priority: "0.5", changefreq: "monthly" },
+  { path: "/terms", title: "Terms of service", priority: "0.3", changefreq: "yearly" },
+  { path: "/privacy", title: "Privacy policy", priority: "0.3", changefreq: "yearly" },
+  { path: "/cookies", title: "Cookie policy", priority: "0.3", changefreq: "yearly" },
+  { path: "/disclaimer", title: "Disclaimer", priority: "0.3", changefreq: "yearly" }
+];
+var textOnly = (value) => (value || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim();
+function day(value) {
+  if (!value) return void 0;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? void 0 : parsed.toISOString().slice(0, 10);
+}
+async function getPublicSeoUrls() {
+  const pages = STATIC_SITEMAP_PATHS.map((page2) => ({
+    url: `${SITE_ORIGIN}${page2.path}`,
+    path: page2.path || "/",
+    title: page2.title,
+    type: "page",
+    priority: page2.priority,
+    changefreq: page2.changefreq
+  }));
+  const [seoSettings, publishedPosts, products, creators, brands, publishedCourses, activeP2pListings, portfolioRows] = await Promise.all([
+    db.select().from(pageSeoSettings),
+    db.select({
+      title: blogPosts.title,
+      slug: blogPosts.slug,
+      metaDescription: blogPosts.metaDescription,
+      excerpt: blogPosts.excerpt,
+      content: blogPosts.content,
+      updatedAt: blogPosts.updatedAt
+    }).from(blogPosts).where(eq8(blogPosts.isPublished, true)),
+    db.select({
+      id: shopProducts.id,
+      title: shopProducts.title,
+      description: shopProducts.shortDescription,
+      fullDescription: shopProducts.description,
+      updatedAt: shopProducts.updatedAt,
+      pluginSlug: pluginStudioProjects.slug
+    }).from(shopProducts).leftJoin(pluginStudioProjects, eq8(pluginStudioProjects.shopProductId, shopProducts.id)).where(and6(
+      eq8(shopProducts.isActive, true),
+      or(isNull(pluginStudioProjects.id), eq8(pluginStudioProjects.status, "published"))
+    )),
+    db.select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      username: users.username,
+      bio: users.bio,
+      seoDescription: users.seoDescription,
+      updatedAt: users.updatedAt
+    }).from(users).where(eq8(users.userType, "creator")),
+    db.select({
+      id: users.id,
+      companyName: users.companyName,
+      username: users.username,
+      bio: users.bio,
+      seoDescription: users.seoDescription,
+      updatedAt: users.updatedAt
+    }).from(users).where(eq8(users.userType, "brand")),
+    db.select({
+      id: courses.id,
+      title: courses.title,
+      description: courses.shortDescription,
+      fullDescription: courses.description,
+      updatedAt: courses.updatedAt
+    }).from(courses).where(eq8(courses.isPublished, true)),
+    db.select({
+      id: p2pListings.id,
+      title: p2pListings.title,
+      description: p2pListings.description,
+      listingType: p2pListings.listingType,
+      updatedAt: p2pListings.updatedAt
+    }).from(p2pListings).where(eq8(p2pListings.status, "approved")),
+    db.select({ userId: portfolioItems.userId }).from(portfolioItems)
+  ]);
+  const seoBySlug = new Map(seoSettings.map((row) => [row.pageSlug, row]));
+  const visiblePages = pages.filter((page2) => {
+    const slug = page2.path === "/" ? "home" : page2.path.slice(1);
+    const setting = seoBySlug.get(slug);
+    if (!setting) return true;
+    if (setting.noIndex) return false;
+    page2.metaTitle = setting.metaTitle || setting.pageTitle;
+    page2.metaDescription = setting.metaDescription;
+    if (setting.canonicalUrl) {
+      try {
+        const canonical = new URL(setting.canonicalUrl, SITE_ORIGIN);
+        if (canonical.origin !== SITE_ORIGIN) return false;
+        page2.url = canonical.toString();
+        page2.path = canonical.pathname;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  });
+  for (const post of publishedPosts) {
+    if (!post.slug) continue;
+    const path8 = `/blog/${encodeURIComponent(post.slug)}`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title: post.title,
+      type: "blog",
+      lastmod: day(post.updatedAt),
+      priority: "0.7",
+      changefreq: "monthly",
+      metaTitle: post.title,
+      metaDescription: post.metaDescription || post.excerpt || textOnly(post.content)
+    });
+  }
+  for (const product of products) {
+    const path8 = `/shop/product/${encodeURIComponent(product.pluginSlug || product.id)}`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title: product.title,
+      type: "product",
+      lastmod: day(product.updatedAt),
+      priority: "0.6",
+      changefreq: "weekly",
+      metaTitle: product.title,
+      metaDescription: product.description || product.fullDescription
+    });
+  }
+  for (const creator of creators) {
+    const path8 = `/influencers/${encodeURIComponent(creator.id)}`;
+    const title = `${`${creator.firstName || ""} ${creator.lastName || ""}`.trim() || creator.username || "Creator"} | Taskdrip`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title,
+      type: "creator",
+      lastmod: day(creator.updatedAt),
+      priority: "0.5",
+      changefreq: "monthly",
+      metaTitle: title,
+      metaDescription: creator.seoDescription || creator.bio
+    });
+  }
+  for (const brand of brands) {
+    const path8 = `/brand/${encodeURIComponent(brand.id)}`;
+    const title = `${brand.companyName || brand.username || "Brand"} | Taskdrip`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title,
+      type: "brand",
+      lastmod: day(brand.updatedAt),
+      priority: "0.5",
+      changefreq: "monthly",
+      metaTitle: title,
+      metaDescription: brand.seoDescription || brand.bio
+    });
+  }
+  for (const course of publishedCourses) {
+    const path8 = `/breedskool/${encodeURIComponent(course.id)}`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title: course.title,
+      type: "course",
+      lastmod: day(course.updatedAt),
+      priority: "0.6",
+      changefreq: "weekly",
+      metaTitle: `${course.title} | BreedSkool`,
+      metaDescription: course.description || course.fullDescription
+    });
+  }
+  for (const listing of activeP2pListings) {
+    const path8 = `/p2p/${encodeURIComponent(listing.id)}`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title: listing.title,
+      type: "p2p-listing",
+      lastmod: day(listing.updatedAt),
+      priority: "0.5",
+      changefreq: "weekly",
+      metaTitle: listing.title,
+      metaDescription: listing.description
+    });
+  }
+  const portfolioUserIds = new Set(portfolioRows.map((row) => row.userId));
+  for (const creator of creators) {
+    if (!portfolioUserIds.has(creator.id)) continue;
+    const identity = creator.username || creator.id;
+    const path8 = `/creator-portfolio/${encodeURIComponent(identity)}`;
+    const name = `${`${creator.firstName || ""} ${creator.lastName || ""}`.trim() || creator.username || "Creator"} | Creator Portfolio`;
+    pages.push({
+      url: `${SITE_ORIGIN}${path8}`,
+      path: path8,
+      title: name,
+      type: "portfolio",
+      lastmod: day(creator.updatedAt),
+      priority: "0.5",
+      changefreq: "monthly",
+      metaTitle: name,
+      metaDescription: creator.seoDescription || creator.bio
+    });
+  }
+  const downloadPages = [];
+  try {
+    const [downloads, categories, preachers] = await Promise.all([
+      pool2.query(
+        `SELECT title,slug,seo_title,seo_description,updated_at
+         FROM free_download_items WHERE publication_status='published' ORDER BY updated_at DESC`
+      ),
+      pool2.query(
+        `SELECT name,slug FROM free_download_categories WHERE is_active=TRUE ORDER BY sort_order,name`
+      ),
+      pool2.query(
+        `SELECT DISTINCT p.full_name,p.slug FROM free_download_preachers p
+         JOIN free_download_items d ON d.preacher_id=p.id
+         WHERE d.publication_status='published'`
+      )
+    ]);
+    for (const category of categories.rows) {
+      const path8 = `/downloads/category/${encodeURIComponent(category.slug)}`;
+      downloadPages.push({
+        url: `${SITE_ORIGIN}${path8}`,
+        path: path8,
+        title: `${category.name} | Free Downloads`,
+        type: "download-category",
+        priority: "0.7",
+        changefreq: "daily"
+      });
+    }
+    for (const preacher of preachers.rows) {
+      const path8 = `/downloads/preachers/${encodeURIComponent(preacher.slug)}`;
+      downloadPages.push({
+        url: `${SITE_ORIGIN}${path8}`,
+        path: path8,
+        title: `${preacher.full_name} sermons | Taskdrip`,
+        type: "preacher",
+        priority: "0.6",
+        changefreq: "weekly"
+      });
+    }
+    for (const download of downloads.rows) {
+      const path8 = `/downloads/${encodeURIComponent(download.slug)}`;
+      downloadPages.push({
+        url: `${SITE_ORIGIN}${path8}`,
+        path: path8,
+        title: download.seo_title || download.title,
+        type: "free-download",
+        lastmod: day(download.updated_at),
+        priority: "0.7",
+        changefreq: "weekly",
+        metaTitle: download.seo_title || download.title,
+        metaDescription: download.seo_description
+      });
+    }
+  } catch (error) {
+    console.warn("[SEO] Free Downloads sitemap entries unavailable:", error);
+  }
+  return Array.from(new Map(
+    visiblePages.concat(pages.slice(STATIC_SITEMAP_PATHS.length)).concat(downloadPages).map((page2) => [page2.url, page2])
+  ).values());
+}
+function registerPublicSeoRoutes(app2) {
+  app2.get("/:key.txt", async (req, res, next) => {
+    const key = String(req.params.key || "");
+    if (!/^[a-f0-9]{32}$/.test(key)) return next();
+    try {
+      const [setting] = await db.select().from(appSettings).where(eq8(appSettings.key, "seo_indexnow_key")).limit(1);
+      if (setting?.value !== key) return res.sendStatus(404);
+      res.type("text/plain").set("Cache-Control", "public, max-age=3600").send(key);
+    } catch {
+      res.sendStatus(404);
+    }
+  });
+  app2.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").set("Cache-Control", "public, max-age=3600").send([
+      "# Taskdrip robots.txt",
+      "User-agent: *",
+      "Allow: /",
+      "Disallow: /admin",
+      "Disallow: /api/",
+      "Disallow: /dashboard",
+      "Disallow: /profile/",
+      "Disallow: /campaigns/",
+      "Disallow: /direct-hire/",
+      "Disallow: /orders/",
+      "Disallow: /shop/checkout",
+      "Disallow: /p2p-deals",
+      "Disallow: /my-",
+      "Disallow: /user-profile/",
+      "Disallow: /brand-dashboard",
+      "",
+      `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
+      ""
+    ].join("\n"));
+  });
+  app2.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const urls = await getPublicSeoUrls();
+      const escapeXml = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+      const entries = urls.map((meta) => {
+        const fields = [
+          `<loc>${escapeXml(meta.url)}</loc>`,
+          meta.lastmod ? `<lastmod>${meta.lastmod}</lastmod>` : "",
+          meta.changefreq ? `<changefreq>${meta.changefreq}</changefreq>` : "",
+          meta.priority ? `<priority>${meta.priority}</priority>` : ""
+        ].filter(Boolean).join("");
+        return `  <url>${fields}</url>`;
+      });
+      res.status(200).set("Cache-Control", "public, max-age=300").type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.join("\n")}
+</urlset>`);
+    } catch (error) {
+      console.error("[SEO] Sitemap generation failed:", error);
+      res.status(503).type("text/plain").send("Sitemap temporarily unavailable");
+    }
+  });
+}
+
+// server/seo-intelligence-routes.ts
+var SEO_SITE_ORIGIN = "https://taskdrip.online";
+var CRAWL_FREQUENCIES = ["hourly", "daily", "weekly"];
+var activeCrawl = null;
+var seoSchedulerStarted = false;
 var isAuthed3 = (req, res, next) => {
   if (!req.isAuthenticated || !req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
   next();
@@ -12306,7 +12868,7 @@ var isAdmin4 = (req, res, next) => {
 };
 async function getSetting(key) {
   try {
-    const rows = await db.select().from(appSettings).where(eq8(appSettings.key, key)).limit(1);
+    const rows = await db.select().from(appSettings).where(eq9(appSettings.key, key)).limit(1);
     return rows[0]?.value || "";
   } catch {
     return "";
@@ -12314,6 +12876,154 @@ async function getSetting(key) {
 }
 async function setSetting(key, value) {
   await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: /* @__PURE__ */ new Date() } });
+}
+function nextCrawlTime(frequency, from = /* @__PURE__ */ new Date()) {
+  const next = new Date(from);
+  next.setUTCSeconds(0, 0);
+  if (frequency === "hourly") {
+    next.setUTCHours(next.getUTCHours() + 1);
+  } else {
+    next.setUTCHours(0, 0, 0, 0);
+    if (frequency === "daily") {
+      next.setUTCDate(next.getUTCDate() + 1);
+    } else {
+      const daysUntilMonday = (8 - next.getUTCDay()) % 7 || 7;
+      next.setUTCDate(next.getUTCDate() + daysUntilMonday);
+    }
+  }
+  return next;
+}
+function plainText(value) {
+  return (value || "").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'").replace(/\s+/g, " ").trim();
+}
+function makeMetaDescription(title, ...sources) {
+  const source = sources.map(plainText).find(Boolean) || `${title} \u2014 explore practical information, resources, and updates on Taskdrip.`;
+  if (source.length <= 160) return source;
+  const shortened = source.slice(0, 157).replace(/\s+\S*$/, "").trim();
+  return `${shortened || source.slice(0, 157).trim()}\u2026`;
+}
+async function submitIndexNow(urls) {
+  const [enabled, key] = await Promise.all([
+    getSetting("seo_indexnow_enabled"),
+    getSetting("seo_indexnow_key")
+  ]);
+  if (enabled !== "true") {
+    return { status: "disabled", submitted: 0, message: "IndexNow notifications are disabled." };
+  }
+  if (!key) {
+    return { status: "not_configured", submitted: 0, message: "Generate an IndexNow key in crawler settings first." };
+  }
+  let submitted = 0;
+  const failures = [];
+  for (let i = 0; i < urls.length; i += 1e4) {
+    const batch = urls.slice(i, i + 1e4);
+    try {
+      const response = await fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        signal: AbortSignal.timeout(12e3),
+        body: JSON.stringify({
+          host: "taskdrip.online",
+          key,
+          keyLocation: `${SEO_SITE_ORIGIN}/${key}.txt`,
+          urlList: batch
+        })
+      });
+      if (response.ok) submitted += batch.length;
+      else failures.push(`IndexNow returned HTTP ${response.status}`);
+    } catch (error) {
+      failures.push(error?.message || "IndexNow request failed");
+    }
+  }
+  return {
+    status: failures.length ? submitted ? "partial" : "failed" : "submitted",
+    submitted,
+    message: failures.join("; ") || `${submitted} URL${submitted === 1 ? "" : "s"} submitted to IndexNow.`
+  };
+}
+async function runSeoCrawl() {
+  if (activeCrawl) return activeCrawl;
+  activeCrawl = (async () => {
+    const startedAt = Date.now();
+    const publishedPosts = await db.select({
+      id: blogPosts.id,
+      title: blogPosts.title,
+      slug: blogPosts.slug,
+      content: blogPosts.content,
+      excerpt: blogPosts.excerpt,
+      metaDescription: blogPosts.metaDescription
+    }).from(blogPosts).where(eq9(blogPosts.isPublished, true));
+    let repairedDescriptions = 0;
+    for (const post of publishedPosts) {
+      if (post.metaDescription?.trim()) continue;
+      const description = makeMetaDescription(post.title, post.excerpt, post.content);
+      await db.update(blogPosts).set({ metaDescription: description, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(blogPosts.id, post.id));
+      repairedDescriptions++;
+    }
+    const urls = await getPublicSeoUrls();
+    if (urls.length > 5e4) {
+      throw new Error(`The sitemap currently has ${urls.length} URLs. A sitemap index is required above 50,000 URLs.`);
+    }
+    const breakdown = urls.reduce((result, page2) => {
+      result[page2.type] = (result[page2.type] || 0) + 1;
+      return result;
+    }, {});
+    const notifications2 = await submitIndexNow(urls.map((page2) => page2.url));
+    const crawledAt = (/* @__PURE__ */ new Date()).toISOString();
+    await Promise.all([
+      setSetting("last_crawl_at", crawledAt),
+      setSetting("last_crawl_total", String(urls.length)),
+      setSetting("last_crawl_repaired_descriptions", String(repairedDescriptions)),
+      setSetting("last_crawl_duration_ms", String(Date.now() - startedAt)),
+      setSetting("last_crawl_error", "")
+    ]);
+    return {
+      success: true,
+      totalUrls: urls.length,
+      breakdown,
+      repairedDescriptions,
+      notifications: notifications2,
+      sitemapUrl: `${SEO_SITE_ORIGIN}/sitemap.xml`,
+      crawledAt,
+      durationMs: Date.now() - startedAt,
+      issues: urls.reduce((total, page2) => {
+        const title = page2.metaTitle || page2.title;
+        const description = plainText(page2.metaDescription);
+        return total + (!title ? 1 : 0) + (!description ? 1 : 0) + (title.length > 70 ? 1 : 0) + (description.length > 160 ? 1 : 0);
+      }, 0)
+    };
+  })();
+  try {
+    return await activeCrawl;
+  } finally {
+    activeCrawl = null;
+  }
+}
+async function scheduledSeoCrawlTick() {
+  try {
+    const [enabled, frequencyValue, nextValue] = await Promise.all([
+      getSetting("seo_crawl_enabled"),
+      getSetting("seo_crawl_frequency"),
+      getSetting("seo_crawl_next_at")
+    ]);
+    const frequency = CRAWL_FREQUENCIES.includes(frequencyValue) ? frequencyValue : "daily";
+    if (enabled !== "true") return;
+    const next = nextValue ? new Date(nextValue) : /* @__PURE__ */ new Date(0);
+    if (Number.isNaN(next.getTime()) || next.getTime() > Date.now()) return;
+    await setSetting("seo_crawl_next_at", nextCrawlTime(frequency).toISOString());
+    await runSeoCrawl();
+  } catch (error) {
+    console.error("[SEO] Scheduled crawl failed:", error);
+    await setSetting("last_crawl_error", error?.message || "Scheduled crawl failed").catch(() => {
+    });
+  }
+}
+function startSeoCrawlerScheduler() {
+  if (seoSchedulerStarted) return;
+  seoSchedulerStarted = true;
+  const timer = setInterval(() => void scheduledSeoCrawlTick(), 30 * 1e3);
+  timer.unref?.();
+  void scheduledSeoCrawlTick();
 }
 function geminiKey2() {
   return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || null;
@@ -12358,7 +13068,7 @@ function registerSeoIntelligenceRoutes(app2) {
       if (googleSiteVerification !== void 0) vals.googleSiteVerification = googleSiteVerification;
       if (bingVerification !== void 0) vals.bingVerification = bingVerification;
       if (existing) {
-        await db.update(pwaSettings).set(vals).where(eq8(pwaSettings.id, existing.id));
+        await db.update(pwaSettings).set(vals).where(eq9(pwaSettings.id, existing.id));
       } else {
         await db.insert(pwaSettings).values(vals);
       }
@@ -12418,17 +13128,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         seoPages,
         [pwsRow]
       ] = await Promise.all([
-        db.select({ n: count2() }).from(blogPosts).where(eq8(blogPosts.isPublished, true)),
+        db.select({ n: count2() }).from(blogPosts).where(eq9(blogPosts.isPublished, true)),
         db.select({ n: count2() }).from(shopProducts),
         db.select({ n: count2() }).from(users),
-        db.select({ n: count2() }).from(courses).where(eq8(courses.isPublished, true)),
+        db.select({ n: count2() }).from(courses).where(eq9(courses.isPublished, true)),
         db.select({ n: count2() }).from(campaigns),
         db.select().from(pageSeoSettings),
         db.select().from(pwaSettings).limit(1)
       ]);
       const clarityId = await getSetting("clarity_id");
-      const staticPageCount = 21;
-      const totalIndexed = staticPageCount + Number(blogCount?.n || 0) + Number(productCount?.n || 0) + Number(courseCount?.n || 0);
+      const sitemapUrls = await getPublicSeoUrls();
+      const staticPageCount = sitemapUrls.filter((page2) => page2.type === "page").length;
+      const totalIndexed = sitemapUrls.length;
       const seoConfigured = seoPages.filter((p) => p.metaTitle || p.metaDescription).length;
       const missingMeta = seoPages.filter((p) => !p.metaTitle || !p.metaDescription).length;
       res.json({
@@ -12440,7 +13151,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         campaigns: Number(campaignCount?.n || 0),
         users: Number(userCount?.n || 0),
         seoConfiguredPages: seoConfigured,
-        totalConfigurablePages: 16,
+        totalConfigurablePages: staticPageCount,
         missingMeta,
         ga4Connected: !!pwsRow?.gaTrackingId,
         clarityConnected: !!clarityId,
@@ -12452,55 +13163,131 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       res.status(500).json({ message: e.message });
     }
   });
-  app2.post("/api/admin/seo-intelligence/crawl", isAuthed3, isAdmin4, async (req, res) => {
+  app2.get("/api/admin/seo-intelligence/crawler-settings", isAuthed3, isAdmin4, async (_req, res) => {
     try {
-      const [
-        [blogs],
-        [products],
-        [allUsers],
-        [allCourses],
-        [allCampaigns]
-      ] = await Promise.all([
-        db.select({ n: count2() }).from(blogPosts).where(eq8(blogPosts.isPublished, true)),
-        db.select({ n: count2() }).from(shopProducts),
-        db.select({ n: count2() }).from(users).where(eq8(users.userType, "creator")),
-        db.select({ n: count2() }).from(courses).where(eq8(courses.isPublished, true)),
-        db.select({ n: count2() }).from(campaigns)
+      const [enabled, frequency, indexNowEnabled, indexNowKey, nextCrawlAt, lastCrawlAt, lastCrawlTotal, lastCrawlError, repaired] = await Promise.all([
+        getSetting("seo_crawl_enabled"),
+        getSetting("seo_crawl_frequency"),
+        getSetting("seo_indexnow_enabled"),
+        getSetting("seo_indexnow_key"),
+        getSetting("seo_crawl_next_at"),
+        getSetting("last_crawl_at"),
+        getSetting("last_crawl_total"),
+        getSetting("last_crawl_error"),
+        getSetting("last_crawl_repaired_descriptions")
       ]);
-      const staticCount = 21;
-      const blogC = Number(blogs?.n || 0);
-      const productC = Number(products?.n || 0);
-      const userC = Number(allUsers?.n || 0);
-      const courseC = Number(allCourses?.n || 0);
-      const campaignC = Number(allCampaigns?.n || 0);
-      const totalUrls = staticCount + blogC + productC + userC + courseC;
-      const domain = "https://taskdrip.online";
-      const sitemapUrl = `${domain}/sitemap.xml`;
-      const pings = [];
-      try {
-        const googlePing = await fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { signal: AbortSignal.timeout(5e3) });
-        pings.push({ engine: "Google", status: googlePing.ok ? "\u2705 Pinged" : `\u26A0\uFE0F ${googlePing.status}` });
-      } catch {
-        pings.push({ engine: "Google", status: "\u26A0\uFE0F Timeout" });
-      }
-      try {
-        const bingPing = await fetch(`https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { signal: AbortSignal.timeout(5e3) });
-        pings.push({ engine: "Bing", status: bingPing.ok ? "\u2705 Pinged" : `\u26A0\uFE0F ${bingPing.status}` });
-      } catch {
-        pings.push({ engine: "Bing", status: "\u26A0\uFE0F Timeout" });
-      }
-      await setSetting("last_crawl_at", (/* @__PURE__ */ new Date()).toISOString());
-      await setSetting("last_crawl_total", String(totalUrls));
       res.json({
-        success: true,
-        totalUrls,
-        breakdown: { staticPages: staticCount, blogPosts: blogC, products: productC, creators: userC, courses: courseC, campaigns: campaignC },
-        pings,
-        sitemapUrl,
-        crawledAt: (/* @__PURE__ */ new Date()).toISOString()
+        enabled: enabled === "true",
+        frequency: CRAWL_FREQUENCIES.includes(frequency) ? frequency : "daily",
+        indexNowEnabled: indexNowEnabled === "true",
+        indexNowKeyConfigured: !!indexNowKey,
+        indexNowKeyLocation: indexNowKey ? `${SEO_SITE_ORIGIN}/${indexNowKey}.txt` : null,
+        nextCrawlAt: nextCrawlAt || null,
+        lastCrawlAt: lastCrawlAt || null,
+        lastCrawlTotal: lastCrawlTotal ? Number(lastCrawlTotal) : 0,
+        lastCrawlError: lastCrawlError || null,
+        repairedDescriptions: repaired ? Number(repaired) : 0
       });
     } catch (e) {
       res.status(500).json({ message: e.message });
+    }
+  });
+  app2.put("/api/admin/seo-intelligence/crawler-settings", isAuthed3, isAdmin4, async (req, res) => {
+    try {
+      const { enabled, frequency, indexNowEnabled, generateIndexNowKey } = req.body || {};
+      const currentFrequency = await getSetting("seo_crawl_frequency");
+      const nextFrequency = (frequency ?? currentFrequency) || "daily";
+      if (!CRAWL_FREQUENCIES.includes(nextFrequency)) {
+        return res.status(400).json({ message: "frequency must be hourly, daily, or weekly" });
+      }
+      if (enabled !== void 0 && typeof enabled !== "boolean") {
+        return res.status(400).json({ message: "enabled must be a boolean" });
+      }
+      if (indexNowEnabled !== void 0 && typeof indexNowEnabled !== "boolean") {
+        return res.status(400).json({ message: "indexNowEnabled must be a boolean" });
+      }
+      const currentEnabled = await getSetting("seo_crawl_enabled") === "true";
+      await Promise.all([
+        setSetting("seo_crawl_frequency", nextFrequency),
+        enabled !== void 0 ? setSetting("seo_crawl_enabled", String(enabled)) : Promise.resolve(),
+        indexNowEnabled !== void 0 ? setSetting("seo_indexnow_enabled", String(indexNowEnabled)) : Promise.resolve()
+      ]);
+      const currentKey = await getSetting("seo_indexnow_key");
+      if (generateIndexNowKey || indexNowEnabled === true && !currentKey) {
+        await setSetting("seo_indexnow_key", randomBytes2(16).toString("hex"));
+      }
+      if (enabled === true && (!currentEnabled || nextFrequency !== currentFrequency)) {
+        await setSetting("seo_crawl_next_at", nextCrawlTime(nextFrequency).toISOString());
+      } else if (enabled === false) {
+        await setSetting("seo_crawl_next_at", "");
+      } else if (currentEnabled && nextFrequency !== currentFrequency) {
+        await setSetting("seo_crawl_next_at", nextCrawlTime(nextFrequency).toISOString());
+      }
+      const [savedEnabled, savedFrequency, savedIndexNowEnabled, savedKey, nextCrawlAt] = await Promise.all([
+        getSetting("seo_crawl_enabled"),
+        getSetting("seo_crawl_frequency"),
+        getSetting("seo_indexnow_enabled"),
+        getSetting("seo_indexnow_key"),
+        getSetting("seo_crawl_next_at")
+      ]);
+      res.json({
+        enabled: savedEnabled === "true",
+        frequency: savedFrequency || "daily",
+        indexNowEnabled: savedIndexNowEnabled === "true",
+        indexNowKeyConfigured: !!savedKey,
+        indexNowKeyLocation: savedKey ? `${SEO_SITE_ORIGIN}/${savedKey}.txt` : null,
+        nextCrawlAt: nextCrawlAt || null
+      });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.get("/api/admin/seo-intelligence/crawler-urls", isAuthed3, isAdmin4, async (_req, res) => {
+    try {
+      const urls = await getPublicSeoUrls();
+      const normalized = urls.map((page2) => {
+        const title = (page2.metaTitle || page2.title || "").trim();
+        const description = plainText(page2.metaDescription);
+        const warnings = [
+          !title && "Missing title",
+          title.length > 70 && "Title exceeds 70 characters",
+          !description && "Missing meta description",
+          description.length > 160 && "Meta description exceeds 160 characters"
+        ].filter(Boolean);
+        return { ...page2, warnings };
+      });
+      res.json({ urls: normalized, totalUrls: normalized.length });
+    } catch (e) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+  app2.post("/api/admin/seo-intelligence/crawl", isAuthed3, isAdmin4, async (_req, res) => {
+    try {
+      const result = await runSeoCrawl();
+      res.json(result);
+    } catch (e) {
+      await setSetting("last_crawl_error", e.message || "Crawl failed").catch(() => {
+      });
+      res.status(500).json({ message: e.message || "Crawl failed" });
+    }
+  });
+  app2.post("/api/admin/seo-intelligence/crawler-index", isAuthed3, isAdmin4, async (req, res) => {
+    try {
+      const requested = req.body?.urls;
+      if (!Array.isArray(requested) || requested.length < 1 || requested.length > 1e4 || requested.some((url) => typeof url !== "string")) {
+        return res.status(400).json({ message: "Provide between 1 and 10,000 URLs to submit." });
+      }
+      const currentUrls = new Set((await getPublicSeoUrls()).map((page2) => page2.url));
+      const urls = Array.from(new Set(requested));
+      const invalid = urls.filter((url) => !currentUrls.has(url));
+      if (invalid.length) {
+        return res.status(400).json({
+          message: `${invalid.length} URL${invalid.length === 1 ? " is" : "s are"} not in the current public sitemap and cannot be submitted.`
+        });
+      }
+      res.json({ ...await submitIndexNow(urls), requested: urls.length });
+    } catch (e) {
+      res.status(500).json({ message: e.message || "IndexNow submission failed" });
     }
   });
   app2.get("/api/admin/seo-intelligence/audit", isAuthed3, isAdmin4, async (req, res) => {
@@ -12515,7 +13302,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           featuredImage: blogPosts.featuredImage,
           isPublished: blogPosts.isPublished,
           content: blogPosts.content
-        }).from(blogPosts).where(eq8(blogPosts.isPublished, true))
+        }).from(blogPosts).where(eq9(blogPosts.isPublished, true))
       ]);
       const PAGES2 = [
         "home",
@@ -12539,16 +13326,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       const issues = [];
       for (const slug of PAGES2) {
         const s = seoMap.get(slug);
-        const path7 = slug === "home" ? "/" : `/${slug}`;
+        const path8 = slug === "home" ? "/" : `/${slug}`;
         if (!s) {
-          issues.push({ type: "missing_meta", severity: "high", path: path7, detail: "No SEO settings configured" });
+          issues.push({ type: "missing_meta", severity: "high", path: path8, detail: "No SEO settings configured" });
           continue;
         }
-        if (!s.metaTitle) issues.push({ type: "missing_meta_title", severity: "high", path: path7, detail: "Missing meta title" });
-        else if (s.metaTitle.length > 60) issues.push({ type: "long_meta_title", severity: "medium", path: path7, detail: `Meta title too long (${s.metaTitle.length} chars, max 60)` });
-        if (!s.metaDescription) issues.push({ type: "missing_meta_desc", severity: "high", path: path7, detail: "Missing meta description" });
-        else if (s.metaDescription.length > 160) issues.push({ type: "long_meta_desc", severity: "medium", path: path7, detail: `Meta description too long (${s.metaDescription.length} chars, max 160)` });
-        if (!s.ogTitle && !s.ogDescription) issues.push({ type: "missing_og", severity: "medium", path: path7, detail: "Missing Open Graph tags" });
+        if (!s.metaTitle) issues.push({ type: "missing_meta_title", severity: "high", path: path8, detail: "Missing meta title" });
+        else if (s.metaTitle.length > 60) issues.push({ type: "long_meta_title", severity: "medium", path: path8, detail: `Meta title too long (${s.metaTitle.length} chars, max 60)` });
+        if (!s.metaDescription) issues.push({ type: "missing_meta_desc", severity: "high", path: path8, detail: "Missing meta description" });
+        else if (s.metaDescription.length > 160) issues.push({ type: "long_meta_desc", severity: "medium", path: path8, detail: `Meta description too long (${s.metaDescription.length} chars, max 160)` });
+        if (!s.ogTitle && !s.ogDescription) issues.push({ type: "missing_og", severity: "medium", path: path8, detail: "Missing Open Graph tags" });
       }
       let totalWords = 0;
       let longFormTargetCount = 0;
@@ -12557,40 +13344,40 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       let postsWithExternalLinks = 0;
       let imagesMissingAlt = 0;
       for (const post of allBlogs) {
-        const path7 = `/blog/${post.slug}`;
-        const plainText = (post.content || "").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim();
-        const wordCount = plainText ? plainText.split(" ").length : 0;
+        const path8 = `/blog/${post.slug}`;
+        const plainText2 = (post.content || "").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim();
+        const wordCount = plainText2 ? plainText2.split(" ").length : 0;
         totalWords += wordCount;
         if (wordCount >= 3e3) longFormTargetCount++;
         if (post.metaDescription && post.metaDescription.length > 160) {
-          issues.push({ type: "long_meta_desc", severity: "low", path: path7, detail: `Meta description is ${post.metaDescription.length} characters; keep it concise and accurate.` });
+          issues.push({ type: "long_meta_desc", severity: "low", path: path8, detail: `Meta description is ${post.metaDescription.length} characters; keep it concise and accurate.` });
         }
-        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path: path7, detail: "Blog post missing meta description" });
-        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path: path7, detail: "Blog post missing a featured image" });
+        if (!post.metaDescription) issues.push({ type: "missing_meta_desc", severity: "medium", path: path8, detail: "Blog post missing meta description" });
+        if (!post.featuredImage) issues.push({ type: "missing_image", severity: "low", path: path8, detail: "Blog post missing a featured image" });
         else postsWithImages++;
-        if (!post.title) issues.push({ type: "missing_title", severity: "high", path: path7, detail: `Blog post missing title` });
+        if (!post.title) issues.push({ type: "missing_title", severity: "high", path: path8, detail: `Blog post missing title` });
         const headings = (post.content || "").match(/<h[23]\b/gi) || [];
         if (headings.length === 0) {
-          issues.push({ type: "missing_section_headings", severity: "medium", path: path7, detail: "Add descriptive section headings so readers can scan the article." });
+          issues.push({ type: "missing_section_headings", severity: "medium", path: path8, detail: "Add descriptive section headings so readers can scan the article." });
         }
         const links = Array.from((post.content || "").matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi), (match) => match[1]);
         const internalLinks = links.filter((href) => href.startsWith("/") || /^https?:\/\/([^/]+\.)?taskdrip\.online(?:\/|$)/i.test(href));
         const externalLinks = links.filter((href) => /^https?:\/\//i.test(href) && !/^https?:\/\/([^/]+\.)?taskdrip\.online(?:\/|$)/i.test(href));
         if (internalLinks.length) postsWithInternalLinks++;
-        else issues.push({ type: "no_internal_links", severity: "low", path: path7, detail: "Add a contextual link to a genuinely related page or article on Taskdrip." });
+        else issues.push({ type: "no_internal_links", severity: "low", path: path8, detail: "Add a contextual link to a genuinely related page or article on Taskdrip." });
         if (externalLinks.length) postsWithExternalLinks++;
-        else issues.push({ type: "no_external_sources", severity: "low", path: path7, detail: "Link to relevant primary or authoritative sources for factual claims; do not add unrelated links." });
+        else issues.push({ type: "no_external_sources", severity: "low", path: path8, detail: "Link to relevant primary or authoritative sources for factual claims; do not add unrelated links." });
         const images = Array.from((post.content || "").matchAll(/<img\b([^>]*)>/gi), (match) => match[1]);
         const missingAlt = images.filter((attrs) => !/\balt\s*=\s*["'][^"']+["']/i.test(attrs)).length;
         imagesMissingAlt += missingAlt;
         if (missingAlt) {
-          issues.push({ type: "missing_alt_text", severity: "low", path: path7, detail: `${missingAlt} article image${missingAlt === 1 ? "" : "s"} need descriptive alt text.` });
+          issues.push({ type: "missing_alt_text", severity: "low", path: path8, detail: `${missingAlt} article image${missingAlt === 1 ? "" : "s"} need descriptive alt text.` });
         }
         if (wordCount < 3e3) {
           issues.push({
             type: "below_requested_long_form_target",
             severity: "low",
-            path: path7,
+            path: path8,
             detail: `${wordCount.toLocaleString()} words; below your requested 3,000-word editorial target. Google does not require a fixed word count\u2014expand only with useful, accurate material.`
           });
         }
@@ -12641,7 +13428,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   });
   app2.delete("/api/admin/seo-intelligence/keywords/:id", isAuthed3, isAdmin4, async (req, res) => {
     try {
-      await db.delete(keywordTrackers).where(eq8(keywordTrackers.id, req.params.id));
+      await db.delete(keywordTrackers).where(eq9(keywordTrackers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -12778,28 +13565,28 @@ function sanitize2(value, key = "") {
   }
   return value;
 }
-function classify(path7) {
-  if (path7.includes("/register")) return "registration";
-  if (path7.includes("/purchase") || path7.includes("/orders")) return "order";
-  if (path7.includes("payment") || path7.includes("subscription") || path7.includes("topup") || path7.includes("transaction")) return "payment";
-  if (path7.includes("campaign")) return "campaign";
-  if (path7.includes("course") || path7.includes("breedskool")) return "course";
-  if (path7.includes("profile") || path7.includes("become-creator") || path7.includes("message-privacy")) return "profile";
-  if (path7.includes("message") || path7.includes("contact") || path7.includes("hire")) return "communication";
-  if (path7.includes("post") || path7.includes("blog") || path7.includes("review") || path7.includes("report")) return "content";
-  if (path7.includes("p2p") || path7.includes("listing") || path7.includes("payout")) return "marketplace";
-  if (path7.includes("/admin/")) return "admin";
+function classify(path8) {
+  if (path8.includes("/register")) return "registration";
+  if (path8.includes("/purchase") || path8.includes("/orders")) return "order";
+  if (path8.includes("payment") || path8.includes("subscription") || path8.includes("topup") || path8.includes("transaction")) return "payment";
+  if (path8.includes("campaign")) return "campaign";
+  if (path8.includes("course") || path8.includes("breedskool")) return "course";
+  if (path8.includes("profile") || path8.includes("become-creator") || path8.includes("message-privacy")) return "profile";
+  if (path8.includes("message") || path8.includes("contact") || path8.includes("hire")) return "communication";
+  if (path8.includes("post") || path8.includes("blog") || path8.includes("review") || path8.includes("report")) return "content";
+  if (path8.includes("p2p") || path8.includes("listing") || path8.includes("payout")) return "marketplace";
+  if (path8.includes("/admin/")) return "admin";
   return "activity";
 }
-function shouldIgnore(path7) {
-  return IGNORED_PATHS.some((prefix) => path7 === prefix || path7.startsWith(prefix));
+function shouldIgnore(path8) {
+  return IGNORED_PATHS.some((prefix) => path8 === prefix || path8.startsWith(prefix));
 }
-function hasExistingEmail(path7) {
-  if (path7.startsWith("/api/courses/")) return !path7.endsWith("/enroll");
-  return ROUTES_WITH_EXISTING_ADMIN_EMAIL.some((prefix) => path7 === prefix || path7.startsWith(prefix));
+function hasExistingEmail(path8) {
+  if (path8.startsWith("/api/courses/")) return !path8.endsWith("/enroll");
+  return ROUTES_WITH_EXISTING_ADMIN_EMAIL.some((prefix) => path8 === prefix || path8.startsWith(prefix));
 }
-function routeTitle(method, path7) {
-  const clean = path7.replace(/^\/api\/?/, "").replace(/\/+/g, " ").replace(/[-_]/g, " ");
+function routeTitle(method, path8) {
+  const clean = path8.replace(/^\/api\/?/, "").replace(/\/+/g, " ").replace(/[-_]/g, " ");
   return `${method} ${clean || "API action"}`.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 async function recordActivity(input) {
@@ -12833,16 +13620,16 @@ function requestActor(req) {
 }
 function activityAuditMiddleware(req, res, next) {
   const isWrite = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
-  const path7 = req.path;
-  if (!isWrite || !path7.startsWith("/api") || shouldIgnore(path7)) return next();
+  const path8 = req.path;
+  if (!isWrite || !path8.startsWith("/api") || shouldIgnore(path8)) return next();
   const startedAt = Date.now();
   res.on("finish", () => {
     const actor = requestActor(req);
     const status = res.statusCode >= 400 ? "failed" : "success";
     const body = sanitize2(req.body || {});
-    const eventType = classify(path7);
-    const title = routeTitle(req.method, path7);
-    const entityId = path7.split("/").filter(Boolean).pop() || null;
+    const eventType = classify(path8);
+    const title = routeTitle(req.method, path8);
+    const entityId = path8.split("/").filter(Boolean).pop() || null;
     const details = Object.entries(body).filter(([key]) => !["password", "smtpPass", "imapPass"].includes(key)).slice(0, 12).map(([key, value]) => `${key}: ${compact(value, 180)}`).join(" | ");
     void recordActivity({
       actorId: actor.id,
@@ -12851,7 +13638,7 @@ function activityAuditMiddleware(req, res, next) {
       eventType,
       action: title,
       description: `${status === "success" ? "Completed" : "Failed"} ${title}${details ? ` \u2014 ${details}` : ""}`,
-      route: path7,
+      route: path8,
       method: req.method,
       status,
       entityId: entityId && !entityId.startsWith("api") ? entityId : null,
@@ -12863,7 +13650,7 @@ function activityAuditMiddleware(req, res, next) {
       ipAddress: req.ip,
       userAgent: req.get("user-agent") || null
     });
-    if (status === "success" && !hasExistingEmail(path7) && (actor.id || actor.email) && req.user?.userType !== "admin") {
+    if (status === "success" && !hasExistingEmail(path8) && (actor.id || actor.email) && req.user?.userType !== "admin") {
       const label = EVENT_LABELS[eventType] || EVENT_LABELS.activity;
       void sendAdminActivityEmail({
         event: "activity",
@@ -12873,7 +13660,7 @@ function activityAuditMiddleware(req, res, next) {
         customer: { name: actor.name || void 0, email: actor.email || void 0 },
         details: [
           { label: "Action", value: title },
-          { label: "Route", value: path7 },
+          { label: "Route", value: path8 },
           { label: "Status", value: `${res.statusCode} ${status}` },
           { label: "Details", value: details || "No form fields supplied" }
         ]
@@ -13002,12 +13789,12 @@ function scanRequestBody(body, depth = 0) {
 init_schema();
 init_lead_service();
 init_db();
-import { desc as desc13, sql as sql13, eq as eq17, and as and13, count as count4, gte as gte3, inArray as inArray12, ilike as ilike2, or as or2 } from "drizzle-orm";
+import { desc as desc13, sql as sql13, eq as eq18, and as and14, count as count4, gte as gte3, inArray as inArray12, ilike as ilike2, or as or3 } from "drizzle-orm";
 
 // server/creator-publishing.ts
 init_schema();
 init_db();
-import { and as and8, count as count3, desc as desc9, eq as eq11, gt, inArray as inArray7, sql as sql7 } from "drizzle-orm";
+import { and as and9, count as count3, desc as desc9, eq as eq12, gt, inArray as inArray7, sql as sql7 } from "drizzle-orm";
 import { mkdirSync, existsSync, unlinkSync } from "node:fs";
 import path2 from "node:path";
 import multer2 from "multer";
@@ -13708,7 +14495,7 @@ ${storyWinks[stories.indexOf(story)]}`
 
 // server/notebook-studio.ts
 init_schema();
-import { and as and7, desc as desc8, eq as eq10 } from "drizzle-orm";
+import { and as and8, desc as desc8, eq as eq11 } from "drizzle-orm";
 import multer from "multer";
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -14384,12 +15171,12 @@ function introBox(parts, x, y, width, height, color, thickness = 0.6) {
 function introPolygon(parts, points, x, top, width, height, fill, stroke) {
   if (points.length < 3) return;
   const [first, ...rest] = points;
-  const path7 = [
+  const path8 = [
     `${inch(x + first[0] * width).toFixed(2)} ${inch(top - first[1] * height).toFixed(2)} m`,
     ...rest.map(([px, py]) => `${inch(x + px * width).toFixed(2)} ${inch(top - py * height).toFixed(2)} l`),
     "h"
   ].join(" ");
-  parts.push(`${rgb(fill)} rg ${rgb(stroke)} RG 0.5 w ${path7} B
+  parts.push(`${rgb(fill)} rg ${rgb(stroke)} RG 0.5 w ${path8} B
 `);
 }
 function introHeading(parts, title, subtitle, x, top, right, accent) {
@@ -14663,16 +15450,16 @@ function notebookIntroPage(type, settings, width, height, left, right, top, bott
       const cellW = (moduleW - 0.12) / 7;
       const dayTop = mt - 0.3;
       const weekLabels = ["M", "T", "W", "T", "F", "S", "S"];
-      weekLabels.forEach((day, index2) => introText(parts, day, mx + 0.06 + index2 * cellW + 0.01, dayTop, 5.1, true, "0.42 0.44 0.42"));
+      weekLabels.forEach((day2, index2) => introText(parts, day2, mx + 0.06 + index2 * cellW + 0.01, dayTop, 5.1, true, "0.42 0.44 0.42"));
       const firstDay = new Date(Date.UTC(2027, month, 1)).getUTCDay();
       const offset = (firstDay + 6) % 7;
       const daysInMonth = new Date(Date.UTC(2027, month + 1, 0)).getUTCDate();
       const cellH = Math.min(0.14, (moduleH - 0.42) / 6);
-      for (let day = 1; day <= daysInMonth; day++) {
-        const slot = offset + day - 1;
+      for (let day2 = 1; day2 <= daysInMonth; day2++) {
+        const slot = offset + day2 - 1;
         const dayX = mx + 0.06 + slot % 7 * cellW + 0.01;
         const dayY = dayTop - 0.12 - Math.floor(slot / 7) * cellH;
-        introText(parts, String(day), dayX, dayY, 5.1, false, textColor);
+        introText(parts, String(day2), dayX, dayY, 5.1, false, textColor);
       }
     }
   }
@@ -15563,7 +16350,7 @@ function serialize(row) {
   };
 }
 async function getOwnedProject(id, ownerId) {
-  const [project] = await db.select().from(creatorNotebookProjects).where(and7(eq10(creatorNotebookProjects.id, id), eq10(creatorNotebookProjects.ownerId, ownerId))).limit(1);
+  const [project] = await db.select().from(creatorNotebookProjects).where(and8(eq11(creatorNotebookProjects.id, id), eq11(creatorNotebookProjects.ownerId, ownerId))).limit(1);
   return project;
 }
 async function exists(file) {
@@ -15598,7 +16385,7 @@ function registerNotebookStudioRoutes(app2) {
   const base = "/api/admin/creator-studio/notebooks";
   app2.get(base, isAuthenticated, requirePublishingAdmin, async (req, res) => {
     try {
-      const projects = await db.select().from(creatorNotebookProjects).where(eq10(creatorNotebookProjects.ownerId, req.user.id)).orderBy(desc8(creatorNotebookProjects.updatedAt));
+      const projects = await db.select().from(creatorNotebookProjects).where(eq11(creatorNotebookProjects.ownerId, req.user.id)).orderBy(desc8(creatorNotebookProjects.updatedAt));
       res.json(projects.map(serialize));
     } catch (error) {
       console.error("[notebook-studio] Could not list projects:", error);
@@ -15651,7 +16438,7 @@ function registerNotebookStudioRoutes(app2) {
         changes.validation = null;
         changes.generationStatus = "stale";
       }
-      const [updated] = await db.update(creatorNotebookProjects).set(changes).where(and7(eq10(creatorNotebookProjects.id, previous.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      const [updated] = await db.update(creatorNotebookProjects).set(changes).where(and8(eq11(creatorNotebookProjects.id, previous.id), eq11(creatorNotebookProjects.ownerId, req.user.id))).returning();
       res.json(serialize(updated));
     } catch (error) {
       if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
@@ -15717,7 +16504,7 @@ function registerNotebookStudioRoutes(app2) {
         generationStatus: "stale",
         validation: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      }).where(and8(eq11(creatorNotebookProjects.id, project.id), eq11(creatorNotebookProjects.ownerId, req.user.id))).returning();
       res.json({ project: serialize(updated), image: imageInfo, recommended });
     } catch (error) {
       if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
@@ -15805,7 +16592,7 @@ function registerNotebookStudioRoutes(app2) {
         generationStatus: "stale",
         validation: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      }).where(and8(eq11(creatorNotebookProjects.id, project.id), eq11(creatorNotebookProjects.ownerId, req.user.id))).returning();
       if (filename) await rm(pageArtPath(project.id, key, filename), { force: true }).catch(() => {
       });
       res.json({ project: serialize(updated) });
@@ -15841,7 +16628,7 @@ function registerNotebookStudioRoutes(app2) {
       }
       if (Object.keys(copiedArtwork).length !== Object.keys(sourceSettings.pageArtwork).length) {
         const settings = { ...sourceSettings, pageArtwork: copiedArtwork };
-        const [withArt] = await db.update(creatorNotebookProjects).set({ settings }).where(eq10(creatorNotebookProjects.id, copy.id)).returning();
+        const [withArt] = await db.update(creatorNotebookProjects).set({ settings }).where(eq11(creatorNotebookProjects.id, copy.id)).returning();
         res.status(201).json(serialize(withArt || { ...copy, settings }));
         return;
       }
@@ -15855,7 +16642,7 @@ function registerNotebookStudioRoutes(app2) {
     try {
       const project = await getOwnedProject(req.params.id, req.user.id);
       if (!project) return res.status(404).json({ message: "Notebook project not found." });
-      await db.delete(creatorNotebookProjects).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id)));
+      await db.delete(creatorNotebookProjects).where(and8(eq11(creatorNotebookProjects.id, project.id), eq11(creatorNotebookProjects.ownerId, req.user.id)));
       await rm(projectDirectory(project.id), { recursive: true, force: true }).catch(() => {
       });
       res.json({ success: true });
@@ -15875,7 +16662,7 @@ function registerNotebookStudioRoutes(app2) {
       const settings = normalizeSettings(project.settings, DEFAULT_NOTEBOOK_SETTINGS);
       const plannerPdfAvailable = !settings.use2027PlannerPdf || Boolean(await taskdrip2027PlannerPdfPath());
       const validation = validateNotebook(project.title, settings, { interiorExists, coverExists, plannerPdfAvailable });
-      await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id)));
+      await db.update(creatorNotebookProjects).set({ validation, updatedAt: /* @__PURE__ */ new Date() }).where(and8(eq11(creatorNotebookProjects.id, project.id), eq11(creatorNotebookProjects.ownerId, req.user.id)));
       res.json({ validation });
     } catch (error) {
       console.error("[notebook-studio] Could not validate project:", error);
@@ -15899,7 +16686,7 @@ function registerNotebookStudioRoutes(app2) {
           validation: previousReport,
           generationStatus: "failed",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq10(creatorNotebookProjects.id, project.id));
+        }).where(eq11(creatorNotebookProjects.id, project.id));
         return res.status(400).json({
           message: fatalIssues.map((item) => item.message).join(" "),
           project: serialize({ ...project, validation: previousReport }),
@@ -15961,7 +16748,7 @@ function registerNotebookStudioRoutes(app2) {
         status: validation.status === "ready" ? "ready" : "needs_review",
         lastGeneratedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(and7(eq10(creatorNotebookProjects.id, project.id), eq10(creatorNotebookProjects.ownerId, req.user.id))).returning();
+      }).where(and8(eq11(creatorNotebookProjects.id, project.id), eq11(creatorNotebookProjects.ownerId, req.user.id))).returning();
       res.json({ project: serialize(updated || provisional), validation });
     } catch (error) {
       if (error?.statusCode) return res.status(error.statusCode).json({ message: error.message });
@@ -15969,7 +16756,7 @@ function registerNotebookStudioRoutes(app2) {
       await db.update(creatorNotebookProjects).set({
         generationStatus: "failed",
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq10(creatorNotebookProjects.id, req.params.id)).catch(() => {
+      }).where(eq11(creatorNotebookProjects.id, req.params.id)).catch(() => {
       });
       res.status(500).json({ message: error?.message || "Could not generate notebook files. Your saved settings are unchanged." });
     }
@@ -16103,7 +16890,7 @@ function normalizeCreatorStudioAIControls(input) {
   };
 }
 async function getCreatorStudioAIConfig() {
-  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_studio_ai_settings")).limit(1);
+  const [row] = await db.select({ value: appSettings.value }).from(appSettings).where(eq12(appSettings.key, "creator_studio_ai_settings")).limit(1);
   let saved = {};
   try {
     saved = JSON.parse(row?.value || "{}");
@@ -16195,13 +16982,13 @@ function canPublish(user) {
   return Boolean(user?.id);
 }
 async function getCreatorStudioMonthlyPrice() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_studio_monthly_price")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq12(appSettings.key, "creator_studio_monthly_price")).limit(1);
   const price = Number(setting?.value);
   return Number.isFinite(price) && price >= 0 && price <= 999999 ? Number(price.toFixed(2)) : 7;
 }
 var EMPTY_STUDIO_PAYMENT_OPTIONS = { cryptoWallets: [], bankAccounts: [] };
 async function getCreatorStudioPaymentOptions() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_studio_payment_options")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq12(appSettings.key, "creator_studio_payment_options")).limit(1);
   try {
     const parsed = JSON.parse(setting?.value || "{}");
     return {
@@ -16237,7 +17024,7 @@ function validateStudioPaymentOptions(input) {
 }
 async function sendCreatorStudioExpiryReminders() {
   const now = /* @__PURE__ */ new Date();
-  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.status, "active"));
+  const activeRows = await db.select().from(creatorStudioSubscriptions).where(eq12(creatorStudioSubscriptions.status, "active"));
   if (!activeRows.length) return;
   const emailService = await Promise.resolve().then(() => (init_email_service(), email_service_exports)).catch(() => null);
   for (const subscription of activeRows) {
@@ -16247,10 +17034,10 @@ async function sendCreatorStudioExpiryReminders() {
     const reminderType = daysLeft <= 0 ? "creator_studio_expired" : daysLeft <= 3 ? "creator_studio_expiry_reminder" : null;
     if (!reminderType) continue;
     const reminderLink = `/creator-studio?renewal=${subscription.id}&expires=${subscription.endDate.getTime()}`;
-    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and8(
-      eq11(notifications.relatedId, subscription.id),
-      eq11(notifications.type, reminderType),
-      eq11(notifications.actionUrl, reminderLink)
+    const [existing] = await db.select({ id: notifications.id }).from(notifications).where(and9(
+      eq12(notifications.relatedId, subscription.id),
+      eq12(notifications.type, reminderType),
+      eq12(notifications.actionUrl, reminderLink)
     )).limit(1);
     if (existing) continue;
     const expired = daysLeft <= 0;
@@ -16265,7 +17052,7 @@ async function sendCreatorStudioExpiryReminders() {
       isRead: false,
       priority: "high"
     }).catch((error) => console.warn("[creator-studio] Could not save expiry notification:", error));
-    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq11(users.id, subscription.userId)).limit(1);
+    const [user] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq12(users.id, subscription.userId)).limit(1);
     if (user?.email && emailService?.sendEmail) {
       await emailService.sendEmail({
         to: user.email,
@@ -16275,23 +17062,23 @@ async function sendCreatorStudioExpiryReminders() {
       }).catch((error) => console.warn("[creator-studio] Renewal email failed:", error?.message || error));
     }
     if (expired) {
-      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and8(
-        eq11(creatorStudioSubscriptions.id, subscription.id),
-        eq11(creatorStudioSubscriptions.status, "active")
+      await db.update(creatorStudioSubscriptions).set({ status: "expired", updatedAt: now }).where(and9(
+        eq12(creatorStudioSubscriptions.id, subscription.id),
+        eq12(creatorStudioSubscriptions.status, "active")
       ));
     }
   }
 }
 async function getCreatorStudioAccess(userId) {
   const now = /* @__PURE__ */ new Date();
-  const [active] = await db.select().from(creatorStudioSubscriptions).where(and8(
-    eq11(creatorStudioSubscriptions.userId, userId),
-    eq11(creatorStudioSubscriptions.status, "active"),
+  const [active] = await db.select().from(creatorStudioSubscriptions).where(and9(
+    eq12(creatorStudioSubscriptions.userId, userId),
+    eq12(creatorStudioSubscriptions.status, "active"),
     gt(creatorStudioSubscriptions.endDate, now)
   )).orderBy(desc9(creatorStudioSubscriptions.endDate)).limit(1);
-  const [pending] = await db.select().from(creatorStudioSubscriptions).where(and8(
-    eq11(creatorStudioSubscriptions.userId, userId),
-    eq11(creatorStudioSubscriptions.status, "pending")
+  const [pending] = await db.select().from(creatorStudioSubscriptions).where(and9(
+    eq12(creatorStudioSubscriptions.userId, userId),
+    eq12(creatorStudioSubscriptions.status, "pending")
   )).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(1);
   const monthlyPrice = await getCreatorStudioMonthlyPrice();
   return {
@@ -16495,16 +17282,16 @@ function validateDraft(body) {
   };
 }
 async function getPublishingFeePercent() {
-  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq11(appSettings.key, "creator_publishing_fee_percent")).limit(1);
+  const [setting] = await db.select({ value: appSettings.value }).from(appSettings).where(eq12(appSettings.key, "creator_publishing_fee_percent")).limit(1);
   const value = Number(setting?.value);
   return Number.isFinite(value) && value >= 0 && value <= 100 ? value : 10;
 }
 async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
-  const [purchase] = await db.select().from(purchases).where(eq11(purchases.id, purchaseId)).limit(1);
+  const [purchase] = await db.select().from(purchases).where(eq12(purchases.id, purchaseId)).limit(1);
   if (!purchase || !DOWNLOADABLE_PURCHASE_STATES.includes(purchase.status)) return;
-  const [listing] = await db.select().from(creatorPublishingProducts).where(and8(
-    eq11(creatorPublishingProducts.shopProductId, purchase.productId),
-    eq11(creatorPublishingProducts.status, "published")
+  const [listing] = await db.select().from(creatorPublishingProducts).where(and9(
+    eq12(creatorPublishingProducts.shopProductId, purchase.productId),
+    eq12(creatorPublishingProducts.status, "published")
   )).limit(1);
   if (!listing || listing.creatorId === purchase.userId) return;
   const gross = Number(purchase.totalAmount || purchase.amount);
@@ -16535,7 +17322,7 @@ async function recordCreatorProductSale(purchaseId, referralAmount = 0) {
       availableBalance: sql7`${users.availableBalance} + ${net}`,
       totalEarned: sql7`${users.totalEarned} + ${net}`,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq11(users.id, listing.creatorId));
+    }).where(eq12(users.id, listing.creatorId));
   });
 }
 function registerCreatorPublishingRoutes(app2) {
@@ -16639,7 +17426,7 @@ function registerCreatorPublishingRoutes(app2) {
         priority: "normal"
       }).catch(() => {
       });
-      const [admin2] = await db.select({ id: users.id }).from(users).where(eq11(users.userType, "admin")).limit(1);
+      const [admin2] = await db.select({ id: users.id }).from(users).where(eq12(users.userType, "admin")).limit(1);
       if (admin2) {
         await db.insert(notifications).values({
           userId: admin2.id,
@@ -16668,7 +17455,7 @@ function registerCreatorPublishingRoutes(app2) {
     if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
       const requestedStatus = String(req.query.status || "").trim();
-      const rows = requestedStatus ? await db.select().from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.status, requestedStatus)).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(200) : await db.select().from(creatorStudioSubscriptions).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(200);
+      const rows = requestedStatus ? await db.select().from(creatorStudioSubscriptions).where(eq12(creatorStudioSubscriptions.status, requestedStatus)).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(200) : await db.select().from(creatorStudioSubscriptions).orderBy(desc9(creatorStudioSubscriptions.createdAt)).limit(200);
       const enriched = await Promise.all(rows.map(async (row) => {
         const [user] = await db.select({
           id: users.id,
@@ -16676,7 +17463,7 @@ function registerCreatorPublishingRoutes(app2) {
           lastName: users.lastName,
           email: users.email,
           userType: users.userType
-        }).from(users).where(eq11(users.id, row.userId)).limit(1);
+        }).from(users).where(eq12(users.id, row.userId)).limit(1);
         const { paymentProofKey, ...safeRow } = row;
         return {
           ...safeRow,
@@ -16695,7 +17482,7 @@ function registerCreatorPublishingRoutes(app2) {
     try {
       const [subscription] = await db.select({
         paymentProofKey: creatorStudioSubscriptions.paymentProofKey
-      }).from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      }).from(creatorStudioSubscriptions).where(eq12(creatorStudioSubscriptions.id, req.params.id)).limit(1);
       if (!subscription?.paymentProofKey) return res.status(404).json({ message: "Payment proof not found." });
       const filePath2 = path2.join(PRIVATE_STUDIO_PAYMENT_DIR, path2.basename(subscription.paymentProofKey));
       if (!existsSync(filePath2)) return res.status(404).json({ message: "Payment proof file is no longer available." });
@@ -16714,7 +17501,7 @@ function registerCreatorPublishingRoutes(app2) {
     }
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason when rejecting a payment." });
     try {
-      const [subscription] = await db.select().from(creatorStudioSubscriptions).where(eq11(creatorStudioSubscriptions.id, req.params.id)).limit(1);
+      const [subscription] = await db.select().from(creatorStudioSubscriptions).where(eq12(creatorStudioSubscriptions.id, req.params.id)).limit(1);
       if (!subscription) return res.status(404).json({ message: "Creator Studio subscription not found." });
       if (action === "approve" && subscription.status !== "pending") {
         return res.status(409).json({ message: "Only pending payments can be approved." });
@@ -16737,7 +17524,7 @@ function registerCreatorPublishingRoutes(app2) {
         reviewedBy: req.user.id,
         reviewedAt: now,
         updatedAt: now
-      }).where(eq11(creatorStudioSubscriptions.id, subscription.id)).returning();
+      }).where(eq12(creatorStudioSubscriptions.id, subscription.id)).returning();
       const title = action === "approve" ? "Creator Studio access approved" : action === "extend" ? "Creator Studio access extended" : action === "reject" ? "Creator Studio payment needs attention" : "Creator Studio access ended";
       const content = action === "approve" ? `Your Creator Studio subscription is active until ${endDate.toLocaleDateString()}.` : action === "extend" ? `Your Creator Studio subscription has been extended until ${endDate.toLocaleDateString()}.` : action === "reject" ? `Your Creator Studio payment was not approved. ${reviewNote}` : "An admin ended your Creator Studio access.";
       await db.insert(notifications).values({
@@ -16847,10 +17634,10 @@ function registerCreatorPublishingRoutes(app2) {
         title: creatorBooks.title,
         designerDocument: creatorBooks.designerDocument,
         status: creatorBooks.status
-      }).from(creatorBooks).where(and8(
-        eq11(creatorBooks.creatorId, req.user.id),
-        eq11(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
-        eq11(creatorBooks.genre, "Bible stories and coloring books")
+      }).from(creatorBooks).where(and9(
+        eq12(creatorBooks.creatorId, req.user.id),
+        eq12(creatorBooks.title, "God\u2019s Big Story: A Read-Aloud Bible Coloring Adventure"),
+        eq12(creatorBooks.genre, "Bible stories and coloring books")
       )).limit(1);
       if (existing) {
         if (req.body?.replaceExisting !== true) {
@@ -16867,9 +17654,9 @@ function registerCreatorPublishingRoutes(app2) {
         const [book2] = await db.update(creatorBooks).set({
           ...draft2,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and8(
-          eq11(creatorBooks.id, existing.id),
-          eq11(creatorBooks.creatorId, req.user.id)
+        }).where(and9(
+          eq12(creatorBooks.id, existing.id),
+          eq12(creatorBooks.creatorId, req.user.id)
         )).returning({ id: creatorBooks.id, title: creatorBooks.title });
         if (!book2) return res.status(404).json({ message: "The existing book could not be found for upgrade." });
         return res.json({
@@ -16900,7 +17687,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: "Enter a creator email and an access period from 1 to 365 days." });
     }
     try {
-      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq11(users.email, email)).limit(1);
+      const [user] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq12(users.email, email)).limit(1);
       if (!user || user.userType !== "creator") return res.status(404).json({ message: "No creator account found for that email." });
       const access = await getCreatorStudioAccess(user.id);
       if (access.hasAccess) return res.status(409).json({ message: "This creator already has active access." });
@@ -16941,7 +17728,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: "Use a temporary password between 12 and 128 characters." });
     }
     try {
-      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq11(users.id, req.params.userId)).limit(1);
+      const [subscriber] = await db.select({ id: users.id, userType: users.userType }).from(users).where(eq12(users.id, req.params.userId)).limit(1);
       if (!subscriber || subscriber.userType !== "creator") return res.status(404).json({ message: "Creator account not found." });
       await storage.resetUserPassword(subscriber.id, password);
       res.json({ success: true });
@@ -16953,7 +17740,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/books", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const books = await db.select().from(creatorBooks).where(eq11(creatorBooks.creatorId, req.user.id)).orderBy(desc9(creatorBooks.updatedAt));
+      const books = await db.select().from(creatorBooks).where(eq12(creatorBooks.creatorId, req.user.id)).orderBy(desc9(creatorBooks.updatedAt));
       res.json(books);
     } catch (error) {
       console.error("Failed to load creator books:", error);
@@ -16981,7 +17768,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.patch("/api/creator-studio/books/:id", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and9(eq12(creatorBooks.id, req.params.id), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (book.status === "published" || book.status === "submitted") {
         return res.status(409).json({ message: "This book is under review or already published and cannot be edited here." });
@@ -17049,7 +17836,7 @@ function registerCreatorPublishingRoutes(app2) {
       if (changes.title !== void 0 && changes.title.length < 2) {
         return res.status(400).json({ message: "Book title must contain at least 2 characters." });
       }
-      const [updated] = await db.update(creatorBooks).set(changes).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.creatorId, req.user.id))).returning();
+      const [updated] = await db.update(creatorBooks).set(changes).where(and9(eq12(creatorBooks.id, book.id), eq12(creatorBooks.creatorId, req.user.id))).returning();
       res.json(updated);
     } catch (error) {
       console.error("Failed to save book:", error);
@@ -17067,7 +17854,7 @@ function registerCreatorPublishingRoutes(app2) {
         generationMessage: creatorBooks.generationMessage,
         generationError: creatorBooks.generationError,
         updatedAt: creatorBooks.updatedAt
-      }).from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+      }).from(creatorBooks).where(and9(eq12(creatorBooks.id, req.params.id), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (["queued", "generating"].includes(book.generationStatus) && book.updatedAt && Date.now() - new Date(book.updatedAt).getTime() > 30 * 60 * 1e3) {
         const message = "This generation was interrupted. Your previous draft is unchanged; you can try again.";
@@ -17077,7 +17864,7 @@ function registerCreatorPublishingRoutes(app2) {
           generationMessage: null,
           generationError: message,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.generationJobId, book.generationJobId || "")));
+        }).where(and9(eq12(creatorBooks.id, book.id), eq12(creatorBooks.generationJobId, book.generationJobId || "")));
         return res.json({ ...book, generationStatus: "failed", generationProgress: 0, generationError: message });
       }
       res.json(book);
@@ -17095,7 +17882,7 @@ function registerCreatorPublishingRoutes(app2) {
     if (prompt.length < 20) return res.status(400).json({ message: "Describe the reader, topic, and outcome in at least 20 characters." });
     if (![4, 6, 8, 10, 12, 16, 20].includes(chapterCount)) return res.status(400).json({ message: "Choose between 4 and 20 chapters." });
     try {
-      const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and9(eq12(creatorBooks.id, req.params.id), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) return res.status(404).json({ message: "Book not found." });
       if (["published", "submitted"].includes(book.status)) {
         return res.status(409).json({ message: "Books submitted for review or already published cannot be regenerated." });
@@ -17119,7 +17906,7 @@ function registerCreatorPublishingRoutes(app2) {
         generationMessage: "Preparing the book generator",
         generationError: null,
         updatedAt: startedAt
-      }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.creatorId, req.user.id)));
+      }).where(and9(eq12(creatorBooks.id, book.id), eq12(creatorBooks.creatorId, req.user.id)));
       const authorName = `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim().slice(0, 160);
       const onProgress = async (progress, message) => {
         await db.update(creatorBooks).set({
@@ -17128,7 +17915,7 @@ function registerCreatorPublishingRoutes(app2) {
           generationMessage: String(message).slice(0, 240),
           generationError: null,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.generationJobId, jobId)));
+        }).where(and9(eq12(creatorBooks.id, book.id), eq12(creatorBooks.generationJobId, jobId)));
       };
       void (async () => {
         try {
@@ -17162,7 +17949,7 @@ function registerCreatorPublishingRoutes(app2) {
             generationMessage: "Complete draft and page designs are ready to edit.",
             generationError: null,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.creatorId, req.user.id), eq11(creatorBooks.generationJobId, jobId)));
+          }).where(and9(eq12(creatorBooks.id, book.id), eq12(creatorBooks.creatorId, req.user.id), eq12(creatorBooks.generationJobId, jobId)));
         } catch (error) {
           const message = String(error?.message || "Book generation failed. Please try again.").slice(0, 500);
           console.error("[ebook-studio] Full book generation failed:", message);
@@ -17172,7 +17959,7 @@ function registerCreatorPublishingRoutes(app2) {
             generationMessage: null,
             generationError: message,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and8(eq11(creatorBooks.id, book.id), eq11(creatorBooks.generationJobId, jobId)));
+          }).where(and9(eq12(creatorBooks.id, book.id), eq12(creatorBooks.generationJobId, jobId)));
         }
       })();
       res.status(202).json({
@@ -17196,7 +17983,7 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: "Upload the finished PDF or EPUB file for sale." });
     }
     try {
-      const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, req.params.id), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+      const [book] = await db.select().from(creatorBooks).where(and9(eq12(creatorBooks.id, req.params.id), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
       if (!book) {
         removeUpload(req.file);
         return res.status(404).json({ message: "Book not found." });
@@ -17252,7 +18039,7 @@ function registerCreatorPublishingRoutes(app2) {
           submittedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
         }).returning();
-        await tx.update(creatorBooks).set({ status: "submitted", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(creatorBooks.id, book.id)).returning();
+        await tx.update(creatorBooks).set({ status: "submitted", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(creatorBooks.id, book.id)).returning();
         return product;
       });
       res.status(201).json({ ...safeProduct(submitted), bookStatus: "submitted" });
@@ -17265,7 +18052,7 @@ function registerCreatorPublishingRoutes(app2) {
   app2.get("/api/creator-studio/products", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const products = await db.select().from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc9(creatorPublishingProducts.updatedAt));
+      const products = await db.select().from(creatorPublishingProducts).where(eq12(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc9(creatorPublishingProducts.updatedAt));
       res.json(products.map(safeProduct));
     } catch (error) {
       console.error("Failed to load creator products:", error);
@@ -17310,9 +18097,9 @@ function registerCreatorPublishingRoutes(app2) {
       return res.status(400).json({ message: validation.error });
     }
     try {
-      const [existing] = await db.select().from(creatorPublishingProducts).where(and8(
-        eq11(creatorPublishingProducts.id, req.params.id),
-        eq11(creatorPublishingProducts.creatorId, req.user.id)
+      const [existing] = await db.select().from(creatorPublishingProducts).where(and9(
+        eq12(creatorPublishingProducts.id, req.params.id),
+        eq12(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!existing) {
         removeUpload(req.file);
@@ -17331,7 +18118,7 @@ function registerCreatorPublishingRoutes(app2) {
         status: "draft",
         reviewNote: null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(creatorPublishingProducts.id, existing.id)).returning();
+      }).where(eq12(creatorPublishingProducts.id, existing.id)).returning();
       if (req.file && existing.fileKey && existing.fileKey !== updated.fileKey) {
         removeUpload({ path: path2.join(PRIVATE_PRODUCT_DIR, path2.basename(existing.fileKey)) });
       }
@@ -17345,9 +18132,9 @@ function registerCreatorPublishingRoutes(app2) {
   app2.post("/api/creator-studio/products/:id/submit", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and8(
-        eq11(creatorPublishingProducts.id, req.params.id),
-        eq11(creatorPublishingProducts.creatorId, req.user.id)
+      const [product] = await db.select().from(creatorPublishingProducts).where(and9(
+        eq12(creatorPublishingProducts.id, req.params.id),
+        eq12(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Digital product not found." });
       if (!["draft", "rejected"].includes(product.status)) {
@@ -17361,7 +18148,7 @@ function registerCreatorPublishingRoutes(app2) {
         reviewNote: null,
         submittedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq11(creatorPublishingProducts.id, product.id)).returning();
+      }).where(eq12(creatorPublishingProducts.id, product.id)).returning();
       res.json(safeProduct(updated));
     } catch (error) {
       console.error("Failed to submit digital product:", error);
@@ -17371,15 +18158,15 @@ function registerCreatorPublishingRoutes(app2) {
   app2.delete("/api/creator-studio/products/:id", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and8(
-        eq11(creatorPublishingProducts.id, req.params.id),
-        eq11(creatorPublishingProducts.creatorId, req.user.id)
+      const [product] = await db.select().from(creatorPublishingProducts).where(and9(
+        eq12(creatorPublishingProducts.id, req.params.id),
+        eq12(creatorPublishingProducts.creatorId, req.user.id)
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Digital product not found." });
       if (!["draft", "rejected"].includes(product.status)) {
         return res.status(409).json({ message: "Only drafts and rejected products can be deleted." });
       }
-      await db.delete(creatorPublishingProducts).where(eq11(creatorPublishingProducts.id, product.id));
+      await db.delete(creatorPublishingProducts).where(eq12(creatorPublishingProducts.id, product.id));
       if (product.fileKey) removeUpload({ path: path2.join(PRIVATE_PRODUCT_DIR, path2.basename(product.fileKey)) });
       res.json({ deleted: true });
     } catch (error) {
@@ -17437,7 +18224,7 @@ Book concept: ${idea}` }
       bookType: creatorBooks.bookType,
       genre: creatorBooks.genre,
       idea: creatorBooks.idea
-    }).from(creatorBooks).where(and8(eq11(creatorBooks.id, bookId), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+    }).from(creatorBooks).where(and9(eq12(creatorBooks.id, bookId), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (!chapterTitle) return res.status(400).json({ message: "Enter a chapter title." });
     try {
@@ -17471,7 +18258,7 @@ Chapter: ${chapterTitle}` }
     if (!ai) return res.status(503).json(groqUnavailableResponse("book metadata generation"));
     const { client, model } = ai;
     const bookId = String(req.body.bookId || "");
-    const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, bookId), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select().from(creatorBooks).where(and9(eq12(creatorBooks.id, bookId), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (book.status === "published" || book.status === "submitted") {
       return res.status(409).json({ message: "Metadata for submitted books is locked." });
@@ -17524,7 +18311,7 @@ Current description: ${book.description || ""}`
     const tool = String(req.body.tool || "");
     const bookId = String(req.body.bookId || "");
     const chapterId = String(req.body.chapterId || "");
-    const [book] = await db.select().from(creatorBooks).where(and8(eq11(creatorBooks.id, bookId), eq11(creatorBooks.creatorId, req.user.id))).limit(1);
+    const [book] = await db.select().from(creatorBooks).where(and9(eq12(creatorBooks.id, bookId), eq12(creatorBooks.creatorId, req.user.id))).limit(1);
     if (!book) return res.status(404).json({ message: "Book not found." });
     if (book.status === "published" || book.status === "submitted") {
       return res.status(409).json({ message: "Writing tools are disabled for submitted or published books." });
@@ -17583,7 +18370,7 @@ ${config.settings.toolPrompts[tool]}` },
   app2.get("/api/admin/publishing-products", isAuthenticated, async (req, res) => {
     if (!isPublishingAdmin2(req.user)) return res.status(403).json({ message: "Publishing admin access required." });
     try {
-      const rows = await db.select().from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.status, "pending_review")).orderBy(desc9(creatorPublishingProducts.submittedAt));
+      const rows = await db.select().from(creatorPublishingProducts).where(eq12(creatorPublishingProducts.status, "pending_review")).orderBy(desc9(creatorPublishingProducts.submittedAt));
       const results = await Promise.all(rows.map(async (product) => {
         const [creator] = await db.select({
           id: users.id,
@@ -17592,8 +18379,8 @@ ${config.settings.toolPrompts[tool]}` },
           email: users.email,
           username: users.username,
           profileImageUrl: users.profileImageUrl
-        }).from(users).where(eq11(users.id, product.creatorId)).limit(1);
-        const [book] = product.bookId ? await db.select().from(creatorBooks).where(eq11(creatorBooks.id, product.bookId)).limit(1) : [void 0];
+        }).from(users).where(eq12(users.id, product.creatorId)).limit(1);
+        const [book] = product.bookId ? await db.select().from(creatorBooks).where(eq12(creatorBooks.id, product.bookId)).limit(1) : [void 0];
         return { ...safeProduct(product), creator, book: book ? { ...book, chapters: book.chapters } : null };
       }));
       res.json(results);
@@ -17658,16 +18445,16 @@ ${config.settings.toolPrompts[tool]}` },
     if (!["approve", "reject"].includes(action)) return res.status(400).json({ message: "Choose approve or reject." });
     if (action === "reject" && !reviewNote) return res.status(400).json({ message: "Add a reason so the creator can revise the submission." });
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.id, req.params.id)).limit(1);
+      const [product] = await db.select().from(creatorPublishingProducts).where(eq12(creatorPublishingProducts.id, req.params.id)).limit(1);
       if (!product) return res.status(404).json({ message: "Publishing submission not found." });
       if (product.status !== "pending_review") return res.status(409).json({ message: "This submission has already been reviewed." });
       const updated = await db.transaction(async (tx) => {
         const [claim] = await tx.update(creatorPublishingProducts).set({
           status: "reviewing",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(and8(
-          eq11(creatorPublishingProducts.id, product.id),
-          eq11(creatorPublishingProducts.status, "pending_review")
+        }).where(and9(
+          eq12(creatorPublishingProducts.id, product.id),
+          eq12(creatorPublishingProducts.status, "pending_review")
         )).returning({ id: creatorPublishingProducts.id });
         if (!claim) throw Object.assign(new Error("This submission has already been reviewed."), { statusCode: 409 });
         let shopProductId = product.shopProductId;
@@ -17688,7 +18475,7 @@ ${config.settings.toolPrompts[tool]}` },
           }).returning({ id: shopProducts.id });
           shopProductId = shopProduct.id;
         } else if (action === "approve" && shopProductId) {
-          await tx.update(shopProducts).set({ isActive: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(shopProducts.id, shopProductId));
+          await tx.update(shopProducts).set({ isActive: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(shopProducts.id, shopProductId));
         }
         const [reviewed] = await tx.update(creatorPublishingProducts).set({
           shopProductId,
@@ -17696,12 +18483,12 @@ ${config.settings.toolPrompts[tool]}` },
           reviewNote: action === "reject" ? reviewNote : null,
           reviewedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq11(creatorPublishingProducts.id, product.id)).returning();
+        }).where(eq12(creatorPublishingProducts.id, product.id)).returning();
         if (product.bookId) {
           await tx.update(creatorBooks).set({
             status: action === "approve" ? "published" : "rejected",
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq11(creatorBooks.id, product.bookId));
+          }).where(eq12(creatorBooks.id, product.bookId));
         }
         return reviewed;
       });
@@ -17754,10 +18541,10 @@ ${config.settings.toolPrompts[tool]}` },
         reviewCount: shopProducts.reviewCount,
         salesCount: shopProducts.salesCount,
         isFeatured: shopProducts.isFeatured
-      }).from(creatorPublishingProducts).innerJoin(shopProducts, eq11(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and8(
-        eq11(creatorPublishingProducts.creatorId, req.params.id),
-        eq11(creatorPublishingProducts.status, "published"),
-        eq11(shopProducts.isActive, true)
+      }).from(creatorPublishingProducts).innerJoin(shopProducts, eq12(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and9(
+        eq12(creatorPublishingProducts.creatorId, req.params.id),
+        eq12(creatorPublishingProducts.status, "published"),
+        eq12(shopProducts.isActive, true)
       )).orderBy(desc9(creatorPublishingProducts.createdAt));
       res.json(rows);
     } catch (error) {
@@ -17778,9 +18565,9 @@ ${config.settings.toolPrompts[tool]}` },
         amazonUrl: creatorPublishingProducts.amazonUrl,
         accessUrl: creatorPublishingProducts.accessUrl,
         creatorId: creatorPublishingProducts.creatorId
-      }).from(creatorPublishingProducts).where(and8(
-        eq11(creatorPublishingProducts.shopProductId, req.params.shopProductId),
-        eq11(creatorPublishingProducts.status, "published")
+      }).from(creatorPublishingProducts).where(and9(
+        eq12(creatorPublishingProducts.shopProductId, req.params.shopProductId),
+        eq12(creatorPublishingProducts.status, "published")
       )).limit(1);
       if (!product) return res.status(404).json({ message: "Publishing product not found." });
       res.json(product);
@@ -17803,13 +18590,13 @@ ${config.settings.toolPrompts[tool]}` },
         amazonUrl: creatorPublishingProducts.amazonUrl,
         accessUrl: creatorPublishingProducts.accessUrl,
         shopProductId: creatorPublishingProducts.shopProductId
-      }).from(purchases).innerJoin(shopProducts, eq11(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq11(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and8(
-        eq11(purchases.userId, req.user.id),
+      }).from(purchases).innerJoin(shopProducts, eq12(purchases.productId, shopProducts.id)).innerJoin(creatorPublishingProducts, eq12(creatorPublishingProducts.shopProductId, shopProducts.id)).where(and9(
+        eq12(purchases.userId, req.user.id),
         inArray7(purchases.status, DOWNLOADABLE_PURCHASE_STATES),
-        eq11(creatorPublishingProducts.status, "published")
+        eq12(creatorPublishingProducts.status, "published")
       )).orderBy(desc9(purchases.paidAt));
       const withCounts = await Promise.all(rows.map(async (row) => {
-        const [downloads] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq11(creatorProductDownloads.purchaseId, row.purchaseId));
+        const [downloads] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq12(creatorProductDownloads.purchaseId, row.purchaseId));
         return { ...row, downloadsRemaining: Math.max(0, 10 - Number(downloads?.total || 0)) };
       }));
       res.json(withCounts);
@@ -17820,18 +18607,18 @@ ${config.settings.toolPrompts[tool]}` },
   });
   app2.get("/api/publishing/download/:publishingProductId", isAuthenticated, async (req, res) => {
     try {
-      const [product] = await db.select().from(creatorPublishingProducts).where(and8(
-        eq11(creatorPublishingProducts.id, req.params.publishingProductId),
-        eq11(creatorPublishingProducts.status, "published")
+      const [product] = await db.select().from(creatorPublishingProducts).where(and9(
+        eq12(creatorPublishingProducts.id, req.params.publishingProductId),
+        eq12(creatorPublishingProducts.status, "published")
       )).limit(1);
       if (!product?.shopProductId || !product.fileKey) return res.status(404).json({ message: "Download not found." });
-      const [purchase] = await db.select().from(purchases).where(and8(
-        eq11(purchases.productId, product.shopProductId),
-        eq11(purchases.userId, req.user.id),
+      const [purchase] = await db.select().from(purchases).where(and9(
+        eq12(purchases.productId, product.shopProductId),
+        eq12(purchases.userId, req.user.id),
         inArray7(purchases.status, DOWNLOADABLE_PURCHASE_STATES)
       )).orderBy(desc9(purchases.paidAt)).limit(1);
       if (!purchase) return res.status(403).json({ message: "A verified purchase is required to download this file." });
-      const [downloadCount] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq11(creatorProductDownloads.purchaseId, purchase.id));
+      const [downloadCount] = await db.select({ total: count3() }).from(creatorProductDownloads).where(eq12(creatorProductDownloads.purchaseId, purchase.id));
       if (Number(downloadCount?.total || 0) >= 10) {
         return res.status(429).json({ message: "This purchase has reached its 10-download limit. Contact support if you need access restored." });
       }
@@ -17862,7 +18649,7 @@ ${config.settings.toolPrompts[tool]}` },
           title: creatorBooks.title,
           status: creatorBooks.status,
           updatedAt: creatorBooks.updatedAt
-        }).from(creatorBooks).where(eq11(creatorBooks.creatorId, req.user.id)).orderBy(desc9(creatorBooks.updatedAt)),
+        }).from(creatorBooks).where(eq12(creatorBooks.creatorId, req.user.id)).orderBy(desc9(creatorBooks.updatedAt)),
         db.select({
           id: creatorPublishingProducts.id,
           title: creatorPublishingProducts.title,
@@ -17872,7 +18659,7 @@ ${config.settings.toolPrompts[tool]}` },
           updatedAt: creatorPublishingProducts.updatedAt,
           bookId: creatorPublishingProducts.bookId,
           shopProductId: creatorPublishingProducts.shopProductId
-        }).from(creatorPublishingProducts).where(eq11(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc9(creatorPublishingProducts.updatedAt))
+        }).from(creatorPublishingProducts).where(eq12(creatorPublishingProducts.creatorId, req.user.id)).orderBy(desc9(creatorPublishingProducts.updatedAt))
       ]);
       const newestProductByBook = /* @__PURE__ */ new Map();
       for (const product of products) {
@@ -17939,7 +18726,7 @@ ${config.settings.toolPrompts[tool]}` },
   app2.get("/api/creator-studio/earnings", isAuthenticated, requireCreatorStudioAccess, async (req, res) => {
     if (!canPublish(req.user)) return res.status(403).json({ message: "Creator accounts only." });
     try {
-      const rows = await db.select().from(creatorProductEarnings).where(eq11(creatorProductEarnings.creatorId, req.user.id)).orderBy(desc9(creatorProductEarnings.createdAt));
+      const rows = await db.select().from(creatorProductEarnings).where(eq12(creatorProductEarnings.creatorId, req.user.id)).orderBy(desc9(creatorProductEarnings.createdAt));
       const sum = (key) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
       res.json({
         totalSales: rows.length,
@@ -17948,7 +18735,7 @@ ${config.settings.toolPrompts[tool]}` },
         referralFees: sum("referralFee").toFixed(2),
         processingFees: sum("processingFee").toFixed(2),
         netEarnings: sum("netAmount").toFixed(2),
-        availableBalance: String((await db.select({ balance: users.availableBalance }).from(users).where(eq11(users.id, req.user.id)).limit(1))[0]?.balance || "0.00"),
+        availableBalance: String((await db.select({ balance: users.availableBalance }).from(users).where(eq12(users.id, req.user.id)).limit(1))[0]?.balance || "0.00"),
         feePercent: await getPublishingFeePercent(),
         sales: rows
       });
@@ -17962,7 +18749,7 @@ ${config.settings.toolPrompts[tool]}` },
 // server/plugin-studio.ts
 init_db();
 import multer3 from "multer";
-import { and as and10, desc as desc11, eq as eq13, isNull, or } from "drizzle-orm";
+import { and as and11, desc as desc11, eq as eq14, isNull as isNull2, or as or2 } from "drizzle-orm";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
 
@@ -18250,7 +19037,7 @@ Review licensing, generated source, WordPress compatibility, security, and the i
 `;
   }
   if (edition !== "core") {
-    const mainEntry = Object.entries(sourceFiles).find(([path7, source]) => !path7.includes("/") && path7.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
+    const mainEntry = Object.entries(sourceFiles).find(([path8, source]) => !path8.includes("/") && path8.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
     if (!mainEntry) throw new Error("The premium package is missing its root plugin entry file.");
     const standalonePaid = edition === "paid";
     const [sourceMainPath, rawSourceMain] = mainEntry;
@@ -20967,8 +21754,8 @@ function buildCourseBridgePaidEdition(project) {
 // server/plugin-licensing.ts
 init_schema();
 init_db();
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes as randomBytes2, timingSafeEqual, hkdfSync } from "node:crypto";
-import { and as and9, desc as desc10, eq as eq12, inArray as inArray8, lte as lte2, sql as sql8 } from "drizzle-orm";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes as randomBytes3, timingSafeEqual, hkdfSync } from "node:crypto";
+import { and as and10, desc as desc10, eq as eq13, inArray as inArray8, lte as lte2, sql as sql8 } from "drizzle-orm";
 init_email_service();
 var DAY = 24 * 60 * 60 * 1e3;
 var MAX_SUPPORT_MESSAGE = 8e3;
@@ -20990,7 +21777,7 @@ function hashLicenseKey(value) {
   return createHash("sha256").update(value.trim().toUpperCase()).digest("hex");
 }
 function encryptLicenseKey(value) {
-  const iv = randomBytes2(12);
+  const iv = randomBytes3(12);
   const cipher = createCipheriv("aes-256-gcm", secretKey("license-key-encryption"), iv);
   const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
   return ["v1", iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), encrypted.toString("base64url")].join(".");
@@ -21004,7 +21791,7 @@ function decryptLicenseKey(value) {
 }
 function makeLicenseKey(slug) {
   const prefix = slug.toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 8) || "PLUGIN";
-  return `TD-${prefix}-${randomBytes2(18).toString("hex").toUpperCase()}`;
+  return `TD-${prefix}-${randomBytes3(18).toString("hex").toUpperCase()}`;
 }
 function addPeriod(from, cadence) {
   const result = new Date(from);
@@ -21085,22 +21872,22 @@ function escapeHtml(value) {
   })[character]);
 }
 async function activatePluginLicenseForPurchase(purchaseId) {
-  const [purchase] = await db.select().from(purchases).where(eq12(purchases.id, purchaseId)).limit(1);
+  const [purchase] = await db.select().from(purchases).where(eq13(purchases.id, purchaseId)).limit(1);
   if (!purchase || !["paid", "approved", "delivered"].includes(purchase.status)) return { issued: false };
-  const [existingLicense] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq12(pluginLicenses.purchaseId, purchase.id)).limit(1);
+  const [existingLicense] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq13(pluginLicenses.purchaseId, purchase.id)).limit(1);
   if (existingLicense) return { issued: false, licenseId: existingLicense.id };
-  const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.shopProductId, purchase.productId)).limit(1);
+  const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.shopProductId, purchase.productId)).limit(1);
   if (!project) return { issued: false };
-  const [product] = await db.select().from(shopProducts).where(eq12(shopProducts.id, purchase.productId)).limit(1);
+  const [product] = await db.select().from(shopProducts).where(eq13(shopProducts.id, purchase.productId)).limit(1);
   const selectedPlan = purchase.selectedAddons?.[0];
   const cadence = selectedPlan?.id === "plugin-monthly" ? "monthly" : selectedPlan?.id === "plugin-yearly" ? "yearly" : null;
   if (!product || !cadence) return { issued: false };
   const key = makeLicenseKey(project.slug);
   const now = /* @__PURE__ */ new Date();
-  const activeLicenses = await db.select().from(pluginLicenses).where(and9(
-    eq12(pluginLicenses.userId, purchase.userId),
-    eq12(pluginLicenses.projectId, project.id),
-    eq12(pluginLicenses.status, "active")
+  const activeLicenses = await db.select().from(pluginLicenses).where(and10(
+    eq13(pluginLicenses.userId, purchase.userId),
+    eq13(pluginLicenses.projectId, project.id),
+    eq13(pluginLicenses.status, "active")
   ));
   const existingExpiry = activeLicenses.reduce((latest, license) => license.expiresAt > now && (!latest || license.expiresAt > latest) ? license.expiresAt : latest, null);
   const startsAt = existingExpiry || now;
@@ -21109,10 +21896,10 @@ async function activatePluginLicenseForPurchase(purchaseId) {
   try {
     created = await db.transaction(async (tx) => {
       if (activeLicenses.length) {
-        await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and9(
-          eq12(pluginLicenses.userId, purchase.userId),
-          eq12(pluginLicenses.projectId, project.id),
-          eq12(pluginLicenses.status, "active")
+        await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and10(
+          eq13(pluginLicenses.userId, purchase.userId),
+          eq13(pluginLicenses.projectId, project.id),
+          eq13(pluginLicenses.status, "active")
         ));
       }
       const [license] = await tx.insert(pluginLicenses).values({
@@ -21138,11 +21925,11 @@ async function activatePluginLicenseForPurchase(purchaseId) {
       return license;
     });
   } catch (error) {
-    const [raced] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq12(pluginLicenses.purchaseId, purchase.id)).limit(1);
+    const [raced] = await db.select({ id: pluginLicenses.id }).from(pluginLicenses).where(eq13(pluginLicenses.purchaseId, purchase.id)).limit(1);
     if (raced) return { issued: false, licenseId: raced.id };
     throw error;
   }
-  const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq12(users.id, purchase.userId)).limit(1);
+  const [buyer] = await db.select({ email: users.email, firstName: users.firstName }).from(users).where(eq13(users.id, purchase.userId)).limit(1);
   if (buyer?.email) {
     const appUrl = publicAppUrl();
     const orderUrl = `${appUrl}/orders/${encodeURIComponent(purchase.id)}`;
@@ -21236,9 +22023,9 @@ async function getPluginLicenseSummaryForPurchase(purchaseId, userId) {
     projectName: pluginStudioProjects.name,
     projectSlug: pluginStudioProjects.slug,
     projectVersion: pluginStudioProjects.version
-  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).where(and9(
-    eq12(pluginLicenses.purchaseId, purchaseId),
-    eq12(pluginLicenses.userId, userId)
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq13(pluginLicenses.projectId, pluginStudioProjects.id)).where(and10(
+    eq13(pluginLicenses.purchaseId, purchaseId),
+    eq13(pluginLicenses.userId, userId)
   )).limit(1);
   if (!row) return null;
   const status = row.license.status === "active" && row.license.expiresAt <= /* @__PURE__ */ new Date() ? "expired" : row.license.status;
@@ -21265,13 +22052,13 @@ async function sendExpiryReminders() {
     projectName: pluginStudioProjects.name,
     email: users.email,
     firstName: users.firstName
-  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(users, eq12(pluginLicenses.userId, users.id)).where(and9(inArray8(pluginLicenses.status, ["active", "expired"]), lte2(pluginLicenses.expiresAt, horizon)));
+  }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq13(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(users, eq13(pluginLicenses.userId, users.id)).where(and10(inArray8(pluginLicenses.status, ["active", "expired"]), lte2(pluginLicenses.expiresAt, horizon)));
   for (const row of rows) {
     const daysLeft = Math.ceil((row.license.expiresAt.getTime() - now.getTime()) / DAY);
     const stage = daysLeft <= 0 ? "expired" : daysLeft <= 1 ? "1day" : "7day";
     if (row.license.reminderStage === stage || stage === "7day" && row.license.reminderStage) continue;
     if (daysLeft <= 0) {
-      await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq12(pluginLicenses.id, row.license.id));
+      await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq13(pluginLicenses.id, row.license.id));
     }
     const result = await sendEmail({
       to: row.email,
@@ -21281,7 +22068,7 @@ async function sendExpiryReminders() {
       html: stage === "expired" ? `<p>Your <strong>${row.projectName}</strong> license has expired and premium plugin features are locked.</p><p>Sign in to Taskdrip, open My Plugins, and renew the license.</p>` : `<p>Your <strong>${row.projectName}</strong> license expires in ${daysLeft} day(s).</p><p>Renew it from My Plugins to avoid interruption.</p>`
     });
     if (result.success) {
-      await db.update(pluginLicenses).set({ reminderStage: stage, updatedAt: now }).where(eq12(pluginLicenses.id, row.license.id));
+      await db.update(pluginLicenses).set({ reminderStage: stage, updatedAt: now }).where(eq13(pluginLicenses.id, row.license.id));
     }
   }
 }
@@ -21293,7 +22080,7 @@ function registerPluginLicenseRoutes(app2, options) {
         license: pluginLicenses,
         project: pluginStudioProjects,
         product: shopProducts
-      }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq12(pluginLicenses.productId, shopProducts.id)).where(eq12(pluginLicenses.userId, req.user.id)).orderBy(desc10(pluginLicenses.createdAt));
+      }).from(pluginLicenses).innerJoin(pluginStudioProjects, eq13(pluginLicenses.projectId, pluginStudioProjects.id)).innerJoin(shopProducts, eq13(pluginLicenses.productId, shopProducts.id)).where(eq13(pluginLicenses.userId, req.user.id)).orderBy(desc10(pluginLicenses.createdAt));
       const licenseIds = rows.map((row) => row.license.id);
       const sites = licenseIds.length ? await db.select().from(pluginLicenseSites).where(inArray8(pluginLicenseSites.licenseId, licenseIds)) : [];
       const events = licenseIds.length ? await db.select({
@@ -21301,7 +22088,7 @@ function registerPluginLicenseRoutes(app2, options) {
         eventType: pluginLicenseEvents.eventType,
         total: sql8`count(*)::int`
       }).from(pluginLicenseEvents).where(inArray8(pluginLicenseEvents.licenseId, licenseIds)).groupBy(pluginLicenseEvents.licenseId, pluginLicenseEvents.eventType) : [];
-      const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and9(eq12(pluginSupportThreads.userId, req.user.id), inArray8(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc10(pluginSupportThreads.updatedAt)) : [];
+      const threads = licenseIds.length ? await db.select().from(pluginSupportThreads).where(and10(eq13(pluginSupportThreads.userId, req.user.id), inArray8(pluginSupportThreads.licenseId, licenseIds))).orderBy(desc10(pluginSupportThreads.updatedAt)) : [];
       const threadIds = threads.map((thread) => thread.id);
       const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray8(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
       const messageGroups = /* @__PURE__ */ new Map();
@@ -21337,9 +22124,9 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/reveal", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and9(
-        eq12(pluginLicenses.id, req.params.id),
-        eq12(pluginLicenses.userId, req.user.id)
+      const [license] = await db.select().from(pluginLicenses).where(and10(
+        eq13(pluginLicenses.id, req.params.id),
+        eq13(pluginLicenses.userId, req.user.id)
       )).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
@@ -21350,10 +22137,10 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and9(
-        eq12(pluginLicenses.id, req.params.id),
-        eq12(pluginLicenses.userId, req.user.id),
-        eq12(pluginLicenses.status, "active")
+      const [license] = await db.select().from(pluginLicenses).where(and10(
+        eq13(pluginLicenses.id, req.params.id),
+        eq13(pluginLicenses.userId, req.user.id),
+        eq13(pluginLicenses.status, "active")
       )).limit(1);
       if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) {
         return res.status(403).json({ message: "An active plugin license is required to download this package." });
@@ -21372,16 +22159,16 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/my/plugin-licenses/:id/support", isAuthenticated, async (req, res) => {
     try {
-      const [license] = await db.select().from(pluginLicenses).where(and9(
-        eq12(pluginLicenses.id, req.params.id),
-        eq12(pluginLicenses.userId, req.user.id)
+      const [license] = await db.select().from(pluginLicenses).where(and10(
+        eq13(pluginLicenses.id, req.params.id),
+        eq13(pluginLicenses.userId, req.user.id)
       )).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       const content = String(req.body?.content || "").trim().slice(0, MAX_SUPPORT_MESSAGE);
       const subject = String(req.body?.subject || "").trim().slice(0, 180);
       const requestType = req.body?.requestType === "update_request" ? "update_request" : "support";
       if (content.length < 2 || !subject) return res.status(400).json({ message: "Add a subject and message." });
-      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, license.projectId)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, license.projectId)).limit(1);
       const [thread] = await db.insert(pluginSupportThreads).values({
         licenseId: license.id,
         projectId: license.projectId,
@@ -21407,12 +22194,12 @@ function registerPluginLicenseRoutes(app2, options) {
       const projects = await db.select({
         project: pluginStudioProjects,
         product: shopProducts
-      }).from(pluginStudioProjects).leftJoin(shopProducts, eq12(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc10(pluginStudioProjects.createdAt));
+      }).from(pluginStudioProjects).leftJoin(shopProducts, eq13(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc10(pluginStudioProjects.createdAt));
       const licenses = await db.select({
         license: pluginLicenses,
         buyerEmail: users.email,
         projectName: pluginStudioProjects.name
-      }).from(pluginLicenses).innerJoin(users, eq12(pluginLicenses.userId, users.id)).innerJoin(pluginStudioProjects, eq12(pluginLicenses.projectId, pluginStudioProjects.id)).orderBy(desc10(pluginLicenses.createdAt));
+      }).from(pluginLicenses).innerJoin(users, eq13(pluginLicenses.userId, users.id)).innerJoin(pluginStudioProjects, eq13(pluginLicenses.projectId, pluginStudioProjects.id)).orderBy(desc10(pluginLicenses.createdAt));
       const sites = await db.select().from(pluginLicenseSites);
       const events = await db.select({
         projectId: pluginLicenseEvents.projectId,
@@ -21424,7 +22211,7 @@ function registerPluginLicenseRoutes(app2, options) {
         productId: purchases.productId,
         amount: purchases.amount,
         selectedAddons: purchases.selectedAddons
-      }).from(purchases).where(and9(
+      }).from(purchases).where(and10(
         inArray8(purchases.productId, productIds),
         inArray8(purchases.status, ["paid", "approved", "delivered"])
       )) : [];
@@ -21495,7 +22282,7 @@ function registerPluginLicenseRoutes(app2, options) {
       if (!projectId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !validCadence(cadence)) {
         return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly or yearly license." });
       }
-      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.id, projectId)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, projectId)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin not found." });
       let licenseServer = null;
       try {
@@ -21506,7 +22293,7 @@ function registerPluginLicenseRoutes(app2, options) {
         return res.status(409).json({ message: "Set a public HTTPS Taskdrip license server URL in this plugin's settings before issuing a WordPress key." });
       }
       if (!project.shopProductId) return res.status(409).json({ message: "This plugin has no linked shop product and cannot receive a license yet." });
-      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq12(shopProducts.id, project.shopProductId)).limit(1);
+      const [product] = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq13(shopProducts.id, project.shopProductId)).limit(1);
       if (!product) return res.status(409).json({ message: "The plugin's shop product is missing. Repair the listing before issuing a license." });
       const [recipient] = await db.select({ id: users.id, email: users.email }).from(users).where(sql8`lower(${users.email}) = ${email}`).limit(1);
       if (!recipient) return res.status(404).json({ message: "No Taskdrip account uses that email. The customer must create an account before a license can be assigned." });
@@ -21562,7 +22349,7 @@ function registerPluginLicenseRoutes(app2, options) {
   app2.post("/api/admin/plugin-studio/licenses/:id/reveal", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
-      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq12(pluginLicenses.id, req.params.id)).limit(1);
+      const [license] = await db.select({ keyEncrypted: pluginLicenses.keyEncrypted }).from(pluginLicenses).where(eq13(pluginLicenses.id, req.params.id)).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       res.json({ licenseKey: decryptLicenseKey(license.keyEncrypted) });
     } catch (error) {
@@ -21577,7 +22364,7 @@ function registerPluginLicenseRoutes(app2, options) {
         thread: pluginSupportThreads,
         projectName: pluginStudioProjects.name,
         buyerEmail: users.email
-      }).from(pluginSupportThreads).innerJoin(pluginStudioProjects, eq12(pluginSupportThreads.projectId, pluginStudioProjects.id)).innerJoin(users, eq12(pluginSupportThreads.userId, users.id)).orderBy(desc10(pluginSupportThreads.updatedAt));
+      }).from(pluginSupportThreads).innerJoin(pluginStudioProjects, eq13(pluginSupportThreads.projectId, pluginStudioProjects.id)).innerJoin(users, eq13(pluginSupportThreads.userId, users.id)).orderBy(desc10(pluginSupportThreads.updatedAt));
       const threadIds = threads.map((row) => row.thread.id);
       const messages2 = threadIds.length ? await db.select().from(pluginSupportMessages).where(inArray8(pluginSupportMessages.threadId, threadIds)).orderBy(pluginSupportMessages.createdAt) : [];
       res.json(threads.map(({ thread, projectName, buyerEmail }) => ({
@@ -21594,10 +22381,10 @@ function registerPluginLicenseRoutes(app2, options) {
   app2.patch("/api/admin/plugin-studio/licenses/:id/revoke", isAuthenticated, async (req, res) => {
     if (!isAdmin5(req.user)) return res.status(403).json({ message: "Admin access required." });
     try {
-      const [license] = await db.select().from(pluginLicenses).where(eq12(pluginLicenses.id, req.params.id)).limit(1);
+      const [license] = await db.select().from(pluginLicenses).where(eq13(pluginLicenses.id, req.params.id)).limit(1);
       if (!license) return res.status(404).json({ message: "License not found." });
       if (license.status !== "active") return res.status(409).json({ message: "Only active licenses can be revoked." });
-      await db.update(pluginLicenses).set({ status: "revoked", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pluginLicenses.id, license.id));
+      await db.update(pluginLicenses).set({ status: "revoked", updatedAt: /* @__PURE__ */ new Date() }).where(eq13(pluginLicenses.id, license.id));
       await bumpEvent(license.projectId, "license_revoked", license.id);
       res.json({ success: true, status: "revoked" });
     } catch (error) {
@@ -21607,7 +22394,7 @@ function registerPluginLicenseRoutes(app2, options) {
   });
   app2.post("/api/plugin-support/:threadId/messages", isAuthenticated, async (req, res) => {
     try {
-      const [thread] = await db.select().from(pluginSupportThreads).where(eq12(pluginSupportThreads.id, req.params.threadId)).limit(1);
+      const [thread] = await db.select().from(pluginSupportThreads).where(eq13(pluginSupportThreads.id, req.params.threadId)).limit(1);
       if (!thread || !isAdmin5(req.user) && thread.userId !== req.user.id) {
         return res.status(404).json({ message: "Support conversation not found." });
       }
@@ -21618,7 +22405,7 @@ function registerPluginLicenseRoutes(app2, options) {
         senderId: req.user.id,
         content
       }).returning();
-      await db.update(pluginSupportThreads).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq12(pluginSupportThreads.id, thread.id));
+      await db.update(pluginSupportThreads).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq13(pluginSupportThreads.id, thread.id));
       res.status(201).json(message);
     } catch (error) {
       console.error("[plugin-license] Could not send support message:", error.message);
@@ -21632,31 +22419,31 @@ function registerPluginLicenseRoutes(app2, options) {
     }
     try {
       const slug = String(req.params.slug).slice(0, 80);
-      const [project] = await db.select().from(pluginStudioProjects).where(eq12(pluginStudioProjects.slug, slug)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.slug, slug)).limit(1);
       if (!project) return res.status(404).json({ valid: false, status: "plugin_not_found" });
       const key = String(req.body?.licenseKey || "").trim().toUpperCase().slice(0, 160);
       const installationId = String(req.body?.installationId || "").trim().slice(0, 120);
       if (!key || !/^[A-Za-z0-9_-]{12,120}$/.test(installationId)) {
         return res.status(400).json({ valid: false, status: "invalid_request" });
       }
-      const [license] = await db.select().from(pluginLicenses).where(and9(
-        eq12(pluginLicenses.keyHash, hashLicenseKey(key)),
-        eq12(pluginLicenses.projectId, project.id)
+      const [license] = await db.select().from(pluginLicenses).where(and10(
+        eq13(pluginLicenses.keyHash, hashLicenseKey(key)),
+        eq13(pluginLicenses.projectId, project.id)
       )).limit(1);
       const now = /* @__PURE__ */ new Date();
       if (!license) return res.status(200).json({ valid: false, status: "invalid_key" });
-      const [site] = await db.select().from(pluginLicenseSites).where(and9(
-        eq12(pluginLicenseSites.licenseId, license.id),
-        eq12(pluginLicenseSites.installationId, installationId)
+      const [site] = await db.select().from(pluginLicenseSites).where(and10(
+        eq13(pluginLicenseSites.licenseId, license.id),
+        eq13(pluginLicenseSites.installationId, installationId)
       )).limit(1);
       if (action === "deactivate") {
-        if (site) await db.update(pluginLicenseSites).set({ status: "inactive", updatedAt: now, lastSeenAt: now }).where(eq12(pluginLicenseSites.id, site.id));
+        if (site) await db.update(pluginLicenseSites).set({ status: "inactive", updatedAt: now, lastSeenAt: now }).where(eq13(pluginLicenseSites.id, site.id));
         await bumpEvent(project.id, "deactivated", license.id, installationId);
         return res.json({ valid: false, status: "deactivated" });
       }
       if (license.status !== "active") return res.status(200).json({ valid: false, status: license.status });
       if (license.expiresAt <= now) {
-        await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq12(pluginLicenses.id, license.id));
+        await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq13(pluginLicenses.id, license.id));
         return res.status(200).json({ valid: false, status: "expired", expiresAt: license.expiresAt });
       }
       const siteUrl = cleanSiteUrl(req.body?.siteUrl);
@@ -21665,9 +22452,9 @@ function registerPluginLicenseRoutes(app2, options) {
         return res.status(200).json({ valid: false, status: "not_activated" });
       }
       if (action === "activate" && (!site || site.status !== "active")) {
-        const activeSites = await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and9(
-          eq12(pluginLicenseSites.licenseId, license.id),
-          eq12(pluginLicenseSites.status, "active")
+        const activeSites = await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and10(
+          eq13(pluginLicenseSites.licenseId, license.id),
+          eq13(pluginLicenseSites.status, "active")
         ));
         if (activeSites.length >= license.maxActivations) {
           return res.status(200).json({ valid: false, status: "activation_limit", activeSites: activeSites.length, maxActivations: license.maxActivations });
@@ -21682,7 +22469,7 @@ function registerPluginLicenseRoutes(app2, options) {
         updatedAt: now
       };
       if (site) {
-        await db.update(pluginLicenseSites).set(values).where(eq12(pluginLicenseSites.id, site.id));
+        await db.update(pluginLicenseSites).set(values).where(eq13(pluginLicenseSites.id, site.id));
       } else {
         await db.insert(pluginLicenseSites).values({ licenseId: license.id, installationId, ...values });
       }
@@ -21696,9 +22483,9 @@ function registerPluginLicenseRoutes(app2, options) {
         status: "active",
         expiresAt: license.expiresAt.toISOString(),
         maxActivations: license.maxActivations,
-        activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and9(
-          eq12(pluginLicenseSites.licenseId, license.id),
-          eq12(pluginLicenseSites.status, "active")
+        activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and10(
+          eq13(pluginLicenseSites.licenseId, license.id),
+          eq13(pluginLicenseSites.status, "active")
         ))).length
       };
       if (action === "check-update") {
@@ -21730,18 +22517,18 @@ function registerPluginLicenseRoutes(app2, options) {
       if (!payload?.licenseId || !payload?.projectId || !payload?.installationId) {
         return res.status(403).json({ message: "This update link has expired. Check for updates again in WordPress." });
       }
-      const [license] = await db.select().from(pluginLicenses).where(and9(
-        eq12(pluginLicenses.id, String(payload.licenseId)),
-        eq12(pluginLicenses.projectId, String(payload.projectId)),
-        eq12(pluginLicenses.status, "active")
+      const [license] = await db.select().from(pluginLicenses).where(and10(
+        eq13(pluginLicenses.id, String(payload.licenseId)),
+        eq13(pluginLicenses.projectId, String(payload.projectId)),
+        eq13(pluginLicenses.status, "active")
       )).limit(1);
       if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) {
         return res.status(403).json({ message: "An active plugin license is required for this update." });
       }
-      const [site] = await db.select().from(pluginLicenseSites).where(and9(
-        eq12(pluginLicenseSites.licenseId, license.id),
-        eq12(pluginLicenseSites.installationId, String(payload.installationId)),
-        eq12(pluginLicenseSites.status, "active")
+      const [site] = await db.select().from(pluginLicenseSites).where(and10(
+        eq13(pluginLicenseSites.licenseId, license.id),
+        eq13(pluginLicenseSites.installationId, String(payload.installationId)),
+        eq13(pluginLicenseSites.status, "active")
       )).limit(1);
       if (!site) return res.status(403).json({ message: "This WordPress installation is no longer activated." });
       const archive = await options.buildPremiumArchive(license.projectId);
@@ -21790,7 +22577,7 @@ async function ensureStarterPlans(productId) {
   const [product] = await db.select({
     price: shopProducts.price,
     serviceAddons: shopProducts.serviceAddons
-  }).from(shopProducts).where(eq13(shopProducts.id, productId)).limit(1);
+  }).from(shopProducts).where(eq14(shopProducts.id, productId)).limit(1);
   if (!product) return;
   const plans = Array.isArray(product.serviceAddons) ? product.serviceAddons : [];
   const monthlyPrice = Number(plans.find((plan) => plan.id === "plugin-monthly")?.price) || Number(product.price) || STARTER_MONTHLY_PRICE;
@@ -21801,7 +22588,7 @@ async function ensureStarterPlans(productId) {
   await db.update(shopProducts).set({
     serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq13(shopProducts.id, productId));
+  }).where(eq14(shopProducts.id, productId));
 }
 function validateZipDirectory(data) {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
@@ -21873,7 +22660,7 @@ function adminOnly(req, res) {
   return true;
 }
 async function ensureStarterProject(adminId) {
-  const [existing] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+  const [existing] = await db.select().from(pluginStudioProjects).where(eq14(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
   const paidEdition = buildCourseBridgePaidEdition(STARTER);
   if (existing) {
     let shopProductId = existing.shopProductId || "";
@@ -21896,11 +22683,11 @@ async function ensureStarterProject(adminId) {
           isFree: false,
           createdBy: adminId
         }).returning();
-        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq13(shopProducts.id, product.id));
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq14(shopProducts.id, product.id));
         return product.id;
       });
     } else {
-      await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq13(shopProducts.id, shopProductId));
+      await db.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${existing.id}/download` }).where(eq14(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
     const refreshLegacyStarter = compareVersions2(existing.version, STARTER.version) < 0 || Object.keys(existing.coreFiles || {}).length > 0 || !existing.premiumFiles?.[`${STARTER.slug}.php`];
@@ -21926,9 +22713,9 @@ async function ensureStarterProject(adminId) {
         coreFiles: {},
         premiumFiles: paidEdition.files,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(pluginStudioProjects.id, existing.id));
+      }).where(eq14(pluginStudioProjects.id, existing.id));
     }
-    const [existingProduct] = await db.select().from(shopProducts).where(eq13(shopProducts.id, shopProductId)).limit(1);
+    const [existingProduct] = await db.select().from(shopProducts).where(eq14(shopProducts.id, shopProductId)).limit(1);
     const productMetadataNeedsSync = existingProduct && (existingProduct.title !== STARTER.name || existingProduct.shortDescription !== STARTER.shortDescription || existingProduct.description !== STARTER.description || existingProduct.featuredImage !== STARTER.featuredImage || JSON.stringify(existingProduct.features || []) !== JSON.stringify(paidEdition.features) || JSON.stringify(existingProduct.requirements || []) !== JSON.stringify(Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10)) || JSON.stringify(existingProduct.tags || []) !== JSON.stringify(["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"]));
     if (productMetadataNeedsSync) {
       await db.update(shopProducts).set({
@@ -21940,7 +22727,7 @@ async function ensureStarterProject(adminId) {
         requirements: Array.from(/* @__PURE__ */ new Set(["WordPress 6.2+", "PHP 7.4+", ...paidEdition.requirements])).slice(0, 10),
         tags: ["LearnPress", "WooCommerce", "WordPress plugin", "course enrollment", "email marketing"],
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(shopProducts.id, shopProductId));
+      }).where(eq14(shopProducts.id, shopProductId));
     }
     return;
   }
@@ -21975,10 +22762,10 @@ async function ensureStarterProject(adminId) {
         status: "draft",
         createdBy: adminId
       }).returning();
-      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq13(shopProducts.id, product.id));
+      await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq14(shopProducts.id, product.id));
     });
   } catch (error) {
-    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq13(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
+    const [created] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq14(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
     if (!created) throw error;
   }
 }
@@ -21994,14 +22781,14 @@ function parseGeneratedPair(content) {
   }
 }
 async function getProjectFiles(id, edition) {
-  const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, id)).limit(1);
+  const [project] = await db.select().from(pluginStudioProjects).where(eq14(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
   const singlePaid = project.templateKey === STARTER.templateKey;
   if (singlePaid && edition === "core" || !singlePaid && edition === "paid") return null;
   const packageEdition = singlePaid ? "paid" : edition;
   const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {
-    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq13(shopProducts.id, project.shopProductId)).limit(1) : [];
+    const [product] = project.shopProductId ? await db.select({ features: shopProducts.features }).from(shopProducts).where(eq14(shopProducts.id, project.shopProductId)).limit(1) : [];
     const release = buildPluginReleaseFiles(
       { ...project, features: product?.features || [] },
       packageEdition,
@@ -22052,9 +22839,9 @@ function registerPluginStudioRoutes(app2) {
       await ensureStarterProject(String(req.user.id));
       const licenseApiBaseUrl = defaultLicenseApiBaseUrl();
       if (licenseApiBaseUrl) {
-        await db.update(pluginStudioProjects).set({ licenseApiBaseUrl, updatedAt: /* @__PURE__ */ new Date() }).where(isNull(pluginStudioProjects.licenseApiBaseUrl));
+        await db.update(pluginStudioProjects).set({ licenseApiBaseUrl, updatedAt: /* @__PURE__ */ new Date() }).where(isNull2(pluginStudioProjects.licenseApiBaseUrl));
       }
-      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq13(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc11(pluginStudioProjects.createdAt));
+      const rows = await db.select({ project: pluginStudioProjects, product: shopProducts }).from(pluginStudioProjects).leftJoin(shopProducts, eq14(pluginStudioProjects.shopProductId, shopProducts.id)).orderBy(desc11(pluginStudioProjects.createdAt));
       res.json(rows.map(({ project, product }) => {
         const {
           sourcePrompt,
@@ -22107,7 +22894,7 @@ function registerPluginStudioRoutes(app2) {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 2) {
         return res.status(400).json({ message: "Use a WordPress-compatible slug containing lowercase letters, numbers, and hyphens." });
       }
-      const [existingProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq13(pluginStudioProjects.slug, slug)).limit(1);
+      const [existingProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq14(pluginStudioProjects.slug, slug)).limit(1);
       if (existingProject) return res.status(409).json({ message: "That plugin slug is already in use. Choose a different slug." });
       const config = await getCreatorStudioAIConfig();
       const ai = config.aiAvailable ? createStudioAIClient(config.model, config.provider, config.endpointUrl) : null;
@@ -22218,7 +23005,7 @@ ${description}`
           status: "draft",
           createdBy: req.user.id
         }).returning();
-        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq13(shopProducts.id, product.id));
+        await tx.update(shopProducts).set({ downloadUrl: `/api/plugin-studio/projects/${project.id}/download` }).where(eq14(shopProducts.id, product.id));
         created = {
           id: project.id,
           slug: project.slug,
@@ -22240,7 +23027,7 @@ ${description}`
   app2.patch("/api/admin/plugin-studio/projects/:id", isAuthenticated, async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq14(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
       const status = req.body?.status;
       if (status !== void 0 && !["draft", "published"].includes(status)) {
@@ -22288,7 +23075,7 @@ ${description}`
       }
       if (status) updates.status = status;
       const nextLicenseUrl = updates.licenseApiBaseUrl !== void 0 ? updates.licenseApiBaseUrl : project.licenseApiBaseUrl;
-      const nextPlans = updates.monthlyPrice !== void 0 ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice) : (await db.select({ serviceAddons: shopProducts.serviceAddons }).from(shopProducts).where(eq13(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
+      const nextPlans = updates.monthlyPrice !== void 0 ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice) : (await db.select({ serviceAddons: shopProducts.serviceAddons }).from(shopProducts).where(eq14(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
       if (status === "published" && (!nextLicenseUrl || !nextPlans.some((plan) => plan.id === "plugin-monthly") || !nextPlans.some((plan) => plan.id === "plugin-yearly"))) {
         return res.status(409).json({ message: "Set a public HTTPS license server URL and both monthly and yearly prices before publishing." });
       }
@@ -22296,19 +23083,19 @@ ${description}`
         const projectUpdates = { ...updates };
         delete projectUpdates.monthlyPrice;
         delete projectUpdates.yearlyPrice;
-        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq13(pluginStudioProjects.id, project.id));
+        await tx.update(pluginStudioProjects).set(projectUpdates).where(eq14(pluginStudioProjects.id, project.id));
         if (projectUpdates.maxActivations !== void 0) {
-          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(pluginLicenses.projectId, project.id));
+          await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: /* @__PURE__ */ new Date() }).where(eq14(pluginLicenses.projectId, project.id));
         }
         if (project.shopProductId && updates.monthlyPrice !== void 0) {
           await tx.update(shopProducts).set({
             price: Number(updates.monthlyPrice).toFixed(2),
             serviceAddons: PLAN_ADDONS(Number(updates.monthlyPrice), Number(updates.yearlyPrice)),
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq13(shopProducts.id, project.shopProductId));
+          }).where(eq14(shopProducts.id, project.shopProductId));
         }
         if (project.shopProductId && status) {
-          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq13(shopProducts.id, project.shopProductId));
+          await tx.update(shopProducts).set({ isActive: status === "published", updatedAt: /* @__PURE__ */ new Date() }).where(eq14(shopProducts.id, project.shopProductId));
         }
       });
       res.json({ success: true, status: status || project.status });
@@ -22348,10 +23135,10 @@ ${description}`
         featuredImage: shopProducts.featuredImage,
         price: shopProducts.price,
         isActive: shopProducts.isActive
-      }).from(pluginStudioProjects).innerJoin(shopProducts, eq13(pluginStudioProjects.shopProductId, shopProducts.id)).where(and10(
-        or(eq13(pluginStudioProjects.shopProductId, key), eq13(pluginStudioProjects.slug, key)),
-        eq13(pluginStudioProjects.status, "published"),
-        eq13(shopProducts.isActive, true)
+      }).from(pluginStudioProjects).innerJoin(shopProducts, eq14(pluginStudioProjects.shopProductId, shopProducts.id)).where(and11(
+        or2(eq14(pluginStudioProjects.shopProductId, key), eq14(pluginStudioProjects.slug, key)),
+        eq14(pluginStudioProjects.status, "published"),
+        eq14(shopProducts.isActive, true)
       )).limit(1);
       res.json(project || null);
     } catch (error) {
@@ -22361,9 +23148,9 @@ ${description}`
   });
   app2.get("/api/plugin-studio/projects/:id/download", isAuthenticated, async (req, res) => {
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq14(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project || !project.shopProductId) return res.status(404).json({ message: "Plugin product not found." });
-      const [product] = await db.select().from(shopProducts).where(eq13(shopProducts.id, project.shopProductId)).limit(1);
+      const [product] = await db.select().from(shopProducts).where(eq14(shopProducts.id, project.shopProductId)).limit(1);
       if (!product || !product.isActive || project.status !== "published") {
         return res.status(404).json({ message: "This plugin is not available for download." });
       }
@@ -22371,10 +23158,10 @@ ${description}`
       const admin2 = isAdmin6(user);
       let licenseId = null;
       if (!admin2) {
-        const [license] = await db.select().from(pluginLicenses).where(and10(
-          eq13(pluginLicenses.userId, user.id),
-          eq13(pluginLicenses.projectId, project.id),
-          eq13(pluginLicenses.status, "active")
+        const [license] = await db.select().from(pluginLicenses).where(and11(
+          eq14(pluginLicenses.userId, user.id),
+          eq14(pluginLicenses.projectId, project.id),
+          eq14(pluginLicenses.status, "active")
         )).limit(1);
         if (!license || license.expiresAt <= /* @__PURE__ */ new Date()) return res.status(403).json({ message: "An active plugin license is required before downloading this package." });
         licenseId = license.id;
@@ -22402,7 +23189,7 @@ ${description}`
   app2.post("/api/admin/plugin-studio/projects/:id/release", isAuthenticated, releaseUpload.single("zip"), async (req, res) => {
     if (!adminOnly(req, res)) return;
     try {
-      const [project] = await db.select().from(pluginStudioProjects).where(eq13(pluginStudioProjects.id, req.params.id)).limit(1);
+      const [project] = await db.select().from(pluginStudioProjects).where(eq14(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
       if (!req.file?.buffer) return res.status(400).json({ message: "Choose a premium plugin ZIP to release." });
       const version = String(req.body?.version || "").trim().slice(0, 30);
@@ -22419,11 +23206,11 @@ ${description}`
       } catch {
         return res.status(400).json({ message: "The premium update ZIP could not be opened." });
       }
-      const entries = Object.entries(filesInZip).filter(([path7]) => !path7.endsWith("/"));
+      const entries = Object.entries(filesInZip).filter(([path8]) => !path8.endsWith("/"));
       if (entries.length > 40) return res.status(400).json({ message: "The uploaded archive has too many files." });
-      const entryPaths = entries.map(([path7]) => path7.replace(/\\/g, "/"));
-      const hasRootFile = entryPaths.some((path7) => !path7.includes("/"));
-      const roots = new Set(entryPaths.map((path7) => path7.split("/")[0]));
+      const entryPaths = entries.map(([path8]) => path8.replace(/\\/g, "/"));
+      const hasRootFile = entryPaths.some((path8) => !path8.includes("/"));
+      const roots = new Set(entryPaths.map((path8) => path8.split("/")[0]));
       const zipRoot = !hasRootFile && roots.size === 1 ? Array.from(roots)[0] : null;
       const premiumFiles = {};
       let totalBytes = 0;
@@ -22439,7 +23226,7 @@ ${description}`
         premiumFiles[sourcePath] = strFromU8(contents);
         if (Object.keys(premiumFiles).length > 12) return res.status(400).json({ message: "A premium update may contain up to 12 PHP, JavaScript, or CSS files." });
       }
-      const hasEntry = Object.entries(premiumFiles).some(([path7, source]) => !path7.includes("/") && path7.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
+      const hasEntry = Object.entries(premiumFiles).some(([path8, source]) => !path8.includes("/") && path8.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
       if (!hasEntry || !Object.keys(premiumFiles).length) {
         return res.status(400).json({ message: "The ZIP must contain a root-level premium plugin PHP entry file." });
       }
@@ -22448,7 +23235,7 @@ ${description}`
         premiumFiles,
         releaseNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq13(pluginStudioProjects.id, project.id));
+      }).where(eq14(pluginStudioProjects.id, project.id));
       res.json({ success: true, version, releaseNotes });
     } catch (error) {
       console.error("[plugin-studio] Could not publish update:", error.message);
@@ -22467,12 +23254,1525 @@ ${description}`
   });
 }
 
-// server/routes.ts
-import { z as z2 } from "zod";
+// server/free-downloads.ts
 import multer4 from "multer";
+import { load } from "cheerio";
+import { randomUUID } from "node:crypto";
+import { mkdirSync as mkdirSync2 } from "node:fs";
+import { stat as stat2, unlink as unlinkAsync } from "node:fs/promises";
+import path3 from "node:path";
+import { z as z2 } from "zod";
+init_db();
+var privateFilesDir = path3.resolve(
+  process.env.FREE_DOWNLOADS_STORAGE_DIR || path3.join(process.cwd(), "private-downloads")
+);
+var publicMediaDir = path3.resolve(process.cwd(), "uploads", "free-downloads");
+mkdirSync2(privateFilesDir, { recursive: true });
+mkdirSync2(publicMediaDir, { recursive: true });
+var allowedFiles = {
+  ".pdf": ["application/pdf"],
+  ".doc": ["application/msword", "application/octet-stream"],
+  ".docx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip", "application/octet-stream"],
+  ".zip": ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
+  ".rar": ["application/vnd.rar", "application/x-rar-compressed", "application/octet-stream"],
+  ".mp3": ["audio/mpeg", "audio/mp3", "application/octet-stream"],
+  ".mp4": ["video/mp4", "application/octet-stream"],
+  ".png": ["image/png"],
+  ".jpg": ["image/jpeg"],
+  ".jpeg": ["image/jpeg"],
+  ".webp": ["image/webp"],
+  ".txt": ["text/plain"],
+  ".pptx": ["application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/zip", "application/octet-stream"],
+  ".xlsx": ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip", "application/octet-stream"],
+  ".apk": ["application/vnd.android.package-archive", "application/octet-stream"],
+  ".exe": ["application/vnd.microsoft.portable-executable", "application/x-msdownload", "application/octet-stream"]
+};
+var allowedImageTypes = {
+  ".jpg": ["image/jpeg"],
+  ".jpeg": ["image/jpeg"],
+  ".png": ["image/png"],
+  ".webp": ["image/webp"]
+};
+var privateFileUpload = multer4({
+  storage: multer4.diskStorage({
+    destination: (_req, _file, callback) => callback(null, privateFilesDir),
+    filename: (_req, file, callback) => {
+      const extension = path3.extname(file.originalname).toLowerCase();
+      callback(null, `${randomUUID()}${extension}`);
+    }
+  }),
+  limits: { fileSize: 500 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, callback) => {
+    const extension = path3.extname(file.originalname).toLowerCase();
+    const accepted = allowedFiles[extension];
+    if (!accepted || !accepted.includes(file.mimetype.toLowerCase())) {
+      return callback(new Error("Unsupported file type or MIME type."));
+    }
+    callback(null, true);
+  }
+});
+var publicImageUpload = multer4({
+  storage: multer4.diskStorage({
+    destination: (_req, _file, callback) => callback(null, publicMediaDir),
+    filename: (_req, file, callback) => {
+      const extension = path3.extname(file.originalname).toLowerCase();
+      callback(null, `${randomUUID()}${extension}`);
+    }
+  }),
+  limits: { fileSize: 12 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, callback) => {
+    const extension = path3.extname(file.originalname).toLowerCase();
+    const accepted = allowedImageTypes[extension];
+    if (!accepted || !accepted.includes(file.mimetype.toLowerCase())) {
+      return callback(new Error("Only JPG, PNG, and WebP images are allowed."));
+    }
+    callback(null, true);
+  }
+});
+var handleUpload = (middleware) => (req, res, next) => {
+  middleware(req, res, (error) => {
+    if (error) return res.status(400).json({ message: error.message || "Upload failed." });
+    next();
+  });
+};
+var uploadDownload = handleUpload(privateFileUpload.single("downloadFile"));
+var uploadImage = handleUpload(publicImageUpload.single("image"));
+var toSlug = (value) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 220) || `download-${Date.now()}`;
+var allowedTags = /* @__PURE__ */ new Set([
+  "a",
+  "blockquote",
+  "br",
+  "code",
+  "div",
+  "em",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+  "img",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "strong",
+  "table",
+  "tbody",
+  "td",
+  "th",
+  "thead",
+  "tr",
+  "u",
+  "ul",
+  "iframe"
+]);
+var voidTags = /* @__PURE__ */ new Set(["br", "hr", "img"]);
+function safeHref(value) {
+  if (!value) return false;
+  if (/^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(value)) return true;
+  return false;
+}
+function sanitizeRichHtml(html) {
+  const $ = load(`<main data-download-content>${html}</main>`);
+  const root = $("main[data-download-content]");
+  root.find("script,style,object,embed,form,button,input,textarea,meta,link,svg,math").remove();
+  root.find("*").each((_index, element) => {
+    const node = $(element);
+    const name = element.tagName.toLowerCase();
+    if (name === "iframe") {
+      const src = node.attr("src") || "";
+      let parsed = null;
+      try {
+        parsed = new URL(src);
+      } catch {
+        parsed = null;
+      }
+      const allowedEmbed = parsed && parsed.protocol === "https:" && (parsed.hostname === "www.youtube-nocookie.com" && parsed.pathname.startsWith("/embed/") || parsed.hostname === "www.youtube.com" && parsed.pathname.startsWith("/embed/") || parsed.hostname === "player.vimeo.com" && parsed.pathname.startsWith("/video/"));
+      if (!allowedEmbed) {
+        node.remove();
+        return;
+      }
+      const attributes2 = element.attribs ? Object.keys(element.attribs) : [];
+      for (const attribute of attributes2) {
+        if (!["src", "title", "allow", "allowfullscreen", "referrerpolicy", "loading"].includes(attribute.toLowerCase())) {
+          node.removeAttr(attribute);
+        }
+      }
+      node.attr("loading", "lazy");
+      node.attr("referrerpolicy", "strict-origin-when-cross-origin");
+      return;
+    }
+    if (!allowedTags.has(name)) {
+      if (!voidTags.has(name)) node.replaceWith(node.contents());
+      else node.remove();
+      return;
+    }
+    const attributes = element.attribs ? Object.keys(element.attribs) : [];
+    for (const attribute of attributes) {
+      const key = attribute.toLowerCase();
+      const allowed = name === "a" && ["href", "target", "rel", "title"].includes(key) || name === "img" && ["src", "alt", "title", "width", "height"].includes(key);
+      if (!allowed) node.removeAttr(attribute);
+    }
+    if (name === "a") {
+      const href = node.attr("href");
+      if (!safeHref(href)) node.removeAttr("href");
+      if (node.attr("target") === "_blank") node.attr("rel", "noopener noreferrer");
+    }
+    if (name === "img") {
+      const src = node.attr("src") || "";
+      let safeImage = src.startsWith("/uploads/free-downloads/");
+      try {
+        safeImage = safeImage || new URL(src).protocol === "https:";
+      } catch {
+      }
+      if (!safeImage) node.remove();
+      node.attr("loading", "lazy");
+      node.attr("decoding", "async");
+    }
+  });
+  return root.html() || "";
+}
+var downloadPayloadSchema = z2.object({
+  title: z2.string().trim().min(3).max(220),
+  slug: z2.string().trim().max(240).optional().default(""),
+  shortDescription: z2.string().trim().max(600).optional().default(""),
+  descriptionHtml: z2.string().max(1e5).optional().default(""),
+  categoryId: z2.string().min(1),
+  subcategoryId: z2.string().optional().nullable().default(null),
+  tags: z2.array(z2.string().trim().min(1).max(48)).max(20).optional().default([]),
+  thumbnailUrl: z2.string().max(1e3).optional().nullable().default(null),
+  galleryUrls: z2.array(z2.string().max(1e3)).max(12).optional().default([]),
+  previewVideoUrl: z2.string().max(1e3).optional().nullable().default(null),
+  externalDemoUrl: z2.string().max(1e3).optional().nullable().default(null),
+  format: z2.string().trim().max(40).optional().default(""),
+  fileSizeBytes: z2.number().int().min(0).max(5e9).nullable().optional().default(null),
+  version: z2.string().trim().max(80).optional().default(""),
+  creator: z2.string().trim().max(180).optional().default(""),
+  releaseDate: z2.string().trim().max(10).optional().nullable().default(null),
+  systemRequirements: z2.string().max(5e3).optional().default(""),
+  installationInstructions: z2.string().max(1e4).optional().default(""),
+  features: z2.array(z2.string().trim().min(1).max(300)).max(30).optional().default([]),
+  preacherId: z2.string().optional().nullable().default(null),
+  externalDownloadUrl: z2.string().max(1500).optional().nullable().default(null),
+  seoTitle: z2.string().trim().max(220).optional().default(""),
+  seoDescription: z2.string().trim().max(320).optional().default(""),
+  focusKeyword: z2.string().trim().max(160).optional().default(""),
+  canonicalUrl: z2.string().max(1e3).optional().nullable().default(null),
+  ogTitle: z2.string().trim().max(220).optional().default(""),
+  ogDescription: z2.string().trim().max(320).optional().default(""),
+  ogImage: z2.string().max(1e3).optional().nullable().default(null),
+  publicationStatus: z2.enum(["draft", "preview", "published"]).optional().default("draft"),
+  isFeatured: z2.boolean().optional().default(false)
+});
+var categorySchema = z2.object({
+  name: z2.string().trim().min(2).max(120),
+  slug: z2.string().trim().max(140).optional().default(""),
+  description: z2.string().max(1e3).optional().default(""),
+  imageUrl: z2.string().max(1e3).optional().nullable().default(null),
+  sortOrder: z2.coerce.number().int().min(0).max(1e4).optional().default(0),
+  isActive: z2.boolean().optional().default(true)
+});
+var preacherSchema = z2.object({
+  fullName: z2.string().trim().min(2).max(180),
+  slug: z2.string().trim().max(200).optional().default(""),
+  photographUrl: z2.string().max(1e3).optional().nullable().default(null),
+  biography: z2.string().max(1e4).optional().default(""),
+  ministryName: z2.string().trim().max(180).optional().default("")
+});
+var requestSchema = z2.object({
+  resourceTitle: z2.string().trim().min(3).max(220),
+  categoryName: z2.string().trim().min(2).max(120),
+  description: z2.string().trim().min(10).max(3e3),
+  preferredFormat: z2.string().trim().max(80).optional().default(""),
+  referenceUrl: z2.string().trim().max(1e3).optional().nullable().default(null),
+  additionalComments: z2.string().trim().max(2e3).optional().default(""),
+  website: z2.string().max(0).optional()
+});
+function getPayload(req) {
+  if (typeof req.body?.payload === "string") {
+    try {
+      return JSON.parse(req.body.payload);
+    } catch {
+      return null;
+    }
+  }
+  return req.body?.payload || req.body || {};
+}
+function safeExternalUrl(value, allowRelative = false) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const input = value.trim();
+  if (allowRelative && input.startsWith("/") && !input.startsWith("//")) return input;
+  try {
+    const parsed = new URL(input);
+    return parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+function publicDownload(row, unlocked = false) {
+  return {
+    id: row.id,
+    downloadCode: row.download_code || "",
+    title: row.title,
+    slug: row.slug,
+    shortDescription: row.short_description || "",
+    categoryId: row.category_id,
+    categoryName: row.category_name || row.categoryName || "",
+    categorySlug: row.category_slug || row.categorySlug || "",
+    subcategoryId: row.subcategory_id || null,
+    subcategoryName: row.subcategory_name || row.subcategoryName || null,
+    tags: row.tags || [],
+    thumbnailUrl: row.thumbnail_url || null,
+    previewVideoUrl: row.preview_video_url || null,
+    format: row.format || "",
+    fileSizeBytes: row.source_size_bytes ? Number(row.source_size_bytes) : null,
+    version: row.version || "",
+    creator: row.creator || "",
+    releaseDate: row.release_date || null,
+    preacherId: row.preacher_id || null,
+    preacherName: row.preacher_name || row.preacherName || null,
+    preacherSlug: row.preacher_slug || row.preacherSlug || null,
+    isFeatured: Boolean(row.is_featured),
+    downloadCount: Number(row.download_count || 0),
+    publishedAt: row.published_at || row.created_at,
+    isUnlocked: unlocked
+  };
+}
+function adminDownload(row) {
+  return {
+    ...publicDownload(row),
+    shortDescription: row.short_description || "",
+    descriptionHtml: row.description_html || "",
+    galleryUrls: row.gallery_urls || [],
+    previewVideoUrl: row.preview_video_url || "",
+    externalDemoUrl: row.external_demo_url || "",
+    systemRequirements: row.system_requirements || "",
+    installationInstructions: row.installation_instructions || "",
+    features: row.features || [],
+    sourceFileName: row.source_file_name || "",
+    sourceMimeType: row.source_mime_type || "",
+    hasPrivateFile: Boolean(row.source_file_key),
+    externalDownloadUrl: row.external_download_url || "",
+    seoTitle: row.seo_title || "",
+    seoDescription: row.seo_description || "",
+    focusKeyword: row.focus_keyword || "",
+    canonicalUrl: row.canonical_url || "",
+    ogTitle: row.og_title || "",
+    ogDescription: row.og_description || "",
+    ogImage: row.og_image || "",
+    publicationStatus: row.publication_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+var detailSelect = `
+  d.*,
+  c.name AS category_name, c.slug AS category_slug,
+  s.name AS subcategory_name,
+  p.full_name AS preacher_name, p.slug AS preacher_slug,
+  p.photograph_url AS preacher_photograph_url,
+  p.biography AS preacher_biography, p.ministry_name AS preacher_ministry_name
+`;
+var detailJoins = `
+  FROM free_download_items d
+  JOIN free_download_categories c ON c.id = d.category_id
+  LEFT JOIN free_download_subcategories s ON s.id = d.subcategory_id
+  LEFT JOIN free_download_preachers p ON p.id = d.preacher_id
+`;
+async function addEvent(type, downloadId, userId, dedupe = false) {
+  const id = randomUUID();
+  const sql17 = dedupe ? `INSERT INTO free_download_events (id, user_id, download_id, event_type)
+       SELECT $1, $2, $3, $4
+       WHERE NOT EXISTS (
+         SELECT 1 FROM free_download_events
+         WHERE user_id = $2 AND download_id = $3 AND event_type = $4
+           AND created_at > NOW() - INTERVAL '30 minutes'
+       )
+       RETURNING id` : `INSERT INTO free_download_events (id, user_id, download_id, event_type)
+       VALUES ($1, $2, $3, $4) RETURNING id`;
+  const result = await pool2.query(sql17, [id, userId, downloadId, type]);
+  return result.rows[0]?.id;
+}
+async function getPublishedBySlug(slug) {
+  const result = await pool2.query(
+    `SELECT ${detailSelect} ${detailJoins}
+     WHERE d.slug = $1 AND d.publication_status = 'published' AND c.is_active = TRUE LIMIT 1`,
+    [slug]
+  );
+  return result.rows[0];
+}
+async function getAnyBySlug(slug) {
+  const result = await pool2.query(
+    `SELECT ${detailSelect} ${detailJoins}
+     WHERE d.slug = $1 AND c.is_active = TRUE LIMIT 1`,
+    [slug]
+  );
+  return result.rows[0];
+}
+async function getAdSettings() {
+  const result = await pool2.query(
+    `SELECT smartlink_url, ad_requirement_enabled, telegram_url
+     FROM free_download_settings WHERE id = 'default' LIMIT 1`
+  );
+  return result.rows[0] || { smartlink_url: "", ad_requirement_enabled: false, telegram_url: "https://t.me/taskdrip" };
+}
+async function fullDownloadDetail(row, settings, unlocked, adminPreview = false) {
+  const related = await pool2.query(
+    `SELECT ${detailSelect} ${detailJoins}
+     WHERE d.publication_status='published' AND d.category_id=$1 AND d.id<>$2 AND c.is_active=TRUE
+     ORDER BY d.is_featured DESC, d.download_count DESC LIMIT 4`,
+    [row.category_id, row.id]
+  );
+  return {
+    ...publicDownload(row, unlocked),
+    descriptionHtml: row.description_html || "",
+    galleryUrls: row.gallery_urls || [],
+    previewVideoUrl: row.preview_video_url || "",
+    externalDemoUrl: row.external_demo_url || "",
+    systemRequirements: row.system_requirements || "",
+    installationInstructions: row.installation_instructions || "",
+    features: row.features || [],
+    preacher: row.preacher_id ? {
+      id: row.preacher_id,
+      fullName: row.preacher_name,
+      slug: row.preacher_slug,
+      photographUrl: row.preacher_photograph_url,
+      biography: row.preacher_biography,
+      ministryName: row.preacher_ministry_name
+    } : null,
+    isUnlocked: unlocked,
+    adRequired: adminPreview ? false : Boolean(settings.ad_requirement_enabled),
+    smartlinkConfigured: Boolean(settings.smartlink_url),
+    telegramUrl: settings.telegram_url,
+    publicationStatus: row.publication_status,
+    adminPreview,
+    seo: {
+      title: row.seo_title || row.title,
+      description: row.seo_description || row.short_description,
+      focusKeyword: row.focus_keyword,
+      canonicalUrl: row.canonical_url,
+      ogTitle: row.og_title || row.seo_title || row.title,
+      ogDescription: row.og_description || row.seo_description || row.short_description,
+      ogImage: row.og_image || row.thumbnail_url
+    },
+    related: related.rows.map((item) => publicDownload(item))
+  };
+}
+async function saveDownload(req, res, id) {
+  const rawPayload = getPayload(req);
+  const parsed = downloadPayloadSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.issues[0]?.message || "Invalid download details." });
+  }
+  const data = parsed.data;
+  const slug = toSlug(data.slug || data.title);
+  const externalDownloadUrl = safeExternalUrl(data.externalDownloadUrl);
+  const thumbnailUrl = safeExternalUrl(data.thumbnailUrl, true);
+  const ogImage = safeExternalUrl(data.ogImage, true);
+  const canonicalUrl = safeExternalUrl(data.canonicalUrl);
+  const previewVideoUrl = safeExternalUrl(data.previewVideoUrl);
+  const externalDemoUrl = safeExternalUrl(data.externalDemoUrl);
+  const galleryUrls = data.galleryUrls.map((url) => safeExternalUrl(url, true));
+  if (data.externalDownloadUrl && !externalDownloadUrl) return res.status(400).json({ message: "The external download link must use HTTPS." });
+  if (data.thumbnailUrl && !thumbnailUrl) return res.status(400).json({ message: "The cover image must use HTTPS or a local upload URL." });
+  if (data.ogImage && !ogImage) return res.status(400).json({ message: "The Open Graph image URL is invalid." });
+  if (data.canonicalUrl && !canonicalUrl) return res.status(400).json({ message: "The canonical URL must use HTTPS." });
+  if (data.previewVideoUrl && !previewVideoUrl) return res.status(400).json({ message: "The preview video URL must use HTTPS." });
+  if (data.externalDemoUrl && !externalDemoUrl) return res.status(400).json({ message: "The demo URL must use HTTPS." });
+  if (galleryUrls.some((url) => !url)) return res.status(400).json({ message: "Gallery images must use HTTPS or local upload URLs." });
+  const category = await pool2.query(
+    "SELECT id FROM free_download_categories WHERE id = $1 AND is_active = TRUE LIMIT 1",
+    [data.categoryId]
+  );
+  if (!category.rowCount) return res.status(400).json({ message: "Choose an active category." });
+  if (data.subcategoryId) {
+    const subcategory = await pool2.query(
+      "SELECT id FROM free_download_subcategories WHERE id = $1 AND category_id = $2 LIMIT 1",
+      [data.subcategoryId, data.categoryId]
+    );
+    if (!subcategory.rowCount) return res.status(400).json({ message: "The selected subcategory does not belong to this category." });
+  }
+  if (data.preacherId) {
+    const preacher = await pool2.query("SELECT id FROM free_download_preachers WHERE id = $1 LIMIT 1", [data.preacherId]);
+    if (!preacher.rowCount) return res.status(400).json({ message: "Choose a valid preacher profile." });
+  }
+  const previous = id ? (await pool2.query("SELECT * FROM free_download_items WHERE id = $1 LIMIT 1", [id])).rows[0] : null;
+  if (id && !previous) return res.status(404).json({ message: "Download not found." });
+  const effectiveExternalUrl = externalDownloadUrl || (id && !Object.prototype.hasOwnProperty.call(rawPayload, "externalDownloadUrl") ? previous?.external_download_url || null : null);
+  const uploaded = req.file;
+  const fileKey = uploaded?.filename || previous?.source_file_key || null;
+  const fileName = uploaded ? path3.basename(uploaded.originalname).replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 255) : previous?.source_file_name || null;
+  const mimeType = uploaded?.mimetype || previous?.source_mime_type || null;
+  const sizeBytes = uploaded?.size ?? data.fileSizeBytes ?? previous?.source_size_bytes ?? null;
+  if (data.publicationStatus === "published" && !fileKey && !effectiveExternalUrl) {
+    return res.status(400).json({ message: "Add a downloadable file or HTTPS download URL before publishing." });
+  }
+  const descriptionHtml = sanitizeRichHtml(data.descriptionHtml);
+  const values = [
+    data.title,
+    slug,
+    data.shortDescription,
+    descriptionHtml,
+    data.categoryId,
+    data.subcategoryId || null,
+    data.tags.map((tag) => tag.trim()).filter(Boolean),
+    thumbnailUrl,
+    galleryUrls.filter(Boolean),
+    previewVideoUrl,
+    data.format || (uploaded ? path3.extname(uploaded.originalname).slice(1).toUpperCase() : ""),
+    data.version,
+    data.creator,
+    data.releaseDate || null,
+    data.systemRequirements,
+    data.installationInstructions,
+    data.features,
+    data.preacherId || null,
+    fileKey,
+    fileName,
+    mimeType,
+    sizeBytes,
+    effectiveExternalUrl,
+    data.seoTitle || data.title,
+    data.seoDescription || data.shortDescription,
+    data.focusKeyword,
+    canonicalUrl,
+    data.ogTitle || data.seoTitle || data.title,
+    data.ogDescription || data.seoDescription || data.shortDescription,
+    ogImage || thumbnailUrl,
+    data.publicationStatus,
+    data.isFeatured,
+    externalDemoUrl
+  ];
+  try {
+    let result;
+    if (id) {
+      result = await pool2.query(
+        `UPDATE free_download_items SET
+          title=$1, slug=$2, short_description=$3, description_html=$4, category_id=$5,
+          subcategory_id=$6, tags=$7, thumbnail_url=$8, gallery_urls=$9, preview_video_url=$10,
+          format=$11, version=$12, creator=$13, release_date=$14, system_requirements=$15,
+          installation_instructions=$16, features=$17, preacher_id=$18, source_file_key=$19,
+          source_file_name=$20, source_mime_type=$21, source_size_bytes=$22, external_download_url=$23,
+          seo_title=$24, seo_description=$25, focus_keyword=$26, canonical_url=$27, og_title=$28,
+          og_description=$29, og_image=$30, publication_status=$31, is_featured=$32,
+          external_demo_url=$33,
+          published_at=CASE WHEN $31 = 'published' THEN COALESCE(published_at, NOW()) ELSE NULL END,
+          updated_at=NOW()
+        WHERE id=$34 RETURNING *`,
+        [...values, id]
+      );
+    } else {
+      result = await pool2.query(
+        `INSERT INTO free_download_items (
+          id, title, slug, short_description, description_html, category_id, subcategory_id, tags,
+          thumbnail_url, gallery_urls, preview_video_url, format, version, creator, release_date,
+          system_requirements, installation_instructions, features, preacher_id, source_file_key,
+          source_file_name, source_mime_type, source_size_bytes, external_download_url, seo_title,
+          seo_description, focus_keyword, canonical_url, og_title, og_description, og_image,
+          publication_status, is_featured, external_demo_url, created_by, published_at
+        ) VALUES (
+          $33, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+          $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32,
+          $34, $35, CASE WHEN $31 = 'published' THEN NOW() ELSE NULL END
+        ) RETURNING *`,
+        [...values.slice(0, 32), randomUUID(), externalDemoUrl, req.user?.id || null]
+      );
+    }
+    if (uploaded && previous?.source_file_key && previous.source_file_key !== uploaded.filename) {
+      await deletePrivateFileIfUnused(previous.source_file_key, id);
+    }
+    return res.status(id ? 200 : 201).json(adminDownload(result.rows[0]));
+  } catch (error) {
+    if (uploaded) await unlinkAsync(path3.join(privateFilesDir, uploaded.filename)).catch(() => {
+    });
+    if (error?.code === "23505") return res.status(409).json({ message: "That download URL is already in use. Choose a different title or slug." });
+    console.error("[free-downloads] Save failed:", error);
+    return res.status(500).json({ message: "Could not save this download." });
+  }
+}
+async function deletePrivateFileIfUnused(key, exceptId) {
+  if (!/^[a-f0-9-]{36}\.[a-z0-9]{1,8}$/i.test(key)) return;
+  const result = await pool2.query(
+    `SELECT 1 FROM free_download_items WHERE source_file_key = $1 ${exceptId ? "AND id <> $2" : ""} LIMIT 1`,
+    exceptId ? [key, exceptId] : [key]
+  );
+  if (!result.rowCount) await unlinkAsync(path3.join(privateFilesDir, key)).catch(() => {
+  });
+}
+function parseLimit(value, fallback, maximum) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? Math.min(number, maximum) : fallback;
+}
+function registerFreeDownloadsRoutes(app2) {
+  app2.get("/api/free-downloads/categories", async (_req, res) => {
+    try {
+      const result = await pool2.query(
+        `SELECT c.id, c.name, c.slug, c.description, c.image_url AS "imageUrl",
+                c.sort_order AS "sortOrder", COUNT(d.id)::int AS "downloadCount",
+                COALESCE((
+                  SELECT json_agg(json_build_object('id',s.id,'name',s.name,'slug',s.slug,'sortOrder',s.sort_order)
+                    ORDER BY s.sort_order,s.name)
+                  FROM free_download_subcategories s WHERE s.category_id=c.id
+                ), '[]'::json) AS subcategories
+         FROM free_download_categories c
+         LEFT JOIN free_download_items d
+           ON d.category_id = c.id AND d.publication_status = 'published'
+         WHERE c.is_active = TRUE
+         GROUP BY c.id
+         ORDER BY c.sort_order, c.name`
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error("[free-downloads] Category listing failed:", error);
+      res.status(503).json({ message: "Download categories are temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/home", async (_req, res) => {
+    try {
+      const [categories, slides, featured, trending, recent, popular] = await Promise.all([
+        pool2.query(
+          `SELECT c.id, c.name, c.slug, c.description, c.image_url AS "imageUrl",
+                  c.sort_order AS "sortOrder", COUNT(d.id)::int AS "downloadCount"
+           FROM free_download_categories c
+           LEFT JOIN free_download_items d ON d.category_id=c.id AND d.publication_status='published'
+           WHERE c.is_active=TRUE GROUP BY c.id ORDER BY c.sort_order, c.name`
+        ),
+        pool2.query(
+          `SELECT id, title, description, image_url AS "imageUrl", cta_label AS "ctaLabel", cta_url AS "ctaUrl"
+           FROM free_download_slides WHERE is_active=TRUE ORDER BY sort_order, created_at DESC LIMIT 8`
+        ),
+        pool2.query(
+          `SELECT ${detailSelect} ${detailJoins}
+           WHERE d.publication_status='published' AND d.is_featured=TRUE AND c.is_active=TRUE
+           ORDER BY d.published_at DESC NULLS LAST LIMIT 8`
+        ),
+        pool2.query(
+          `SELECT ${detailSelect} ${detailJoins}
+           WHERE d.publication_status='published' AND c.is_active=TRUE
+           ORDER BY d.download_count DESC, d.published_at DESC NULLS LAST LIMIT 8`
+        ),
+        pool2.query(
+          `SELECT ${detailSelect} ${detailJoins}
+           WHERE d.publication_status='published' AND c.is_active=TRUE
+           ORDER BY d.published_at DESC NULLS LAST LIMIT 8`
+        ),
+        pool2.query(
+          `SELECT ${detailSelect} ${detailJoins}
+           WHERE d.publication_status='published' AND c.is_active=TRUE
+           ORDER BY d.download_count DESC, d.published_at DESC NULLS LAST LIMIT 8`
+        )
+      ]);
+      const slidesOut = slides.rows.length ? slides.rows : [{
+        id: "free-downloads-default-slide",
+        title: "Everything You Need, All in One Place.",
+        description: "Discover free software, AI tools, entertainment, educational resources and digital downloads.",
+        imageUrl: "",
+        ctaLabel: "Explore downloads",
+        ctaUrl: "/downloads"
+      }];
+      res.json({
+        categories: categories.rows,
+        slides: slidesOut,
+        featured: featured.rows.map((row) => publicDownload(row)),
+        trending: trending.rows.map((row) => publicDownload(row)),
+        recent: recent.rows.map((row) => publicDownload(row)),
+        popular: popular.rows.map((row) => publicDownload(row))
+      });
+    } catch (error) {
+      console.error("[free-downloads] Homepage data failed:", error);
+      res.status(503).json({ message: "Free Downloads is temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/suggestions", async (req, res) => {
+    try {
+      const q = String(req.query.q || "").trim().slice(0, 100);
+      if (q.length < 2) return res.json({ suggestions: [] });
+      const result = await pool2.query(
+        `SELECT d.title, d.slug, d.download_code AS "downloadCode", c.name AS "categoryName"
+         FROM free_download_items d JOIN free_download_categories c ON c.id=d.category_id
+         WHERE d.publication_status='published' AND c.is_active=TRUE
+           AND (d.download_code ILIKE $1 OR d.title ILIKE $1 OR d.short_description ILIKE $1 OR array_to_string(d.tags, ' ') ILIKE $1)
+         ORDER BY CASE WHEN UPPER(d.download_code)=UPPER($2) THEN 0 ELSE 1 END,
+           d.is_featured DESC, d.download_count DESC LIMIT 8`,
+        [`%${q}%`, q]
+      );
+      res.json({ suggestions: result.rows });
+    } catch (error) {
+      console.error("[free-downloads] Suggestions failed:", error);
+      res.status(503).json({ message: "Search suggestions are temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/by-code/:code", async (req, res) => {
+    const code = String(req.params.code || "").trim().toUpperCase();
+    if (!/^TFD\d{2,}$/.test(code)) return res.status(404).json({ message: "Download code not found." });
+    try {
+      const result = await pool2.query(
+        `SELECT d.slug,d.download_code AS "downloadCode",d.title
+         FROM free_download_items d
+         JOIN free_download_categories c ON c.id=d.category_id
+         WHERE UPPER(d.download_code)=$1 AND d.publication_status='published' AND c.is_active=TRUE
+         LIMIT 1`,
+        [code]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Download code not found." });
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("[free-downloads] Code lookup failed:", error);
+      res.status(503).json({ message: "Download code lookup is temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/preachers/suggestions", async (req, res) => {
+    try {
+      const q = String(req.query.q || "").trim().slice(0, 100);
+      if (q.length < 2) return res.json({ suggestions: [] });
+      const result = await pool2.query(
+        `SELECT id, full_name AS "fullName", slug, photograph_url AS "photographUrl",
+                ministry_name AS "ministryName"
+         FROM free_download_preachers WHERE full_name ILIKE $1 ORDER BY full_name LIMIT 8`,
+        [`%${q}%`]
+      );
+      res.json({ suggestions: result.rows });
+    } catch (error) {
+      console.error("[free-downloads] Preacher suggestions failed:", error);
+      res.status(503).json({ message: "Preacher suggestions are temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/preachers/:slug", async (req, res) => {
+    try {
+      const preacherResult = await pool2.query(
+        `SELECT id,full_name AS "fullName",slug,photograph_url AS "photographUrl",
+                biography,ministry_name AS "ministryName"
+         FROM free_download_preachers WHERE slug=$1 LIMIT 1`,
+        [req.params.slug]
+      );
+      const preacher = preacherResult.rows[0];
+      if (!preacher) return res.status(404).json({ message: "Preacher profile not found." });
+      const sermons = await pool2.query(
+        `SELECT ${detailSelect} ${detailJoins}
+         WHERE d.publication_status='published' AND d.preacher_id=$1
+         ORDER BY d.published_at DESC NULLS LAST LIMIT 48`,
+        [preacher.id]
+      );
+      res.json({ preacher, sermons: sermons.rows.map((row) => publicDownload(row)) });
+    } catch (error) {
+      console.error("[free-downloads] Preacher profile failed:", error);
+      res.status(503).json({ message: "Preacher profile is temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads", async (req, res) => {
+    try {
+      const page2 = parseLimit(req.query.page, 1, 1e5);
+      const limit = parseLimit(req.query.limit, 12, 48);
+      const values = [];
+      const conditions = ["d.publication_status='published'", "c.is_active=TRUE"];
+      const add = (value) => {
+        values.push(value);
+        return `$${values.length}`;
+      };
+      const q = String(req.query.q || "").trim().slice(0, 120);
+      if (q) {
+        const p = add(`%${q}%`);
+        conditions.push(`(d.title ILIKE ${p} OR d.short_description ILIKE ${p}
+          OR d.download_code ILIKE ${p} OR d.description_html ILIKE ${p} OR array_to_string(d.tags, ' ') ILIKE ${p}
+          OR COALESCE(p.full_name, '') ILIKE ${p} OR d.format ILIKE ${p})`);
+      }
+      if (req.query.category) conditions.push(`c.slug = ${add(String(req.query.category).slice(0, 140))}`);
+      if (req.query.subcategory) conditions.push(`s.slug = ${add(String(req.query.subcategory).slice(0, 140))}`);
+      if (req.query.format) conditions.push(`d.format ILIKE ${add(String(req.query.format).slice(0, 40))}`);
+      if (req.query.preacher) conditions.push(`p.slug = ${add(String(req.query.preacher).slice(0, 200))}`);
+      if (req.query.minSize) conditions.push(`COALESCE(d.source_size_bytes, 0) >= ${add(Math.max(0, Number(req.query.minSize) || 0))}`);
+      if (req.query.maxSize) conditions.push(`COALESCE(d.source_size_bytes, 0) <= ${add(Math.max(0, Number(req.query.maxSize) || 0))}`);
+      if (req.query.from) conditions.push(`d.published_at >= ${add(String(req.query.from).slice(0, 32))}::timestamptz`);
+      if (req.query.to) conditions.push(`d.published_at < (${add(String(req.query.to).slice(0, 32))}::date + INTERVAL '1 day')`);
+      if (String(req.query.featured) === "true") conditions.push("d.is_featured=TRUE");
+      const where = conditions.join(" AND ");
+      const orderBy = {
+        latest: "d.published_at DESC NULLS LAST, d.title ASC",
+        popular: "d.download_count DESC, d.published_at DESC NULLS LAST",
+        alphabetical: "d.title ASC",
+        trending: "d.download_count DESC, d.created_at DESC",
+        oldest: "d.published_at ASC NULLS LAST"
+      };
+      const sort = String(req.query.sort || "latest");
+      const offset = (page2 - 1) * limit;
+      const countResult = await pool2.query(
+        `SELECT COUNT(*)::int AS total
+         FROM free_download_items d
+         JOIN free_download_categories c ON c.id=d.category_id
+         LEFT JOIN free_download_subcategories s ON s.id=d.subcategory_id
+         LEFT JOIN free_download_preachers p ON p.id=d.preacher_id
+         ${`WHERE ${where}`}`,
+        values
+      );
+      const listValues = [...values, q, limit, offset];
+      const results = await pool2.query(
+        `SELECT ${detailSelect} ${detailJoins}
+         WHERE ${where}
+         ORDER BY CASE WHEN $${values.length + 1} ~* '^TFD[0-9]+$' AND UPPER(d.download_code)=UPPER($${values.length + 1}) THEN 0 ELSE 1 END,
+           ${orderBy[sort] || orderBy.latest}
+         LIMIT $${listValues.length - 1} OFFSET $${listValues.length}`,
+        listValues
+      );
+      res.json({
+        items: results.rows.map((row) => publicDownload(row)),
+        total: Number(countResult.rows[0]?.total || 0),
+        page: page2,
+        limit,
+        pageCount: Math.ceil(Number(countResult.rows[0]?.total || 0) / limit)
+      });
+    } catch (error) {
+      console.error("[free-downloads] Search failed:", error);
+      res.status(503).json({ message: "Downloads are temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/preview/:slug", async (req, res) => {
+    try {
+      const row = await getPublishedBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download not found." });
+      res.json({
+        ...publicDownload(row),
+        seo: {
+          title: row.seo_title || row.title,
+          description: row.seo_description || row.short_description,
+          focusKeyword: row.focus_keyword,
+          canonicalUrl: row.canonical_url,
+          ogTitle: row.og_title || row.seo_title || row.title,
+          ogDescription: row.og_description || row.seo_description || row.short_description,
+          ogImage: row.og_image || row.thumbnail_url
+        }
+      });
+    } catch (error) {
+      console.error("[free-downloads] Public preview failed:", error);
+      res.status(503).json({ message: "Download preview is temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/:slug/unlock-status", isAuthenticated, async (req, res) => {
+    try {
+      const row = await getPublishedBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download not found." });
+      const settings = await getAdSettings();
+      const unlock = await pool2.query(
+        "SELECT unlocked_at FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2 LIMIT 1",
+        [req.user.id, row.id]
+      );
+      res.json({
+        unlocked: Boolean(unlock.rowCount) || !settings.ad_requirement_enabled,
+        adRequired: Boolean(settings.ad_requirement_enabled),
+        smartlinkConfigured: Boolean(settings.smartlink_url)
+      });
+    } catch (error) {
+      console.error("[free-downloads] Unlock status failed:", error);
+      res.status(503).json({ message: "Download access is temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/:slug", isAuthenticated, async (req, res) => {
+    try {
+      const row = await getPublishedBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download not found." });
+      const unlock = await pool2.query(
+        "SELECT unlocked_at FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2 LIMIT 1",
+        [req.user.id, row.id]
+      );
+      await addEvent("detail_view", row.id, req.user.id, true);
+      const settings = await getAdSettings();
+      res.json(await fullDownloadDetail(
+        row,
+        settings,
+        Boolean(unlock.rowCount) || !settings.ad_requirement_enabled
+      ));
+    } catch (error) {
+      console.error("[free-downloads] Detail failed:", error);
+      res.status(503).json({ message: "Download details are temporarily unavailable." });
+    }
+  });
+  app2.post("/api/free-downloads/:slug/ad-start", isAuthenticated, async (req, res) => {
+    try {
+      if (req.body?.popupOpened !== true) return res.status(400).json({ message: "Open the partner page in a new tab before continuing." });
+      const row = await getPublishedBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download not found." });
+      const [settings, unlock] = await Promise.all([
+        getAdSettings(),
+        pool2.query("SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2", [req.user.id, row.id])
+      ]);
+      if (unlock.rowCount || !settings.ad_requirement_enabled) {
+        return res.json({ alreadyUnlocked: true, smartlinkUrl: null });
+      }
+      if (!settings.smartlink_url) return res.status(503).json({ message: "The advertising partner is not configured yet." });
+      req.session.freeDownloadAdIntents = req.session.freeDownloadAdIntents || {};
+      const previousIntent = req.session.freeDownloadAdIntents[row.id];
+      if (previousIntent && Date.now() - Number(previousIntent.startedAt) < 15 * 60 * 1e3) {
+        return res.json({
+          alreadyUnlocked: false,
+          redirectId: previousIntent.redirectId,
+          redirectUrl: `/api/free-downloads/${encodeURIComponent(row.slug)}/ad-redirect/${encodeURIComponent(previousIntent.redirectId)}`
+        });
+      }
+      const redirectId = randomUUID();
+      await pool2.query(
+        `INSERT INTO free_download_events (id, user_id, download_id, event_type)
+         VALUES ($1, $2, $3, 'ad_redirect')`,
+        [redirectId, req.user.id, row.id]
+      );
+      req.session.freeDownloadAdIntents[row.id] = { redirectId, startedAt: Date.now() };
+      return res.json({
+        alreadyUnlocked: false,
+        redirectId,
+        redirectUrl: `/api/free-downloads/${encodeURIComponent(row.slug)}/ad-redirect/${encodeURIComponent(redirectId)}`
+      });
+    } catch (error) {
+      console.error("[free-downloads] Ad redirect start failed:", error);
+      return res.status(503).json({ message: "Could not start the advertising partner redirect." });
+    }
+  });
+  app2.get("/api/free-downloads/:slug/ad-redirect/:redirectId", isAuthenticated, async (req, res) => {
+    let client;
+    try {
+      const row = await getPublishedBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download not found." });
+      const settings = await getAdSettings();
+      const smartlinkUrl = safeExternalUrl(settings.smartlink_url);
+      if (!settings.ad_requirement_enabled || !smartlinkUrl) {
+        return res.status(409).send("The advertising redirect is not available.");
+      }
+      const intent = req.session.freeDownloadAdIntents?.[row.id];
+      if (!intent || intent.redirectId !== req.params.redirectId || Date.now() - Number(intent.startedAt) > 15 * 60 * 1e3) {
+        return res.status(410).send("This partner redirect has expired. Return to Taskdrip and retry.");
+      }
+      const existingUnlock = await pool2.query(
+        "SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2",
+        [req.user.id, row.id]
+      );
+      if (existingUnlock.rowCount) {
+        delete req.session.freeDownloadAdIntents[row.id];
+        return res.status(409).send("This download is already unlocked. Return to its Taskdrip page.");
+      }
+      client = await pool2.connect();
+      await client.query("BEGIN");
+      const completion = await client.query(
+        `UPDATE free_download_events SET completed_at=NOW()
+         WHERE id=$1 AND user_id=$2 AND download_id=$3 AND event_type='ad_redirect'
+           AND completed_at IS NULL AND created_at > NOW() - INTERVAL '15 minutes'
+         RETURNING id`,
+        [intent.redirectId, req.user.id, row.id]
+      );
+      if (completion.rowCount) {
+        await client.query(
+          `INSERT INTO free_download_unlocks (id, user_id, download_id, ad_redirected_at)
+           VALUES ($1, $2, $3, NOW()) ON CONFLICT (user_id, download_id) DO NOTHING`,
+          [randomUUID(), req.user.id, row.id]
+        );
+        await client.query(
+          `INSERT INTO free_download_events (id, user_id, download_id, event_type)
+           VALUES ($1, $2, $3, 'unlock')`,
+          [randomUUID(), req.user.id, row.id]
+        );
+      } else {
+        const existing = await client.query(
+          "SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2",
+          [req.user.id, row.id]
+        );
+        if (!existing.rowCount) {
+          await client.query("ROLLBACK");
+          client.release();
+          client = null;
+          return res.status(410).send("This partner redirect has expired. Return to Taskdrip and retry.");
+        }
+        await client.query("COMMIT");
+        client.release();
+        client = null;
+        delete req.session.freeDownloadAdIntents[row.id];
+        return res.status(409).send("This download is already unlocked. Return to its Taskdrip page.");
+      }
+      await client.query("COMMIT");
+      delete req.session.freeDownloadAdIntents[row.id];
+      res.setHeader("Cache-Control", "no-store");
+      return res.redirect(302, smartlinkUrl);
+    } catch (error) {
+      if (client) await client.query("ROLLBACK").catch(() => {
+      });
+      console.error("[free-downloads] Ad redirect completion failed:", error);
+      return res.status(503).send("The partner redirect could not be completed. Return to Taskdrip and retry.");
+    } finally {
+      if (client) client.release();
+    }
+  });
+  app2.get("/api/free-downloads/admin/preview/:slug", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const row = await getAnyBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download preview not found." });
+      const settings = await getAdSettings();
+      res.json(await fullDownloadDetail(row, settings, false, true));
+    } catch (error) {
+      console.error("[free-downloads] Admin preview failed:", error);
+      res.status(503).json({ message: "The private preview is temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/:slug/file", isAuthenticated, async (req, res) => {
+    try {
+      const row = await getPublishedBySlug(req.params.slug);
+      if (!row) return res.status(404).json({ message: "Download not found." });
+      const settings = await getAdSettings();
+      if (settings.ad_requirement_enabled) {
+        const unlock = await pool2.query(
+          "SELECT 1 FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2 LIMIT 1",
+          [req.user.id, row.id]
+        );
+        if (!unlock.rowCount) return res.status(403).json({ message: "Complete the partner redirect to unlock this download." });
+      }
+      const countedEvent = await addEvent("download_click", row.id, req.user.id, true);
+      if (countedEvent) {
+        await pool2.query("UPDATE free_download_items SET download_count=download_count+1 WHERE id=$1", [row.id]);
+      }
+      if (row.external_download_url) {
+        const target = safeExternalUrl(row.external_download_url);
+        if (!target) return res.status(410).json({ message: "This download link is no longer valid." });
+        return res.redirect(302, target);
+      }
+      if (!row.source_file_key || !/^[a-f0-9-]{36}\.[a-z0-9]{1,8}$/i.test(row.source_file_key)) {
+        return res.status(404).json({ message: "The file is not available." });
+      }
+      const filePath2 = path3.resolve(privateFilesDir, row.source_file_key);
+      if (!filePath2.startsWith(`${privateFilesDir}${path3.sep}`)) return res.status(404).json({ message: "The file is not available." });
+      await stat2(filePath2);
+      res.setHeader("Content-Type", row.source_mime_type || "application/octet-stream");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      return res.download(filePath2, path3.basename(row.source_file_name || "download"));
+    } catch (error) {
+      if (error?.code === "ENOENT") return res.status(404).json({ message: "The file is not available." });
+      console.error("[free-downloads] Secure file delivery failed:", error);
+      return res.status(503).json({ message: "The file could not be downloaded right now." });
+    }
+  });
+  app2.post("/api/free-downloads/requests", isAuthenticated, async (req, res) => {
+    try {
+      const parsed = requestSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0]?.message || "Check the request form." });
+      if (parsed.data.website) return res.status(201).json({ ok: true });
+      if (parsed.data.referenceUrl && !safeExternalUrl(parsed.data.referenceUrl)) {
+        return res.status(400).json({ message: "The reference URL must use HTTPS." });
+      }
+      const recent = await pool2.query(
+        "SELECT 1 FROM free_download_requests WHERE user_id=$1 AND created_at > NOW() - INTERVAL '60 seconds' LIMIT 1",
+        [req.user.id]
+      );
+      if (recent.rowCount) return res.status(429).json({ message: "Please wait a minute before sending another request." });
+      const result = await pool2.query(
+        `INSERT INTO free_download_requests
+          (id, user_id, resource_title, category_name, description, preferred_format, reference_url, email, additional_comments)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, resource_title AS "resourceTitle", category_name AS "categoryName",
+           description, preferred_format AS "preferredFormat", reference_url AS "referenceUrl", email,
+           additional_comments AS "additionalComments", status, created_at AS "createdAt"`,
+        [
+          randomUUID(),
+          req.user.id,
+          parsed.data.resourceTitle,
+          parsed.data.categoryName,
+          parsed.data.description,
+          parsed.data.preferredFormat,
+          parsed.data.referenceUrl || null,
+          req.user.email,
+          parsed.data.additionalComments
+        ]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error("[free-downloads] Request submission failed:", error);
+      res.status(503).json({ message: "Your request could not be submitted right now." });
+    }
+  });
+  app2.get("/api/free-downloads/my-requests", isAuthenticated, async (req, res) => {
+    try {
+      const result = await pool2.query(
+        `SELECT r.id, r.resource_title AS "resourceTitle", r.category_name AS "categoryName",
+                r.description, r.preferred_format AS "preferredFormat", r.reference_url AS "referenceUrl",
+                r.status, r.response, r.created_at AS "createdAt", r.updated_at AS "updatedAt",
+                d.title AS "linkedDownloadTitle", d.slug AS "linkedDownloadSlug"
+         FROM free_download_requests r
+         LEFT JOIN free_download_items d ON d.id=r.linked_download_id
+         WHERE r.user_id=$1 ORDER BY r.created_at DESC`,
+        [req.user.id]
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error("[free-downloads] User requests failed:", error);
+      res.status(503).json({ message: "Your requests are temporarily unavailable." });
+    }
+  });
+  app2.get("/api/free-downloads/admin/downloads", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const result = await pool2.query(
+        `SELECT ${detailSelect} ${detailJoins}
+         ORDER BY d.updated_at DESC LIMIT 500`
+      );
+      res.json(result.rows.map((row) => adminDownload(row)));
+    } catch (error) {
+      console.error("[free-downloads] Admin list failed:", error);
+      res.status(503).json({ message: "Downloads could not be loaded." });
+    }
+  });
+  app2.post("/api/free-downloads/admin/downloads", isAuthenticated, isAdmin, uploadDownload, async (req, res) => saveDownload(req, res));
+  app2.put("/api/free-downloads/admin/downloads/:id", isAuthenticated, isAdmin, uploadDownload, async (req, res) => saveDownload(req, res, req.params.id));
+  app2.post("/api/free-downloads/admin/downloads/:id/duplicate", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { rows } = await pool2.query(
+        `INSERT INTO free_download_items (
+          id,title,slug,short_description,description_html,category_id,subcategory_id,tags,thumbnail_url,
+          gallery_urls,preview_video_url,format,version,creator,release_date,system_requirements,
+          installation_instructions,features,preacher_id,source_file_key,source_file_name,source_mime_type,
+          source_size_bytes,external_download_url,seo_title,seo_description,focus_keyword,canonical_url,
+          og_title,og_description,og_image,publication_status,is_featured,external_demo_url,created_by
+        )
+        SELECT $2, title || ' (copy)', $3, short_description, description_html, category_id, subcategory_id,
+          tags, thumbnail_url, gallery_urls, preview_video_url, format, version, creator, release_date,
+          system_requirements, installation_instructions, features, preacher_id, source_file_key,
+          source_file_name, source_mime_type, source_size_bytes, external_download_url, seo_title,
+          seo_description, focus_keyword, canonical_url, og_title, og_description, og_image, 'draft',
+          FALSE, external_demo_url, $4
+        FROM free_download_items WHERE id=$1 RETURNING *`,
+        [req.params.id, randomUUID(), `${toSlug("copy-" + randomUUID())}`, req.user.id]
+      );
+      if (!rows[0]) return res.status(404).json({ message: "Download not found." });
+      res.status(201).json(adminDownload(rows[0]));
+    } catch (error) {
+      if (error?.code === "23505") return res.status(409).json({ message: "Could not create a unique copy of this download." });
+      console.error("[free-downloads] Duplicate failed:", error);
+      res.status(503).json({ message: "Could not duplicate this download." });
+    }
+  });
+  app2.delete("/api/free-downloads/admin/downloads/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const deleted = await pool2.query("DELETE FROM free_download_items WHERE id=$1 RETURNING source_file_key", [req.params.id]);
+      if (!deleted.rows[0]) return res.status(404).json({ message: "Download not found." });
+      if (deleted.rows[0].source_file_key) await deletePrivateFileIfUnused(deleted.rows[0].source_file_key);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("[free-downloads] Delete failed:", error);
+      res.status(409).json({ message: "This download could not be deleted." });
+    }
+  });
+  app2.post("/api/free-downloads/admin/media", isAuthenticated, isAdmin, uploadImage, async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "Select a JPG, PNG, or WebP image." });
+    res.status(201).json({ url: `/uploads/free-downloads/${req.file.filename}` });
+  });
+  app2.get("/api/free-downloads/admin/categories", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const result = await pool2.query(
+        `SELECT c.id, c.name, c.slug, c.description, c.image_url AS "imageUrl",
+                c.sort_order AS "sortOrder", c.is_active AS "isActive",
+                COALESCE(json_agg(json_build_object(
+                  'id', s.id, 'name', s.name, 'slug', s.slug, 'sortOrder', s.sort_order
+                )) FILTER (WHERE s.id IS NOT NULL), '[]') AS subcategories
+         FROM free_download_categories c LEFT JOIN free_download_subcategories s ON s.category_id=c.id
+         GROUP BY c.id ORDER BY c.sort_order, c.name`
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error("[free-downloads] Admin categories failed:", error);
+      res.status(503).json({ message: "Categories could not be loaded." });
+    }
+  });
+  app2.post("/api/free-downloads/admin/categories", isAuthenticated, isAdmin, async (req, res) => {
+    const parsed = categorySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Enter a category name." });
+    const data = parsed.data;
+    try {
+      const result = await pool2.query(
+        `INSERT INTO free_download_categories (id,name,slug,description,image_url,sort_order,is_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id,name,slug,description,image_url AS "imageUrl",
+           sort_order AS "sortOrder",is_active AS "isActive"`,
+        [randomUUID(), data.name, toSlug(data.slug || data.name), data.description, safeExternalUrl(data.imageUrl, true), data.sortOrder, data.isActive]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      if (error?.code === "23505") return res.status(409).json({ message: "A category with that slug already exists." });
+      res.status(503).json({ message: "Category could not be saved." });
+    }
+  });
+  app2.put("/api/free-downloads/admin/categories/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const parsed = categorySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Enter a category name." });
+    const data = parsed.data;
+    try {
+      const result = await pool2.query(
+        `UPDATE free_download_categories SET name=$2,slug=$3,description=$4,image_url=$5,
+          sort_order=$6,is_active=$7,updated_at=NOW()
+         WHERE id=$1 RETURNING id,name,slug,description,image_url AS "imageUrl",
+           sort_order AS "sortOrder",is_active AS "isActive"`,
+        [req.params.id, data.name, toSlug(data.slug || data.name), data.description, safeExternalUrl(data.imageUrl, true), data.sortOrder, data.isActive]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Category not found." });
+      res.json(result.rows[0]);
+    } catch (error) {
+      if (error?.code === "23505") return res.status(409).json({ message: "A category with that slug already exists." });
+      res.status(503).json({ message: "Category could not be updated." });
+    }
+  });
+  app2.delete("/api/free-downloads/admin/categories/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const result = await pool2.query("DELETE FROM free_download_categories WHERE id=$1 RETURNING id", [req.params.id]);
+      if (!result.rowCount) return res.status(404).json({ message: "Category not found." });
+      res.json({ ok: true });
+    } catch (error) {
+      if (error?.code === "23503") return res.status(409).json({ message: "Move or remove this category's downloads before deleting it." });
+      res.status(503).json({ message: "Category could not be deleted." });
+    }
+  });
+  app2.post("/api/free-downloads/admin/subcategories", isAuthenticated, isAdmin, async (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const categoryId = String(req.body?.categoryId || "");
+    if (name.length < 2 || name.length > 120 || !categoryId) return res.status(400).json({ message: "Choose a category and enter a subcategory name." });
+    try {
+      const result = await pool2.query(
+        `INSERT INTO free_download_subcategories (id,category_id,name,slug,sort_order)
+         VALUES ($1,$2,$3,$4,$5) RETURNING id,category_id AS "categoryId",name,slug,sort_order AS "sortOrder"`,
+        [randomUUID(), categoryId, name, toSlug(req.body?.slug || name), Math.max(0, Number(req.body?.sortOrder) || 0)]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      if (error?.code === "23503") return res.status(400).json({ message: "Choose a valid category." });
+      if (error?.code === "23505") return res.status(409).json({ message: "That subcategory already exists in this category." });
+      res.status(503).json({ message: "Subcategory could not be saved." });
+    }
+  });
+  app2.put("/api/free-downloads/admin/subcategories/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const categoryId = String(req.body?.categoryId || "");
+    if (name.length < 2 || name.length > 120 || !categoryId) return res.status(400).json({ message: "Choose a category and enter a subcategory name." });
+    try {
+      const result = await pool2.query(
+        `UPDATE free_download_subcategories SET category_id=$2,name=$3,slug=$4,sort_order=$5
+         WHERE id=$1 RETURNING id,category_id AS "categoryId",name,slug,sort_order AS "sortOrder"`,
+        [req.params.id, categoryId, name, toSlug(req.body?.slug || name), Math.max(0, Number(req.body?.sortOrder) || 0)]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Subcategory not found." });
+      res.json(result.rows[0]);
+    } catch (error) {
+      if (error?.code === "23503") return res.status(400).json({ message: "Choose a valid category." });
+      if (error?.code === "23505") return res.status(409).json({ message: "That subcategory already exists in this category." });
+      res.status(503).json({ message: "Subcategory could not be updated." });
+    }
+  });
+  app2.delete("/api/free-downloads/admin/subcategories/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const result = await pool2.query("DELETE FROM free_download_subcategories WHERE id=$1 RETURNING id", [req.params.id]);
+      if (!result.rowCount) return res.status(404).json({ message: "Subcategory not found." });
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(503).json({ message: "Subcategory could not be deleted." });
+    }
+  });
+  app2.get("/api/free-downloads/admin/preachers", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const result = await pool2.query(
+        `SELECT p.id,p.full_name AS "fullName",p.slug,p.photograph_url AS "photographUrl",
+                p.biography,p.ministry_name AS "ministryName",COUNT(d.id)::int AS "sermonCount"
+         FROM free_download_preachers p LEFT JOIN free_download_items d ON d.preacher_id=p.id
+         GROUP BY p.id ORDER BY p.full_name`
+      );
+      res.json(result.rows);
+    } catch (error) {
+      res.status(503).json({ message: "Preacher profiles could not be loaded." });
+    }
+  });
+  app2.post("/api/free-downloads/admin/preachers", isAuthenticated, isAdmin, async (req, res) => {
+    const parsed = preacherSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Enter the preacher's name." });
+    const data = parsed.data;
+    try {
+      const result = await pool2.query(
+        `INSERT INTO free_download_preachers (id,full_name,slug,photograph_url,biography,ministry_name)
+         VALUES ($1,$2,$3,$4,$5,$6)
+         RETURNING id,full_name AS "fullName",slug,photograph_url AS "photographUrl",biography,ministry_name AS "ministryName"`,
+        [randomUUID(), data.fullName, toSlug(data.slug || data.fullName), safeExternalUrl(data.photographUrl, true), data.biography, data.ministryName]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      if (error?.code === "23505") return res.status(409).json({ message: "A preacher with that slug already exists." });
+      res.status(503).json({ message: "Preacher profile could not be saved." });
+    }
+  });
+  app2.put("/api/free-downloads/admin/preachers/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const parsed = preacherSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Enter the preacher's name." });
+    const data = parsed.data;
+    try {
+      const result = await pool2.query(
+        `UPDATE free_download_preachers SET full_name=$2,slug=$3,photograph_url=$4,
+          biography=$5,ministry_name=$6,updated_at=NOW() WHERE id=$1
+         RETURNING id,full_name AS "fullName",slug,photograph_url AS "photographUrl",biography,ministry_name AS "ministryName"`,
+        [req.params.id, data.fullName, toSlug(data.slug || data.fullName), safeExternalUrl(data.photographUrl, true), data.biography, data.ministryName]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Preacher not found." });
+      res.json(result.rows[0]);
+    } catch (error) {
+      if (error?.code === "23505") return res.status(409).json({ message: "A preacher with that slug already exists." });
+      res.status(503).json({ message: "Preacher profile could not be updated." });
+    }
+  });
+  app2.delete("/api/free-downloads/admin/preachers/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const result = await pool2.query("DELETE FROM free_download_preachers WHERE id=$1 RETURNING id", [req.params.id]);
+      if (!result.rowCount) return res.status(404).json({ message: "Preacher not found." });
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(503).json({ message: "Preacher could not be deleted." });
+    }
+  });
+  app2.get("/api/free-downloads/admin/settings", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const settings = await getAdSettings();
+      res.json({
+        smartlinkUrl: settings.smartlink_url,
+        adRequirementEnabled: settings.ad_requirement_enabled,
+        telegramUrl: settings.telegram_url
+      });
+    } catch (error) {
+      res.status(503).json({ message: "Download settings could not be loaded." });
+    }
+  });
+  app2.put("/api/free-downloads/admin/settings", isAuthenticated, isAdmin, async (req, res) => {
+    const smartlinkUrl = String(req.body?.smartlinkUrl || "").trim();
+    const telegramUrl = String(req.body?.telegramUrl || "https://t.me/taskdrip").trim();
+    const adRequirementEnabled = req.body?.adRequirementEnabled === true;
+    const safeSmartlink = safeExternalUrl(smartlinkUrl);
+    const safeTelegram = safeExternalUrl(telegramUrl);
+    if (smartlinkUrl && !safeSmartlink) return res.status(400).json({ message: "Adsterra Smartlink must be a valid HTTPS URL." });
+    if (!safeTelegram) return res.status(400).json({ message: "Telegram URL must use HTTPS." });
+    if (adRequirementEnabled && !safeSmartlink) return res.status(400).json({ message: "Add a valid Smartlink before enabling the advertising requirement." });
+    try {
+      await pool2.query(
+        `INSERT INTO free_download_settings (id,smartlink_url,ad_requirement_enabled,telegram_url,updated_at)
+         VALUES ('default',$1,$2,$3,NOW())
+         ON CONFLICT (id) DO UPDATE SET smartlink_url=EXCLUDED.smartlink_url,
+           ad_requirement_enabled=EXCLUDED.ad_requirement_enabled,telegram_url=EXCLUDED.telegram_url,updated_at=NOW()`,
+        [safeSmartlink || "", adRequirementEnabled, safeTelegram]
+      );
+      res.json({ smartlinkUrl: safeSmartlink || "", adRequirementEnabled, telegramUrl: safeTelegram });
+    } catch (error) {
+      res.status(503).json({ message: "Download settings could not be saved." });
+    }
+  });
+  app2.get("/api/free-downloads/admin/slides", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const result = await pool2.query(
+        `SELECT id,title,description,image_url AS "imageUrl",cta_label AS "ctaLabel",
+                cta_url AS "ctaUrl",sort_order AS "sortOrder",is_active AS "isActive"
+         FROM free_download_slides ORDER BY sort_order,created_at DESC`
+      );
+      res.json(result.rows);
+    } catch (error) {
+      res.status(503).json({ message: "Homepage slides could not be loaded." });
+    }
+  });
+  app2.post("/api/free-downloads/admin/slides", isAuthenticated, isAdmin, async (req, res) => {
+    const title = String(req.body?.title || "").trim();
+    const description = String(req.body?.description || "").trim();
+    const imageUrl = safeExternalUrl(req.body?.imageUrl, true);
+    const ctaUrl = String(req.body?.ctaUrl || "/downloads").trim();
+    const ctaLabel = String(req.body?.ctaLabel || "Explore downloads").trim();
+    if (title.length < 3 || title.length > 220 || !imageUrl || ctaLabel.length > 80 || ctaUrl.length > 500 || !(ctaUrl.startsWith("/") && !ctaUrl.startsWith("//") || safeExternalUrl(ctaUrl))) {
+      return res.status(400).json({ message: "Enter a title, HTTPS or uploaded image, button label, and safe button link." });
+    }
+    try {
+      const result = await pool2.query(
+        `INSERT INTO free_download_slides (id,title,description,image_url,cta_label,cta_url,sort_order,is_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         RETURNING id,title,description,image_url AS "imageUrl",cta_label AS "ctaLabel",cta_url AS "ctaUrl",
+           sort_order AS "sortOrder",is_active AS "isActive"`,
+        [randomUUID(), title, description.slice(0, 600), imageUrl, ctaLabel, ctaUrl, Math.max(0, Number(req.body?.sortOrder) || 0), req.body?.isActive !== false]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      res.status(503).json({ message: "Homepage slide could not be saved." });
+    }
+  });
+  app2.put("/api/free-downloads/admin/slides/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const title = String(req.body?.title || "").trim();
+    const description = String(req.body?.description || "").trim();
+    const imageUrl = safeExternalUrl(req.body?.imageUrl, true);
+    const ctaUrl = String(req.body?.ctaUrl || "/downloads").trim();
+    const ctaLabel = String(req.body?.ctaLabel || "Explore downloads").trim();
+    if (title.length < 3 || title.length > 220 || !imageUrl || ctaLabel.length > 80 || ctaUrl.length > 500 || !(ctaUrl.startsWith("/") && !ctaUrl.startsWith("//") || safeExternalUrl(ctaUrl))) {
+      return res.status(400).json({ message: "Enter a title, HTTPS or uploaded image, button label, and safe button link." });
+    }
+    try {
+      const result = await pool2.query(
+        `UPDATE free_download_slides SET title=$2,description=$3,image_url=$4,cta_label=$5,cta_url=$6,
+           sort_order=$7,is_active=$8,updated_at=NOW()
+         WHERE id=$1 RETURNING id,title,description,image_url AS "imageUrl",cta_label AS "ctaLabel",
+           cta_url AS "ctaUrl",sort_order AS "sortOrder",is_active AS "isActive"`,
+        [req.params.id, title, description.slice(0, 600), imageUrl, ctaLabel, ctaUrl, Math.max(0, Number(req.body?.sortOrder) || 0), req.body?.isActive !== false]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Homepage slide not found." });
+      res.json(result.rows[0]);
+    } catch (error) {
+      res.status(503).json({ message: "Homepage slide could not be updated." });
+    }
+  });
+  app2.delete("/api/free-downloads/admin/slides/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const result = await pool2.query("DELETE FROM free_download_slides WHERE id=$1 RETURNING id", [req.params.id]);
+      if (!result.rowCount) return res.status(404).json({ message: "Homepage slide not found." });
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(503).json({ message: "Homepage slide could not be deleted." });
+    }
+  });
+  app2.get("/api/free-downloads/admin/requests", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const values = [];
+      const conditions = [];
+      if (req.query.status && req.query.status !== "all") {
+        values.push(String(req.query.status));
+        conditions.push(`r.status=$${values.length}`);
+      }
+      if (req.query.category && req.query.category !== "all") {
+        values.push(String(req.query.category));
+        conditions.push(`r.category_name=$${values.length}`);
+      }
+      if (req.query.q) {
+        values.push(`%${String(req.query.q).slice(0, 120)}%`);
+        conditions.push(`(r.resource_title ILIKE $${values.length} OR r.email ILIKE $${values.length} OR r.description ILIKE $${values.length})`);
+      }
+      const result = await pool2.query(
+        `SELECT r.id,r.user_id AS "userId",r.resource_title AS "resourceTitle",r.category_name AS "categoryName",
+          r.description,r.preferred_format AS "preferredFormat",r.reference_url AS "referenceUrl",
+          r.email,r.additional_comments AS "additionalComments",r.status,r.internal_notes AS "internalNotes",
+          r.response,r.linked_download_id AS "linkedDownloadId",d.title AS "linkedDownloadTitle",
+          d.slug AS "linkedDownloadSlug",r.created_at AS "createdAt",r.updated_at AS "updatedAt",
+          u.first_name AS "firstName",u.last_name AS "lastName"
+         FROM free_download_requests r JOIN users u ON u.id=r.user_id
+         LEFT JOIN free_download_items d ON d.id=r.linked_download_id
+         ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+         ORDER BY r.created_at DESC LIMIT 500`,
+        values
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error("[free-downloads] Admin requests failed:", error);
+      res.status(503).json({ message: "Download requests could not be loaded." });
+    }
+  });
+  app2.patch("/api/free-downloads/admin/requests/:id", isAuthenticated, isAdmin, async (req, res) => {
+    const status = z2.enum(["pending", "processing", "available", "rejected"]).safeParse(req.body?.status);
+    if (!status.success) return res.status(400).json({ message: "Choose a valid request status." });
+    const notes = String(req.body?.internalNotes || "").slice(0, 5e3);
+    const responseText = String(req.body?.response || "").slice(0, 3e3);
+    const linkedDownloadId = req.body?.linkedDownloadId ? String(req.body.linkedDownloadId) : null;
+    try {
+      if (linkedDownloadId) {
+        const linked = await pool2.query(
+          "SELECT 1 FROM free_download_items WHERE id=$1 AND publication_status='published' LIMIT 1",
+          [linkedDownloadId]
+        );
+        if (!linked.rowCount) return res.status(400).json({ message: "Choose a valid published download to link to this request." });
+      }
+      const result = await pool2.query(
+        `UPDATE free_download_requests SET status=$2,internal_notes=$3,response=$4,
+          linked_download_id=$5,updated_at=NOW()
+         WHERE id=$1
+         RETURNING id,user_id AS "userId",resource_title AS "resourceTitle",status,response`,
+        [req.params.id, status.data, notes, responseText, linkedDownloadId]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Request not found." });
+      const request = result.rows[0];
+      try {
+        await storage.createNotification({
+          userId: request.userId,
+          type: "free_download_request",
+          title: `Your download request is ${request.status}`,
+          content: request.response || `The status of your request, \u201C${request.resourceTitle}\u201D, has changed to ${request.status}.`,
+          priority: "normal",
+          actionUrl: "/downloads/my-requests"
+        });
+      } catch (notificationError) {
+        console.error("[free-downloads] Request status notification failed:", notificationError);
+      }
+      res.json(request);
+    } catch (error) {
+      if (error?.code === "23503") return res.status(400).json({ message: "Choose a valid published download to link to this request." });
+      console.error("[free-downloads] Request update failed:", error);
+      res.status(503).json({ message: "The request could not be updated." });
+    }
+  });
+  app2.get("/api/free-downloads/admin/analytics", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const range = String(req.query.range || "30d");
+      const allowedRanges = { "7d": "7 days", "30d": "30 days", "90d": "90 days", "365d": "365 days" };
+      const interval = allowedRanges[range] || allowedRanges["30d"];
+      const [events, requestStats, registered, popular, categories, daily] = await Promise.all([
+        pool2.query(
+          `SELECT event_type AS "eventType",
+             COUNT(*) FILTER (WHERE event_type <> 'ad_redirect' OR completed_at IS NOT NULL)::int AS total
+           FROM free_download_events
+           WHERE created_at >= NOW() - $1::interval GROUP BY event_type`,
+          [interval]
+        ),
+        pool2.query(
+          `SELECT status,COUNT(*)::int AS total FROM free_download_requests
+           WHERE created_at >= NOW() - $1::interval GROUP BY status`,
+          [interval]
+        ),
+        pool2.query("SELECT COUNT(*)::int AS total FROM users"),
+        pool2.query(
+          `SELECT d.id,d.title,d.slug,d.download_count AS "downloadCount",c.name AS "categoryName"
+           FROM free_download_items d JOIN free_download_categories c ON c.id=d.category_id
+           WHERE d.publication_status='published' ORDER BY d.download_count DESC LIMIT 10`
+        ),
+        pool2.query(
+          `SELECT c.name AS category,COUNT(e.id)::int AS downloads
+           FROM free_download_categories c
+           LEFT JOIN free_download_items d ON d.category_id=c.id
+           LEFT JOIN free_download_events e ON e.download_id=d.id AND e.event_type='download_click'
+             AND e.created_at >= NOW() - $1::interval
+           GROUP BY c.id ORDER BY downloads DESC,c.name LIMIT 8`,
+          [interval]
+        ),
+        pool2.query(
+          `SELECT created_at::date AS date,
+             COUNT(*) FILTER (WHERE event_type='detail_view')::int AS views,
+             COUNT(*) FILTER (WHERE event_type='ad_redirect' AND completed_at IS NOT NULL)::int AS redirects,
+             COUNT(*) FILTER (WHERE event_type='unlock')::int AS unlocks,
+             COUNT(*) FILTER (WHERE event_type='download_click')::int AS downloads
+           FROM free_download_events WHERE created_at >= NOW() - $1::interval
+           GROUP BY created_at::date ORDER BY date`,
+          [interval]
+        )
+      ]);
+      const totalBy = (type) => Number(events.rows.find((row) => row.eventType === type)?.total || 0);
+      const requestsTotal = requestStats.rows.reduce((sum, row) => sum + Number(row.total || 0), 0);
+      const detailViews = totalBy("detail_view");
+      const downloadClicks = totalBy("download_click");
+      res.json({
+        range,
+        totalDownloads: downloadClicks,
+        registeredUsers: Number(registered.rows[0]?.total || 0),
+        totalRequests: requestsTotal,
+        adRedirectClicks: totalBy("ad_redirect"),
+        completedAdvertisingRequirements: totalBy("unlock"),
+        actualDownloadClicks: downloadClicks,
+        detailViews,
+        conversionRate: detailViews ? Math.round(downloadClicks / detailViews * 1e4) / 100 : 0,
+        requestStatuses: requestStats.rows,
+        popularDownloads: popular.rows,
+        popularCategories: categories.rows,
+        daily: daily.rows
+      });
+    } catch (error) {
+      console.error("[free-downloads] Analytics failed:", error);
+      res.status(503).json({ message: "Download analytics are temporarily unavailable." });
+    }
+  });
+}
+
+// server/routes.ts
+import { z as z3 } from "zod";
+import multer5 from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid as nanoid5 } from "nanoid";
-import path3 from "path";
+import path4 from "path";
 import express from "express";
 import { ReplitConnectors as ReplitConnectors2 } from "@replit/connectors-sdk";
 
@@ -22802,7 +25102,7 @@ async function getShopProductByPublicKey(key) {
     const [project2] = await db.select({
       slug: pluginStudioProjects.slug,
       status: pluginStudioProjects.status
-    }).from(pluginStudioProjects).where(eq17(pluginStudioProjects.shopProductId, productById.id)).limit(1);
+    }).from(pluginStudioProjects).where(eq18(pluginStudioProjects.shopProductId, productById.id)).limit(1);
     return {
       ...productById,
       ...project2?.status === "published" && productById.isActive ? { pluginSlug: project2.slug } : {}
@@ -22811,9 +25111,9 @@ async function getShopProductByPublicKey(key) {
   const [project] = await db.select({
     slug: pluginStudioProjects.slug,
     shopProductId: pluginStudioProjects.shopProductId
-  }).from(pluginStudioProjects).where(and13(
-    eq17(pluginStudioProjects.slug, key),
-    eq17(pluginStudioProjects.status, "published")
+  }).from(pluginStudioProjects).where(and14(
+    eq18(pluginStudioProjects.slug, key),
+    eq18(pluginStudioProjects.status, "published")
   )).limit(1);
   if (!project?.shopProductId) return void 0;
   const product = await storage.getShopProductById(project.shopProductId);
@@ -22833,11 +25133,11 @@ function makeTtlCache(fn, maxAge) {
   };
 }
 var DANGEROUS_EXTS = /* @__PURE__ */ new Set([".exe", ".bat", ".cmd", ".sh", ".ps1", ".scr", ".vbs", ".jar", ".msi", ".com", ".dll", ".app"]);
-var upload = multer4({
-  storage: multer4.diskStorage({
+var upload = multer5({
+  storage: multer5.diskStorage({
     destination: "uploads/",
     filename: (_req, file, cb) => {
-      const raw = path3.extname(file.originalname || "").toLowerCase();
+      const raw = path4.extname(file.originalname || "").toLowerCase();
       const ext = /^\.[a-z0-9]{1,6}$/.test(raw) ? raw : "";
       if (DANGEROUS_EXTS.has(ext)) return cb(new Error("File type not allowed"), "");
       cb(null, `${nanoid5()}${ext}`);
@@ -22845,7 +25145,7 @@ var upload = multer4({
   }),
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const raw = path3.extname(file.originalname || "").toLowerCase();
+    const raw = path4.extname(file.originalname || "").toLowerCase();
     if (DANGEROUS_EXTS.has(raw)) return cb(new Error("File type not allowed"), false);
     cb(null, true);
   }
@@ -22980,7 +25280,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq17(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq18(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -23042,7 +25342,7 @@ async function enrichP2PListing(listing) {
 }
 async function enrichP2PTransaction(tx) {
   const [listing, buyer, seller, admin2] = await Promise.all([
-    db.select().from(p2pListings).where(eq17(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+    db.select().from(p2pListings).where(eq18(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -23131,19 +25431,19 @@ async function registerRoutes(app2, existingServer) {
     next();
   });
   app2.post("/api/portfolio/olajumoke-owoeye/contact", async (req, res) => {
-    const inquirySchema = z2.object({
-      name: z2.string().trim().min(2).max(100),
-      email: z2.string().trim().email().max(254),
-      service: z2.enum([
+    const inquirySchema = z3.object({
+      name: z3.string().trim().min(2).max(100),
+      email: z3.string().trim().email().max(254),
+      service: z3.enum([
         "Content creation",
         "Social media management",
         "Marketing strategy",
         "Website & web content",
         "Other"
       ]),
-      budget: z2.string().trim().min(2).max(80),
-      projectBrief: z2.string().trim().min(20).max(2500),
-      website: z2.string().max(0).optional()
+      budget: z3.string().trim().min(2).max(80),
+      projectBrief: z3.string().trim().min(20).max(2500),
+      website: z3.string().max(0).optional()
     });
     const parsed = inquirySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -23269,7 +25569,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString(), uptime: process.uptime() });
   });
-  app2.use("/uploads", express.static(path3.join(process.cwd(), "uploads")));
+  app2.use("/uploads", express.static(path4.join(process.cwd(), "uploads")));
   app2.get("/api/creators", async (req, res) => {
     try {
       const creators = await storage.getCreators();
@@ -23670,7 +25970,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and13(eq17(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and14(eq18(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -23689,7 +25989,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and13(eq17(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and14(eq18(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -23985,7 +26285,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq17(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq18(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -24689,17 +26989,17 @@ async function registerRoutes(app2, existingServer) {
       const post = await storage.getBlogPostBySlug(req.params.slug);
       if (!post) return res.status(404).json({ message: "Blog post not found" });
       const conditions = [
-        eq17(blogPosts.isPublished, true),
+        eq18(blogPosts.isPublished, true),
         sql13`${blogPosts.slug} <> ${req.params.slug}`
       ];
-      if (post.category) conditions.push(eq17(blogPosts.category, post.category));
+      if (post.category) conditions.push(eq18(blogPosts.category, post.category));
       const related = await db.select({
         title: blogPosts.title,
         slug: blogPosts.slug,
         excerpt: blogPosts.excerpt,
         category: blogPosts.category,
         featuredImage: blogPosts.featuredImage
-      }).from(blogPosts).where(and13(...conditions)).orderBy(desc13(blogPosts.publishedAt)).limit(3);
+      }).from(blogPosts).where(and14(...conditions)).orderBy(desc13(blogPosts.publishedAt)).limit(3);
       res.json(related);
     } catch (error) {
       console.error("Error fetching related blog posts:", error);
@@ -24978,7 +27278,7 @@ async function registerRoutes(app2, existingServer) {
       const attachments = files ? files.map((file) => ({
         filename: file.originalname,
         path: file.path,
-        url: `/uploads/${path3.basename(file.path)}`,
+        url: `/uploads/${path4.basename(file.path)}`,
         mimetype: file.mimetype,
         size: file.size
       })) : [];
@@ -25129,7 +27429,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq17(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq18(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -25229,10 +27529,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and13(eq17(campaignMicroTasks.campaignId, req.params.id), eq17(campaignMicroTasks.isActive, true))).orderBy(desc13(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and14(eq18(campaignMicroTasks.campaignId, req.params.id), eq18(campaignMicroTasks.isActive, true))).orderBy(desc13(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.campaignId, req.params.id), eq17(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.campaignId, req.params.id), eq18(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -25250,7 +27550,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq17(campaignMicroTasks.campaignId, campaigns.id)).where(eq17(campaignMicroTasks.brandId, userId)).orderBy(desc13(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq18(campaignMicroTasks.campaignId, campaigns.id)).where(eq18(campaignMicroTasks.brandId, userId)).orderBy(desc13(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -25308,7 +27608,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq17(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq18(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -25334,7 +27634,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.microTaskId, task.id), eq17(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.microTaskId, task.id), eq18(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -25358,7 +27658,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq17(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq18(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -25369,7 +27669,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq17(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq18(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -25378,11 +27678,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.microTaskId, task.id), eq17(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.microTaskId, task.id), eq18(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and13(eq17(microTaskSubmissions.microTaskId, task.id), eq17(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.microTaskId, task.id), eq18(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -25418,7 +27718,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq17(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq17(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq17(microTaskSubmissions.userId, users.id)).where(eq17(campaignMicroTasks.brandId, userId)).orderBy(desc13(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq18(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq18(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq18(microTaskSubmissions.userId, users.id)).where(eq18(campaignMicroTasks.brandId, userId)).orderBy(desc13(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -25434,14 +27734,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin2] = await db.select().from(users).where(eq17(users.id, userId));
+      const [admin2] = await db.select().from(users).where(eq18(users.id, userId));
       if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq17(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq17(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq17(microTaskSubmissions.userId, users.id)).orderBy(desc13(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq18(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq18(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq18(microTaskSubmissions.userId, users.id)).orderBy(desc13(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -25457,9 +27757,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq17(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq18(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq17(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq18(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -25474,7 +27774,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq18(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -25592,7 +27892,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "campaign_participation"), eq17(userReviews.referenceId, participation.id))).orderBy(desc13(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "campaign_participation"), eq18(userReviews.referenceId, participation.id))).orderBy(desc13(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -25612,7 +27912,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "campaign_participation"), eq17(userReviews.referenceId, participation.id), eq17(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "campaign_participation"), eq18(userReviews.referenceId, participation.id), eq18(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -25623,8 +27923,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq17(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq18(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26020,7 +28320,7 @@ async function registerRoutes(app2, existingServer) {
       let courseRevenue = 0;
       for (const e of allEnrollmentRows) {
         if (e.status === "active" || e.paymentStatus === "approved") {
-          const course = await db.select({ price: courses.price }).from(courses).where(eq17(courses.id, e.courseId)).limit(1);
+          const course = await db.select({ price: courses.price }).from(courses).where(eq18(courses.id, e.courseId)).limit(1);
           courseRevenue += parseFloat(course[0]?.price || "0");
         }
       }
@@ -26065,7 +28365,7 @@ async function registerRoutes(app2, existingServer) {
       const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
       let courseTotal = 0;
       for (const e of approvedEnrollmentIds) {
-        const course = await db.select({ price: courses.price }).from(courses).where(eq17(courses.id, e.courseId)).limit(1);
+        const course = await db.select({ price: courses.price }).from(courses).where(eq18(courses.id, e.courseId)).limit(1);
         courseTotal += parseFloat(course[0]?.price || "0");
       }
       const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
@@ -26368,7 +28668,7 @@ async function registerRoutes(app2, existingServer) {
         approvedAt: courseEnrollments.approvedAt,
         createdAt: courseEnrollments.createdAt,
         courseTitle: courses.title
-      }).from(courseEnrollments).leftJoin(courses, eq17(courseEnrollments.courseId, courses.id)).orderBy(desc13(courseEnrollments.createdAt));
+      }).from(courseEnrollments).leftJoin(courses, eq18(courseEnrollments.courseId, courses.id)).orderBy(desc13(courseEnrollments.createdAt));
       for (const t of enrollmentRows) {
         const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
         unified.push({
@@ -26787,23 +29087,23 @@ async function registerRoutes(app2, existingServer) {
       }
       let verifiedPurchaseId;
       const { creatorPublishingProducts: publishingProducts, purchases: shopPurchases } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and13(
-        eq17(publishingProducts.shopProductId, req.params.id),
-        eq17(publishingProducts.status, "published")
+      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and14(
+        eq18(publishingProducts.shopProductId, req.params.id),
+        eq18(publishingProducts.status, "published")
       )).limit(1);
       if (publishingProduct) {
-        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and13(
-          eq17(shopPurchases.productId, req.params.id),
-          eq17(shopPurchases.userId, user.id),
+        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and14(
+          eq18(shopPurchases.productId, req.params.id),
+          eq18(shopPurchases.userId, user.id),
           inArray12(shopPurchases.status, ["paid", "approved", "delivered"])
         )).limit(1);
         if (!verifiedPurchase) {
           return res.status(403).json({ message: "Only verified buyers can review this digital product." });
         }
         verifiedPurchaseId = verifiedPurchase.id;
-        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and13(
-          eq17(productReviews.productId, req.params.id),
-          eq17(productReviews.userId, user.id)
+        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and14(
+          eq18(productReviews.productId, req.params.id),
+          eq18(productReviews.userId, user.id)
         )).limit(1);
         if (existingReview) return res.status(409).json({ message: "You have already reviewed this product." });
       }
@@ -26843,7 +29143,7 @@ async function registerRoutes(app2, existingServer) {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq17(pluginStudioProjects.shopProductId, productId)).limit(1);
+      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq18(pluginStudioProjects.shopProductId, productId)).limit(1);
       if (pluginProject && !["plugin-monthly", "plugin-yearly"].includes(String(planId || ""))) {
         return res.status(400).json({ message: "Choose a monthly or yearly plugin license plan before checkout." });
       }
@@ -27452,7 +29752,7 @@ async function registerRoutes(app2, existingServer) {
       }).catch(() => {
       });
       try {
-        const admins = await db.select().from(users).where(eq17(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq18(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -27486,14 +29786,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq17(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq18(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq18(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -27515,13 +29815,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq17(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq18(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq18(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -27582,7 +29882,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq17(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq18(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -27616,7 +29916,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq17(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq18(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -27665,7 +29965,7 @@ async function registerRoutes(app2, existingServer) {
       const { status, adminNote } = req.body || {};
       const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
       if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(directHireOffers.id, req.params.id)).returning();
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(directHireOffers.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Hire request not found" });
       if (updated.brandId) {
         const statusLabels = {
@@ -27969,12 +30269,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq17(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq18(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -28010,8 +30310,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq17(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq18(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -28063,7 +30363,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, req.user.id)).orderBy(desc13(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, req.user.id)).orderBy(desc13(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -28105,7 +30405,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq17(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -28120,7 +30420,7 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq17(users.userType, "admin")).limit(3);
+      const adminUsers = await db.select().from(users).where(eq18(users.userType, "admin")).limit(3);
       for (const admin2 of adminUsers) {
         await storage.createNotification({
           userId: admin2.id,
@@ -28163,7 +30463,7 @@ async function registerRoutes(app2, existingServer) {
         commissionAmount: referralCommissions.commissionAmount,
         status: referralCommissions.status,
         createdAt: referralCommissions.createdAt
-      }).from(referralCommissions).leftJoin(referrerAlias, eq17(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc13(referralCommissions.createdAt)).limit(200);
+      }).from(referralCommissions).leftJoin(referrerAlias, eq18(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc13(referralCommissions.createdAt)).limit(200);
       const referralPayouts = await db.select({
         id: payoutRequests.id,
         userId: payoutRequests.userId,
@@ -28176,7 +30476,7 @@ async function registerRoutes(app2, existingServer) {
         lastName: users.lastName,
         username: users.username,
         email: users.email
-      }).from(payoutRequests).leftJoin(users, eq17(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc13(payoutRequests.createdAt)).limit(100);
+      }).from(payoutRequests).leftJoin(users, eq18(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc13(payoutRequests.createdAt)).limit(100);
       const filteredPayouts = referralPayouts.filter(
         (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
       );
@@ -28201,7 +30501,7 @@ async function registerRoutes(app2, existingServer) {
       const updateData = { status };
       if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
       if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(referralCommissions).set(updateData).where(eq17(referralCommissions.id, id)).returning();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq18(referralCommissions.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Commission not found" });
       res.json(updated);
     } catch (error) {
@@ -28449,7 +30749,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and13(eq17(blockedUsers.blockerId, blockerId), eq17(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and14(eq18(blockedUsers.blockerId, blockerId), eq18(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -28461,7 +30761,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and13(eq17(blockedUsers.blockerId, blockerId), eq17(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and14(eq18(blockedUsers.blockerId, blockerId), eq18(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -28471,8 +30771,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and13(eq17(blockedUsers.blockerId, myId), eq17(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and13(eq17(blockedUsers.blockerId, otherId), eq17(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and14(eq18(blockedUsers.blockerId, myId), eq18(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and14(eq18(blockedUsers.blockerId, otherId), eq18(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -28842,7 +31142,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -28969,7 +31269,7 @@ Instructions:
       });
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         let resolvedLinkedCourseId = pricing?.linkedCourseId || null;
         if (!resolvedLinkedCourseId && selectedCourseKey === "free_foundations") {
@@ -28978,9 +31278,9 @@ Instructions:
         }
         if (resolvedLinkedCourseId) {
           linkedCourseId = resolvedLinkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and13(
-            eq17(courseEnrollments.courseId, resolvedLinkedCourseId),
-            eq17(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and14(
+            eq18(courseEnrollments.courseId, resolvedLinkedCourseId),
+            eq18(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -28995,7 +31295,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq17(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq18(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -29078,7 +31378,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq17(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq18(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29150,30 +31450,30 @@ Instructions:
         if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: "Invalid payment status." });
         updateData.paymentStatus = String(paymentStatus);
       }
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq17(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq18(breedskoolRegistrations.id, req.params.id)).returning();
       if (!row) return res.status(404).json({ message: "Registration not found" });
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq17(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq18(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq17(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq18(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and13(
-              eq17(courseEnrollments.courseId, courseIdToActivate),
-              eq17(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and14(
+              eq18(courseEnrollments.courseId, courseIdToActivate),
+              eq18(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq17(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq18(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -29185,7 +31485,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq17(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq18(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -29302,7 +31602,7 @@ Instructions:
     { id: "ton", label: "Toncoin", currency: "TON", network: "ton", address: "", isActive: true }
   ];
   const readBreedSkoolDonationWallets = async () => {
-    const [walletRow] = await db.select().from(appSettings).where(eq17(appSettings.key, "breedskool_donation_wallets"));
+    const [walletRow] = await db.select().from(appSettings).where(eq18(appSettings.key, "breedskool_donation_wallets"));
     if (walletRow?.value) {
       try {
         const stored = JSON.parse(walletRow.value);
@@ -29333,7 +31633,7 @@ Instructions:
   };
   app2.get("/api/breedskool/campaign", async (_req, res) => {
     try {
-      const [row] = await db.select().from(appSettings).where(eq17(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq18(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       let storedConfig = null;
       if (row?.value) {
@@ -29360,7 +31660,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const [row] = await db.select().from(appSettings).where(eq17(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq18(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       if (row?.value) {
         try {
@@ -29537,7 +31837,7 @@ Instructions:
       if (!["submitted", "verified", "approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Choose a valid donation status." });
       }
-      const [existing] = await db.select().from(paymentDeposits).where(eq17(paymentDeposits.id, req.params.id));
+      const [existing] = await db.select().from(paymentDeposits).where(eq18(paymentDeposits.id, req.params.id));
       if (!existing || !String(existing.adminNotes || "").includes("breedskool_campaign")) {
         return res.status(404).json({ message: "Donation not found." });
       }
@@ -29555,7 +31855,7 @@ Instructions:
         approvedBy: status === "approved" || status === "verified" ? req.user.id : null,
         approvedAt: status === "approved" || status === "verified" ? /* @__PURE__ */ new Date() : null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq18(paymentDeposits.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29563,7 +31863,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq17(courseAssignments.userId, req.user.id)).orderBy(desc13(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq18(courseAssignments.userId, req.user.id)).orderBy(desc13(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29571,7 +31871,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq17(breedskoolRegistrations.userId, req.user.id)).orderBy(desc13(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq18(breedskoolRegistrations.userId, req.user.id)).orderBy(desc13(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -29740,9 +32040,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq17(courseEnrollments.userId, users.id)).where(and13(
-        eq17(courseEnrollments.courseId, courseId),
-        eq17(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq18(courseEnrollments.userId, users.id)).where(and14(
+        eq18(courseEnrollments.courseId, courseId),
+        eq18(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -29778,11 +32078,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq17(courseCommunityPosts.userId, users.id)).where(and13(
-        eq17(courseCommunityPosts.courseId, courseId),
-        eq17(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq18(courseCommunityPosts.userId, users.id)).where(and14(
+        eq18(courseCommunityPosts.courseId, courseId),
+        eq18(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq17(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq18(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -29825,25 +32125,25 @@ Instructions:
       const postId = req.params.postId;
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7) {
-        const [course] = await db.select().from(courses).where(eq17(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq18(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and13(eq17(courseEnrollments.courseId, courseId), eq17(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and14(eq18(courseEnrollments.courseId, courseId), eq18(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and13(eq17(courseCommunityPosts.id, postId), eq17(courseCommunityPosts.courseId, courseId), eq17(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and14(eq18(courseCommunityPosts.id, postId), eq18(courseCommunityPosts.courseId, courseId), eq18(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and13(eq17(courseCommunityLikes.postId, postId), eq17(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and14(eq18(courseCommunityLikes.postId, postId), eq18(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and13(
-          eq17(courseCommunityLikes.postId, postId),
-          eq17(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and14(
+          eq18(courseCommunityLikes.postId, postId),
+          eq18(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq17(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq18(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
         await db.execute(sql13`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
@@ -29859,15 +32159,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and13(eq17(courseCommunityPosts.id, postId), eq17(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and14(eq18(courseCommunityPosts.id, postId), eq18(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq17(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq18(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq17(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq18(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -29876,7 +32176,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq17(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq18(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -29892,8 +32192,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq17(courseCommunityPosts.userId, users.id)).where(and13(inArray12(courseCommunityPosts.courseId, courseIds), eq17(courseCommunityPosts.isDeleted, false))).orderBy(desc13(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq17(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq18(courseCommunityPosts.userId, users.id)).where(and14(inArray12(courseCommunityPosts.courseId, courseIds), eq18(courseCommunityPosts.isDeleted, false))).orderBy(desc13(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq18(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -29903,7 +32203,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq17(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq18(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -29914,7 +32214,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq17(courseEnrollments.userId, users.id)).where(and13(inArray12(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq18(courseEnrollments.userId, users.id)).where(and14(inArray12(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -30206,9 +32506,9 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and13(
-        eq17(courseAssignments.courseId, req.params.id),
-        eq17(courseAssignments.userId, req.user.id)
+      const rows = await db.select().from(courseAssignments).where(and14(
+        eq18(courseAssignments.courseId, req.params.id),
+        eq18(courseAssignments.userId, req.user.id)
       )).orderBy(desc13(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
@@ -30264,7 +32564,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq17(courseAssignments.userId, users.id)).orderBy(desc13(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq18(courseAssignments.userId, users.id)).orderBy(desc13(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -30276,7 +32576,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq17(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq18(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -30790,7 +33090,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and13(eq17(messages.referenceType, "direct_hire"), eq17(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and14(eq18(messages.referenceType, "direct_hire"), eq18(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -30898,7 +33198,7 @@ Instructions:
         totalEarned: sql13`${users.totalEarned} + ${payout}`,
         completedCampaigns: sql13`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(users.id, offer.influencerId));
+      }).where(eq18(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -30927,7 +33227,7 @@ Instructions:
           availableBalance: sql13`${users.availableBalance} + ${platformRevenue}`,
           totalEarned: sql13`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq17(users.id, primaryAdmin.id));
+        }).where(eq18(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -30967,7 +33267,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "direct_hire"), eq17(userReviews.referenceId, offer.id))).orderBy(desc13(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "direct_hire"), eq18(userReviews.referenceId, offer.id))).orderBy(desc13(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -30983,7 +33283,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and13(eq17(userReviews.referenceType, "direct_hire"), eq17(userReviews.referenceId, offer.id), eq17(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "direct_hire"), eq18(userReviews.referenceId, offer.id), eq18(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -30993,8 +33293,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq17(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq18(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31159,7 +33459,7 @@ Instructions:
       await db.update(users).set({
         pendingBalance: sql13`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(users.id, offer.influencerId));
+      }).where(eq18(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -31353,8 +33653,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq17(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq17(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq18(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq18(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -31365,7 +33665,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq17(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq18(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -31374,7 +33674,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq17(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq18(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -31731,7 +34031,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and13(eq17(p2pListings.status, "approved"), eq17(p2pListings.isFeatured, true))).orderBy(desc13(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and14(eq18(p2pListings.status, "approved"), eq18(p2pListings.isFeatured, true))).orderBy(desc13(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31739,7 +34039,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -31756,12 +34056,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq17(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq17(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq17(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq17(p2pListings.country, country));
-      if (currency) conditions.push(eq17(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and13(...conditions)).orderBy(desc13(p2pListings.createdAt));
+      let conditions = [eq18(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq18(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq18(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq18(p2pListings.country, country));
+      if (currency) conditions.push(eq18(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and14(...conditions)).orderBy(desc13(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -31838,7 +34138,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -31854,7 +34154,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and13(eq17(p2pTaskAddonSubmissions.listingId, req.params.id), eq17(p2pTaskAddonSubmissions.userId, req.user.id), eq17(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and14(eq18(p2pTaskAddonSubmissions.listingId, req.params.id), eq18(p2pTaskAddonSubmissions.userId, req.user.id), eq18(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -31888,12 +34188,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq17(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq18(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31901,7 +34201,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq17(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq18(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -31909,9 +34209,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq17(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq18(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -31924,7 +34224,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq18(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -31945,7 +34245,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq17(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq18(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
@@ -31976,7 +34276,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
@@ -32058,7 +34358,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -32068,10 +34368,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq17(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq18(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32079,7 +34379,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -32097,7 +34397,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -32106,7 +34406,7 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -32120,10 +34420,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -32133,11 +34433,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -32147,11 +34447,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -32164,11 +34464,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -32182,11 +34482,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -32199,10 +34499,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -32223,7 +34523,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq17(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq18(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -32249,7 +34549,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq17(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq18(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -32266,14 +34566,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq17(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq17(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq17(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq18(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -32300,7 +34600,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq17(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq18(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -32371,7 +34671,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq17(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq18(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32381,7 +34681,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq17(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq18(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -32393,9 +34693,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq17(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq18(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq17(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq18(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32760,7 +35060,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq17(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq18(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -32986,7 +35286,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq17(adAnalytics.adId, req.params.id)).orderBy(desc13(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq18(adAnalytics.adId, req.params.id)).orderBy(desc13(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -33183,11 +35483,11 @@ ${body}`,
       const status = String(req.query.status || "").trim();
       const search = String(req.query.search || "").trim();
       const conditions = [];
-      if (eventType && eventType !== "all") conditions.push(eq17(activityLogs.eventType, eventType));
-      if (status && status !== "all") conditions.push(eq17(activityLogs.status, status));
+      if (eventType && eventType !== "all") conditions.push(eq18(activityLogs.eventType, eventType));
+      if (status && status !== "all") conditions.push(eq18(activityLogs.status, status));
       if (search) {
         const pattern = `%${search.slice(0, 100)}%`;
-        conditions.push(or2(
+        conditions.push(or3(
           ilike2(activityLogs.action, pattern),
           ilike2(activityLogs.description, pattern),
           ilike2(activityLogs.actorName, pattern),
@@ -33195,7 +35495,7 @@ ${body}`,
           ilike2(activityLogs.entityId, pattern)
         ));
       }
-      const where = conditions.length ? and13(...conditions) : void 0;
+      const where = conditions.length ? and14(...conditions) : void 0;
       const [items, totalRows] = await Promise.all([
         db.select().from(activityLogs).where(where).orderBy(desc13(activityLogs.createdAt)).limit(limit).offset(offset),
         db.select({ count: count4() }).from(activityLogs).where(where)
@@ -33459,14 +35759,14 @@ ${body}`,
       }
       if (!req.file) return res.status(400).json({ message: "No image uploaded" });
       const ext = (String(req.file.originalname || "").toLowerCase().match(/\.[^.]+$/) || [""])[0];
-      const allowedImageTypes = {
+      const allowedImageTypes2 = {
         ".png": "image/png",
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".webp": "image/webp",
         ".gif": "image/gif"
       };
-      if (!allowedImageTypes[ext] || req.file.mimetype !== allowedImageTypes[ext]) {
+      if (!allowedImageTypes2[ext] || req.file.mimetype !== allowedImageTypes2[ext]) {
         const fs2 = await import("node:fs/promises");
         await fs2.unlink(req.file.path).catch(() => {
         });
@@ -33808,7 +36108,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq17(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq18(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -34272,11 +36572,11 @@ ${body}`,
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
       const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql13`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc13(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and13(
-        eq17(paymentDeposits.brandId, userId),
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and14(
+        eq18(paymentDeposits.brandId, userId),
         sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
       )).orderBy(desc13(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq17(subscriptions.userId, userId)).orderBy(desc13(subscriptions.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq18(subscriptions.userId, userId)).orderBy(desc13(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -34298,14 +36598,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq17(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq18(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq17(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq18(users.id, sellerId));
         seller = s || null;
       }
       const pluginLicense = isBuyer ? await getPluginLicenseSummaryForPurchase(purchase.id, req.user.id) : null;
@@ -34318,7 +36618,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq17(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq18(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -34413,7 +36713,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq17(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq18(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -34510,7 +36810,7 @@ ${body}`,
       "Content-Disposition": asset.contentType === "application/pdf" ? "inline" : "inline",
       "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=3600"
-    }).sendFile(path3.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
+    }).sendFile(path4.resolve(process.cwd(), "attached_assets", asset.filename), (error) => {
       if (error && !res.headersSent) res.status(error.statusCode || 404).json({ message: "Portfolio asset not found" });
     });
   });
@@ -34624,7 +36924,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq17(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq18(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -34641,7 +36941,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq17(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq18(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -34658,7 +36958,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq17(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq18(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -34688,7 +36988,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq17(pageSeoSettings.pageSlug, req.params.slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq18(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page2 || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34699,9 +36999,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq17(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq18(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -34766,7 +37066,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq17(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq18(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34775,7 +37075,7 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq17(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq18(footerColumns.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34791,8 +37091,8 @@ ${body}`,
       if (parsedPath.origin !== "https://taskdrip.online") {
         return res.status(400).json({ message: "Only local page paths can be tracked" });
       }
-      const path7 = parsedPath.pathname;
-      if (path7.startsWith("/api") || path7.startsWith("/admin")) return res.json({ ok: true, skipped: true });
+      const path8 = parsedPath.pathname;
+      if (path8.startsWith("/api") || path8.startsWith("/admin")) return res.json({ ok: true, skipped: true });
       const ua = (req.headers["user-agent"] || "").toString().slice(0, 255);
       if (!ua || /bot|crawler|spider|slurp|facebookexternalhit|discordbot|whatsapp|telegrambot|preview|uptime|monitoring|headlesschrome|phantomjs|selenium/i.test(ua)) {
         return res.json({ ok: true, skipped: true, reason: "automated_client" });
@@ -34812,7 +37112,7 @@ ${body}`,
         }
       }
       await db.insert(pageViews).values({
-        path: path7.slice(0, 255),
+        path: path8.slice(0, 255),
         referrer,
         userId: req.user?.id || null,
         sessionId,
@@ -34886,8 +37186,8 @@ ${body}`,
       const daily = Array.from({ length: days }, (_, index2) => {
         const date = new Date(since);
         date.setUTCDate(since.getUTCDate() + index2);
-        const day = date.toISOString().split("T")[0];
-        return { day, views: dailyCounts.get(day) || 0 };
+        const day2 = date.toISOString().split("T")[0];
+        return { day: day2, views: dailyCounts.get(day2) || 0 };
       });
       const deviceRows = await db.execute(sql13`
         SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
@@ -34926,12 +37226,12 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq17(leads.kind, String(kind)));
+      if (kind) conds.push(eq18(leads.kind, String(kind)));
       if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
       if (businessType) conds.push(sql13`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq17(leads.country, String(country)));
+      if (country) conds.push(eq18(leads.country, String(country)));
       if (city) conds.push(sql13`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq17(leads.status, String(status)));
+      if (status) conds.push(eq18(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
         conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -34940,7 +37240,7 @@ ${body}`,
       if (hasPhone === "true") conds.push(sql13`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
       if (hasWebsite === "true") conds.push(sql13`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
       if (hasEmail === "true") conds.push(sql13`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and13(...conds) : void 0;
+      const where = conds.length ? and14(...conds) : void 0;
       const rows = await db.select().from(leads).where(where).orderBy(desc13(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count4() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
@@ -34970,9 +37270,9 @@ ${body}`,
   });
   app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq17(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq18(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq17(leadMessages.leadId, lead.id)).orderBy(desc13(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq18(leadMessages.leadId, lead.id)).orderBy(desc13(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34984,7 +37284,7 @@ ${body}`,
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq17(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq18(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -34992,8 +37292,8 @@ ${body}`,
   });
   app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq17(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq17(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq18(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq18(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -35033,7 +37333,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq17(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq18(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -35062,10 +37362,10 @@ ${body}`,
   });
   app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq17(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq18(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -35075,7 +37375,7 @@ ${body}`,
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq17(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq18(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -35100,7 +37400,7 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
@@ -35115,9 +37415,9 @@ ${body}`,
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
         if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq17(leads.country, String(country)));
-        if (kind) conds.push(eq17(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and13(...conds)).limit(2e3);
+        if (country) conds.push(eq18(leads.country, String(country)));
+        if (kind) conds.push(eq18(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and14(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -35133,7 +37433,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq17(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq18(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -35146,13 +37446,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq17(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq18(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq17(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq17(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq18(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -35207,10 +37507,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq17(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq18(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq17(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq18(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           sendAdminActivityEmail({
@@ -35258,7 +37558,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq17(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq18(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -35312,6 +37612,7 @@ ${body}`,
   registerAutoBloggerRoutes(app2);
   registerAdminDemoRoutes(app2, isAuthenticated);
   registerSeoIntelligenceRoutes(app2);
+  registerFreeDownloadsRoutes(app2);
   startAutoBloggerAutopilot();
   app2.get("/api/social-leads", isAuthenticated, async (req, res) => {
     try {
@@ -35451,10 +37752,10 @@ ${body}`,
     app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
-        const conds = [eq17(leads.kind, "influencer")];
+        const conds = [eq18(leads.kind, "influencer")];
         if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq17(leads.country, String(country)));
-        if (status) conds.push(eq17(leads.status, String(status)));
+        if (country) conds.push(eq18(leads.country, String(country)));
+        if (status) conds.push(eq18(leads.status, String(status)));
         if (search) {
           const s = `%${String(search).toLowerCase()}%`;
           conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
@@ -35471,8 +37772,8 @@ ${body}`,
             conds.push(sql13`${leads.followers} IS NULL OR ${leads.followers} = 0`);
           }
         }
-        const rows = await db.select().from(leads).where(and13(...conds)).orderBy(desc13(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
-        const totalRow = await db.select({ c: count4() }).from(leads).where(and13(...conds));
+        const rows = await db.select().from(leads).where(and14(...conds)).orderBy(desc13(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
+        const totalRow = await db.select({ c: count4() }).from(leads).where(and14(...conds));
         const items = rows.map((r) => ({ ...r, computedTier: classifyTier2(r.followers) }));
         res.json({ items, total: Number(totalRow[0]?.c || 0) });
       } catch (e) {
@@ -35515,7 +37816,7 @@ ${body}`,
         const fields = ["name", "niche", "country", "city", "email", "website", "phone", "whatsapp", "socialLinks", "followers", "description", "tags", "status", "aiSummary", "aiReport"];
         for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
         allowed.updatedAt = /* @__PURE__ */ new Date();
-        const [updated] = await db.update(leads).set(allowed).where(and13(eq17(leads.id, req.params.id), eq17(leads.kind, "influencer"))).returning();
+        const [updated] = await db.update(leads).set(allowed).where(and14(eq18(leads.id, req.params.id), eq18(leads.kind, "influencer"))).returning();
         res.json(updated);
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -35523,8 +37824,8 @@ ${body}`,
     });
     app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
-        await db.delete(leadMessages).where(eq17(leadMessages.leadId, req.params.id));
-        await db.delete(leads).where(eq17(leads.id, req.params.id));
+        await db.delete(leadMessages).where(eq18(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq18(leads.id, req.params.id));
         res.json({ ok: true });
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -35534,7 +37835,7 @@ ${body}`,
       try {
         const { subject, body, channel } = req.body || {};
         if (!body) return res.status(400).json({ message: "body required" });
-        const [lead] = await db.select().from(leads).where(and13(eq17(leads.id, req.params.id), eq17(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select().from(leads).where(and14(eq18(leads.id, req.params.id), eq18(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         if (channel === "email" || !channel) {
           const result = await sendInfluencerOutreach2({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
@@ -35549,7 +37850,7 @@ ${body}`,
           provider: "manual",
           sentBy: req.user?.id || null
         }).returning();
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id));
         res.json({ success: true, channel, message: msg });
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -35557,7 +37858,7 @@ ${body}`,
     });
     app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
-        const msgs = await db.select().from(leadMessages).where(eq17(leadMessages.leadId, req.params.id)).orderBy(desc13(leadMessages.createdAt));
+        const msgs = await db.select().from(leadMessages).where(eq18(leadMessages.leadId, req.params.id)).orderBy(desc13(leadMessages.createdAt));
         res.json(msgs);
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -35567,7 +37868,7 @@ ${body}`,
       try {
         const body = String(req.body?.body || "").trim();
         if (!body) return res.status(400).json({ message: "Note body required" });
-        const [lead] = await db.select({ id: leads.id }).from(leads).where(and13(eq17(leads.id, req.params.id), eq17(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select({ id: leads.id }).from(leads).where(and14(eq18(leads.id, req.params.id), eq18(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         const [message] = await db.insert(leadMessages).values({
           leadId: lead.id,
@@ -35589,7 +37890,7 @@ ${body}`,
         if (!body) return res.status(400).json({ message: "body required" });
         let ids = Array.isArray(leadIds) ? leadIds : [];
         if (!ids.length) {
-          const conds = [eq17(leads.kind, "influencer")];
+          const conds = [eq18(leads.kind, "influencer")];
           if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
           if (tier && tier !== "all") {
             const tierDef = TIERS2.find((t) => t.id === String(tier));
@@ -35599,7 +37900,7 @@ ${body}`,
               conds.push(sql13`${leads.followers} >= ${tierDef.min}`);
             }
           }
-          const rows = await db.select({ id: leads.id }).from(leads).where(and13(...conds)).limit(500);
+          const rows = await db.select({ id: leads.id }).from(leads).where(and14(...conds)).limit(500);
           ids = rows.map((r) => r.id);
         }
         if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
@@ -35616,134 +37917,23 @@ ${body}`,
   return httpServer;
 }
 
-// server/public-seo-routes.ts
-init_schema();
-init_db();
-import { and as and14, eq as eq18, isNull as isNull3, or as or3 } from "drizzle-orm";
-var SITE_ORIGIN = "https://taskdrip.online";
-var STATIC_SITEMAP_PATHS = [
-  { path: "", priority: "1.0", changefreq: "daily" },
-  { path: "/tasks", priority: "0.9", changefreq: "daily" },
-  { path: "/p2p-hub", priority: "0.9", changefreq: "daily" },
-  { path: "/shop", priority: "0.9", changefreq: "daily" },
-  { path: "/influencers", priority: "0.9", changefreq: "daily" },
-  { path: "/brands", priority: "0.9", changefreq: "daily" },
-  { path: "/blog", priority: "0.8", changefreq: "daily" },
-  { path: "/realtrainai-ai-training-guide", priority: "0.7", changefreq: "monthly" },
-  { path: "/breedskool", priority: "0.8", changefreq: "weekly" },
-  { path: "/leaderboard", priority: "0.7", changefreq: "daily" },
-  { path: "/advertise", priority: "0.7", changefreq: "monthly" },
-  { path: "/about", priority: "0.6", changefreq: "monthly" },
-  { path: "/contact", priority: "0.6", changefreq: "monthly" },
-  { path: "/tdrip", priority: "0.7", changefreq: "weekly" },
-  { path: "/docs", priority: "0.5", changefreq: "monthly" },
-  { path: "/hire-developer", priority: "0.6", changefreq: "monthly" },
-  { path: "/roadmap", priority: "0.5", changefreq: "monthly" },
-  { path: "/terms", priority: "0.3", changefreq: "yearly" },
-  { path: "/privacy", priority: "0.3", changefreq: "yearly" },
-  { path: "/cookies", priority: "0.3", changefreq: "yearly" },
-  { path: "/disclaimer", priority: "0.3", changefreq: "yearly" }
-];
-function registerPublicSeoRoutes(app2) {
-  app2.get("/robots.txt", (_req, res) => {
-    res.type("text/plain").set("Cache-Control", "public, max-age=3600").send([
-      "# Taskdrip robots.txt",
-      "User-agent: *",
-      "Allow: /",
-      "Disallow: /admin",
-      "Disallow: /api/",
-      "Disallow: /dashboard",
-      "Disallow: /profile/",
-      "Disallow: /user-profile/",
-      "Disallow: /brand-dashboard",
-      "",
-      `Sitemap: ${SITE_ORIGIN}/sitemap.xml`,
-      ""
-    ].join("\n"));
-  });
-  app2.get("/sitemap.xml", async (_req, res) => {
-    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-    const urls = /* @__PURE__ */ new Map();
-    for (const page2 of STATIC_SITEMAP_PATHS) {
-      urls.set(`${SITE_ORIGIN}${page2.path}`, {
-        lastmod: today,
-        priority: page2.priority,
-        changefreq: page2.changefreq
-      });
-    }
-    const addUrl = (url, lastmod) => {
-      urls.set(url, { lastmod, changefreq: "weekly", priority: "0.6" });
-    };
-    try {
-      const publishedPosts = await db.select({
-        slug: blogPosts.slug,
-        updatedAt: blogPosts.updatedAt
-      }).from(blogPosts).where(eq18(blogPosts.isPublished, true)).limit(5e4);
-      for (const post of publishedPosts) {
-        if (post.slug) {
-          const lastmod = post.updatedAt ? new Date(post.updatedAt).toISOString().slice(0, 10) : today;
-          addUrl(`${SITE_ORIGIN}/blog/${encodeURIComponent(post.slug)}`, lastmod);
-        }
-      }
-    } catch {
-    }
-    try {
-      const products = await db.select({
-        id: shopProducts.id,
-        pluginSlug: pluginStudioProjects.slug
-      }).from(shopProducts).leftJoin(pluginStudioProjects, eq18(pluginStudioProjects.shopProductId, shopProducts.id)).where(and14(
-        eq18(shopProducts.isActive, true),
-        or3(isNull3(pluginStudioProjects.id), eq18(pluginStudioProjects.status, "published"))
-      )).limit(500);
-      for (const product of products) {
-        addUrl(`${SITE_ORIGIN}/shop/product/${encodeURIComponent(product.pluginSlug || product.id)}`);
-      }
-    } catch {
-    }
-    for (const userType of ["influencer", "brand"]) {
-      try {
-        const profiles = await db.select({ id: users.id }).from(users).where(eq18(users.userType, userType)).limit(500);
-        const path7 = userType === "brand" ? "brand" : "influencers";
-        for (const profile of profiles) {
-          addUrl(`${SITE_ORIGIN}/${path7}/${encodeURIComponent(profile.id)}`);
-        }
-      } catch {
-      }
-    }
-    const escapeXml = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-    const entries = Array.from(urls.entries()).map(([url, meta]) => {
-      const fields = [
-        `<loc>${escapeXml(url)}</loc>`,
-        meta.lastmod ? `<lastmod>${meta.lastmod}</lastmod>` : "",
-        meta.changefreq ? `<changefreq>${meta.changefreq}</changefreq>` : "",
-        meta.priority ? `<priority>${meta.priority}</priority>` : ""
-      ].filter(Boolean).join("");
-      return `  <url>${fields}</url>`;
-    });
-    res.status(200).set("Cache-Control", "public, max-age=3600").type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries.join("\n")}
-</urlset>`);
-  });
-}
-
 // server/vite.ts
 import express2 from "express";
 import fs from "fs";
-import path5 from "path";
+import path6 from "path";
 
 // server/seo-meta.ts
 init_db();
 init_schema();
 import { and as and15, eq as eq19, or as or4 } from "drizzle-orm";
-import { load } from "cheerio";
+import { load as load2 } from "cheerio";
 var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   return clean.length > max ? clean.slice(0, max - 1) + "\u2026" : clean;
 };
-function cleanArticleHtml(html) {
-  const $ = load(`<div id="article-content">${html || ""}</div>`, {}, false);
+function cleanArticleHtml(html, defaultImageAlt) {
+  const $ = load2(`<div id="article-content">${html || ""}</div>`, {}, false);
   const article = $("#article-content");
   article.find("script,style,iframe,object,embed,form,button,input,textarea,select,meta,link").remove();
   article.find("article").each((_, element) => {
@@ -35762,6 +37952,12 @@ function cleanArticleHtml(html) {
     const heading = $("<h2></h2>").html($(element).html() || "");
     $(element).replaceWith(heading);
   });
+  article.find("img").each((_, element) => {
+    const image = $(element);
+    if (!image.attr("alt")?.trim()) image.attr("alt", trimText(defaultImageAlt, 120));
+    if (!image.attr("loading")) image.attr("loading", "lazy");
+    if (!image.attr("decoding")) image.attr("decoding", "async");
+  });
   return article.html() || "";
 }
 function renderArticleHtml(post, origin, image) {
@@ -35771,7 +37967,7 @@ function renderArticleHtml(post, origin, image) {
   const featuredImage = image ? `<img src="${escapeHtml2(image)}" alt="${title}" width="1200" loading="eager" />` : "";
   const excerpt = post.excerpt ? `<p>${escapeHtml2(post.excerpt)}</p>` : "";
   const meta = visibleDate ? `<p><span>Taskdrip Team</span> \xB7 <time datetime="${escapeHtml2(date)}">${escapeHtml2(visibleDate)}</time></p>` : `<p>Taskdrip Team</p>`;
-  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml2(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content)}</div></article></main>`;
+  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml2(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content, post.title)}</div></article></main>`;
 }
 var absolutize = (origin, src) => {
   if (!src) return void 0;
@@ -35861,6 +38057,26 @@ var STATIC_DEFAULTS = {
       mainEntityOfPage: "https://taskdrip.online/realtrainai-ai-training-guide",
       datePublished: "2026-10-12",
       dateModified: "2026-10-12"
+    })
+  },
+  "/abraham-tahbat": {
+    title: "Abraham Felix Tahbat | Full-Stack Developer & Product Architect",
+    description: "Explore Abraham Felix Tahbat's portfolio of SaaS platforms, AI-powered tools, marketplaces, and business systems built for teams and growing companies.",
+    canonicalUrl: "https://taskdrip.online/abraham-tahbat",
+    type: "profile"
+  },
+  "/olajumoke-owoeye": {
+    title: "Olajumoke Owoeye | Content Creator & Social Media Manager",
+    description: "Explore the work of Olajumoke Owoeye, a content creator, social media manager and marketing professional based in Ibadan, Nigeria.",
+    canonicalUrl: "https://taskdrip.online/olajumoke-owoeye",
+    type: "profile",
+    structuredData: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: "Olajumoke Owoeye",
+      jobTitle: "Content Creator and Social Media Manager",
+      url: "https://taskdrip.online/olajumoke-owoeye",
+      address: { "@type": "PostalAddress", addressLocality: "Ibadan", addressCountry: "NG" }
     })
   },
   "/breedskool": {
@@ -36134,16 +38350,79 @@ async function lookupRoute(origin, pathname) {
   if (p2pMatch) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, id));
+      const [listing] = await db.select().from(p2pListings).where(
+        and15(eq19(p2pListings.id, id), eq19(p2pListings.status, "approved"))
+      );
       if (listing) {
+        const title = listing.title || "P2P listing";
+        const description = trimText(listing.description || "");
         return {
-          title: `${listing.title || "P2P listing"} | Taskdrip`,
-          description: trimText(listing.description || ""),
-          image: absolutize(origin, listing.featuredImage)
+          title: `${title} | Taskdrip`,
+          description,
+          image: absolutize(origin, listing.featuredImage),
+          structuredData: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": listing.listingType === "service" ? "Service" : "Product",
+            name: title,
+            description,
+            image: absolutize(origin, listing.featuredImage),
+            url: `${origin}/p2p/${encodeURIComponent(listing.id)}`
+          })
         };
       }
     } catch {
     }
+    return { title: "Listing not found | Taskdrip", description: "This P2P listing is not available.", noIndex: true };
+  }
+  const portfolioMatch = pathname.match(/^\/creator-portfolio\/([^/?#]+)/);
+  if (portfolioMatch) {
+    const identity = decodeURIComponent(portfolioMatch[1]);
+    let user = null;
+    try {
+      const [byId] = await db.select().from(users).where(eq19(users.id, identity));
+      user = byId || null;
+    } catch {
+    }
+    if (!user) {
+      try {
+        const [byUsername] = await db.select().from(users).where(eq19(users.username, identity));
+        user = byUsername || null;
+      } catch {
+      }
+    }
+    if (!user || user.userType !== "creator") {
+      return { title: "Portfolio not found | Taskdrip", description: "This creator portfolio is not available.", noIndex: true };
+    }
+    const items = await db.select({
+      title: portfolioItems.title,
+      description: portfolioItems.description
+    }).from(portfolioItems).where(eq19(portfolioItems.userId, user.id));
+    const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "Creator";
+    const summary = trimText([
+      user.seoDescription || user.bio || `${name}'s selected work and creator portfolio on Taskdrip.`,
+      ...items.slice(0, 3).map((item) => item.description || item.title)
+    ].filter(Boolean).join(" "), 160);
+    const canonicalUrl = `${origin}/creator-portfolio/${encodeURIComponent(user.username || user.id)}`;
+    return {
+      title: `${name} | Creator Portfolio | Taskdrip`,
+      description: summary,
+      image: absolutize(origin, user.profileImageUrl),
+      canonicalUrl,
+      type: "profile",
+      noIndex: items.length === 0,
+      structuredData: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        name: `${name} | Creator Portfolio`,
+        url: canonicalUrl,
+        mainEntity: {
+          "@type": "Person",
+          name,
+          description: trimText(user.bio || "", 300),
+          image: absolutize(origin, user.profileImageUrl)
+        }
+      })
+    };
   }
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
@@ -36172,8 +38451,11 @@ async function lookupRoute(origin, pathname) {
 function injectMeta(html, origin, url, meta, fallbackImage) {
   const fullUrl = meta.canonicalUrl || `${origin}${url.split("?")[0].split("#")[0]}`;
   const image = meta.image || fallbackImage;
-  const title = meta.title;
-  const description = meta.description ? trimText(meta.description, 160) : void 0;
+  const title = trimText(meta.title || "Taskdrip | Creator and Brand Platform", 70);
+  const description = trimText(
+    meta.description || `Explore ${title} and discover creator, brand, and marketplace resources on Taskdrip.`,
+    160
+  );
   const type = meta.type || "website";
   let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|og:locale|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
   if (title) {
@@ -36233,7 +38515,7 @@ async function buildSeoHtml(html, req) {
     const origin = "https://taskdrip.online";
     const pathname = (req.originalUrl || "/").split("?")[0];
     const fallbackImage = await defaultOgImage(origin);
-    const meta = await lookupRoute(origin, pathname) || { image: fallbackImage };
+    const meta = await lookupRoute(origin, pathname) || { image: fallbackImage, noIndex: true };
     if (isPrivateRoute(pathname)) meta.noIndex = true;
     return injectMeta(html, origin, req.originalUrl || "/", meta, fallbackImage);
   } catch (err) {
@@ -36330,7 +38612,7 @@ async function setupVite(app2, server2) {
   app2.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path5.resolve(PROJECT_ROOT, "client", "index.html");
+      const clientTemplate = path6.resolve(PROJECT_ROOT, "client", "index.html");
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -36347,7 +38629,7 @@ async function setupVite(app2, server2) {
   });
 }
 function serveStatic(app2) {
-  const distPath = path5.resolve(PROJECT_ROOT, "dist", "public");
+  const distPath = path6.resolve(PROJECT_ROOT, "dist", "public");
   console.log(`[static] Serving frontend from: ${distPath}`);
   if (!fs.existsSync(distPath)) {
     const msg = `[static] Build directory not found: ${distPath}. Run 'npm run build' first.`;
@@ -36358,12 +38640,12 @@ function serveStatic(app2) {
   app2.use(express2.static(distPath));
   app2.use("*", async (req, res) => {
     try {
-      const html = await fs.promises.readFile(path5.resolve(distPath, "index.html"), "utf-8");
+      const html = await fs.promises.readFile(path6.resolve(distPath, "index.html"), "utf-8");
       let page2 = await buildSeoHtml(html, req);
       page2 = await injectAnalytics(page2);
       res.status(200).set({ "Content-Type": "text/html" }).end(page2);
     } catch {
-      res.sendFile(path5.resolve(distPath, "index.html"));
+      res.sendFile(path6.resolve(distPath, "index.html"));
     }
   });
 }
@@ -39671,7 +41953,7 @@ var LEGACY_UPLOAD_MIME = [
   [Buffer.from("RIFF"), "image/webp"]
 ];
 app.use("/uploads", async (req, res, next) => {
-  const ext = path6.extname(req.path).toLowerCase();
+  const ext = path7.extname(req.path).toLowerCase();
   const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".mp4", ".mov", ".pdf", ""];
   if (!allowed.includes(ext)) {
     return res.status(403).json({ message: "Forbidden" });
@@ -39679,7 +41961,7 @@ app.use("/uploads", async (req, res, next) => {
   if (ext === "") {
     try {
       const fs2 = await import("fs/promises");
-      const full = path6.resolve("uploads", path6.basename(req.path));
+      const full = path7.resolve("uploads", path7.basename(req.path));
       const fh = await fs2.open(full, "r");
       const buf = Buffer.alloc(12);
       await fh.read(buf, 0, 12, 0);
@@ -39694,7 +41976,7 @@ app.use("/uploads", async (req, res, next) => {
     }
   }
   next();
-}, express3.static(path6.resolve("uploads"), {
+}, express3.static(path7.resolve("uploads"), {
   setHeaders: (res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=86400");
@@ -39712,7 +41994,7 @@ app.get("/uploads/blog/future-creator-economy-web3.png", (_req, res) => {
 app.get("/uploads/blog/future-creator-economy-web3.jpg", (_req, res) => {
   res.redirect(308, "/uploads/blog/future-creator-economy-web3.svg");
 });
-app.use("/uploads/blog", express3.static(path6.resolve("attached_assets", "blog"), {
+app.use("/uploads/blog", express3.static(path7.resolve("attached_assets", "blog"), {
   setHeaders: (res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=86400");
@@ -39789,6 +42071,7 @@ server.listen({
     startupError = err?.message || "Route registration failed";
     console.error("[startup] Routes error:", err);
   }
+  startSeoCrawlerScheduler();
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

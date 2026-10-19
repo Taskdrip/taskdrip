@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, Download, ExternalLink, ShieldCheck, Share2 } from "lucide-react";
-import { freeDownloadsApi, useFreeDownloadDetail, useFreeDownloadPreview, useFreeDownloadUnlockStatus } from "@/lib/free-downloads-api";
+import { freeDownloadsApi, useAdminFreeDownloadPreview, useFreeDownloadDetail, useFreeDownloadPreview, useFreeDownloadUnlockStatus } from "@/lib/free-downloads-api";
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, FreeDownloadsShell, InlineNotice, LoadingBlock, ResourceGrid } from "./shared";
 import { SeoHead } from "@/components/SeoHead";
@@ -31,20 +31,26 @@ function getPreviewEmbedUrl(value?: string) {
 export function FreeDownloadDetailPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const isAdminPreview = new URLSearchParams(window.location.search).get("preview") === "1";
   const [unlockError, setUnlockError] = useState("");
   const [working, setWorking] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
-  const preview = useFreeDownloadPreview(slug);
-  const detail = useFreeDownloadDetail(slug, isAuthenticated && !!slug);
-  const unlockStatus = useFreeDownloadUnlockStatus(slug, isAuthenticated && !!slug);
+  const preview = useFreeDownloadPreview(slug, !!slug && !isAdminPreview);
+  const detail = useFreeDownloadDetail(slug, isAuthenticated && !!slug && !isAdminPreview);
+  const adminPreview = useAdminFreeDownloadPreview(slug, isAuthenticated && !!slug && isAdminPreview);
+  const unlockStatus = useFreeDownloadUnlockStatus(slug, isAuthenticated && !!slug && !isAdminPreview);
   const path = `${window.location.pathname}${window.location.search}`;
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) window.location.replace(`/login?redirect=${encodeURIComponent(path)}`);
-  }, [authLoading, isAuthenticated, path]);
-  useEffect(() => { if (unlockStatus.data?.unlocked) setUnlocked(true); }, [unlockStatus.data?.unlocked]);
-
-  const resource = detail.data;
+    if (!authLoading && !isAuthenticated && isAdminPreview) {
+      window.location.replace(`/login?redirect=${encodeURIComponent(path)}`);
+    }
+  }, [authLoading, isAuthenticated, isAdminPreview, path]);
+  const resource = isAdminPreview ? adminPreview.data : detail.data;
+  useEffect(() => {
+    setUnlocked(!isAdminPreview && Boolean(unlockStatus.data?.unlocked || resource?.isUnlocked));
+    setUnlockError("");
+  }, [slug, isAdminPreview, unlockStatus.data?.unlocked, resource?.isUnlocked]);
   const jsonLd = useMemo(() => {
     if (!resource) return undefined;
     const category = `${resource.categoryName} ${resource.format}`.toLowerCase();
@@ -100,24 +106,71 @@ export function FreeDownloadDetailPage() {
       if (started.alreadyUnlocked) {
         partnerTab.close(); setUnlocked(true); return;
       }
-      if (!started.redirectId || !started.smartlinkUrl) throw new Error("The partner redirect is not configured yet. Please try again later.");
-      const destination = new URL(started.smartlinkUrl);
-      if (destination.protocol !== "https:") throw new Error("The partner destination could not be verified as a secure HTTPS link.");
+      if (!started.redirectId || !started.redirectUrl) throw new Error("The partner redirect is not configured yet. Please try again later.");
+      const destination = new URL(started.redirectUrl, window.location.origin);
+      if (destination.origin !== window.location.origin || !destination.pathname.startsWith("/api/free-downloads/")) {
+        throw new Error("The partner redirect could not be verified. Please try again.");
+      }
       partnerTab.location.href = destination.href;
-      await wait(3500);
-      if (partnerTab.closed) throw new Error("The partner page tab was closed before we could confirm it stayed open. You have not been unlocked; you can try again.");
-      const result = await freeDownloadsApi.completeAd(slug, started.redirectId);
-      if (!result.unlocked && !result.alreadyUnlocked) throw new Error("Taskdrip could not confirm the partner redirect. You have not been unlocked; please retry.");
-      setUnlocked(true);
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline) {
+        if (partnerTab.closed) throw new Error("The partner page was closed before Taskdrip could confirm the redirect. You have not been unlocked; retry when ready.");
+        const status = await freeDownloadsApi.unlockStatus(slug);
+        if (status.unlocked) {
+          setUnlocked(true);
+          return;
+        }
+        await wait(500);
+      }
+      throw new Error("Taskdrip could not confirm that the partner redirect opened. Nothing has been unlocked; you can retry.");
     } catch (e) {
       try { if (!partnerTab.closed) partnerTab.close(); } catch { /* ignore close errors */ }
       setUnlockError((e as Error).message || "The partner redirect did not complete. Please try again.");
     } finally { setWorking(false); }
   }
 
-  if (authLoading || !isAuthenticated) return <FreeDownloadsShell><div className="fd-page-heading"><div className="fd-eyebrow"><span />MEMBER RESOURCE</div><h1>Opening your resource…</h1><p>Sign in to view full details and access the secure download.</p></div><LoadingBlock rows={1} /></FreeDownloadsShell>;
-  if (detail.isLoading) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><LoadingBlock rows={2} /></FreeDownloadsShell>;
-  if (detail.isError || !resource) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><ErrorBlock message={(detail.error as Error)?.message} retry={() => detail.refetch()} /></FreeDownloadsShell>;
+  if (authLoading || (isAdminPreview && !isAuthenticated)) return <FreeDownloadsShell><div className="fd-page-heading"><div className="fd-eyebrow"><span />MEMBER RESOURCE</div><h1>Opening your resource…</h1><p>Sign in to view this private preview.</p></div><LoadingBlock rows={1} /></FreeDownloadsShell>;
+  if (!isAuthenticated) {
+    if (preview.isLoading) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><LoadingBlock rows={1} /></FreeDownloadsShell>;
+    if (preview.isError || !preview.data) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><ErrorBlock message={(preview.error as Error)?.message} retry={() => preview.refetch()} /></FreeDownloadsShell>;
+    const guest = preview.data;
+    const guestPreview = getPreviewEmbedUrl(guest.previewVideoUrl || undefined);
+    const loginUrl = `/login?redirect=${encodeURIComponent(path)}`;
+    const registerUrl = `/signup?redirect=${encodeURIComponent(path)}`;
+    return <FreeDownloadsShell>
+      <SeoHead title={guest.seo?.title || guest.title} description={guest.seo?.description || guest.shortDescription}
+        keywords={guest.seo?.focusKeyword || undefined} ogTitle={guest.seo?.ogTitle || guest.title}
+        ogDescription={guest.seo?.ogDescription || guest.shortDescription}
+        ogImage={guest.seo?.ogImage || guest.thumbnailUrl || undefined} canonicalUrl={guest.seo?.canonicalUrl || undefined} />
+      <nav className="fd-page-heading fd-breadcrumbs" aria-label="Breadcrumb">
+        <Link className="fd-text-link" href="/downloads">Free Downloads</Link><span aria-hidden="true">/</span>
+        <Link className="fd-text-link" href={`/downloads/category/${guest.categorySlug}`}>{guest.categoryName}</Link><span aria-hidden="true">/</span>
+        <span aria-current="page">{guest.title}</span>
+      </nav>
+      <div className="fd-detail-layout">
+        <article className="fd-detail-main">
+          <div className="fd-detail-cover">{guest.thumbnailUrl ? <img src={guest.thumbnailUrl} alt={`${guest.title} cover`} /> : <div className="fd-art-placeholder"><Download size={36} /><span>{guest.format || "DIGITAL RESOURCE"}</span></div>}</div>
+          <div className="fd-eyebrow"><span />{guest.categoryName}</div><h1>{guest.title}</h1>
+          <p className="fd-lede">{guest.shortDescription}</p>
+          {guest.downloadCode && <p className="fd-download-code">Download code: <strong>{guest.downloadCode}</strong></p>}
+          <div className="fd-tag-list">{(guest.tags || []).map(tag => <span className="fd-tag" key={tag}>{tag}</span>)}</div>
+          {guest.previewVideoUrl && <section className="fd-section"><h2>Preview</h2>{guestPreview
+            ? <div className="fd-video-frame"><iframe src={guestPreview} title={`${guest.title} preview`} loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div>
+            : <a className="fd-text-link" href={guest.previewVideoUrl} target="_blank" rel="noopener noreferrer">Watch the preview <ExternalLink size={14} /></a>}</section>}
+        </article>
+        <aside className="fd-detail-side">
+          <h2>Continue to the full resource</h2>
+          <dl><div><dt>Format</dt><dd>{guest.format || "Digital resource"}</dd></div><div><dt>Downloads</dt><dd>{Number(guest.downloadCount || 0).toLocaleString()}</dd></div></dl>
+          <p>Sign in or create a free Taskdrip account to read the complete resource details and access its download.</p>
+          <a className="fd-button" href={loginUrl}>Log in to continue</a>
+          <a className="fd-button fd-button-outline" style={{ width: "100%", marginTop: 8 }} href={registerUrl}>Create an account</a>
+        </aside>
+      </div>
+    </FreeDownloadsShell>;
+  }
+  const activeQuery = isAdminPreview ? adminPreview : detail;
+  if (activeQuery.isLoading) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><LoadingBlock rows={2} /></FreeDownloadsShell>;
+  if (activeQuery.isError || !resource) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><ErrorBlock message={(activeQuery.error as Error)?.message} retry={() => activeQuery.refetch()} /></FreeDownloadsShell>;
 
   const secureFilePath = `/api/free-downloads/${encodeURIComponent(slug)}/file`;
   const formatSize = resource.fileSizeBytes ? resource.fileSizeBytes > 1_000_000_000 ? `${(resource.fileSizeBytes / 1_000_000_000).toFixed(1)} GB` : `${Math.max(1, Math.round(resource.fileSizeBytes / 1_000_000))} MB` : "Not specified";
@@ -136,6 +189,7 @@ export function FreeDownloadDetailPage() {
       canonicalUrl={resource.seo.canonicalUrl || undefined}
       jsonLd={jsonLd}
     />
+    {isAdminPreview && <InlineNotice kind="info"><strong>Private admin preview:</strong> This {resource.publicationStatus || "unpublished"} resource is not visible in public listings. Downloads stay disabled until publication.</InlineNotice>}
     <nav className="fd-page-heading fd-breadcrumbs" aria-label="Breadcrumb">
       <Link className="fd-text-link" href="/downloads">Free Downloads</Link><span aria-hidden="true">/</span>
       <Link className="fd-text-link" href={`/downloads/category/${resource.categorySlug}`}>{resource.categoryName}</Link><span aria-hidden="true">/</span>
@@ -162,8 +216,10 @@ export function FreeDownloadDetailPage() {
         <h2>Resource details</h2>
         <dl><div><dt>Format</dt><dd>{resource.format}</dd></div><div><dt>File size</dt><dd>{formatSize}</dd></div>{resource.version && <div><dt>Version</dt><dd>{resource.version}</dd></div>}<div><dt>Downloads</dt><dd>{Number(resource.downloadCount || 0).toLocaleString()}</dd></div><div><dt>Permission</dt><dd>Shared for use</dd></div></dl>
         {unlockError && <InlineNotice kind="error">{unlockError}</InlineNotice>}
-        {unlocked ? <><InlineNotice><ShieldCheck size={14} /> Access confirmed. Your secure download is ready.</InlineNotice><a className="fd-button" href={secureFilePath}><Download size={15} />DOWNLOAD NOW</a></> : <button className="fd-button" onClick={unlock} disabled={working || unlockStatus.isLoading}>{working ? "Checking partner visit…" : resource.adRequired ? "GET FREE DOWNLOAD" : "Get the download"}<Download size={15} /></button>}
-        {resource.adRequired && <p className="fd-ad-explain">To access your free download, you'll first be redirected to our advertising partner. Once you've completed this step, your download button will be unlocked. You can then download your file directly without additional redirects.</p>}
+        {isAdminPreview ? <p className="fd-ad-explain">Publishing is required before users can download this resource.</p>
+          : unlocked ? <><InlineNotice><ShieldCheck size={14} /> Access confirmed. Your secure download is ready.</InlineNotice><a className="fd-button" href={secureFilePath}><Download size={15} />DOWNLOAD NOW</a></>
+            : <button className="fd-button" onClick={unlock} disabled={working || unlockStatus.isLoading}>{working ? "Opening partner redirect…" : resource.adRequired ? "GET FREE DOWNLOAD" : "Get the download"}<Download size={15} /></button>}
+        {!isAdminPreview && resource.adRequired && <p className="fd-ad-explain">To access your free download, you'll first be redirected to our advertising partner. Once you've completed this step, your download button will be unlocked. You can then download the file directly without another redirect.</p>}
         <div className="fd-share-block"><span><Share2 size={13} /> Share this resource</span><div><a href={`https://wa.me/?text=${shareTitle}%20${shareUrl}`} target="_blank" rel="noopener noreferrer">WhatsApp</a><a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">Facebook</a><a href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`} target="_blank" rel="noopener noreferrer">X</a><a href={`https://t.me/share/url?url=${shareUrl}&text=${shareTitle}`} target="_blank" rel="noopener noreferrer">Telegram</a></div></div>
         {unlockStatus.isError && <p className="fd-ad-explain">Unlock status could not be refreshed. You can retry the partner step.</p>}
         {resource.telegramUrl && <a className="fd-text-link" style={{ marginTop: 15 }} href={resource.telegramUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> More from this community</a>}

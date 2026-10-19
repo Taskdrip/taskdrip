@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, BookOpenCheck, Send, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { ArrowRight, BookOpenCheck, Send, ChevronLeft, ChevronRight, ExternalLink, SlidersHorizontal, X } from "lucide-react";
 import { freeDownloadsApi, useFreeDownloadCategories, useFreeDownloadHome, useFreeDownloadList, useFreeDownloadPreacherSuggestions, useFreeDownloadSuggestions } from "@/lib/free-downloads-api";
 import { EmptyBlock, ErrorBlock, FreeDownloadsShell, LoadingBlock, PageHeading, ResourceGrid, SearchBox, SectionTitle } from "./shared";
 import type { FreeDownloadSummary } from "@/lib/free-downloads-api";
@@ -11,6 +11,7 @@ export function FreeDownloadsHomePage() {
   const [sort, setSort] = useState<"latest" | "popular" | "trending" | "oldest" | "alphabetical">("latest");
   const [heroIndex, setHeroIndex] = useState(0);
   const [telegramPromptOpen, setTelegramPromptOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [format, setFormat] = useState("");
@@ -157,7 +158,15 @@ export function FreeDownloadsHomePage() {
         <select id="fd-sort" className="fd-select" value={sort} onChange={e => { setSort(e.target.value as typeof sort); setPage(1); }}><option value="latest">Recently added</option><option value="popular">Most downloaded</option><option value="trending">Trending now</option><option value="oldest">Oldest first</option><option value="alphabetical">A–Z</option></select>
         {query && <button className="fd-button fd-button-outline" onClick={() => setQuery("")}>Clear search</button>}
       </div>
-      <div className="fd-filter-panel" aria-label="Filter downloads">
+      <div className="fd-mobile-filter-row">
+        <button className="fd-button fd-button-outline" type="button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>
+          <SlidersHorizontal size={14} /> Filters
+        </button>
+        {Object.values({ category, subcategory, format, preacherSlug, minSize, maxSize, from, to }).some(Boolean) && <span>Filters applied</span>}
+      </div>
+      {filtersOpen && <button className="fd-filter-scrim" type="button" aria-label="Close filters" onClick={() => setFiltersOpen(false)} />}
+      <div className={`fd-filter-panel ${filtersOpen ? "is-open" : ""}`} aria-label="Filter downloads">
+        <div className="fd-filter-drawer-head"><strong>Filter downloads</strong><button type="button" aria-label="Close filters" onClick={() => setFiltersOpen(false)}><X size={18} /></button></div>
         <label>Category<select className="fd-select" value={category} onChange={e => { setCategory(e.target.value); setSubcategory(""); setPage(1); }}><option value="">All categories</option>{(categoriesQuery.data || []).map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}</select></label>
         <label>Subcategory<select className="fd-select" value={subcategory} disabled={!activeCategory?.subcategories?.length} onChange={e => { setSubcategory(e.target.value); setPage(1); }}><option value="">All subcategories</option>{(activeCategory?.subcategories || []).map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}</select></label>
         <label>Format<select className="fd-select" value={format} onChange={e => { setFormat(e.target.value); setPage(1); }}><option value="">All formats</option>{["PDF", "ZIP", "MP3", "MP4", "AI", "Software", "PPTX", "APK"].map(item => <option key={item} value={item}>{item}</option>)}</select></label>
@@ -166,7 +175,7 @@ export function FreeDownloadsHomePage() {
         <label>Maximum size (MB)<input className="fd-input" type="number" min="0" step="1" value={maxSize} onChange={e => { setMaxSize(e.target.value); setPage(1); }} placeholder="No maximum" /></label>
         <label>Published from<input className="fd-input" type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(1); }} /></label>
         <label>Published to<input className="fd-input" type="date" value={to} onChange={e => { setTo(e.target.value); setPage(1); }} /></label>
-        <button className="fd-button fd-button-outline fd-filter-clear" type="button" onClick={clearFilters}>Clear filters</button>
+        <button className="fd-button fd-button-outline fd-filter-clear" type="button" onClick={() => { clearFilters(); setFiltersOpen(false); }}>Clear filters</button>
       </div>
       {list.isLoading ? <LoadingBlock /> : list.isError ? <ErrorBlock message={(list.error as Error)?.message} retry={() => list.refetch()} /> : list.data?.items.length ? <ResourceGrid items={list.data.items} /> : <EmptyBlock title="Nothing in this search yet" text="Try a broader term or browse by category." />}
       {!!list.data && list.data.pageCount > 1 && <div className="fd-pagination"><button className="fd-button fd-button-outline" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Previous</button><span>Page {list.data.page} of {list.data.pageCount} · {list.data.total} downloads</span><button className="fd-button fd-button-outline" disabled={page >= list.data.pageCount} onClick={() => setPage(value => value + 1)}>Next</button></div>}

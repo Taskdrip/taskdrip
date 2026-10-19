@@ -39,6 +39,15 @@ export type FreeDownloadSummary = {
   downloadCount: number;
   publishedAt?: string;
   isUnlocked?: boolean;
+  seo?: {
+    title: string;
+    description: string;
+    focusKeyword: string;
+    canonicalUrl?: string | null;
+    ogTitle: string;
+    ogDescription: string;
+    ogImage?: string | null;
+  };
 };
 
 export type FreeDownloadDetail = FreeDownloadSummary & {
@@ -60,6 +69,8 @@ export type FreeDownloadDetail = FreeDownloadSummary & {
   adRequired: boolean;
   smartlinkConfigured: boolean;
   telegramUrl: string;
+  publicationStatus?: "draft" | "preview" | "published";
+  adminPreview?: boolean;
   seo: {
     title: string;
     description: string;
@@ -119,6 +130,33 @@ async function requestJson<T>(url: string, method = "GET", body?: unknown): Prom
   return response.json() as Promise<T>;
 }
 
+function uploadFormWithProgress<T>(
+  url: string,
+  method: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+    xhr.onerror = () => reject(new Error("Upload failed. Check your connection and try again."));
+    xhr.onload = () => {
+      let payload: any = null;
+      try { payload = JSON.parse(xhr.responseText); } catch { /* handled below */ }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(payload?.message || `Save failed (${xhr.status})`));
+        return;
+      }
+      resolve(payload as T);
+    };
+    xhr.send(form);
+  });
+}
+
 function queryString(input: Record<string, unknown>) {
   const query = new URLSearchParams();
   Object.entries(input).forEach(([key, value]) => {
@@ -155,8 +193,7 @@ export const freeDownloadsApi = {
       sermons: FreeDownloadSummary[];
     }>(`${base}/preachers/${encodeURIComponent(slug)}`),
   unlockStatus: (slug: string) => requestJson<{ unlocked: boolean; adRequired: boolean; smartlinkConfigured: boolean }>(`${base}/${encodeURIComponent(slug)}/unlock-status`),
-  startAd: (slug: string) => requestJson<{ alreadyUnlocked: boolean; redirectId?: string; smartlinkUrl: string | null }>(`${base}/${encodeURIComponent(slug)}/ad-start`, "POST", { popupOpened: true }),
-  completeAd: (slug: string, redirectId: string) => requestJson<{ unlocked: boolean; alreadyUnlocked?: boolean }>(`${base}/${encodeURIComponent(slug)}/ad-complete`, "POST", { redirectId }),
+  startAd: (slug: string) => requestJson<{ alreadyUnlocked: boolean; redirectId?: string; redirectUrl?: string }>(`${base}/${encodeURIComponent(slug)}/ad-start`, "POST", { popupOpened: true }),
   submitRequest: (data: FreeDownloadRequestInput) => requestJson<any>(`${base}/requests`, "POST", data),
   myRequests: () => requestJson<any[]>(`${base}/my-requests`),
   adminDownloads: () => requestJson<any[]>(`${base}/admin/downloads`),
@@ -168,20 +205,17 @@ export const freeDownloadsApi = {
     requestJson<any[]>(`${base}/admin/requests?${queryString(filters)}`),
   adminAnalytics: (range = "30d") =>
     requestJson<any>(`${base}/admin/analytics?${queryString({ range })}`),
-  saveDownload: async (data: Record<string, unknown>, file?: File | null, id?: string) => {
+  adminPreview: (slug: string) => requestJson<FreeDownloadDetail>(`${base}/admin/preview/${encodeURIComponent(slug)}`),
+  saveDownload: async (data: Record<string, unknown>, file?: File | null, id?: string, onProgress?: (percent: number) => void) => {
     const form = new FormData();
     form.append("payload", JSON.stringify(data));
     if (file) form.append("downloadFile", file);
-    const response = await fetch(id ? `${base}/admin/downloads/${id}` : `${base}/admin/downloads`, {
-      method: id ? "PUT" : "POST",
-      credentials: "include",
-      body: form,
-    });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      throw new Error(payload?.message || `Save failed (${response.status})`);
-    }
-    return response.json();
+    return uploadFormWithProgress(
+      id ? `${base}/admin/downloads/${id}` : `${base}/admin/downloads`,
+      id ? "PUT" : "POST",
+      form,
+      onProgress,
+    );
   },
   uploadMedia: async (file: File) => {
     const form = new FormData();
@@ -249,6 +283,13 @@ export const useFreeDownloadDetail = (slug: string, enabled = !!slug) =>
   useQuery({
     queryKey: ["free-downloads", "detail", slug],
     queryFn: () => freeDownloadsApi.detail(slug),
+    enabled,
+  });
+
+export const useAdminFreeDownloadPreview = (slug: string, enabled = !!slug) =>
+  useQuery({
+    queryKey: ["free-downloads", "admin-preview", slug],
+    queryFn: () => freeDownloadsApi.adminPreview(slug),
     enabled,
   });
 
