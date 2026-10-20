@@ -15,6 +15,7 @@ import {
 import { db } from "./db";
 import { isAuthenticated } from "./auth";
 import { sendEmail } from "./email-service";
+import { getPluginLicenseCadences, pluginLicenseCadenceForPlanId, type PluginLicenseCadence } from "@shared/plugin-plan-utils";
 
 const DAY = 24 * 60 * 60 * 1000;
 const MAX_SUPPORT_MESSAGE = 8_000;
@@ -59,7 +60,7 @@ function makeLicenseKey(slug: string): string {
   return `TD-${prefix}-${randomBytes(18).toString("hex").toUpperCase()}`;
 }
 
-function addPeriod(from: Date, cadence: "monthly" | "yearly"): Date {
+function addPeriod(from: Date, cadence: Exclude<PluginLicenseCadence, "lifetime">): Date {
   const result = new Date(from);
   const dayOfMonth = result.getUTCDate();
   result.setUTCDate(1);
@@ -70,8 +71,16 @@ function addPeriod(from: Date, cadence: "monthly" | "yearly"): Date {
   return result;
 }
 
-function validCadence(value: unknown): value is "monthly" | "yearly" {
-  return value === "monthly" || value === "yearly";
+function expiryForCadence(from: Date, cadence: PluginLicenseCadence): Date | null {
+  return cadence === "lifetime" ? null : addPeriod(from, cadence);
+}
+
+function isExpired(expiresAt: Date | null, now = new Date()): boolean {
+  return expiresAt !== null && expiresAt <= now;
+}
+
+function validCadence(value: unknown): value is PluginLicenseCadence {
+  return value === "monthly" || value === "yearly" || value === "lifetime";
 }
 
 function cleanSiteUrl(value: unknown): string | null {
@@ -161,8 +170,7 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
 
   const [product] = await db.select().from(shopProducts).where(eq(shopProducts.id, purchase.productId)).limit(1);
   const selectedPlan = purchase.selectedAddons?.[0];
-  const cadence = selectedPlan?.id === "plugin-monthly" ? "monthly"
-    : selectedPlan?.id === "plugin-yearly" ? "yearly" : null;
+  const cadence = pluginLicenseCadenceForPlanId(selectedPlan?.id);
   if (!product || !cadence) return { issued: false };
 
   const key = makeLicenseKey(project.slug);
@@ -172,19 +180,22 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
     eq(pluginLicenses.projectId, project.id),
     eq(pluginLicenses.status, "active"),
   ));
-  const existingExpiry = activeLicenses.reduce<Date | null>((latest, license) =>
-    license.expiresAt > now && (!latest || license.expiresAt > latest) ? license.expiresAt : latest, null);
-  const startsAt = existingExpiry || now;
-  const expiresAt = addPeriod(startsAt, cadence);
+  const existingExpiry = activeLicenses
+    .filter((license) => license.cadence !== "lifetime" && license.expiresAt && license.expiresAt > now)
+    .reduce<Date | null>((latest, license) =>
+      license.expiresAt && (!latest || license.expiresAt > latest) ? license.expiresAt : latest, null);
+  const startsAt = cadence === "lifetime" ? now : existingExpiry || now;
+  const expiresAt = expiryForCadence(startsAt, cadence);
+  const licenseIdsToSupersede = activeLicenses
+    .filter((license) => cadence === "lifetime" || license.cadence !== "lifetime")
+    .map((license) => license.id);
 
   let created: typeof pluginLicenses.$inferSelect;
   try {
     created = await db.transaction(async (tx) => {
-      if (activeLicenses.length) {
+      if (licenseIdsToSupersede.length) {
         await tx.update(pluginLicenses).set({ status: "superseded", updatedAt: now }).where(and(
-          eq(pluginLicenses.userId, purchase.userId),
-          eq(pluginLicenses.projectId, project.id),
-          eq(pluginLicenses.status, "active"),
+          inArray(pluginLicenses.id, licenseIdsToSupersede),
         ));
       }
       const [license] = await tx.insert(pluginLicenses).values({
@@ -205,7 +216,7 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
         licenseId: license.id,
         projectId: project.id,
         eventType: "license_issued",
-        details: { cadence, expiresAt: expiresAt.toISOString() },
+        details: { cadence, expiresAt: expiresAt?.toISOString() || null },
       });
       return license;
     });
@@ -226,12 +237,18 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
     const safeBuyerName = escapeHtml(buyer.firstName || "there");
     const safeCadence = escapeHtml(cadence);
     const safeKey = escapeHtml(key);
-    const safeExpiry = escapeHtml(expiresAt.toLocaleDateString("en-NG", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "Africa/Lagos",
-    }));
+    const safeExpiry = expiresAt
+      ? escapeHtml(expiresAt.toLocaleDateString("en-NG", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "Africa/Lagos",
+        }))
+      : "Never (lifetime license)";
+    const validityText = expiresAt ? `Valid until: ${safeExpiry}` : "This lifetime license does not expire.";
+    const footerText = expiresAt
+      ? "This license does not renew automatically. Renew it before the validity date from your order page to avoid interruption."
+      : "This lifetime license does not expire and does not need renewal.";
     const safeOrderUrl = escapeHtml(orderUrl);
     const safePluginsUrl = escapeHtml(pluginsUrl);
     await sendEmail({
@@ -242,7 +259,7 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
         `Hi ${buyer.firstName || "there"},`,
         `Your ${cadence} license for ${project.name} has been approved.`,
         `License key: ${key}`,
-        `Valid until: ${safeExpiry}`,
+        validityText,
         `View your order, download the premium plugin, and manage renewal: ${orderUrl}`,
         `Open developer support: ${pluginsUrl}`,
         `In WordPress, install the free core plugin and the premium ZIP, then open Settings → Plugin License to activate this key.`,
@@ -273,7 +290,7 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
                 <tr><td style="padding:16px 18px 8px;font-size:12px;font-weight:700;color:#62578d;text-transform:uppercase;letter-spacing:.6px;">Your WordPress license key</td></tr>
                 <tr><td style="padding:0 18px 16px;">
                   <div style="padding:13px 14px;border-radius:8px;background:#211d3c;color:#ffffff;font-family:Consolas,'Courier New',monospace;font-size:14px;line-height:1.55;word-break:break-all;">${safeKey}</div>
-                  <p style="margin:10px 0 0;font-size:13px;color:#5d6475;"><strong>Valid through:</strong> ${safeExpiry} · ${safeCadence} plan</p>
+                  <p style="margin:10px 0 0;font-size:13px;color:#5d6475;"><strong>Validity:</strong> ${safeExpiry} · ${safeCadence} plan</p>
                 </td></tr>
               </table>
             </td>
@@ -291,7 +308,7 @@ export async function activatePluginLicenseForPurchase(purchaseId: string): Prom
           </tr>
           <tr>
             <td style="padding:18px 30px;background:#f8f8fb;border-top:1px solid #ececf2;font-size:11px;line-height:1.65;color:#858b9b;">
-              This license does not renew automatically. Renew it before the validity date from your order page to avoid interruption.<br>
+              ${footerText}<br>
               Questions? <a href="mailto:support@taskdrip.online" style="color:#6242c7;">support@taskdrip.online</a> · <a href="${safePluginsUrl}" style="color:#6242c7;">My Plugins</a>
             </td>
           </tr>
@@ -321,7 +338,7 @@ export async function getPluginLicenseSummaryForPurchase(purchaseId: string, use
     .limit(1);
 
   if (!row) return null;
-  const status = row.license.status === "active" && row.license.expiresAt <= new Date()
+  const status = row.license.status === "active" && isExpired(row.license.expiresAt)
     ? "expired"
     : row.license.status;
   return {
@@ -354,7 +371,9 @@ async function sendExpiryReminders(): Promise<void> {
     .where(and(inArray(pluginLicenses.status, ["active", "expired"]), lte(pluginLicenses.expiresAt, horizon)));
 
   for (const row of rows) {
-    const daysLeft = Math.ceil((row.license.expiresAt.getTime() - now.getTime()) / DAY);
+    const expiresAt = row.license.expiresAt;
+    if (!expiresAt) continue;
+    const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / DAY);
     const stage = daysLeft <= 0 ? "expired" : daysLeft <= 1 ? "1day" : "7day";
     if (row.license.reminderStage === stage || (stage === "7day" && row.license.reminderStage)) continue;
     if (daysLeft <= 0) {
@@ -434,7 +453,7 @@ export function registerPluginLicenseRoutes(
       });
       res.json(rows.map(({ license, project, product }) => ({
         id: license.id,
-        status: license.expiresAt <= new Date() && license.status === "active" ? "expired" : license.status,
+        status: isExpired(license.expiresAt) && license.status === "active" ? "expired" : license.status,
         cadence: license.cadence,
         keyPrefix: license.keyPrefix,
         startsAt: license.startsAt,
@@ -474,7 +493,7 @@ export function registerPluginLicenseRoutes(
         eq(pluginLicenses.userId, req.user.id),
         eq(pluginLicenses.status, "active"),
       )).limit(1);
-      if (!license || license.expiresAt <= new Date()) {
+      if (!license || isExpired(license.expiresAt)) {
         return res.status(403).json({ message: "An active plugin license is required to download this package." });
       }
       const archive = await options.buildPremiumArchive(license.projectId);
@@ -579,7 +598,7 @@ export function registerPluginLicenseRoutes(
       res.json({
         totals: {
           licenses: licenses.length,
-          activeLicenses: licenses.filter((row) => row.license.status === "active" && row.license.expiresAt > new Date()).length,
+          activeLicenses: licenses.filter((row) => row.license.status === "active" && !isExpired(row.license.expiresAt)).length,
           activeInstalls: sites.filter((site) => site.status === "active").length,
           trackedEvents: events.reduce((sum, event) => sum + Number(event.total), 0),
           pluginSales: Array.from(salesByProject.values()).reduce((sum, sales) => sum + sales.salesCount, 0),
@@ -593,7 +612,7 @@ export function registerPluginLicenseRoutes(
           status: project.status,
           salesCount: salesByProject.get(project.id)?.salesCount || 0,
           revenueUsd: Math.round((salesByProject.get(project.id)?.revenueUsd || 0) * 100) / 100,
-          activeLicenses: licenses.filter((row) => row.license.projectId === project.id && row.license.status === "active" && row.license.expiresAt > new Date()).length,
+          activeLicenses: licenses.filter((row) => row.license.projectId === project.id && row.license.status === "active" && !isExpired(row.license.expiresAt)).length,
           installs: sites.filter((site) => site.status === "active" && licenses.some((row) => row.license.id === site.licenseId && row.license.projectId === project.id)).length,
           usage: eventCount.get(project.id) || {},
         })),
@@ -601,7 +620,7 @@ export function registerPluginLicenseRoutes(
           id: license.id,
           projectName,
           buyerEmail,
-          status: license.expiresAt <= new Date() && license.status === "active" ? "expired" : license.status,
+          status: isExpired(license.expiresAt) && license.status === "active" ? "expired" : license.status,
           cadence: license.cadence,
           keyPrefix: license.keyPrefix,
           expiresAt: license.expiresAt,
@@ -799,7 +818,7 @@ export function registerPluginLicenseRoutes(
         return res.json({ valid: false, status: "deactivated" });
       }
       if (license.status !== "active") return res.status(200).json({ valid: false, status: license.status });
-      if (license.expiresAt <= now) {
+      if (isExpired(license.expiresAt, now)) {
         await db.update(pluginLicenses).set({ status: "expired", updatedAt: now }).where(eq(pluginLicenses.id, license.id));
         return res.status(200).json({ valid: false, status: "expired", expiresAt: license.expiresAt });
       }
@@ -839,7 +858,8 @@ export function registerPluginLicenseRoutes(
       const response: Record<string, any> = {
         valid: true,
         status: "active",
-        expiresAt: license.expiresAt.toISOString(),
+        cadence: license.cadence,
+        expiresAt: license.expiresAt?.toISOString() || null,
         maxActivations: license.maxActivations,
         activeSites: (await db.select({ id: pluginLicenseSites.id }).from(pluginLicenseSites).where(and(
           eq(pluginLicenseSites.licenseId, license.id),
@@ -881,7 +901,7 @@ export function registerPluginLicenseRoutes(
         eq(pluginLicenses.projectId, String(payload.projectId)),
         eq(pluginLicenses.status, "active"),
       )).limit(1);
-      if (!license || license.expiresAt <= new Date()) {
+      if (!license || isExpired(license.expiresAt)) {
         return res.status(403).json({ message: "An active plugin license is required for this update." });
       }
       const [site] = await db.select().from(pluginLicenseSites).where(and(

@@ -10,12 +10,19 @@ import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition 
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
 import { buildCourseBridgePaidEdition } from "./coursebridge-plugin";
 import { registerPluginLicenseRoutes } from "./plugin-licensing";
+import {
+  buildPluginLicensePlans,
+  getPluginLicenseCadences,
+  parsePluginLicenseCadences,
+  pluginLicenseCadenceForPlanId,
+  type PluginLicenseCadence,
+  type PluginLicensePlanPrices,
+} from "@shared/plugin-plan-utils";
 
 const releaseUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 } });
-const PLAN_ADDONS = (monthly: number, yearly: number) => [
-  { id: "plugin-monthly", title: "Monthly license", description: "One month of premium plugin access and updates.", price: monthly },
-  { id: "plugin-yearly", title: "Yearly license", description: "One year of premium plugin access and updates.", price: yearly },
-];
+const DEFAULT_PLUGIN_CADENCES: PluginLicenseCadence[] = ["monthly", "yearly"];
+const PLAN_ADDONS = (monthly: number, yearly: number) =>
+  buildPluginLicensePlans(DEFAULT_PLUGIN_CADENCES, { monthly, yearly });
 const STARTER_MONTHLY_PRICE = 49;
 
 function defaultLicenseApiBaseUrl(): string | null {
@@ -43,14 +50,15 @@ async function ensureStarterPlans(productId: string): Promise<void> {
   if (!product) return;
 
   const plans = Array.isArray(product.serviceAddons) ? product.serviceAddons : [];
+  if (getPluginLicenseCadences(plans).length) return;
   const monthlyPrice = Number(plans.find((plan) => plan.id === "plugin-monthly")?.price) || Number(product.price) || STARTER_MONTHLY_PRICE;
   const yearlyPrice = Number(plans.find((plan) => plan.id === "plugin-yearly")?.price) || monthlyPrice * 12;
-  const hasMonthly = plans.some((plan) => plan.id === "plugin-monthly" && Number(plan.price) > 0);
-  const hasYearly = plans.some((plan) => plan.id === "plugin-yearly" && Number(plan.price) > 0);
-  if (hasMonthly && hasYearly) return;
 
   await db.update(shopProducts).set({
-    serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
+    serviceAddons: [
+      ...plans.filter((plan) => !pluginLicenseCadenceForPlanId(plan.id)),
+      ...PLAN_ADDONS(monthlyPrice, yearlyPrice),
+    ],
     updatedAt: new Date(),
   }).where(eq(shopProducts.id, productId));
 }
@@ -398,11 +406,24 @@ export function registerPluginStudioRoutes(app: Express) {
       const seoKeywords = String(req.body?.seoKeywords || "").trim().slice(0, 600);
       const monthlyPrice = Number(req.body?.monthlyPrice);
       const yearlyPrice = Number(req.body?.yearlyPrice);
+      const lifetimePrice = Number(req.body?.lifetimePrice);
+      const enabledCadences = req.body?.enabledCadences === undefined
+        ? DEFAULT_PLUGIN_CADENCES
+        : parsePluginLicenseCadences(req.body.enabledCadences);
+      const planPrices: PluginLicensePlanPrices = {
+        monthly: monthlyPrice,
+        yearly: yearlyPrice,
+        lifetime: lifetimePrice,
+      };
       if (!name || sourcePrompt.length < 30 || !shortDescription || !description || !seoTitle || !seoDescription ||
-          !Number.isFinite(monthlyPrice) || monthlyPrice < 0.01 || monthlyPrice > 999999 ||
-          !Number.isFinite(yearlyPrice) || yearlyPrice < 0.01 || yearlyPrice > 999999) {
-        return res.status(400).json({ message: "Enter plugin details, SEO copy, and valid monthly and yearly license prices." });
+          !enabledCadences?.length || enabledCadences.some((cadence) => {
+            const price = planPrices[cadence];
+            return !Number.isFinite(price) || Number(price) < 0.01 || Number(price) > 999999;
+          })) {
+        return res.status(400).json({ message: "Select at least one license term and enter a valid price for each selected term." });
       }
+      const planAddons = buildPluginLicensePlans(enabledCadences, planPrices);
+      const startingPrice = Math.min(...planAddons.map((plan) => plan.price));
       if (!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(version)) {
         return res.status(400).json({ message: "Use a semantic version such as 1.0.0." });
       }
@@ -490,8 +511,8 @@ ${description}`,
           title: `${name} Premium Add-on`,
           description,
           shortDescription,
-          price: monthlyPrice.toFixed(2),
-          serviceAddons: PLAN_ADDONS(monthlyPrice, yearlyPrice),
+          price: startingPrice.toFixed(2),
+          serviceAddons: planAddons,
           category: "WordPress Plugins",
           type: "plugin",
           features: [...premium.features, `Requires the free ${name} Core plugin`],
@@ -553,6 +574,13 @@ ${description}`,
       const [project] = await db.select().from(pluginStudioProjects)
         .where(eq(pluginStudioProjects.id, req.params.id)).limit(1);
       if (!project) return res.status(404).json({ message: "Plugin project not found." });
+      const [linkedProduct] = project.shopProductId
+        ? await db.select({
+            id: shopProducts.id,
+            price: shopProducts.price,
+            serviceAddons: shopProducts.serviceAddons,
+          }).from(shopProducts).where(eq(shopProducts.id, project.shopProductId)).limit(1)
+        : [];
       const status = req.body?.status;
       if (status !== undefined && !["draft", "published"].includes(status)) {
         return res.status(400).json({ message: "Plugin status must be draft or published." });
@@ -578,15 +606,40 @@ ${description}`,
         }
         updates.maxActivations = maxActivations;
       }
-      if (req.body?.monthlyPrice !== undefined || req.body?.yearlyPrice !== undefined) {
-        const monthlyPrice = Number(req.body?.monthlyPrice);
-        const yearlyPrice = Number(req.body?.yearlyPrice);
-        if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0.01 || monthlyPrice > 999999 ||
-            !Number.isFinite(yearlyPrice) || yearlyPrice < 0.01 || yearlyPrice > 999999) {
-          return res.status(400).json({ message: "Monthly and yearly license prices must both be greater than zero." });
+      const pricingChanged =
+        req.body?.enabledCadences !== undefined ||
+        req.body?.monthlyPrice !== undefined ||
+        req.body?.yearlyPrice !== undefined ||
+        req.body?.lifetimePrice !== undefined;
+      let nextProductPlans = Array.isArray(linkedProduct?.serviceAddons) ? linkedProduct.serviceAddons : [];
+      if (pricingChanged) {
+        const currentCadences = getPluginLicenseCadences(nextProductPlans);
+        const enabledCadences = req.body?.enabledCadences === undefined
+          ? currentCadences.length ? currentCadences : DEFAULT_PLUGIN_CADENCES
+          : parsePluginLicenseCadences(req.body.enabledCadences);
+        const currentPlan = (cadence: PluginLicenseCadence) =>
+          nextProductPlans.find((plan) => pluginLicenseCadenceForPlanId(plan.id) === cadence);
+        const planPrices: PluginLicensePlanPrices = {
+          monthly: req.body?.monthlyPrice === undefined
+            ? Number(currentPlan("monthly")?.price || 0)
+            : Number(req.body.monthlyPrice),
+          yearly: req.body?.yearlyPrice === undefined
+            ? Number(currentPlan("yearly")?.price || 0)
+            : Number(req.body.yearlyPrice),
+          lifetime: req.body?.lifetimePrice === undefined
+            ? Number(currentPlan("lifetime")?.price || 0)
+            : Number(req.body.lifetimePrice),
+        };
+        if (!linkedProduct || !enabledCadences?.length || enabledCadences.some((cadence) => {
+          const price = planPrices[cadence];
+          return !Number.isFinite(price) || Number(price) < 0.01 || Number(price) > 999999;
+        })) {
+          return res.status(400).json({ message: "Select at least one license term and enter a valid price for each selected term." });
         }
-        updates.monthlyPrice = monthlyPrice;
-        updates.yearlyPrice = yearlyPrice;
+        nextProductPlans = [
+          ...nextProductPlans.filter((plan) => !pluginLicenseCadenceForPlanId(plan.id)),
+          ...buildPluginLicensePlans(enabledCadences, planPrices),
+        ];
       }
       if (req.body?.releaseNotes !== undefined) {
         updates.releaseNotes = String(req.body.releaseNotes || "").trim().slice(0, 8_000);
@@ -600,26 +653,26 @@ ${description}`,
       }
       if (status) updates.status = status;
       const nextLicenseUrl = updates.licenseApiBaseUrl !== undefined ? updates.licenseApiBaseUrl : project.licenseApiBaseUrl;
-      const nextPlans = updates.monthlyPrice !== undefined
-        ? PLAN_ADDONS(updates.monthlyPrice, updates.yearlyPrice)
-        : (await db.select({ serviceAddons: shopProducts.serviceAddons })
-            .from(shopProducts).where(eq(shopProducts.id, project.shopProductId || "")).limit(1))[0]?.serviceAddons || [];
-      if (status === "published" && (!nextLicenseUrl || !nextPlans.some((plan) => plan.id === "plugin-monthly") || !nextPlans.some((plan) => plan.id === "plugin-yearly"))) {
-        return res.status(409).json({ message: "Set a public HTTPS license server URL and both monthly and yearly prices before publishing." });
+      const configuredPlanCadences = getPluginLicenseCadences(nextProductPlans);
+      if (status === "published" && (!nextLicenseUrl || !configuredPlanCadences.length || configuredPlanCadences.some((cadence) => {
+        const plan = nextProductPlans.find((item) => pluginLicenseCadenceForPlanId(item.id) === cadence);
+        return !plan || !Number.isFinite(Number(plan.price)) || Number(plan.price) <= 0;
+      }))) {
+        return res.status(409).json({ message: "Set a public HTTPS license server URL and at least one valid monthly, yearly, or lifetime price before publishing." });
       }
       await db.transaction(async (tx) => {
         const projectUpdates = { ...updates };
-        delete projectUpdates.monthlyPrice;
-        delete projectUpdates.yearlyPrice;
         await tx.update(pluginStudioProjects).set(projectUpdates).where(eq(pluginStudioProjects.id, project.id));
         if (projectUpdates.maxActivations !== undefined) {
           await tx.update(pluginLicenses).set({ maxActivations: projectUpdates.maxActivations, updatedAt: new Date() })
             .where(eq(pluginLicenses.projectId, project.id));
         }
-        if (project.shopProductId && updates.monthlyPrice !== undefined) {
+        if (project.shopProductId && pricingChanged) {
+          const pluginPlans = nextProductPlans.filter((plan) => pluginLicenseCadenceForPlanId(plan.id));
+          const startingPrice = Math.min(...pluginPlans.map((plan) => Number(plan.price)));
           await tx.update(shopProducts).set({
-            price: Number(updates.monthlyPrice).toFixed(2),
-            serviceAddons: PLAN_ADDONS(Number(updates.monthlyPrice), Number(updates.yearlyPrice)),
+            price: startingPrice.toFixed(2),
+            serviceAddons: nextProductPlans,
             updatedAt: new Date(),
           }).where(eq(shopProducts.id, project.shopProductId));
         }

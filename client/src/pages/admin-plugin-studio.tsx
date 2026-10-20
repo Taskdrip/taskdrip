@@ -9,6 +9,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import {
+  getPluginLicenseCadences,
+  PLUGIN_LICENSE_PLAN_OPTIONS,
+  type PluginLicenseCadence,
+} from "@shared/plugin-plan-utils";
+
+type PluginProjectSettings = {
+  monthlyPrice: string;
+  yearlyPrice: string;
+  lifetimePrice: string;
+  enabledCadences: PluginLicenseCadence[];
+  licenseApiBaseUrl: string;
+  maxActivations: string;
+};
 
 type Project = {
   id: string;
@@ -33,14 +47,14 @@ type Project = {
     price: string;
     salesCount: number | null;
     isActive: boolean | null;
-    serviceAddons?: { id: string; title: string; price: number }[];
+    serviceAddons?: { id: string; title: string; description: string; price: number }[];
   };
 };
 
 type StudioMetrics = {
   totals: { licenses: number; activeLicenses: number; activeInstalls: number; trackedEvents: number; pluginSales: number; revenueUsd: number };
   projects: { id: string; name: string; salesCount: number; revenueUsd: number; activeLicenses: number; installs: number; usage: Record<string, number> }[];
-  licenses: { id: string; projectName: string; buyerEmail: string; status: string; cadence: string; keyPrefix: string; expiresAt: string; activeInstalls: number; maxActivations: number }[];
+  licenses: { id: string; projectName: string; buyerEmail: string; status: string; cadence: PluginLicenseCadence; keyPrefix: string; expiresAt: string | null; activeInstalls: number; maxActivations: number }[];
 };
 
 type SupportThread = {
@@ -66,6 +80,8 @@ const initialDraft = {
   seoKeywords: "",
   monthlyPrice: "",
   yearlyPrice: "",
+  lifetimePrice: "",
+  enabledCadences: ["monthly", "yearly"] as PluginLicenseCadence[],
 };
 
 const featurePillars = [
@@ -114,14 +130,31 @@ function nextPatchVersion(version: string): string {
   return `${parts[0] || "1"}.${parts[1] || "0"}.${(Number.isFinite(patch) ? patch : 0) + 1}`;
 }
 
+function isValidPlanPrice(value: string): boolean {
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0.01 && price <= 999999;
+}
+
+function cadencePriceField(cadence: PluginLicenseCadence): "monthlyPrice" | "yearlyPrice" | "lifetimePrice" {
+  return `${cadence}Price` as "monthlyPrice" | "yearlyPrice" | "lifetimePrice";
+}
+
+function pricingSummary(settings: PluginProjectSettings): string {
+  if (!settings.enabledCadences.length) return "No license terms selected";
+  return settings.enabledCadences.map((cadence) => {
+    const suffix = cadence === "monthly" ? "/month" : cadence === "yearly" ? "/year" : " lifetime";
+    return `$${Number(settings[cadencePriceField(cadence)] || 0).toFixed(2)}${suffix}`;
+  }).join(" · ");
+}
+
 export default function AdminPluginStudio() {
   const { toast } = useToast();
   const [draft, setDraft] = useState(initialDraft);
   const [downloadingKey, setDownloadingKey] = useState("");
-  const [projectSettings, setProjectSettings] = useState<Record<string, { monthlyPrice: string; yearlyPrice: string; licenseApiBaseUrl: string; maxActivations: string }>>({});
+  const [projectSettings, setProjectSettings] = useState<Record<string, PluginProjectSettings>>({});
   const [releaseForms, setReleaseForms] = useState<Record<string, { version: string; releaseNotes: string; file: File | null }>>({});
   const [supportReplies, setSupportReplies] = useState<Record<string, string>>({});
-  const [licenseDraft, setLicenseDraft] = useState<{ projectId: string; email: string; cadence: "monthly" | "yearly" }>({
+  const [licenseDraft, setLicenseDraft] = useState<{ projectId: string; email: string; cadence: PluginLicenseCadence }>({
     projectId: "",
     email: "",
     cadence: "yearly",
@@ -168,6 +201,7 @@ export default function AdminPluginStudio() {
         ...draft,
         monthlyPrice: Number(draft.monthlyPrice),
         yearlyPrice: Number(draft.yearlyPrice),
+        lifetimePrice: Number(draft.lifetimePrice),
       });
       return response.json();
     },
@@ -194,7 +228,7 @@ export default function AdminPluginStudio() {
   });
 
   const settingsMutation = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: { monthlyPrice: number; yearlyPrice: number; licenseApiBaseUrl: string; maxActivations: number } }) => {
+    mutationFn: async ({ id, values }: { id: string; values: { monthlyPrice: number; yearlyPrice: number; lifetimePrice: number; enabledCadences: PluginLicenseCadence[]; licenseApiBaseUrl: string; maxActivations: number } }) => {
       const response = await apiRequest("PATCH", `/api/admin/plugin-studio/projects/${id}`, values);
       return response.json();
     },
@@ -301,11 +335,23 @@ export default function AdminPluginStudio() {
     }
   };
 
-  const set = (key: keyof typeof initialDraft, value: string) => setDraft((current) => ({ ...current, [key]: value }));
+  const set = (key: Exclude<keyof typeof initialDraft, "enabledCadences">, value: string) => setDraft((current) => ({ ...current, [key]: value }));
+  const toggleDraftCadence = (cadence: PluginLicenseCadence, enabled: boolean) => {
+    setDraft((current) => ({
+      ...current,
+      enabledCadences: enabled
+        ? Array.from(new Set([...current.enabledCadences, cadence]))
+        : current.enabledCadences.filter((item) => item !== cadence),
+    }));
+  };
   const publishedCount = projects.filter((project) => project.status === "published").length;
   const settingsFor = (project: Project) => projectSettings[project.id] || {
     monthlyPrice: String(project.product?.serviceAddons?.find((plan) => plan.id === "plugin-monthly")?.price ?? ""),
     yearlyPrice: String(project.product?.serviceAddons?.find((plan) => plan.id === "plugin-yearly")?.price ?? ""),
+    lifetimePrice: String(project.product?.serviceAddons?.find((plan) => plan.id === "plugin-lifetime")?.price ?? ""),
+    enabledCadences: getPluginLicenseCadences(project.product?.serviceAddons).length
+      ? getPluginLicenseCadences(project.product?.serviceAddons)
+      : ["monthly", "yearly"] as PluginLicenseCadence[],
     licenseApiBaseUrl: project.licenseApiBaseUrl || "",
     maxActivations: String(project.maxActivations || 3),
   };
@@ -314,9 +360,19 @@ export default function AdminPluginStudio() {
     releaseNotes: "",
     file: null,
   };
-  const setSettings = (id: string, key: "monthlyPrice" | "yearlyPrice" | "licenseApiBaseUrl" | "maxActivations", value: string) => {
+  const setSettings = (id: string, values: Partial<PluginProjectSettings>) => {
     const project = projects.find((item) => item.id === id);
-    if (project) setProjectSettings((current) => ({ ...current, [id]: { ...settingsFor(project), [key]: value } }));
+    if (project) setProjectSettings((current) => ({ ...current, [id]: { ...settingsFor(project), ...values } }));
+  };
+  const toggleProjectCadence = (id: string, cadence: PluginLicenseCadence, enabled: boolean) => {
+    const project = projects.find((item) => item.id === id);
+    if (!project) return;
+    const current = settingsFor(project);
+    setSettings(id, {
+      enabledCadences: enabled
+        ? Array.from(new Set([...current.enabledCadences, cadence]))
+        : current.enabledCadences.filter((item) => item !== cadence),
+    });
   };
   const setReleaseField = (id: string, key: "version" | "releaseNotes" | "file", value: string | File | null) => {
     const project = projects.find((item) => item.id === id);
@@ -437,8 +493,37 @@ export default function AdminPluginStudio() {
                 <div className="space-y-2"><Label htmlFor="plugin-version">Version</Label><Input id="plugin-version" value={draft.version} onChange={(event) => set("version", event.target.value)} required placeholder="1.0.0" /></div>
                 <div className="space-y-2"><Label htmlFor="plugin-slug">Suggested slug</Label><Input id="plugin-slug" value={draft.slug} onChange={(event) => set("slug", event.target.value)} required maxLength={80} /></div>
                 <div className="space-y-2"><Label htmlFor="plugin-author">Author</Label><Input id="plugin-author" value={draft.author} onChange={(event) => set("author", event.target.value)} required maxLength={80} /></div>
-                  <div className="space-y-2"><Label htmlFor="plugin-monthly-price">Monthly license (USD)</Label><Input id="plugin-monthly-price" type="number" min="0.01" step="0.01" value={draft.monthlyPrice} onChange={(event) => set("monthlyPrice", event.target.value)} required placeholder="Set monthly price" /></div>
-                  <div className="space-y-2"><Label htmlFor="plugin-yearly-price">Yearly license (USD)</Label><Input id="plugin-yearly-price" type="number" min="0.01" step="0.01" value={draft.yearlyPrice} onChange={(event) => set("yearlyPrice", event.target.value)} required placeholder="Set yearly price" /></div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>License terms and prices (USD)</Label>
+                  <p className="text-xs text-muted-foreground">Choose one or more terms. Monthly and yearly licenses require manual renewal after payment review; they do not auto-charge.</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {PLUGIN_LICENSE_PLAN_OPTIONS.map((plan) => {
+                      const selected = draft.enabledCadences.includes(plan.cadence);
+                      const priceField = cadencePriceField(plan.cadence);
+                      return (
+                        <label key={plan.cadence} className={`space-y-3 rounded-lg border p-3 ${selected ? "border-indigo-300 bg-indigo-50/50" : "bg-white"}`}>
+                          <span className="flex items-center gap-2 text-sm font-medium">
+                            <input type="checkbox" checked={selected} onChange={(event) => toggleDraftCadence(plan.cadence, event.target.checked)} />
+                            {plan.title}
+                          </span>
+                          <Input
+                            id={`plugin-${plan.cadence}-price`}
+                            aria-label={`${plan.title} price in USD`}
+                            type="number"
+                            min="0.01"
+                            max="999999"
+                            step="0.01"
+                            value={draft[priceField]}
+                            onChange={(event) => set(priceField, event.target.value)}
+                            required={selected}
+                            disabled={!selected}
+                            placeholder={`Set ${plan.cadence} price`}
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plugin-prompt">What should the plugin do?</Label>
@@ -486,7 +571,7 @@ export default function AdminPluginStudio() {
                     </div>
                     <CardDescription>{project.shortDescription}</CardDescription>
                   </div>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold">{project.product ? settings.monthlyPrice ? `$${Number(settings.monthlyPrice).toFixed(2)} / month` : "Pricing not configured" : "No shop item"}</span>
+              <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold">{project.product ? pricingSummary(settings) : "No shop item"}</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -503,21 +588,54 @@ export default function AdminPluginStudio() {
                 </div>
                 <div className="space-y-3 rounded-xl border p-4">
                   <h3 className="font-semibold">Plans, licensing, and activation controls</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1"><Label htmlFor={`month-${project.id}`}>Monthly price (USD)</Label><Input id={`month-${project.id}`} type="number" min="0.01" step="0.01" value={settings.monthlyPrice} onChange={(event) => setSettings(project.id, "monthlyPrice", event.target.value)} /></div>
-                    <div className="space-y-1"><Label htmlFor={`year-${project.id}`}>Yearly price (USD)</Label><Input id={`year-${project.id}`} type="number" min="0.01" step="0.01" value={settings.yearlyPrice} onChange={(event) => setSettings(project.id, "yearlyPrice", event.target.value)} /></div>
-                    <div className="space-y-1 sm:col-span-2"><Label htmlFor={`license-url-${project.id}`}>Taskdrip license server URL</Label><Input id={`license-url-${project.id}`} type="url" placeholder="https://taskdrip.online" value={settings.licenseApiBaseUrl} onChange={(event) => setSettings(project.id, "licenseApiBaseUrl", event.target.value)} /><p className="text-xs text-muted-foreground">Production projects default to Taskdrip’s HTTPS site automatically. Change this only when using a different public Taskdrip deployment.</p></div>
-                    <div className="space-y-1"><Label htmlFor={`max-sites-${project.id}`}>Sites per license</Label><Input id={`max-sites-${project.id}`} type="number" min="1" max="100" step="1" value={settings.maxActivations} onChange={(event) => setSettings(project.id, "maxActivations", event.target.value)} /></div>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Available license terms and prices (USD)</Label>
+                      <p className="text-xs text-muted-foreground">Select at least one option for this plugin. Monthly and yearly terms are renewed manually after payment approval.</p>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        {PLUGIN_LICENSE_PLAN_OPTIONS.map((plan) => {
+                          const selected = settings.enabledCadences.includes(plan.cadence);
+                          const priceField = cadencePriceField(plan.cadence);
+                          return (
+                            <label key={plan.cadence} className={`space-y-3 rounded-lg border p-3 ${selected ? "border-indigo-300 bg-indigo-50/50" : "bg-white"}`}>
+                              <span className="flex items-center gap-2 text-sm font-medium">
+                                <input type="checkbox" checked={selected} onChange={(event) => toggleProjectCadence(project.id, plan.cadence, event.target.checked)} />
+                                {plan.title}
+                              </span>
+                              <Input
+                                id={`${plan.cadence}-${project.id}-price`}
+                                aria-label={`${project.name} ${plan.title} price in USD`}
+                                type="number"
+                                min="0.01"
+                                max="999999"
+                                step="0.01"
+                                value={settings[priceField]}
+                                onChange={(event) => setSettings(project.id, { [priceField]: event.target.value })}
+                                required={selected}
+                                disabled={!selected}
+                                placeholder={`Set ${plan.cadence} price`}
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1 sm:col-span-2"><Label htmlFor={`license-url-${project.id}`}>Taskdrip license server URL</Label><Input id={`license-url-${project.id}`} type="url" placeholder="https://taskdrip.online" value={settings.licenseApiBaseUrl} onChange={(event) => setSettings(project.id, { licenseApiBaseUrl: event.target.value })} /><p className="text-xs text-muted-foreground">Production projects default to Taskdrip’s HTTPS site automatically. Change this only when using a different public Taskdrip deployment.</p></div>
+                      <div className="space-y-1"><Label htmlFor={`max-sites-${project.id}`}>Sites per license</Label><Input id={`max-sites-${project.id}`} type="number" min="1" max="100" step="1" value={settings.maxActivations} onChange={(event) => setSettings(project.id, { maxActivations: event.target.value })} /></div>
+                    </div>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => settingsMutation.mutate({
                     id: project.id,
                     values: {
                       monthlyPrice: Number(settings.monthlyPrice),
                       yearlyPrice: Number(settings.yearlyPrice),
+                      lifetimePrice: Number(settings.lifetimePrice),
+                      enabledCadences: settings.enabledCadences,
                       licenseApiBaseUrl: settings.licenseApiBaseUrl,
                       maxActivations: Number(settings.maxActivations),
                     },
-                  })} disabled={settingsMutation.isPending}>
+                  })} disabled={settingsMutation.isPending || !settings.enabledCadences.length || settings.enabledCadences.some((cadence) => !isValidPlanPrice(settings[cadencePriceField(cadence)]))}>
                     <Save className="mr-2 h-4 w-4" />Save license settings
                   </Button>
                 </div>
