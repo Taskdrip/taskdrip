@@ -853,9 +853,17 @@ export function buildCourseBridgeWordPressOrgEdition(project: Project) {
     throw new Error("The CourseBridge source package is missing its main plugin file.");
   }
 
+  const directoryDescription = "Connect WooCommerce products to LearnPress courses and enroll buyers after confirmed payment.";
+  const paidDescription = ` * Description: Licensed standalone plugin: ${project.name}.`;
+  if (!main.includes(paidDescription)) {
+    throw new Error("The CourseBridge source package is missing the expected paid-plugin description.");
+  }
+
   // This marker enables a paid-only dashboard panel; the directory edition
   // provides the complete free feature set and must not show a paywall.
-  files[paid.mainFile] = main.replace("define('TDLPW_SINGLE_PAID_PLUGIN', true);\n", "");
+  files[paid.mainFile] = main
+    .replace("define('TDLPW_SINGLE_PAID_PLUGIN', true);\n", "")
+    .replace(paidDescription, ` * Description: ${directoryDescription}`);
   files["includes/class-bridge.php"] = files["includes/class-bridge.php"]
     .replaceAll("Taskdrip Course Bridge", "CourseBridge");
 
@@ -872,7 +880,7 @@ export function buildCourseBridgeWordPressOrgEdition(project: Project) {
   const release = buildPluginReleaseFiles({
     ...project,
     corePluginName: project.name,
-    coreShortDescription: "Connect WooCommerce products to LearnPress courses and enroll buyers after confirmed payment.",
+    coreShortDescription: directoryDescription,
     coreDescription:
       "CourseBridge connects WooCommerce products with LearnPress courses. When an order is confirmed as paid, the account-holding buyer is enrolled in the mapped course. Administrators can map products to multiple courses, assign existing users, manage optional access expiry, and review course access.\n\nStudents can open their courses from WooCommerce My Account or their LearnPress profile. The plugin also includes consent-based email campaigns. Checkout opt-in is applied only after successful payment; campaign sends re-check consent and include unsubscribe links. Email can be delivered with WordPress or an administrator-configured Resend account.",
     coreFeatures,

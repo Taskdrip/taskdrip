@@ -215,6 +215,8 @@ test("CourseBridge WordPress.org candidate has directory metadata and no commerc
   const shortDescription = readme.match(/^License URI:.*\n\n([^\n]+)$/m)?.[1];
   assert.ok(shortDescription && shortDescription.length <= 150, "directory short description stays within WordPress.org's 150-character limit");
   assert.match(main, /Text Domain: coursebridge-learnpresswoo-connector/);
+  assert.match(main, /Description: Connect WooCommerce products to LearnPress courses and enroll buyers after confirmed payment\./);
+  assert.doesNotMatch(main, /Licensed standalone plugin/);
   assert.doesNotMatch(main, /TDLPW_SINGLE_PAID_PLUGIN/);
   assert.doesNotMatch(JSON.stringify(release.files), /site_transient_update_plugins|auto_update_plugin|plugins_api|Update URI:|class-taskdrip-license/i);
   assert.ok(Object.keys(release.files).every((path) => !/\.md$/i.test(path)), "directory ZIP excludes nonstandard Markdown files");
@@ -226,11 +228,24 @@ test("CourseBridge WordPress.org candidate has directory metadata and no commerc
   const bridge = release.files["includes/class-bridge.php"];
   const admin = release.files["includes/class-admin.php"];
   const audience = release.files["includes/class-audience.php"];
+  const core = release.files["includes/class-core.php"];
+  const allPhp = phpFiles.map(([, source]) => source).join("\n");
+  assert.doesNotMatch(allPhp, /,\s*['"]taskdrip['"]\s*\)/i, "directory edition uses its own text domain");
+  for (const [path, source] of phpFiles) {
+    const lines = source.split("\n");
+    lines.forEach((line, index) => {
+      if (/\b(?:__|_n|_x|_nx)\s*\(\s*['"][^'"]*%(?:\d+\$)?[sdif]/.test(line)) {
+        assert.match(lines[index - 1] || "", /translators:/i, `${path}:${index + 1} documents its translation placeholders`);
+      }
+    });
+  }
+  assert.match(admin, /wp_kses\(\$latest_order/);
   assert.match(bridge, /%i WHERE/);
   assert.match(bridge, /CourseBridge enrolled the customer/);
-  assert.match(admin, /wp_kses\(\$latest_order/);
   assert.match(admin, /%i WHERE/);
   assert.match(audience, /%i WHERE/);
+  assert.match(core, /%i WHERE user_id = %d/);
+  assert.match(core, /%i SET user_id = NULL/);
   assert.match(release.files["includes/class-course-admin.php"], /%i/);
   assert.match(release.files["includes/class-course-expiry.php"], /%i/);
 });
