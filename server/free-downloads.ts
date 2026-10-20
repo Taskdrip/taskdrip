@@ -881,17 +881,22 @@ export function registerFreeDownloadsRoutes(app: Express) {
     try {
       const row = await getPublishedBySlug(req.params.slug);
       if (!row) return res.status(404).json({ message: "Download not found." });
-      const unlock = await pool.query(
-        "SELECT unlocked_at FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2 LIMIT 1",
-        [req.user.id, row.id],
-      );
-      await addEvent("detail_view", row.id, req.user.id, true);
       const settings = await getAdSettings();
-      res.json(await fullDownloadDetail(
-        row,
-        settings,
-        Boolean(unlock.rowCount) || !settings.ad_requirement_enabled,
-      ));
+      let unlocked = !settings.ad_requirement_enabled;
+      try {
+        const unlock = await pool.query(
+          "SELECT unlocked_at FROM free_download_unlocks WHERE user_id=$1 AND download_id=$2 LIMIT 1",
+          [req.user.id, row.id],
+        );
+        unlocked ||= Boolean(unlock.rowCount);
+      } catch (error) {
+        console.warn("[free-downloads] Could not read unlock state; serving resource details as locked:", error);
+      }
+      const detail = await fullDownloadDetail(row, settings, unlocked);
+      res.json(detail);
+      void addEvent("detail_view", row.id, req.user.id, true).catch((error) => {
+        console.warn("[free-downloads] Could not record detail view; resource details were served:", error);
+      });
     } catch (error) {
       console.error("[free-downloads] Detail failed:", error);
       res.status(503).json({ message: "Download details are temporarily unavailable." });

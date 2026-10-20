@@ -49,7 +49,7 @@ export function FreeDownloadDetailPage() {
       window.location.replace(`/login?redirect=${encodeURIComponent(path)}`);
     }
   }, [authLoading, isAuthenticated, isAdminPreview, path]);
-  const resource = isAdminPreview ? adminPreview.data : detail.data;
+  const resource = isAdminPreview ? adminPreview.data : detail.data ?? preview.data;
   useEffect(() => {
     setUnlocked(!isAdminPreview && Boolean(unlockStatus.data?.unlocked || resource?.isUnlocked));
     setUnlockError("");
@@ -197,9 +197,9 @@ export function FreeDownloadDetailPage() {
       <AdsterraSlot position="article-end" />
     </FreeDownloadsShell>;
   }
-  const activeQuery = isAdminPreview ? adminPreview : detail;
-  if (activeQuery.isLoading) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><LoadingBlock rows={2} /></FreeDownloadsShell>;
-  if (activeQuery.isError || !resource) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><ErrorBlock message={(activeQuery.error as Error)?.message} retry={() => activeQuery.refetch()} /></FreeDownloadsShell>;
+  const activeQuery = isAdminPreview ? adminPreview : detail.data ? detail : preview;
+  if (!resource && activeQuery.isLoading) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><LoadingBlock rows={2} /></FreeDownloadsShell>;
+  if (!resource) return <FreeDownloadsShell><div className="fd-page-heading"><Link className="fd-text-link" href="/downloads"><ArrowLeft size={14} /> Resource library</Link></div><ErrorBlock message={(activeQuery.error as Error)?.message} retry={() => activeQuery.refetch()} /></FreeDownloadsShell>;
 
   const secureFilePath = `/api/free-downloads/${encodeURIComponent(slug)}/file`;
   const isExternalResource = Boolean(resource.externalDemoUrl);

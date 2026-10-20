@@ -83,18 +83,7 @@ export type FreeDownloadDetail = FreeDownloadSummary & {
   related: FreeDownloadSummary[];
 };
 
-export type FreeDownloadPreview = FreeDownloadSummary & {
-  descriptionHtml: string;
-  galleryUrls: string[];
-  features: string[];
-  systemRequirements: string;
-  installationInstructions: string;
-  externalDemoUrl?: string | null;
-  adRequired: boolean;
-  smartlinkConfigured: boolean;
-  seo: NonNullable<FreeDownloadSummary["seo"]>;
-  related: FreeDownloadSummary[];
-};
+export type FreeDownloadPreview = FreeDownloadDetail;
 
 export type FreeDownloadFilters = {
   q?: string;
