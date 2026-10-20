@@ -14,6 +14,9 @@ type ReleaseProject = {
   name: string;
   version: string;
   author: string;
+  corePluginName?: string | null;
+  coreFeatures?: string[] | null;
+  testedUpTo?: string | null;
   shortDescription?: string | null;
   description: string;
   coreShortDescription?: string | null;
@@ -24,6 +27,7 @@ type ReleaseProject = {
   features?: string[] | null;
 };
 
+const DEFAULT_TESTED_UP_TO = "7.0";
 const MAX_FILES = 12;
 const MAX_FILE_CHARS = 37_000;
 const MAX_EDITION_CHARS = 132_000;
@@ -139,7 +143,7 @@ function stripWordPressPluginHeader(source: string): string {
 
 export function normalizeGeneratedEdition(
   input: unknown,
-  project: Pick<ReleaseProject, "slug" | "name" | "version" | "author">,
+  project: Pick<ReleaseProject, "slug" | "name" | "version" | "author" | "corePluginName">,
   edition: PluginEdition,
 ): GeneratedPluginEdition {
   const candidate = input as Record<string, any> | null;
@@ -189,7 +193,7 @@ export function normalizeGeneratedEdition(
   const pluginName = edition === "premium"
     ? `${project.name} Premium`
     : edition === "core"
-      ? `${project.name} Core`
+      ? project.corePluginName || `${project.name} Core`
       : project.name;
   const normalizedFiles = { ...files };
   delete normalizedFiles[rawMainFile];
@@ -236,7 +240,7 @@ export function buildPluginReleaseFiles(
   const folderSlug = edition === "premium" ? `${project.slug}-premium` : project.slug;
   const pluginName = edition === "premium"
     ? `${project.name} Premium`
-    : edition === "core" ? `${project.name} Core` : project.name;
+    : edition === "core" ? project.corePluginName || `${project.name} Core` : project.name;
   const shortDescription = edition === "core"
     ? project.coreShortDescription || `${project.name} free core plugin`
     : project.shortDescription || `${project.name} paid plugin`;
@@ -246,8 +250,9 @@ export function buildPluginReleaseFiles(
     .map((tag) => tag.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/\s+/g, "-"))
     .filter((tag) => tag.length > 1 && tag.length <= 30)
     .slice(0, 5);
-  const featureList = Array.isArray(project.features)
-    ? project.features.map((feature) => cleanReadmeText(String(feature))).filter(Boolean).slice(0, 12)
+  const editionFeatures = edition === "core" ? project.coreFeatures || project.features : project.features;
+  const featureList = Array.isArray(editionFeatures)
+    ? editionFeatures.map((feature) => cleanReadmeText(String(feature))).filter(Boolean).slice(0, 12)
     : [];
   const releaseNotes = cleanReadmeText(project.releaseNotes || "Initial release.");
   const changelogItems = releaseNotes
@@ -259,6 +264,7 @@ Contributors: taskdrip
 ${tags.length ? `Tags: ${tags.join(", ")}` : "Tags: wordpress, productivity"}
 Requires at least: 6.2
 Requires PHP: 7.4
+Tested up to: ${cleanHeaderValue(project.testedUpTo || DEFAULT_TESTED_UP_TO, 10)}
 Stable tag: ${cleanHeaderValue(project.version, 30)}
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -348,21 +354,11 @@ Submitting a plugin requires its own WordPress.org review and SVN release proces
     "LICENSE": `This plugin is licensed under the GNU General Public License, version 2 or later.
 See https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 `,
-    "INSTALLATION-AND-TESTING.md": installation,
   };
+  if (edition !== "core") files["INSTALLATION-AND-TESTING.md"] = installation;
   if (edition === "core") {
-    files["WORDPRESS.ORG-SUBMISSION.md"] = `# WordPress.org submission preparation
-
-This is the free core edition. Before submitting it:
-
-1. Confirm every distributed file, dependency, image, and asset is GPL-compatible.
-2. Review the current Plugin Directory guidelines: https://developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/
-3. Run the current Plugin Check tool and resolve its findings.
-4. Test on a clean staging site and verify the complete stable core remains useful without the paid add-on.
-5. Submit through https://wordpress.org/plugins/developers/add/ and follow the directory team's review and SVN instructions.
-
-The directory team makes all acceptance decisions. The paid add-on is distributed separately through Taskdrip and must not be included in this core ZIP.
-`;
+    // The WordPress.org ZIP should contain only plugin code, readme.txt, and license.
+    // Submission instructions and staging checklists stay in the admin UI, not in the directory package.
   } else if (edition === "paid") {
     files["TASKDRIP-RELEASE.md"] = `# ${pluginName} — licensed standalone plugin
 
