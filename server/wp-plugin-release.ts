@@ -348,8 +348,11 @@ This licensed Taskdrip package is not a separate free Core plus Premium pair and
 
 Submitting a plugin requires its own WordPress.org review and SVN release process. This ZIP is not automatically approved or uploaded.
 `;
+  const listingFiles = edition === "core"
+    ? Object.fromEntries(Object.entries(sourceFiles).filter(([filePath]) => !/\.md$/i.test(filePath)))
+    : sourceFiles;
   const files: Record<string, string> = {
-    ...sourceFiles,
+    ...listingFiles,
     "readme.txt": readme,
     "LICENSE": `This plugin is licensed under the GNU General Public License, version 2 or later.
 See https://www.gnu.org/licenses/old-licenses/gpl-2.0.html

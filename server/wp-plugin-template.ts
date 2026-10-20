@@ -52,6 +52,7 @@ const mainPlugin = `<?php
  * Description: {{SHORT_DESCRIPTION}}
  * Version: {{VERSION}}
  * Requires at least: 6.2
+ * Tested up to: 7.0
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce, learnpress
  * Author: {{AUTHOR}}
@@ -209,9 +210,9 @@ final class TDLPW_Core {
         if (!$user) { return array('data' => array(), 'done' => true); }
         global $wpdb;
         $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT order_id, product_ids, course_ids, amount, currency, order_status, purchased_at FROM ' .
-            TDLPW_Audience::table() . ' WHERE user_id = %d ORDER BY purchased_at DESC LIMIT 100',
-            $user->ID
+            'SELECT order_id, product_ids, course_ids, amount, currency, order_status, purchased_at FROM %i WHERE user_id = %d ORDER BY purchased_at DESC LIMIT 100',
+            TDLPW_Audience::table(),
+            absint($user->ID)
         ), ARRAY_A);
         $data = array();
         foreach ((array) $rows as $row) {
@@ -244,8 +245,9 @@ final class TDLPW_Core {
         global $wpdb;
         $table = TDLPW_Audience::table();
         $wpdb->query($wpdb->prepare(
-            'UPDATE ' . $table . ' SET user_id = NULL, customer_email = CONCAT("anonymized-", order_id, "@example.invalid") WHERE user_id = %d',
-            $user->ID
+            'UPDATE %i SET user_id = NULL, customer_email = CONCAT("anonymized-", order_id, "@example.invalid") WHERE user_id = %d',
+            $table,
+            absint($user->ID)
         ));
         $wpdb->delete($wpdb->prefix . 'tdlpw_campaign_log', array('email' => $email_address), array('%s'));
         delete_user_meta($user->ID, 'tdlpw_email_marketing_optin');
@@ -315,7 +317,8 @@ final class TDLPW_Bridge {
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
         if ($exists !== $table) { return; }
         $course_ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT item_id FROM " . $table . " WHERE user_id = %d AND item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC",
+            "SELECT item_id FROM %i WHERE user_id = %d AND item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC",
+            $table,
             get_current_user_id()
         ));
         $course_ids = array_values(array_unique(array_filter(array_map('absint', (array) $course_ids))));
@@ -498,7 +501,8 @@ final class TDLPW_Bridge {
         }
         if ($exists === $table) {
             $course_item = $wpdb->get_row($wpdb->prepare(
-                "SELECT user_item_id, status FROM " . $table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                "SELECT user_item_id, status FROM %i WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                $table,
                 $user_id,
                 $course_id
             ));
@@ -521,7 +525,7 @@ final class TDLPW_Bridge {
                 'ref_type' => 'lp_order',
                 'parent_id' => 0,
             );
-            $columns = $wpdb->get_col('SHOW COLUMNS FROM ' . $table, 0);
+            $columns = $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $table), 0);
             if (!is_array($columns) || !$columns) {
                 return new WP_Error('tdlpw_enrollment_api_unavailable', __('LearnPress enrollment data is not available on this site.', '{{SLUG}}'));
             }
@@ -541,7 +545,8 @@ final class TDLPW_Bridge {
                 $user_item_id = absint($wpdb->insert_id);
             }
             $saved_status = $wpdb->get_var($wpdb->prepare(
-                "SELECT status FROM " . $table . " WHERE user_item_id = %d LIMIT 1",
+                "SELECT status FROM %i WHERE user_item_id = %d LIMIT 1",
+                $table,
                 $user_item_id
             ));
             if (!in_array($saved_status, array('enrolled', 'finished'), true)) {
@@ -558,6 +563,7 @@ final class TDLPW_Bridge {
             return new WP_Error(
                 'tdlpw_enrollment_api_unavailable',
                 $model_error
+                    /* translators: %s: LearnPress error details. */
                     ? sprintf(__('LearnPress could not enroll this user: %s', '{{SLUG}}'), $model_error)
                     : __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}')
             );
@@ -707,8 +713,10 @@ final class TDLPW_Audience {
     public static function rows($filters = array()) {
         global $wpdb;
         $entries = $wpdb->get_results(
-            'SELECT user_id, customer_email, product_ids, course_ids, amount, currency, order_id, purchased_at FROM ' .
-            self::table() . " WHERE order_status IN ('processing','completed') ORDER BY purchased_at DESC LIMIT 5000",
+            $wpdb->prepare(
+                "SELECT user_id, customer_email, product_ids, course_ids, amount, currency, order_id, purchased_at FROM %i WHERE order_status IN ('processing','completed') ORDER BY purchased_at DESC LIMIT 5000",
+                self::table()
+            ),
             ARRAY_A
         );
         $audience = array();
@@ -755,8 +763,10 @@ final class TDLPW_Audience {
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
         if ($exists === $table) {
             $enrollments = $wpdb->get_results(
-                "SELECT user_id, item_id FROM " . $table .
-                " WHERE item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC LIMIT 5000",
+                $wpdb->prepare(
+                    "SELECT user_id, item_id FROM %i WHERE item_type = 'lp_course' AND status IN ('enrolled','finished') ORDER BY start_time DESC LIMIT 5000",
+                    $table
+                ),
                 ARRAY_A
             );
             foreach ((array) $enrollments as $enrollment) {
@@ -1178,7 +1188,12 @@ final class TDLPW_Admin {
         if (is_wp_error($result)) {
             $notice = $result->get_error_message();
         } else {
-            $notice = sprintf(__('Campaign complete: %1$d sent, %2$d failed.', '{{SLUG}}'), $result['sent'], $result['failed']);
+            $notice = sprintf(
+                /* translators: %1$d: number of emails sent; %2$d: number of emails that failed. */
+                __('Campaign complete: %1$d sent, %2$d failed.', '{{SLUG}}'),
+                $result['sent'],
+                $result['failed']
+            );
         }
         wp_safe_redirect(add_query_arg(array_merge($redirect_args, array('notice' => $notice)), admin_url('admin.php')));
         exit;
@@ -1232,7 +1247,12 @@ final class TDLPW_Admin {
         echo '<li>' . esc_html__('When WooCommerce confirms payment, the buyer account is enrolled in each mapped course.', '{{SLUG}}') . '</li>';
         echo '<li>' . esc_html__('Buyers and users assigned by an administrator can start their courses from WooCommerce My Account or their LearnPress profile.', '{{SLUG}}') . '</li>';
         echo '<li>' . esc_html__('Review all WordPress users and their paid products or LearnPress courses under Contacts & Campaigns.', '{{SLUG}}') . '</li></ol>';
-        echo '<p><strong>' . esc_html(sprintf(__('%1$d published products · %2$d LearnPress courses', '{{SLUG}}'), count($products), count($courses))) . '</strong></p>';
+        echo '<p><strong>' . esc_html(sprintf(
+            /* translators: %1$d: number of published products; %2$d: number of LearnPress courses. */
+            __('%1$d published products · %2$d LearnPress courses', '{{SLUG}}'),
+            count($products),
+            count($courses)
+        )) . '</strong></p>';
         if (!class_exists('WooCommerce') || !defined('LEARNPRESS_VERSION')) {
             echo '<p class="notice notice-warning inline">' . esc_html__('Activate WooCommerce and LearnPress to enable course mapping.', '{{SLUG}}') . '</p>';
         }
@@ -1274,11 +1294,6 @@ final class TDLPW_Admin {
         $bulk_optin_count = count(array_filter($rows, function ($row) {
             return absint($row['orders'] ?? 0) > 0 && empty($row['optin']);
         }));
-        $host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
-        $host = preg_replace('/^www\./', '', $host);
-        if ($host === 'theindustryminer.com') {
-            echo '<section class="tdlpw-subscription" aria-label="' . esc_attr__('Site subscription information', '{{SLUG}}') . '"><div><span class="tdlpw-eyebrow">' . esc_html__('SITE SUBSCRIPTION', '{{SLUG}}') . '</span><h2>' . esc_html__('The Industry Miner', '{{SLUG}}') . '</h2><a href="' . esc_url('https://theindustryminer.com/') . '">' . esc_html__('theindustryminer.com', '{{SLUG}}') . '</a><p>' . esc_html__('Plan period: October 12, 2026 – November 12, 2026', '{{SLUG}}') . '</p><small>' . esc_html__('Displayed for reference only; this page does not charge or verify payment.', '{{SLUG}}') . '</small></div><strong class="tdlpw-plan-price">$15 <span>' . esc_html__('/ month', '{{SLUG}}') . '</span></strong></section>';
-        }
         $current_page = max(1, absint($_GET['customers_page'] ?? 1));
         $page_size = 100;
         $page_rows = array_slice($rows, ($current_page - 1) * $page_size, $page_size);
@@ -1305,7 +1320,11 @@ final class TDLPW_Admin {
         if ($notice !== '') {
             echo '<div class="notice notice-info inline"><p>' . esc_html($notice) . '</p></div>';
         }
-        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. Search by email or name, then use product, course, and role filters to narrow the audience. Admins can opt in selected purchasers across pages or all matching purchasers at once; campaign emails still go only to contacts with recorded opt-in.', '{{SLUG}}'), count($rows))) . '</p>';
+        echo '<p>' . esc_html(sprintf(
+            /* translators: %d: number of WordPress contacts matching the current filters. */
+            __('%d WordPress contacts. Search by email or name, then use product, course, and role filters to narrow the audience. Admins can opt in selected purchasers across pages or all matching purchasers at once; campaign emails still go only to contacts with recorded opt-in.', '{{SLUG}}'),
+            count($rows)
+        )) . '</p>';
         TDLPW_Consent_Admin::render_form($filters, $bulk_optin_count);
         echo '<form id="tdlpw-campaign-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
         wp_nonce_field('tdlpw_send_campaign');
@@ -1341,7 +1360,12 @@ final class TDLPW_Admin {
             echo '<option value="' . esc_attr($token) . '">' . esc_html($label) . '</option>';
         }
         echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
-        echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Choose individual recipients, select contacts across pages, or use the all-matching option above. Product and course filters limit the recipients.', '{{SLUG}}') . '</span></div>';
+        $send_button_label = sprintf(
+            /* translators: %s: selected email delivery provider. */
+            __('Send to selected opted-in users through %s', '{{SLUG}}'),
+            $provider_label
+        );
+        echo '<button class="button button-primary" type="submit">' . esc_html($send_button_label) . '</button> <span class="description">' . esc_html__('Choose individual recipients, select contacts across pages, or use the all-matching option above. Product and course filters limit the recipients.', '{{SLUG}}') . '</span></div>';
         echo '<p id="tdlpw-campaign-selection-summary" class="description">' . esc_html__('No recipients selected. Checked recipients stay selected as you move between contact pages.', '{{SLUG}}') . '</p>';
         echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th><th><input type="checkbox" data-tdlpw-optin-select-page aria-label="' . esc_attr__('Select all eligible purchasers on this page for opt-in', '{{SLUG}}') . '"></th><th>' . esc_html__('Admin action', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$rows) { echo '<tr><td colspan="9">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
@@ -1354,11 +1378,20 @@ final class TDLPW_Admin {
                 ? ' <a href="' . esc_url(add_query_arg(array('page' => 'wc-orders', 'action' => 'edit', 'id' => $row['latest_order_id']), admin_url('admin.php'))) . '">#' . esc_html((string) $row['latest_order_id']) . '</a>' .
                     ($row['last_purchase'] ? '<br><small>' . esc_html($row['last_purchase']) . ' UTC</small>' : '')
                 : '';
-            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" form="tdlpw-campaign-form" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '" aria-label="' . esc_attr(sprintf(__('Select %s', '{{SLUG}}'), $row['email'])) . '">' : '—') .
+            $recipient_label = sprintf(
+                /* translators: %s: email address of the campaign recipient. */
+                __('Select %s', '{{SLUG}}'),
+                $row['email']
+            );
+            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" form="tdlpw-campaign-form" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '" aria-label="' . esc_attr($recipient_label) . '">' : '—') .
                 '</td><td>' . esc_html($row['name']) . '<br><a href="mailto:' . esc_attr($row['email']) . '">' . esc_html($row['email']) . '</a></td>' .
                 '<td>' . esc_html($row['role'] ?: '—') . '</td><td>' . esc_html(implode(', ', array_filter($row['products'])) ?: '—') . '</td>' .
                 '<td>' . esc_html(implode(', ', array_filter($row['courses'])) ?: '—') . '</td>' .
-                '<td>' . esc_html((string) $row['orders']) . ' / ' . esc_html(implode(', ', $spend) ?: '—') . $latest_order . '</td>' .
+                '<td>' . esc_html((string) $row['orders']) . ' / ' . esc_html(implode(', ', $spend) ?: '—') . wp_kses($latest_order, array(
+                    'a' => array('href' => true),
+                    'br' => array(),
+                    'small' => array(),
+                )) . '</td>' .
                 '<td>' . ($row['optin'] ? '<span class="tdlpw-status tdlpw-opted">' . esc_html__('Opted in', '{{SLUG}}') . '</span>' : '<span class="tdlpw-status">' . esc_html__('Not opted in', '{{SLUG}}') . '</span>') . '</td>' .
                 '<td>'; TDLPW_Consent_Admin::render_select_action($row); echo '</td>' .
                 '<td>'; TDLPW_Consent_Admin::render_action($row); echo '</td></tr>';
@@ -1370,7 +1403,13 @@ final class TDLPW_Admin {
                 'product' => $filters['product'], 'course' => $filters['course'],
                 'role' => $filters['role'], 'opted_in' => $filters['opted_in'] ? 1 : '', 'search' => $filters['search'],
             );
-            echo '<p class="tablenav"><span>' . esc_html(sprintf(__('Page %1$d of %2$d · %3$d contacts', '{{SLUG}}'), $current_page, $total_pages, count($rows))) . '</span> ';
+            echo '<p class="tablenav"><span>' . esc_html(sprintf(
+                /* translators: %1$d: current page; %2$d: total pages; %3$d: total matching contacts. */
+                __('Page %1$d of %2$d · %3$d contacts', '{{SLUG}}'),
+                $current_page,
+                $total_pages,
+                count($rows)
+            )) . '</span> ';
             if ($current_page > 1) {
                 echo '<a class="button" href="' . esc_url(add_query_arg(array_merge($pagination, array('customers_page' => $current_page - 1)), admin_url('admin.php'))) . '">' . esc_html__('Previous contacts', '{{SLUG}}') . '</a> ';
             }
@@ -1380,8 +1419,15 @@ final class TDLPW_Admin {
             echo '</p>';
         }
         $table = TDLPW_Audience::table();
-        $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
-        echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; Resend campaigns are sent in batches of up to 100 recipients.', '{{SLUG}}'), $count)) . '</p>';
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM %i WHERE order_status IN ('processing','completed')",
+            $table
+        ));
+        echo '<p class="description">' . esc_html(sprintf(
+            /* translators: %d: number of indexed successful WooCommerce orders. */
+            __('Indexed successful WooCommerce orders: %d. Contact records are paginated; Resend campaigns are sent in batches of up to 100 recipients.', '{{SLUG}}'),
+            $count
+        )) . '</p>';
         echo '<script>
         (function(){
           var form=document.getElementById("tdlpw-campaign-form");
@@ -1493,7 +1539,10 @@ final class TDLPW_Admin {
         });
         </script>';
 
-        $logs = $wpdb->get_results('SELECT subject, email, status, detail, sent_at FROM ' . $wpdb->prefix . 'tdlpw_campaign_log ORDER BY id DESC LIMIT 30', ARRAY_A);
+        $logs = $wpdb->get_results($wpdb->prepare(
+            'SELECT subject, email, status, detail, sent_at FROM %i ORDER BY id DESC LIMIT 30',
+            $wpdb->prefix . 'tdlpw_campaign_log'
+        ), ARRAY_A);
         echo '<h2>' . esc_html__('Recent email activity', '{{SLUG}}') . '</h2><table class="widefat striped"><thead><tr><th>' . esc_html__('Subject', '{{SLUG}}') . '</th><th>' . esc_html__('Recipient', '{{SLUG}}') . '</th><th>' . esc_html__('Status', '{{SLUG}}') . '</th><th>' . esc_html__('Provider response', '{{SLUG}}') . '</th><th>' . esc_html__('Sent at (UTC)', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$logs) { echo '<tr><td colspan="5">' . esc_html__('No email campaigns have been sent yet.', '{{SLUG}}') . '</td></tr>'; }
         foreach ((array) $logs as $log) {
@@ -1524,13 +1573,19 @@ final class TDLPW_Consent_Admin {
         echo '<input type="hidden" name="opted_in" value="' . (!empty($filters['opted_in']) ? '1' : '0') . '">';
         echo '<input type="hidden" name="search" value="' . esc_attr(sanitize_text_field($filters['search'] ?? '')) . '">';
         $confirm_all = sprintf(
+            /* translators: %d: number of purchasers who match the current filters. */
             __('This will record an administrator opt-in for all %d matching purchasers, including people who may have unsubscribed. Continue only if each person has given permission.', '{{SLUG}}'),
             absint($eligible_count)
         );
         echo '<div class="tdlpw-optin-bulk-actions"><strong>' . esc_html__('Bulk email opt-in', '{{SLUG}}') . '</strong> ';
         echo '<button class="button" type="submit" name="bulk_mode" value="selected" data-tdlpw-optin-selected disabled>' . esc_html__('Opt in selected purchasers', '{{SLUG}}') . '</button> ';
+        $bulk_optin_label = sprintf(
+            /* translators: %d: number of eligible purchasers matching the filters. */
+            __('Opt in all %d matching purchasers', '{{SLUG}}'),
+            absint($eligible_count)
+        );
         echo '<button class="button" type="submit" name="bulk_mode" value="all" data-confirm-all="' . esc_attr($confirm_all) . '" ' . ($eligible_count ? '' : 'disabled') . '>' .
-            esc_html(sprintf(__('Opt in all %d matching purchasers', '{{SLUG}}'), absint($eligible_count))) . '</button>';
+            esc_html($bulk_optin_label) . '</button>';
         echo '<span id="tdlpw-optin-selection-summary" class="description">' . esc_html__('Select purchasers in the table, or apply this action to every matching purchaser across all pages. Only proceed when you have permission to email them.', '{{SLUG}}') . '</span></div></form>';
     }
 
@@ -1539,9 +1594,14 @@ final class TDLPW_Consent_Admin {
             echo '—';
             return;
         }
+        $aria_label = sprintf(
+            /* translators: %s: email address of the purchaser available for opt-in. */
+            __('Select %s for marketing opt-in', '{{SLUG}}'),
+            $row['email'] ?? ''
+        );
         echo '<input type="checkbox" form="tdlpw-optin-form" name="selected_ids[]" value="' .
             esc_attr((string) absint($row['id'] ?? 0)) . '" aria-label="' .
-            esc_attr(sprintf(__('Select %s for marketing opt-in', '{{SLUG}}'), $row['email'] ?? '')) . '">';
+            esc_attr($aria_label) . '">';
     }
 
     public static function render_action($row) {
@@ -1589,7 +1649,11 @@ final class TDLPW_Consent_Admin {
             $updated++;
         }
         $notice = $updated
-            ? sprintf(_n('%d purchaser was opted in to email campaigns.', '%d purchasers were opted in to email campaigns.', $updated, '{{SLUG}}'), $updated)
+            ? sprintf(
+                /* translators: 1: number of purchasers opted in. */
+                _n('%d purchaser was opted in to email campaigns.', '%d purchasers were opted in to email campaigns.', $updated, '{{SLUG}}'),
+                $updated
+            )
             : __('No matching eligible purchasers were selected; marketing consent was not changed.', '{{SLUG}}');
         wp_safe_redirect(add_query_arg(array(
             'page' => 'tdlpw-dashboard',
@@ -1610,6 +1674,7 @@ const readme = `=== {{NAME}} ===
 Contributors: taskdrip
 Tags: learnpress, woocommerce, course, enrollment, email marketing
 Requires at least: 6.2
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: {{VERSION}}
 License: GPLv2 or later
@@ -1720,8 +1785,8 @@ if (!defined('WP_UNINSTALL_PLUGIN')) { exit; }
 // An administrator may explicitly remove the report table and plugin options here.
 if (defined('TDLPW_REMOVE_DATA_ON_UNINSTALL') && TDLPW_REMOVE_DATA_ON_UNINSTALL) {
     global $wpdb;
-    $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'tdlpw_order_index');
-    $wpdb->query('DROP TABLE IF EXISTS ' . $wpdb->prefix . 'tdlpw_campaign_log');
+    $wpdb->query($wpdb->prepare('DROP TABLE IF EXISTS %i', $wpdb->prefix . 'tdlpw_order_index'));
+    $wpdb->query($wpdb->prepare('DROP TABLE IF EXISTS %i', $wpdb->prefix . 'tdlpw_campaign_log'));
     delete_option('tdlpw_settings');
     delete_metadata('user', 0, 'tdlpw_email_marketing_optin', '', true);
     delete_metadata('user', 0, 'tdlpw_email_marketing_optin_at', '', true);

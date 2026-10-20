@@ -96,9 +96,10 @@ final class TDLPW_Core {
         $user = get_user_by('email', $email_address);
         if (!$user) { return array('data' => array(), 'done' => true); }
         global $wpdb;
-        $rows = $wpdb->get_results($wpdb->prepare(
-            'SELECT order_id, product_ids, course_ids, amount, currency, order_status, purchased_at FROM ' . TDLPW_Audience::table() . ' WHERE user_id = %d ORDER BY purchased_at DESC LIMIT 100',
-            absint($user->ID)
+            $rows = $wpdb->get_results($wpdb->prepare(
+                'SELECT order_id, product_ids, course_ids, amount, currency, order_status, purchased_at FROM %i WHERE user_id = %d ORDER BY purchased_at DESC LIMIT 100',
+                TDLPW_Audience::table(),
+                absint($user->ID)
         ), ARRAY_A);
         $data = array();
         foreach ((array) $rows as $row) {
@@ -131,7 +132,8 @@ final class TDLPW_Core {
         if (!$user) { return array('items_removed' => false, 'items_retained' => false, 'messages' => array(), 'done' => true); }
         global $wpdb;
         $wpdb->query($wpdb->prepare(
-            'UPDATE ' . TDLPW_Audience::table() . ' SET user_id = NULL, customer_email = CONCAT("anonymized-", order_id, "@example.invalid") WHERE user_id = %d',
+            'UPDATE %i SET user_id = NULL, customer_email = CONCAT("anonymized-", order_id, "@example.invalid") WHERE user_id = %d',
+            TDLPW_Audience::table(),
             absint($user->ID)
         ));
         $wpdb->delete($wpdb->prefix . 'tdlpw_campaign_log', array('email' => $email_address), array('%s'));
@@ -166,7 +168,8 @@ final class TDLPW_Course_Expiry {
             $lp_table = $wpdb->prefix . 'learnpress_user_items';
             $lp_table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($lp_table)));
             $enrollment = $lp_table_exists === $lp_table ? $wpdb->get_row($wpdb->prepare(
-                "SELECT status FROM " . $lp_table . " WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                "SELECT status FROM %i WHERE user_id = %d AND item_id = %d AND item_type = 'lp_course' ORDER BY user_item_id DESC LIMIT 1",
+                $lp_table,
                 $user_id,
                 $course_id
             )) : null;
@@ -181,7 +184,8 @@ final class TDLPW_Course_Expiry {
                 if (!is_wp_error($result)) {
                     $access_table = TDLPW_Course_Admin::access_table();
                     $access_id = $wpdb->get_var($wpdb->prepare(
-                        "SELECT access_id FROM " . $access_table . " WHERE user_id = %d AND course_id = %d AND source = 'admin' AND source_id = 0 LIMIT 1",
+                        "SELECT access_id FROM %i WHERE user_id = %d AND course_id = %d AND source = 'admin' AND source_id = 0 LIMIT 1",
+                        $access_table,
                         $user_id,
                         $course_id
                     ));
@@ -388,7 +392,8 @@ final class TDLPW_Course_Admin {
         global $wpdb;
         $table = self::access_table();
         return (bool) $wpdb->get_var($wpdb->prepare(
-            "SELECT access_id FROM " . $table . " WHERE user_id = %d AND course_id = %d AND status = 'active' AND (expires_at IS NULL OR expires_at > %s) LIMIT 1",
+            "SELECT access_id FROM %i WHERE user_id = %d AND course_id = %d AND status = 'active' AND (expires_at IS NULL OR expires_at > %s) LIMIT 1",
+            $table,
             absint($user_id),
             absint($course_id),
             current_time('mysql', true)
@@ -415,12 +420,14 @@ final class TDLPW_Course_Admin {
         $table = self::access_table();
         $now = current_time('mysql', true);
         $expired = $wpdb->get_results($wpdb->prepare(
-            "SELECT DISTINCT user_id, course_id FROM " . $table . " WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            "SELECT DISTINCT user_id, course_id FROM %i WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $table,
             $now
         ));
         if (!$expired) { return; }
         $wpdb->query($wpdb->prepare(
-            "UPDATE " . $table . " SET status = 'expired', updated_at = %s WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            "UPDATE %i SET status = 'expired', updated_at = %s WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $table,
             $now,
             $now
         ));
@@ -483,30 +490,38 @@ final class TDLPW_Course_Admin {
         if ($exists !== $table) { return array(); }
         $access = self::access_table();
         return $wpdb->get_results(
-            "SELECT item.user_id, item.item_id AS course_id, item.status AS lp_status, item.start_time AS lp_start_time,
+            $wpdb->prepare(
+                "SELECT item.user_id, item.item_id AS course_id, item.status AS lp_status, item.start_time AS lp_start_time,
                 user.display_name, user.user_login, user.user_email, course.post_title,
                 admin_access.starts_at AS access_start, admin_access.expires_at AS access_expiry,
                 admin_access.status AS admin_access_status,
                 purchase_access.access_status AS purchase_access_status
-             FROM " . $table . " item
+             FROM %i item
              INNER JOIN (
                 SELECT MAX(user_item_id) AS user_item_id
-                FROM " . $table . "
+                FROM %i
                 WHERE item_type = 'lp_course'
                 GROUP BY user_id, item_id
              ) latest ON latest.user_item_id = item.user_item_id
-             INNER JOIN " . $wpdb->users . " user ON user.ID = item.user_id
-             INNER JOIN " . $wpdb->posts . " course ON course.ID = item.item_id AND course.post_type = 'lp_course'
-             LEFT JOIN " . $access . " admin_access ON admin_access.user_id = item.user_id AND admin_access.course_id = item.item_id AND admin_access.source = 'admin' AND admin_access.source_id = 0
+             INNER JOIN %i user ON user.ID = item.user_id
+             INNER JOIN %i course ON course.ID = item.item_id AND course.post_type = 'lp_course'
+             LEFT JOIN %i admin_access ON admin_access.user_id = item.user_id AND admin_access.course_id = item.item_id AND admin_access.source = 'admin' AND admin_access.source_id = 0
              LEFT JOIN (
                 SELECT user_id, course_id, MAX(status) AS access_status
-                FROM " . $access . "
+                FROM %i
                 WHERE source = 'purchase' AND status = 'active'
                 GROUP BY user_id, course_id
              ) purchase_access ON purchase_access.user_id = item.user_id AND purchase_access.course_id = item.item_id
              WHERE item.item_type = 'lp_course'
              ORDER BY item.start_time DESC
              LIMIT 500",
+                $table,
+                $table,
+                $wpdb->users,
+                $wpdb->posts,
+                $access,
+                $access
+            ),
             ARRAY_A
         );
     }
@@ -824,4 +839,59 @@ export function buildCourseBridgePaidEdition(project: Project) {
     requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license"],
     files: distributableFiles,
   }, common, "paid");
+}
+
+export function buildCourseBridgePremiumEdition(project: Project) {
+  const premiumMain = `<?php
+/**
+ * Plugin Name: ${project.name} Premium
+ * Description: Premium course assignment and access-management add-on.
+ * Version: ${project.version}
+ * Requires at least: 6.2
+ * Requires PHP: 7.4
+ * Requires Plugins: ${project.slug}
+ * Author: ${project.author}
+ * License: GPL-2.0-or-later
+ * Text Domain: ${project.slug}-premium
+ */
+if (!defined('ABSPATH')) { exit; }
+
+require_once __DIR__ . '/includes/class-course-expiry.php';
+require_once __DIR__ . '/includes/class-course-admin.php';
+
+add_action('plugins_loaded', static function () {
+    (new TDLPW_Course_Admin())->run();
+});
+`;
+  return normalizeGeneratedEdition({
+    mainFile: `${project.slug}-premium.php`,
+    shortDescription: "Add direct LearnPress course assignments and expiring student access.",
+    description:
+      "CourseBridge Premium extends the free CourseBridge LearnpressWOO Connector plugin with direct student assignment, course-access reporting, optional expiry dates, and access revocation. Install and activate the free core plugin before activating this add-on.",
+    features: [
+      "Assign a LearnPress course directly to an existing WordPress user.",
+      "Search users by display name, username, or email before assigning courses.",
+      "Set, change, and enforce optional course-access expiry dates.",
+      "Review assigned and purchase-based LearnPress access in one admin screen.",
+      "Reconcile paid WooCommerce orders against product-to-course mappings.",
+      "Cancel an assignment and revoke LearnPress course access.",
+    ],
+    requirements: [
+      "CourseBridge LearnpressWOO Connector free core",
+      "WooCommerce",
+      "LearnPress",
+      "Active Taskdrip license",
+    ],
+    files: {
+      [`${project.slug}-premium.php`]: premiumMain,
+      "includes/class-course-expiry.php": courseExpiry(project),
+      "includes/class-course-admin.php": courseAdmin(project),
+    },
+  }, {
+    slug: project.slug,
+    name: project.name,
+    version: project.version,
+    author: project.author,
+    corePluginName: project.name,
+  }, "premium");
 }
