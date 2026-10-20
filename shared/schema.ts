@@ -391,10 +391,10 @@ export const pluginLicenses = pgTable("plugin_licenses", {
   keyHash: varchar("key_hash").notNull().unique(),
   keyEncrypted: text("key_encrypted").notNull(),
   keyPrefix: varchar("key_prefix").notNull(),
-  cadence: varchar("cadence").notNull(), // monthly, yearly
+  cadence: varchar("cadence").notNull(), // monthly, yearly, lifetime
   status: varchar("status").notNull().default("active"), // active, expired, revoked, superseded
   startsAt: timestamp("starts_at").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
+  expiresAt: timestamp("expires_at"),
   reminderStage: varchar("reminder_stage").notNull().default(""),
   maxActivations: integer("max_activations").notNull().default(3),
   createdAt: timestamp("created_at").defaultNow(),

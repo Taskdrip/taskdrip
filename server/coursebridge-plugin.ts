@@ -12,8 +12,8 @@ type Project = {
 
 const paidMain = (project: Project) => `<?php
 /**
- * Plugin Name: ${project.name} Core
- * Description: Licensed CourseBridge plugin for WooCommerce and LearnPress course management.
+ * Plugin Name: ${project.name}
+ * Description: ${project.shortDescription}
  * Version: ${project.version}
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -74,11 +74,11 @@ final class TDLPW_Core {
         $token = isset($_GET['token']) ? sanitize_text_field(wp_unslash($_GET['token'])) : '';
         $expected = hash_hmac('sha256', (string) $user_id, wp_salt('auth'));
         if (!$user_id || !$token || !hash_equals($expected, $token)) {
-            wp_die(esc_html__('This unsubscribe link is invalid or expired.', 'coursebridge-learnpress-woocommerce'), '', array('response' => 400));
+            wp_die(esc_html__('This unsubscribe link is invalid or expired.', 'coursebridge-learnpresswoo-connector'), '', array('response' => 400));
         }
         update_user_meta($user_id, 'tdlpw_email_marketing_optin', '0');
         update_user_meta($user_id, 'tdlpw_email_marketing_optout_at', current_time('mysql', true));
-        wp_die(esc_html__('You have been unsubscribed from course marketing emails.', 'coursebridge-learnpress-woocommerce'), esc_html__('Email preferences updated', 'coursebridge-learnpress-woocommerce'), array('response' => 200));
+        wp_die(esc_html__('You have been unsubscribed from course marketing emails.', 'coursebridge-learnpresswoo-connector'), esc_html__('Email preferences updated', 'coursebridge-learnpresswoo-connector'), array('response' => 200));
     }
     public function register_privacy_handlers() {
         if (!class_exists('TDLPW_Audience')) { return; }
@@ -87,7 +87,7 @@ final class TDLPW_Core {
     }
     public function privacy_exporter($exporters) {
         $exporters['taskdrip-course-bridge'] = array(
-            'exporter_friendly_name' => __('Course Bridge purchases and email preferences', 'coursebridge-learnpress-woocommerce'),
+            'exporter_friendly_name' => __('Course Bridge purchases and email preferences', 'coursebridge-learnpresswoo-connector'),
             'callback' => array($this, 'export_personal_data'),
         );
         return $exporters;
@@ -105,23 +105,23 @@ final class TDLPW_Core {
             $product_ids = (array) json_decode((string) $row['product_ids'], true);
             $course_ids = (array) json_decode((string) $row['course_ids'], true);
             $data[] = array(
-                array('name' => __('Order', 'coursebridge-learnpress-woocommerce'), 'value' => absint($row['order_id'])),
-                array('name' => __('Products', 'coursebridge-learnpress-woocommerce'), 'value' => implode(', ', array_filter(array_map('get_the_title', $product_ids)))),
-                array('name' => __('Courses', 'coursebridge-learnpress-woocommerce'), 'value' => implode(', ', array_filter(array_map('get_the_title', $course_ids)))),
-                array('name' => __('Amount / currency', 'coursebridge-learnpress-woocommerce'), 'value' => sanitize_text_field($row['amount'] . ' ' . $row['currency'])),
-                array('name' => __('Order status', 'coursebridge-learnpress-woocommerce'), 'value' => sanitize_key($row['order_status'])),
-                array('name' => __('Purchase date', 'coursebridge-learnpress-woocommerce'), 'value' => sanitize_text_field($row['purchased_at'])),
+                array('name' => __('Order', 'coursebridge-learnpresswoo-connector'), 'value' => absint($row['order_id'])),
+                array('name' => __('Products', 'coursebridge-learnpresswoo-connector'), 'value' => implode(', ', array_filter(array_map('get_the_title', $product_ids)))),
+                array('name' => __('Courses', 'coursebridge-learnpresswoo-connector'), 'value' => implode(', ', array_filter(array_map('get_the_title', $course_ids)))),
+                array('name' => __('Amount / currency', 'coursebridge-learnpresswoo-connector'), 'value' => sanitize_text_field($row['amount'] . ' ' . $row['currency'])),
+                array('name' => __('Order status', 'coursebridge-learnpresswoo-connector'), 'value' => sanitize_key($row['order_status'])),
+                array('name' => __('Purchase date', 'coursebridge-learnpresswoo-connector'), 'value' => sanitize_text_field($row['purchased_at'])),
             );
         }
         $data[] = array(array(
-            'name' => __('Course marketing email consent', 'coursebridge-learnpress-woocommerce'),
-            'value' => get_user_meta($user->ID, 'tdlpw_email_marketing_optin', true) === '1' ? __('Opted in', 'coursebridge-learnpress-woocommerce') : __('Not opted in', 'coursebridge-learnpress-woocommerce'),
+            'name' => __('Course marketing email consent', 'coursebridge-learnpresswoo-connector'),
+            'value' => get_user_meta($user->ID, 'tdlpw_email_marketing_optin', true) === '1' ? __('Opted in', 'coursebridge-learnpresswoo-connector') : __('Not opted in', 'coursebridge-learnpresswoo-connector'),
         ));
         return array('data' => $data, 'done' => true);
     }
     public function privacy_eraser($erasers) {
         $erasers['taskdrip-course-bridge'] = array(
-            'eraser_friendly_name' => __('Course Bridge email preferences', 'coursebridge-learnpress-woocommerce'),
+            'eraser_friendly_name' => __('Course Bridge email preferences', 'coursebridge-learnpresswoo-connector'),
             'callback' => array($this, 'erase_personal_data'),
         );
         return $erasers;
@@ -139,7 +139,7 @@ final class TDLPW_Core {
         delete_user_meta($user->ID, 'tdlpw_email_marketing_optin_at');
         delete_user_meta($user->ID, 'tdlpw_email_marketing_optin_source');
         delete_user_meta($user->ID, 'tdlpw_email_marketing_optout_at');
-        return array('items_removed' => true, 'items_retained' => true, 'messages' => array(__('Purchase totals and order references are retained in anonymized form; email preferences and logs were removed.', 'coursebridge-learnpress-woocommerce')), 'done' => true);
+        return array('items_removed' => true, 'items_retained' => true, 'messages' => array(__('Purchase totals and order references are retained in anonymized form; email preferences and logs were removed.', 'coursebridge-learnpresswoo-connector')), 'done' => true);
     }
 }
 `;
@@ -819,7 +819,7 @@ export function buildCourseBridgePaidEdition(project: Project) {
       "Compose campaigns with the WordPress visual and HTML editors, media-library images, links, and recipient personalization",
       "Send a provider test email to an administrator-selected address without emailing the marketing list",
       "Show the requested one-month Industry Miner plan period on that site's campaign page for reference",
-      "Manage plugin settings, sender details, and license from one CourseBridge Pro menu",
+      "Manage plugin settings, sender details, and license from the CourseBridge LearnpressWOO Connector menu",
     ],
     requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license"],
     files: distributableFiles,

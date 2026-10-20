@@ -295,7 +295,12 @@ export default function AdminPluginStudio() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/plugin-studio/licensing"] });
       setAdminLicenseKeys((current) => ({ ...current, [license.id]: license.licenseKey }));
       setLicenseDraft((current) => ({ ...current, email: "" }));
-      toast({ title: "Plugin license generated", description: `${license.projectName} is active through ${new Date(license.expiresAt).toLocaleDateString()}.` });
+      toast({
+        title: "Plugin license generated",
+        description: license.expiresAt
+          ? `${license.projectName} is active through ${new Date(license.expiresAt).toLocaleDateString()}.`
+          : `${license.projectName} has a lifetime license with no expiry.`,
+      });
     },
     onError: (mutationError: Error) => toast({ title: "Could not generate license", description: mutationError.message, variant: "destructive" }),
   });
@@ -417,7 +422,7 @@ export default function AdminPluginStudio() {
         <div>
           <div className="mb-3 flex items-center gap-2 text-violet-200"><WandSparkles className="h-5 w-5" /> TASKDRIP PLUGIN STUDIO</div>
           <h1 className="text-3xl font-bold md:text-4xl">Build and sell WordPress plugins</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-200 md:text-base">Create free WordPress cores and premium add-ons with monthly/yearly licenses, tracked installs, renewals, support, and automatic updates.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-200 md:text-base">Create free WordPress cores and premium add-ons with monthly, yearly, or lifetime licenses, tracked installs, support, and automatic updates.</p>
         </div>
         <div className="grid min-w-[250px] grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-xl bg-white/10 p-4"><div className="text-2xl font-bold">{projects.length}</div><div className="text-xs text-slate-300">Plugin packages</div></div>
@@ -495,7 +500,7 @@ export default function AdminPluginStudio() {
                 <div className="space-y-2"><Label htmlFor="plugin-author">Author</Label><Input id="plugin-author" value={draft.author} onChange={(event) => set("author", event.target.value)} required maxLength={80} /></div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label>License terms and prices (USD)</Label>
-                  <p className="text-xs text-muted-foreground">Choose one or more terms. Monthly and yearly licenses require manual renewal after payment review; they do not auto-charge.</p>
+                  <p className="text-xs text-muted-foreground">Set a price for each enabled term. Monthly and yearly plans are manually renewed after payment review; lifetime is a one-time license with no expiry. Nothing auto-charges.</p>
                   <div className="grid gap-3 sm:grid-cols-3">
                     {PLUGIN_LICENSE_PLAN_OPTIONS.map((plan) => {
                       const selected = draft.enabledCadences.includes(plan.cadence);
@@ -682,7 +687,7 @@ export default function AdminPluginStudio() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base"><KeyRound className="h-4 w-4" />License sales and activations</CardTitle>
-              <CardDescription>Buyer email, plan, expiry, site count, and administrator revocation control.</CardDescription>
+              <CardDescription>Buyer email, plan, expiry or lifetime status, site count, and administrator revocation control.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <form
@@ -723,10 +728,11 @@ export default function AdminPluginStudio() {
                     id="manual-license-cadence"
                     className="h-10 w-full rounded-md border bg-white px-3 text-sm"
                     value={licenseDraft.cadence}
-                    onChange={(event) => setLicenseDraft((current) => ({ ...current, cadence: event.target.value as "monthly" | "yearly" }))}
+                    onChange={(event) => setLicenseDraft((current) => ({ ...current, cadence: event.target.value as PluginLicenseCadence }))}
                   >
                     <option value="monthly">Monthly · 30 days</option>
                     <option value="yearly">Yearly · 12 months</option>
+                    <option value="lifetime">Lifetime · no expiry</option>
                   </select>
                 </div>
                 <div className="flex items-end">
@@ -748,7 +754,7 @@ export default function AdminPluginStudio() {
                   </Button>
                 </div>
               )}
-              {!metrics?.licenses.length && <p className="text-sm text-muted-foreground">No plugin licenses issued yet. You can generate an admin license above or approve a paid monthly or yearly order.</p>}
+              {!metrics?.licenses.length && <p className="text-sm text-muted-foreground">No plugin licenses issued yet. You can generate an admin license above or approve a paid monthly, yearly, or lifetime order.</p>}
               {metrics?.licenses.map((license) => (
                 <div key={license.id} className="flex flex-col justify-between gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
                   <div>

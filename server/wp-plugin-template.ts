@@ -1095,7 +1095,7 @@ final class TDLPW_Admin {
         if (defined('TDLPW_SINGLE_PAID_PLUGIN') && TDLPW_SINGLE_PAID_PLUGIN) {
             add_submenu_page(
                 'tdlpw-dashboard',
-                esc_html__('CourseBridge Pro Settings', '{{SLUG}}'),
+                esc_html__('{{NAME}} Settings', '{{SLUG}}'),
                 esc_html__('Settings', '{{SLUG}}'),
                 'manage_options',
                 'tdlpw-settings',
@@ -1104,8 +1104,8 @@ final class TDLPW_Admin {
             return;
         }
         add_menu_page(
-            esc_html__('CourseBridge Pro', '{{SLUG}}'),
-            esc_html__('CourseBridge Pro', '{{SLUG}}'),
+            esc_html__('{{NAME}}', '{{SLUG}}'),
+            esc_html__('{{NAME}}', '{{SLUG}}'),
             'manage_woocommerce',
             'tdlpw-dashboard',
             array($this, 'render'),
@@ -1198,7 +1198,7 @@ final class TDLPW_Admin {
         $tab = sanitize_key($_GET['tab'] ?? $default_tab);
         $settings = get_option('tdlpw_settings', array());
         $is_constant_key = defined('TDLPW_RESEND_API_KEY') && constant('TDLPW_RESEND_API_KEY');
-        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('CourseBridge Pro for LearnPress & WooCommerce', '{{SLUG}}') . '</h1>';
+        echo '<div class="wrap tdlpw-wrap"><h1>' . esc_html__('{{NAME}}', '{{SLUG}}') . '</h1>';
         echo '<p>' . esc_html__('Link course products, assign users to courses, review every WordPress contact with purchase and enrollment history, and send consent-based course updates through WordPress email or Resend.', '{{SLUG}}') . '</p>';
         if (!empty($_GET['updated'])) {
             $settings_notice = !empty($_GET['resend_key_saved'])
@@ -1647,9 +1647,9 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 
 1. Upload the plugin ZIP in Plugins > Add New Plugin > Upload Plugin, or copy the unzipped folder to \`/wp-content/plugins/\`.
 2. Activate WooCommerce and LearnPress, then activate this plugin.
-3. Open CourseBridge Pro > Course Assignments and link a WooCommerce product to one or more LearnPress courses, or use Product data > General.
+3. Open {{NAME}} > Course Assignments and link a WooCommerce product to one or more LearnPress courses, or use Product data > General.
 4. Course buyers must use or create a WordPress account; their enrolled courses appear in WooCommerce My Account and the LearnPress profile.
-5. Go to CourseBridge Pro > Settings and choose WordPress email or Resend. Resend requires an API key and verified sender email.
+5. Go to {{NAME}} > Settings and choose WordPress email or Resend. Resend requires an API key and verified sender email.
 6. Test a sandbox or low-value order and confirm the student's LearnPress enrollment before enabling a live launch.
 
 == Privacy and email consent ==
@@ -1672,7 +1672,7 @@ Enrolled users can open their courses from the WooCommerce My Account dashboard 
 
 = Can campaigns use the site's WordPress email settings? =
 
-Yes. Choose WordPress email (wp_mail) in CourseBridge Pro > Settings to use the site's configured mail transport. To send through Resend instead, add an API key and use a verified sender domain; the key can be entered in settings or defined as TDLPW_RESEND_API_KEY in wp-config.php.
+Yes. Choose WordPress email (wp_mail) in {{NAME}} > Settings to use the site's configured mail transport. To send through Resend instead, add an API key and use a verified sender domain; the key can be entered in settings or defined as TDLPW_RESEND_API_KEY in wp-config.php.
 
 = Who appears under Contacts & Campaigns? =
 

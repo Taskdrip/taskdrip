@@ -580,7 +580,9 @@ export function registerPluginLicenseRoutes(
       );
       const salesByProject = new Map<string, { salesCount: number; revenueUsd: number }>();
       for (const purchase of paidPurchases) {
-        if (!purchase.selectedAddons?.some((plan) => plan.id === "plugin-monthly" || plan.id === "plugin-yearly")) continue;
+        if (!purchase.selectedAddons?.some((plan) =>
+          plan.id === "plugin-monthly" || plan.id === "plugin-yearly" || plan.id === "plugin-lifetime"
+        )) continue;
         const projectId = projectByProduct.get(purchase.productId);
         if (!projectId) continue;
         const current = salesByProject.get(projectId) || { salesCount: 0, revenueUsd: 0 };
@@ -641,7 +643,7 @@ export function registerPluginLicenseRoutes(
       const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 254);
       const cadence = req.body?.cadence;
       if (!projectId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !validCadence(cadence)) {
-        return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly or yearly license." });
+        return res.status(400).json({ message: "Choose a plugin, enter the customer's Taskdrip account email, and select a monthly, yearly, or lifetime license." });
       }
 
       const [project] = await db.select().from(pluginStudioProjects)
@@ -662,7 +664,7 @@ export function registerPluginLicenseRoutes(
 
       const key = makeLicenseKey(project.slug);
       const startsAt = new Date();
-      const expiresAt = addPeriod(startsAt, cadence);
+      const expiresAt = expiryForCadence(startsAt, cadence);
       const license = await db.transaction(async (tx) => {
         const [created] = await tx.insert(pluginLicenses).values({
           userId: recipient.id,
@@ -693,7 +695,7 @@ export function registerPluginLicenseRoutes(
             source: "admin",
             issuedByAdminId: String(req.user.id),
             cadence,
-            expiresAt: expiresAt.toISOString(),
+            expiresAt: expiresAt?.toISOString() || null,
           },
         });
         return created;
@@ -795,7 +797,12 @@ export function registerPluginLicenseRoutes(
     }
     try {
       const slug = String(req.params.slug).slice(0, 80);
-      const [project] = await db.select().from(pluginStudioProjects).where(eq(pluginStudioProjects.slug, slug)).limit(1);
+      let [project] = await db.select().from(pluginStudioProjects)
+        .where(eq(pluginStudioProjects.slug, slug)).limit(1);
+      if (!project && slug === "coursebridge-learnpress-woocommerce") {
+        [project] = await db.select().from(pluginStudioProjects)
+          .where(eq(pluginStudioProjects.templateKey, "learnpress-woocommerce")).limit(1);
+      }
       if (!project) return res.status(404).json({ valid: false, status: "plugin_not_found" });
       const key = String(req.body?.licenseKey || "").trim().toUpperCase().slice(0, 160);
       const installationId = String(req.body?.installationId || "").trim().slice(0, 120);

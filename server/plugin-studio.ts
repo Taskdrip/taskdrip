@@ -105,21 +105,21 @@ function compareVersions(a: string, b: string): number {
 }
 
 const STARTER = {
-  slug: "coursebridge-learnpress-woocommerce",
+  slug: "coursebridge-learnpresswoo-connector",
   templateKey: "learnpress-woocommerce",
-  name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.9",
+  name: "CourseBridge LearnpressWOO Connector",
+  version: "2.2.0",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:
-    "CourseBridge Pro for LearnPress and WooCommerce connects WooCommerce products to LearnPress courses and automatically enrolls account-holding buyers after confirmed payment. Administrators can assign courses to WordPress users, search by name, username, or email, set or edit optional access expiry dates, review purchase and enrollment history, and cancel access.\n\nStudents can open purchased or assigned courses from WooCommerce My Account. Contacts & Campaigns provides a searchable directory of every WordPress account, grouped by recorded WooCommerce product purchases and LearnPress enrollments, with product, course, role, order, and spend filters.\n\nSend consent-based course marketing through Resend or WordPress email using the visual editor or HTML text editor, media-library images, links, personalization tags, unsubscribe links, a delivery test, and per-recipient send logs. Filter by course (including VIP Access or Inner Circle), select one or several opted-in contacts across pages, or select all contacts in that course. Large campaigns are delivered in provider-sized batches. Checkout opt-in is applied after successful payment, and administrators can record an opt-in for a purchaser.",
+    "CourseBridge LearnpressWOO Connector links WooCommerce products to LearnPress courses and automatically enrolls account-holding buyers after confirmed payment. Administrators can assign courses to WordPress users, search by name, username, or email, set or edit optional access expiry dates, review purchase and enrollment history, and cancel access.\n\nStudents can open purchased or assigned courses from WooCommerce My Account. Contacts & Campaigns provides a searchable directory of every WordPress account, grouped by recorded WooCommerce product purchases and LearnPress enrollments, with product, course, role, order, and spend filters.\n\nSend consent-based course marketing through Resend or WordPress email using the visual editor or HTML text editor, media-library images, links, personalization tags, unsubscribe links, a delivery test, and per-recipient send logs. Filter by course (including VIP Access or Inner Circle), select one or several opted-in contacts across pages, or select all contacts in that course. Large campaigns are delivered in provider-sized batches. Checkout opt-in is applied after successful payment, and administrators can record an opt-in for a purchaser.",
   releaseNotes:
-    "CourseBridge Pro 2.1.9 adds selected and all-matching bulk administrator opt-in for filtered purchaser audiences, with cross-page selection and explicit confirmation. Marketing sends still include only users with recorded opt-in, and previous orders do not override an unsubscribe.",
-  seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
+    "CourseBridge LearnpressWOO Connector 2.2.0 updates the directory-safe plugin name and slug, adds lifetime license support, and retains monthly and yearly plans. Marketing sends still include only users with recorded opt-in, and previous orders do not override an unsubscribe.",
+  seoTitle: "CourseBridge LearnpressWOO Connector for LearnPress",
   seoDescription:
-    "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",
+    "Connect WooCommerce product purchases to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account.",
   seoKeywords:
-    "CourseBridge Pro, LearnPress WooCommerce, WooCommerce course enrollment, LearnPress courses, WordPress LMS plugin, course customer management, WooCommerce LMS",
+    "CourseBridge LearnpressWOO Connector, LearnPress, WooCommerce course enrollment, LearnPress courses, WordPress LMS plugin, course customer management",
   featuredImage: "/coursebridge-pro-featured.svg",
 };
 
@@ -144,6 +144,15 @@ async function ensureStarterProject(adminId: string) {
     .where(eq(pluginStudioProjects.templateKey, STARTER.templateKey)).limit(1);
   const paidEdition = buildCourseBridgePaidEdition(STARTER);
   if (existing) {
+    if (existing.slug !== STARTER.slug) {
+      const [slugOwner] = await db.select({ id: pluginStudioProjects.id })
+        .from(pluginStudioProjects)
+        .where(eq(pluginStudioProjects.slug, STARTER.slug))
+        .limit(1);
+      if (slugOwner && slugOwner.id !== existing.id) {
+        throw new Error(`Cannot rename CourseBridge to ${STARTER.slug}: that plugin slug is already in use.`);
+      }
+    }
     let shopProductId: string = existing.shopProductId || "";
     if (!shopProductId) {
       shopProductId = await db.transaction(async (tx) => {
@@ -175,12 +184,14 @@ async function ensureStarterProject(adminId: string) {
         .where(eq(shopProducts.id, shopProductId));
     }
     await ensureStarterPlans(shopProductId);
-    const refreshLegacyStarter = compareVersions(existing.version, STARTER.version) < 0 ||
+    const refreshLegacyStarter = existing.slug !== STARTER.slug ||
+      compareVersions(existing.version, STARTER.version) < 0 ||
       Object.keys(existing.coreFiles || {}).length > 0 ||
       !existing.premiumFiles?.[`${STARTER.slug}.php`];
     const packagesMissing = !Object.keys(existing.premiumFiles || {}).length;
     const licenseApiBaseUrl = existing.licenseApiBaseUrl || defaultLicenseApiBaseUrl();
     const projectMetadataNeedsSync =
+      existing.slug !== STARTER.slug ||
       existing.name !== STARTER.name ||
       existing.author !== STARTER.author ||
       existing.shortDescription !== STARTER.shortDescription ||
@@ -193,6 +204,7 @@ async function ensureStarterProject(adminId: string) {
       await db.update(pluginStudioProjects).set({
         shopProductId,
         licenseApiBaseUrl,
+        slug: STARTER.slug,
         version: refreshLegacyStarter ? STARTER.version : existing.version,
         name: STARTER.name,
         author: STARTER.author,
@@ -754,7 +766,9 @@ ${description}`,
           eq(pluginLicenses.projectId, project.id),
           eq(pluginLicenses.status, "active"),
         )).limit(1);
-        if (!license || license.expiresAt <= new Date()) return res.status(403).json({ message: "An active plugin license is required before downloading this package." });
+        if (!license || (license.expiresAt && license.expiresAt <= new Date())) {
+          return res.status(403).json({ message: "An active plugin license is required before downloading this package." });
+        }
         licenseId = license.id;
       }
       const release = await getProjectFiles(project.id, "premium");

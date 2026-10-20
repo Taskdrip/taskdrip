@@ -273,7 +273,7 @@ ${featureList.length ? `== Features ==
 
 ${featureList.map((feature) => `* ${feature}`).join("\n")}
 
-` : ""}${edition === "paid" && project.slug === "coursebridge-learnpress-woocommerce" ? `== How it works ==
+  ` : ""}${edition === "paid" && project.slug === "coursebridge-learnpresswoo-connector" ? `== How it works ==
 
 Map each WooCommerce product to one or more LearnPress courses. When WooCommerce confirms an eligible order, CourseBridge enrolls the account-holding buyer. Administrators can also assign existing WordPress users, set optional access expiry, and review purchase and enrollment history. Students open courses from WooCommerce My Account.
 
@@ -296,7 +296,7 @@ This paid plugin requires WooCommerce and LearnPress, plus an active Taskdrip li
 1. In WordPress, open Plugins > Add New Plugin > Upload Plugin and choose this ZIP.
 2. Activate WooCommerce and LearnPress, then activate ${edition === "premium" ? "the free core first and this premium add-on" : edition === "paid" ? "this paid plugin" : "the core plugin"}.
 3. Review the plugin settings and permissions before enabling it on a live site.
-${edition === "paid" ? "4. Open CourseBridge Pro → License to activate the purchased key, then configure CourseBridge Pro → Settings.\n" : ""}
+${edition === "paid" ? `4. Open ${cleanReadmeText(pluginName)} → License to activate the purchased key, then configure ${cleanReadmeText(pluginName)} → Settings.\n` : ""}
 4. Test the requested features on a staging WordPress site with representative data.
 
 == Changelog ==
@@ -321,9 +321,9 @@ The generated package is not a substitute for a human security or compatibility 
       ? `# Install and test ${pluginName}
 
 1. Back up the site and use a staging WordPress site.
-2. Deactivate and remove any old CourseBridge Premium add-on copies before installing this release.
+2. Deactivate and remove any older CourseBridge Premium add-on copies before installing this release.
 3. Upload this single ZIP from WordPress Admin → Plugins → Add New Plugin → Upload Plugin and activate it.
-4. Open CourseBridge Pro → License to activate the purchased license. Then use Dashboard, Course Assignments, and Settings from the CourseBridge Pro menu.
+4. Open ${cleanReadmeText(pluginName)} → License to activate the purchased license. Then use Dashboard, Course Assignments, and Settings from the ${cleanReadmeText(pluginName)} menu.
 5. In Course Assignments, map a WooCommerce product to one or more LearnPress courses and assign a test user directly.
 6. Place a paid test order using a WordPress account; confirm both the assigned user and buyer can start the course from WooCommerce My Account and their LearnPress profile.
 7. Test with admin and non-admin accounts, then verify deactivation and upgrades using disposable staging data.
@@ -400,7 +400,7 @@ Review licensing, generated source, WordPress compatibility, security, and the i
     const licensePageNamePhp = phpSingleQuoted(`${project.name}${standalonePaid ? "" : " Premium"} License`);
     const lockedNoticePhp = phpSingleQuoted(
       standalonePaid
-        ? `${project.name} is locked. Open CourseBridge Pro → License to activate or renew a valid key.`
+        ? `${project.name} is locked. Open ${project.name} → License to activate or renew a valid key.`
         : `${project.name} Premium is locked. Open Settings → Plugin License to activate or renew a valid key.`,
     );
     const pluginDescriptionPhp = phpSingleQuoted(
@@ -529,8 +529,8 @@ if ( ! class_exists( '${clientClass}', false ) ) {
     public static function add_menu() {
       ${standalonePaid ? `
       add_menu_page(
-        esc_html__( 'CourseBridge Pro', 'taskdrip' ),
-        esc_html__( 'CourseBridge Pro', 'taskdrip' ),
+        esc_html__( ${phpSingleQuoted(project.name)}, 'taskdrip' ),
+        esc_html__( ${phpSingleQuoted(project.name)}, 'taskdrip' ),
         'manage_options',
         'tdlpw-dashboard',
         array( __CLASS__, 'render_root' ),
@@ -699,7 +699,7 @@ if ( ! class_exists( '${clientClass}', false ) ) {
         'sections' => array(
           'description' => wpautop( esc_html( ${pluginDescriptionPhp} ) ),
           'features' => wpautop( esc_html__( 'Connect WooCommerce products with LearnPress courses; enroll buyers after confirmed payment; manage student access and expiry; search buyers and WordPress contacts; and create consent-based campaigns with the visual or HTML editor, media, links, personalization, Resend or WordPress email, unsubscribe links, delivery tests, and send logs.', 'taskdrip' ) ),
-          'installation' => wpautop( esc_html__( 'Install the ZIP from WordPress Admin → Plugins → Add New Plugin → Upload Plugin. Activate WooCommerce and LearnPress, activate CourseBridge Pro, enter your Taskdrip license, map products to courses, and configure and test the email provider before sending a campaign.', 'taskdrip' ) ),
+          'installation' => wpautop( esc_html__( ${phpSingleQuoted(`Install the ZIP from WordPress Admin → Plugins → Add New Plugin → Upload Plugin. Activate WooCommerce and LearnPress, activate ${project.name}, enter your Taskdrip license, map products to courses, and configure and test the email provider before sending a campaign.`)}, 'taskdrip' ) ),
           'changelog' => nl2br( esc_html( $update['changelog'] ?? '' ) ),
         ),
         'download_link' => ! empty( $update['package'] ) ? esc_url_raw( $update['package'] ) : '',
@@ -742,7 +742,7 @@ ${standalonePaid ? `\$active_plugins = (array) get_option( 'active_plugins', arr
 if ( in_array( \$legacy_premium_file, \$active_plugins, true ) || isset( \$network_active_plugins[\$legacy_premium_file] ) ) {
   add_action( 'admin_notices', static function () {
     if ( current_user_can( 'activate_plugins' ) ) {
-      echo '<div class="notice notice-error"><p>' . esc_html__( 'Deactivate and remove the old CourseBridge Premium add-on before using the combined CourseBridge Pro plugin.', 'taskdrip' ) . '</p></div>';
+         echo '<div class="notice notice-error"><p>' . esc_html__( ${phpSingleQuoted(`Deactivate and remove the old CourseBridge Premium add-on before using ${project.name}.`)}, 'taskdrip' ) . '</p></div>';
     }
   } );
   return;

@@ -22,10 +22,10 @@ type SupportThread = {
 type PluginLicense = {
   id: string;
   status: string;
-  cadence: "monthly" | "yearly";
+  cadence: "monthly" | "yearly" | "lifetime";
   keyPrefix: string;
   startsAt: string;
-  expiresAt: string;
+  expiresAt: string | null;
   maxActivations: number;
   project: { id: string; slug: string; name: string; version: string; status: string };
   product: { id: string; title: string; serviceAddons: { id: string; title: string; price: number }[] };
@@ -146,7 +146,8 @@ export default function MyPluginsPage() {
       )}
 
       {licenses.map((license) => {
-        const isActive = license.status === "active" && new Date(license.expiresAt).getTime() > Date.now();
+        const isActive = license.status === "active" &&
+          (!license.expiresAt || new Date(license.expiresAt).getTime() > Date.now());
         const productPageRef = license.project.status === "published" ? license.project.slug : license.product.id;
         const draft = supportDrafts[license.id] || { subject: "", content: "", requestType: "support" };
         return (
@@ -161,7 +162,9 @@ export default function MyPluginsPage() {
                   </div>
                   <CardDescription className="mt-1">Premium updates through v{license.project.version} · Key ending {license.keyPrefix}</CardDescription>
                 </div>
-                <span className="text-sm text-muted-foreground">Expires {new Date(license.expiresAt).toLocaleDateString()}</span>
+                <span className="text-sm text-muted-foreground">
+                  {license.expiresAt ? `Expires ${new Date(license.expiresAt).toLocaleDateString()}` : "Lifetime license · no expiry"}
+                </span>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -170,16 +173,20 @@ export default function MyPluginsPage() {
                   <KeyRound className="mr-2 h-4 w-4" />{revealed[license.id] ? "Copy license key" : "Show license key"}
                 </Button>
                 {isActive && <Button size="sm" onClick={() => download(license)}><ArrowDownToLine className="mr-2 h-4 w-4" />Download premium ZIP</Button>}
-                <Button asChild size="sm" variant="outline">
-                  <a href={`/shop/product/${productPageRef}?plan=${license.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
-                    <RefreshCw className="mr-2 h-4 w-4" />Renew {license.cadence}
-                  </a>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <a href={`/shop/product/${productPageRef}?plan=${license.cadence === "yearly" ? "plugin-monthly" : "plugin-yearly"}`}>
-                    Renew {license.cadence === "yearly" ? "monthly" : "yearly"}
-                  </a>
-                </Button>
+                {license.cadence !== "lifetime" && (
+                  <>
+                    <Button asChild size="sm" variant="outline">
+                      <a href={`/shop/product/${productPageRef}?plan=${license.cadence === "yearly" ? "plugin-yearly" : "plugin-monthly"}`}>
+                        <RefreshCw className="mr-2 h-4 w-4" />Renew {license.cadence}
+                      </a>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <a href={`/shop/product/${productPageRef}?plan=${license.cadence === "yearly" ? "plugin-monthly" : "plugin-yearly"}`}>
+                        Renew {license.cadence === "yearly" ? "monthly" : "yearly"}
+                      </a>
+                    </Button>
+                  </>
+                )}
               </div>
               {revealed[license.id] && <div className="rounded-lg bg-slate-50 p-3 font-mono text-sm break-all">{revealed[license.id]}</div>}
 
