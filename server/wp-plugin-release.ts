@@ -277,11 +277,11 @@ ${featureList.map((feature) => `* ${feature}`).join("\n")}
 
 Map each WooCommerce product to one or more LearnPress courses. When WooCommerce confirms an eligible order, CourseBridge enrolls the account-holding buyer. Administrators can also assign existing WordPress users, set optional access expiry, and review purchase and enrollment history. Students open courses from WooCommerce My Account.
 
-Contacts & Campaigns lists WordPress accounts and filters them by recorded purchases, LearnPress courses, or role. Marketing consent is tracked separately: only contacts with recorded opt-in can receive campaigns. Compose with the WordPress visual or HTML editor, add media-library images and links, personalize messages, and send through Resend or WordPress email. Test delivery before sending and review per-recipient logs.
+Contacts & Campaigns lists WordPress accounts and filters them by recorded purchases, LearnPress courses, or role. Marketing consent is tracked separately: only contacts with recorded checkout or administrator opt-in can receive campaigns. Administrators can opt in a purchaser from the contact list. Compose with the WordPress visual or HTML editor, add media and links, personalize messages, and send through Resend or WordPress email. Test delivery before sending and review per-recipient logs.
 
 ` : ""}${edition === "paid" ? `== Email marketing and consent ==
 
-Purchases do not silently subscribe customers. The optional checkout consent checkbox records marketing opt-in, and campaign delivery checks that consent again before sending. Each campaign includes an unsubscribe link.
+Purchases do not silently subscribe customers. The optional checkout checkbox records marketing consent on the order and applies it to the account only after successful payment. Administrators may record opt-in for a purchaser. Previous orders cannot override an unsubscribe; a later explicit checkout opt-in or administrator action is required. Campaign delivery checks consent again before sending, and each campaign includes an unsubscribe link.
 
 ` : ""}${edition === "premium" ? `== Requirements ==
 

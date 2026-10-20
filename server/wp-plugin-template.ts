@@ -148,11 +148,13 @@ require_once TDLPW_PATH . 'includes/class-bridge.php';
 require_once TDLPW_PATH . 'includes/class-audience.php';
 require_once TDLPW_PATH . 'includes/class-resend.php';
 require_once TDLPW_PATH . 'includes/class-admin.php';
+require_once TDLPW_PATH . 'includes/class-consent-admin.php';
 
 final class TDLPW_Core {
     public function run() {
         (new TDLPW_Bridge())->run();
         (new TDLPW_Admin())->run();
+        (new TDLPW_Consent_Admin())->run();
         add_action('admin_notices', array($this, 'dependency_notice'));
         add_action('init', array($this, 'unsubscribe_route'));
         add_action('init', array($this, 'register_privacy_handlers'));
@@ -181,6 +183,7 @@ final class TDLPW_Core {
             wp_die(esc_html__('This unsubscribe link is invalid or expired.', '{{SLUG}}'), '', array('response' => 400));
         }
         update_user_meta($user_id, 'tdlpw_email_marketing_optin', '0');
+        update_user_meta($user_id, 'tdlpw_email_marketing_optout_at', current_time('mysql', true));
         wp_die(
             esc_html__('You have been unsubscribed from course marketing emails.', '{{SLUG}}'),
             esc_html__('Email preferences updated', '{{SLUG}}'),
@@ -398,12 +401,8 @@ final class TDLPW_Bridge {
 
     public function save_checkout_optin($order, $data) {
         if (empty($_POST['tdlpw_email_marketing_optin'])) { return; }
-        $user_id = $order->get_user_id();
-        if ($user_id) {
-            update_user_meta($user_id, 'tdlpw_email_marketing_optin', '1');
-            update_user_meta($user_id, 'tdlpw_email_marketing_optin_at', current_time('mysql', true));
-        }
         $order->update_meta_data('_tdlpw_marketing_optin', '1');
+        $order->update_meta_data('_tdlpw_marketing_optin_at', current_time('mysql', true));
     }
 
     public function sync_paid_order($order_id) {
@@ -414,6 +413,21 @@ final class TDLPW_Bridge {
         if (!$user_id) {
             $buyer = get_user_by('email', sanitize_email($order->get_billing_email()));
             $user_id = $buyer ? absint($buyer->ID) : 0;
+        }
+        // Restore checkout consent only after payment succeeds. Do not let an old paid order
+        // override an unsubscribe; a later, newly recorded checkout opt-in can re-subscribe.
+        $order_optin_at = sanitize_text_field((string) $order->get_meta('_tdlpw_marketing_optin_at', true));
+        if ($user_id && $order->get_meta('_tdlpw_marketing_optin', true) === '1') {
+            $current_optin = get_user_meta($user_id, 'tdlpw_email_marketing_optin', true);
+            $optout_at = sanitize_text_field((string) get_user_meta($user_id, 'tdlpw_email_marketing_optout_at', true));
+            $is_new_optin_after_optout = $order_optin_at && (
+                !$optout_at || strtotime($order_optin_at) > strtotime($optout_at)
+            );
+            if ($current_optin !== '0' || $is_new_optin_after_optout) {
+                update_user_meta($user_id, 'tdlpw_email_marketing_optin', '1');
+                update_user_meta($user_id, 'tdlpw_email_marketing_optin_at', $order_optin_at ?: current_time('mysql', true));
+                update_user_meta($user_id, 'tdlpw_email_marketing_optin_source', 'checkout');
+            }
         }
         $product_ids = array();
         $course_ids = array();
@@ -625,7 +639,13 @@ if (!defined('ABSPATH')) { exit; }
 
 final class TDLPW_Audience {
     public static function schedule_backfill() {
-        if (!function_exists('wc_get_orders') || get_option('tdlpw_backfill_complete')) { return; }
+        if (!function_exists('wc_get_orders')) { return; }
+        if (get_option('tdlpw_backfill_version') !== TDLPW_VERSION) {
+            update_option('tdlpw_backfill_version', TDLPW_VERSION, false);
+            delete_option('tdlpw_backfill_complete');
+            delete_option('tdlpw_backfill_page');
+        }
+        if (get_option('tdlpw_backfill_complete')) { return; }
         if (!wp_next_scheduled('tdlpw_backfill_paid_orders')) {
             wp_schedule_single_event(time() + 15, 'tdlpw_backfill_paid_orders');
         }
@@ -1246,7 +1266,12 @@ final class TDLPW_Admin {
             echo '<option value="' . esc_attr($key) . '" ' . selected($filters['role'], $key, false) . '>' . esc_html(translate_user_role($role['name'])) . '</option>';
         }
         echo '</select><label><input type="checkbox" name="opted_in" value="1" ' . checked($filters['opted_in'], true, false) . '> ' . esc_html__('Marketing opt-ins only', '{{SLUG}}') . '</label><button class="button">' . esc_html__('Filter contacts', '{{SLUG}}') . '</button></form>';
-        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. Search by email or name, then select one opted-in person or several visible contacts. Product, course, and role filters can narrow a group. Campaigns only send to users who explicitly opted in.', '{{SLUG}}'), count($rows))) . '</p>';
+        $notice = sanitize_text_field(wp_unslash($_GET['notice'] ?? ''));
+        if ($notice !== '') {
+            echo '<div class="notice notice-info inline"><p>' . esc_html($notice) . '</p></div>';
+        }
+        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. Search by email or name, then select one opted-in person or several visible contacts. Product, course, and role filters can narrow a group. Campaigns only send to contacts with recorded checkout or administrator opt-in.', '{{SLUG}}'), count($rows))) . '</p>';
+        TDLPW_Consent_Admin::render_form();
         echo '<form id="tdlpw-campaign-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
         wp_nonce_field('tdlpw_send_campaign');
         echo '<input type="hidden" name="product" value="' . esc_attr((string) $filters['product']) . '">';
@@ -1283,8 +1308,8 @@ final class TDLPW_Admin {
         echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
         echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
         echo '<p id="tdlpw-campaign-selection-summary" class="description">' . esc_html__('No recipients selected. Checked recipients stay selected as you move between contact pages.', '{{SLUG}}') . '</p>';
-        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th></tr></thead><tbody>';
-        if (!$rows) { echo '<tr><td colspan="7">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
+        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th><th>' . esc_html__('Admin action', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        if (!$rows) { echo '<tr><td colspan="8">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
             $spend = array();
             foreach ($row['spend_by_currency'] as $currency => $amount) {
@@ -1294,12 +1319,13 @@ final class TDLPW_Admin {
                 ? ' <a href="' . esc_url(add_query_arg(array('page' => 'wc-orders', 'action' => 'edit', 'id' => $row['latest_order_id']), admin_url('admin.php'))) . '">#' . esc_html((string) $row['latest_order_id']) . '</a>' .
                     ($row['last_purchase'] ? '<br><small>' . esc_html($row['last_purchase']) . ' UTC</small>' : '')
                 : '';
-            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '" aria-label="' . esc_attr(sprintf(__('Select %s', '{{SLUG}}'), $row['email'])) . '">' : '—') .
+            echo '<tr><td>' . ($row['optin'] ? '<input type="checkbox" form="tdlpw-campaign-form" name="recipient_ids[]" value="' . esc_attr((string) $row['id']) . '" aria-label="' . esc_attr(sprintf(__('Select %s', '{{SLUG}}'), $row['email'])) . '">' : '—') .
                 '</td><td>' . esc_html($row['name']) . '<br><a href="mailto:' . esc_attr($row['email']) . '">' . esc_html($row['email']) . '</a></td>' .
                 '<td>' . esc_html($row['role'] ?: '—') . '</td><td>' . esc_html(implode(', ', array_filter($row['products'])) ?: '—') . '</td>' .
                 '<td>' . esc_html(implode(', ', array_filter($row['courses'])) ?: '—') . '</td>' .
                 '<td>' . esc_html((string) $row['orders']) . ' / ' . esc_html(implode(', ', $spend) ?: '—') . $latest_order . '</td>' .
-                '<td>' . ($row['optin'] ? '<span class="tdlpw-status tdlpw-opted">' . esc_html__('Opted in', '{{SLUG}}') . '</span>' : '<span class="tdlpw-status">' . esc_html__('Not opted in', '{{SLUG}}') . '</span>') . '</td></tr>';
+                '<td>' . ($row['optin'] ? '<span class="tdlpw-status tdlpw-opted">' . esc_html__('Opted in', '{{SLUG}}') . '</span>' : '<span class="tdlpw-status">' . esc_html__('Not opted in', '{{SLUG}}') . '</span>') . '</td>' .
+                '<td>'; TDLPW_Consent_Admin::render_action($row); echo '</td></tr>';
         }
         echo '</tbody></table></form>';
         if ($total_pages > 1) {
@@ -1418,6 +1444,54 @@ final class TDLPW_Admin {
 }
 `;
 
+const consentAdmin = `<?php
+if (!defined('ABSPATH')) { exit; }
+
+final class TDLPW_Consent_Admin {
+    public function run() {
+        add_action('admin_post_tdlpw_opt_in_customer', array($this, 'opt_in_customer'));
+    }
+
+    public static function render_form() {
+        echo '<form id="tdlpw-optin-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_opt_in_customer">';
+        wp_nonce_field('tdlpw_opt_in_customer');
+        echo '</form>';
+    }
+
+    public static function render_action($row) {
+        if (!current_user_can('manage_options') || !empty($row['optin']) || absint($row['orders'] ?? 0) < 1) {
+            echo '—';
+            return;
+        }
+        echo '<button class="button" type="submit" form="tdlpw-optin-form" name="user_id" value="' .
+            esc_attr((string) absint($row['id'] ?? 0)) . '">' . esc_html__('Opt in purchaser', '{{SLUG}}') . '</button>';
+    }
+
+    public function opt_in_customer() {
+        if (!current_user_can('manage_options')) { wp_die(esc_html__('Access denied.', '{{SLUG}}'), '', array('response' => 403)); }
+        check_admin_referer('tdlpw_opt_in_customer');
+        $user_id = absint($_POST['user_id'] ?? 0);
+        $eligible = false;
+        foreach (TDLPW_Audience::rows() as $row) {
+            if (absint($row['id']) === $user_id && absint($row['orders']) > 0) { $eligible = true; break; }
+        }
+        $notice = __('No matching purchaser was found; marketing consent was not changed.', '{{SLUG}}');
+        if ($eligible && get_user_by('id', $user_id)) {
+            update_user_meta($user_id, 'tdlpw_email_marketing_optin', '1');
+            update_user_meta($user_id, 'tdlpw_email_marketing_optin_at', current_time('mysql', true));
+            update_user_meta($user_id, 'tdlpw_email_marketing_optin_source', 'admin');
+            $notice = __('The purchaser was opted in to email campaigns.', '{{SLUG}}');
+        }
+        wp_safe_redirect(add_query_arg(array(
+            'page' => 'tdlpw-dashboard',
+            'tab' => 'customers',
+            'notice' => $notice,
+        ), admin_url('admin.php')));
+        exit;
+    }
+}
+`;
+
 const readme = `=== {{NAME}} ===
 Contributors: taskdrip
 Tags: learnpress, woocommerce, course, enrollment, email marketing
@@ -1445,6 +1519,8 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 * View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
 * Filter the audience by product, course, role, and marketing consent.
 * Filter email recipients by purchased product, enrolled course, WordPress role, and marketing consent.
+* Apply a customer's recorded checkout opt-in after payment completes and backfill existing paid orders with recorded consent.
+* Let administrators opt in contacts with a successful WooCommerce purchase from the contacts list.
 * Compose with the WordPress visual or HTML editor; add media-library images, links, and recipient-specific personalization.
 * Send individual or selected-group email campaigns through WordPress wp_mail or Resend.
 * Send an administrator-triggered provider test email without contacting the marketing audience.
@@ -1462,7 +1538,7 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 
 == Privacy and email consent ==
 
-The optional checkout checkbox records consent to marketing email. Campaign tools send only to users with recorded consent. Every campaign includes an unsubscribe link. Order index records are retained after deactivation so administrators do not lose their purchase history.
+The optional checkout checkbox records marketing consent on the order. It is applied to the WordPress account only after successful payment. Administrators can also record consent for a purchaser from Contacts & Campaigns. Campaign tools send only to contacts with recorded consent, and each campaign includes an unsubscribe link. A previous order cannot undo an unsubscribe; the customer must opt in again at checkout or an administrator must record a new opt-in.
 
 == Frequently Asked Questions ==
 
@@ -1562,6 +1638,7 @@ export function buildWordPressPluginFiles(info: PluginTemplateInfo): Record<stri
     "includes/class-audience.php": audience,
     "includes/class-resend.php": resend,
     "includes/class-admin.php": admin,
+    "includes/class-consent-admin.php": consentAdmin,
     "assets/css/admin.css": css,
     "readme.txt": readme,
     "DEPLOYMENT.md": deployment,

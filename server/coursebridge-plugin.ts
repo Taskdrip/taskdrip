@@ -36,12 +36,16 @@ require_once TDLPW_PATH . 'includes/class-core.php';
 require_once TDLPW_PATH . 'includes/class-audience.php';
 require_once TDLPW_PATH . 'includes/class-resend.php';
 require_once TDLPW_PATH . 'includes/class-admin.php';
+require_once TDLPW_PATH . 'includes/class-consent-admin.php';
+require_once TDLPW_PATH . 'includes/class-consent-admin.php';
 register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
 register_deactivation_hook(__FILE__, array('TDLPW_Activator', 'deactivate'));
 add_action('plugins_loaded', function () {
     load_plugin_textdomain('${project.slug}', false, dirname(plugin_basename(__FILE__)) . '/languages');
     (new TDLPW_Core())->run();
     (new TDLPW_Admin())->run();
+    (new TDLPW_Consent_Admin())->run();
+    (new TDLPW_Consent_Admin())->run();
     add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
     add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
 });
@@ -75,6 +79,7 @@ final class TDLPW_Core {
             wp_die(esc_html__('This unsubscribe link is invalid or expired.', 'coursebridge-learnpress-woocommerce'), '', array('response' => 400));
         }
         update_user_meta($user_id, 'tdlpw_email_marketing_optin', '0');
+        update_user_meta($user_id, 'tdlpw_email_marketing_optout_at', current_time('mysql', true));
         wp_die(esc_html__('You have been unsubscribed from course marketing emails.', 'coursebridge-learnpress-woocommerce'), esc_html__('Email preferences updated', 'coursebridge-learnpress-woocommerce'), array('response' => 200));
     }
     public function register_privacy_handlers() {
@@ -134,6 +139,8 @@ final class TDLPW_Core {
         $wpdb->delete($wpdb->prefix . 'tdlpw_campaign_log', array('email' => $email_address), array('%s'));
         delete_user_meta($user->ID, 'tdlpw_email_marketing_optin');
         delete_user_meta($user->ID, 'tdlpw_email_marketing_optin_at');
+        delete_user_meta($user->ID, 'tdlpw_email_marketing_optin_source');
+        delete_user_meta($user->ID, 'tdlpw_email_marketing_optout_at');
         return array('items_removed' => true, 'items_retained' => true, 'messages' => array(__('Purchase totals and order references are retained in anonymized form; email preferences and logs were removed.', 'coursebridge-learnpress-woocommerce')), 'done' => true);
     }
 }
@@ -783,9 +790,11 @@ export function buildCourseBridgePaidEdition(project: Project) {
     "includes/class-audience.php": legacy["includes/class-audience.php"],
     "includes/class-resend.php": legacy["includes/class-resend.php"],
     "includes/class-admin.php": legacy["includes/class-admin.php"],
+    "includes/class-consent-admin.php": legacy["includes/class-consent-admin.php"],
     "assets/css/admin.css": legacy["assets/css/admin.css"],
     "uninstall.php": legacy["uninstall.php"],
   };
+  console.error("Temporary generated file sizes", Object.fromEntries(Object.entries(paidFiles).map(([path, source]) => [path, source.length])));
   return normalizeGeneratedEdition({
     mainFile: `${project.slug}.php`,
     shortDescription: project.shortDescription,
@@ -799,6 +808,7 @@ export function buildCourseBridgePaidEdition(project: Project) {
       "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Contact directory for every WordPress user, grouped by recorded product purchases and LearnPress enrollments",
       "Searchable contact dashboard with product, course, role, order, and spend filters; consent remains separate",
+      "Apply recorded checkout opt-in only after payment; administrators can opt in purchasers from Contacts & Campaigns",
       "Filter contacts by purchased product or enrolled course and send consent-based campaigns through WordPress email or Resend",
       "Compose campaigns with the WordPress visual and HTML editors, media-library images, links, and recipient personalization",
       "Send a provider test email to an administrator-selected address without emailing the marketing list",
