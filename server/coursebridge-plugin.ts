@@ -1,4 +1,4 @@
-import { normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
+import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
 
 type Project = {
@@ -839,6 +839,50 @@ export function buildCourseBridgePaidEdition(project: Project) {
     requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license"],
     files: distributableFiles,
   }, common, "paid");
+}
+
+/**
+ * Build the free, WordPress.org-submission candidate without the commercial
+ * license/update wrapper used by the separately distributed paid package.
+ */
+export function buildCourseBridgeWordPressOrgEdition(project: Project) {
+  const paid = buildCourseBridgePaidEdition(project);
+  const files = { ...paid.files };
+  const main = files[paid.mainFile];
+  if (!main) {
+    throw new Error("The CourseBridge source package is missing its main plugin file.");
+  }
+
+  // This marker enables a paid-only dashboard panel; the directory edition
+  // provides the complete free feature set and must not show a paywall.
+  files[paid.mainFile] = main.replace("define('TDLPW_SINGLE_PAID_PLUGIN', true);\n", "");
+  files["includes/class-bridge.php"] = files["includes/class-bridge.php"]
+    .replaceAll("Taskdrip Course Bridge", "CourseBridge");
+
+  const coreFeatures = [
+    "Map WooCommerce products to one or more LearnPress courses.",
+    "Enroll account-holding buyers only after WooCommerce confirms payment.",
+    "Reconcile existing paid orders when a course mapping is added or changed.",
+    "Assign courses to existing WordPress users and manage optional access expiry.",
+    "Show course start links in WooCommerce My Account and LearnPress profiles.",
+    "Manage contacts and send email campaigns only to people with recorded consent.",
+    "Use WordPress email or an administrator-configured Resend account for campaigns.",
+    "Provide unsubscribe links, delivery tests, and per-recipient campaign logs.",
+  ];
+  const release = buildPluginReleaseFiles({
+    ...project,
+    corePluginName: project.name,
+    coreShortDescription: "Connect WooCommerce products to LearnPress courses and enroll buyers after confirmed payment.",
+    coreDescription:
+      "CourseBridge connects WooCommerce products with LearnPress courses. When an order is confirmed as paid, the account-holding buyer is enrolled in the mapped course. Administrators can map products to multiple courses, assign existing users, manage optional access expiry, and review course access.\n\nStudents can open their courses from WooCommerce My Account or their LearnPress profile. The plugin also includes consent-based email campaigns. Checkout opt-in is applied only after successful payment; campaign sends re-check consent and include unsubscribe links. Email can be delivered with WordPress or an administrator-configured Resend account.",
+    coreFeatures,
+    features: coreFeatures,
+    seoKeywords: "learnpress, woocommerce, course enrollment, lms, online courses",
+    releaseNotes: "CourseBridge 2.4.0 adds a free, license-free WordPress.org submission package.",
+    testedUpTo: "7.0",
+  }, "core", files);
+
+  return release;
 }
 
 export function buildCourseBridgePremiumEdition(project: Project) {

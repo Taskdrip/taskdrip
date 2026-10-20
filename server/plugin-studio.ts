@@ -8,7 +8,7 @@ import { pluginLicenseEvents, pluginLicenses, pluginLicenseSites, pluginStudioPr
 import { createStudioAIClient, getCreatorStudioAIConfig } from "./creator-publishing";
 import { buildPluginReleaseFiles, normalizeGeneratedEdition, type PluginEdition } from "./wp-plugin-release";
 import { buildWordPressPluginFiles } from "./wp-plugin-template";
-import { buildCourseBridgePaidEdition } from "./coursebridge-plugin";
+import { buildCourseBridgePaidEdition, buildCourseBridgeWordPressOrgEdition } from "./coursebridge-plugin";
 import { registerPluginLicenseRoutes } from "./plugin-licensing";
 import {
   buildPluginLicensePlans,
@@ -108,13 +108,13 @@ const STARTER = {
   slug: "coursebridge-learnpresswoo-connector",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge LearnpressWOO Connector",
-  version: "2.3.0",
+  version: "2.4.0",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:
     "CourseBridge LearnpressWOO Connector links WooCommerce products to LearnPress courses and automatically enrolls account-holding buyers after confirmed payment. Administrators can assign courses to WordPress users, search by name, username, or email, set or edit optional access expiry dates, review purchase and enrollment history, and cancel access.\n\nStudents can open purchased or assigned courses from WooCommerce My Account. Contacts & Campaigns provides a searchable directory of every WordPress account, grouped by recorded WooCommerce product purchases and LearnPress enrollments, with product, course, role, order, and spend filters.\n\nSend consent-based course marketing through Resend or WordPress email using the visual editor or HTML text editor, media-library images, links, personalization tags, unsubscribe links, a delivery test, and per-recipient send logs. Filter by course (including VIP Access or Inner Circle), select one or several opted-in contacts across pages, or select all contacts in that course. Large campaigns are delivered in provider-sized batches. Checkout opt-in is applied after successful payment, and administrators can record an opt-in for a purchaser.",
   releaseNotes:
-    "CourseBridge LearnpressWOO Connector 2.3.0 replaces the previous plugin display name and refreshes its package metadata. Monthly, yearly, and lifetime license options remain available. Marketing sends still include only users with recorded opt-in, and previous orders do not override an unsubscribe.",
+    "CourseBridge LearnpressWOO Connector 2.4.0 adds a free, license-free WordPress.org submission package. Marketing sends still include only users with recorded opt-in, and previous orders do not override an unsubscribe.",
   seoTitle: "CourseBridge LearnpressWOO Connector for LearnPress",
   seoDescription:
     "Connect WooCommerce product purchases to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account.",
@@ -306,7 +306,13 @@ async function getProjectFiles(id: string, edition: PluginEdition) {
   const [project] = await db.select().from(pluginStudioProjects).where(eq(pluginStudioProjects.id, id)).limit(1);
   if (!project) return null;
   const singlePaid = project.templateKey === STARTER.templateKey;
-  if ((singlePaid && edition === "core") || (!singlePaid && edition === "paid")) return null;
+  if (singlePaid && edition === "core") {
+    return {
+      project,
+      ...buildCourseBridgeWordPressOrgEdition(STARTER),
+    };
+  }
+  if (!singlePaid && edition === "paid") return null;
   const packageEdition: PluginEdition = singlePaid ? "paid" : edition;
   const sourceFiles = packageEdition === "core" ? project.coreFiles : project.premiumFiles;
   if (sourceFiles && Object.keys(sourceFiles).length > 0) {

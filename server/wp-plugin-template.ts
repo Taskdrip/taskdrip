@@ -562,9 +562,12 @@ final class TDLPW_Bridge {
         if (!is_object($lp_user)) {
             return new WP_Error(
                 'tdlpw_enrollment_api_unavailable',
-                $model_error
-                    /* translators: %s: LearnPress error details. */
-                    ? sprintf(__('LearnPress could not enroll this user: %s', '{{SLUG}}'), $model_error)
+                    $model_error
+                    ? sprintf(
+                        /* translators: %s: LearnPress error details. */
+                        __('LearnPress could not enroll this user: %s', '{{SLUG}}'),
+                        $model_error
+                    )
                     : __('LearnPress does not expose a supported enrollment method on this site.', '{{SLUG}}')
             );
         }

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buildCourseBridgePaidEdition } from "../server/coursebridge-plugin";
+import { buildCourseBridgePaidEdition, buildCourseBridgeWordPressOrgEdition } from "../server/coursebridge-plugin";
 import { buildPluginReleaseFiles } from "../server/wp-plugin-release";
 import { buildPluginLicensePlans, PLUGIN_LICENSE_PLAN_OPTIONS } from "../shared/plugin-plan-utils";
 
 const project = {
   slug: "coursebridge-learnpresswoo-connector",
   name: "CourseBridge LearnpressWOO Connector",
-  version: "2.3.0",
+  version: "2.4.0",
   author: "Taskdrip",
   shortDescription: "Connect WooCommerce purchases and LearnPress courses.",
   description: "Connect WooCommerce products to LearnPress courses and manage student enrollments.",
@@ -17,7 +17,7 @@ const project = {
     "Search course buyers and WordPress users by email.",
     "Create consent-based email campaigns using Resend or WordPress email.",
   ],
-  releaseNotes: "CourseBridge LearnpressWOO Connector 2.3.0 refreshes plugin metadata.",
+  releaseNotes: "CourseBridge LearnpressWOO Connector 2.4.0 adds a WordPress.org submission package.",
   seoKeywords: "LearnPress WooCommerce, WooCommerce course enrollment, WordPress email marketing",
 };
 
@@ -140,9 +140,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(campaigns, /selected across contact pages/);
   assert.match(campaigns, /Next contacts/);
   assert.match(campaigns, /Select at least one opted-in contact before sending/);
-  assert.match(campaigns, /theindustryminer\.com/);
-  assert.match(campaigns, /October 12, 2026 – November 12, 2026/);
-  assert.match(campaigns, /\$15/);
+  assert.doesNotMatch(campaigns, /theindustryminer\.com|October 12, 2026|Industry Miner/);
   assert.match(campaigns, /WordPress contacts\. Search by email or name/);
   assert.match(campaigns, /\$row\['optin'\] \? '<input type="checkbox"/);
   assert.match(audience, /get_users\(array\(/);
@@ -173,7 +171,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(licenseClient, /unset\( \$transient->response\[self::\$plugin_file\]/);
   assert.match(licenseClient, /'features' => wpautop/);
   assert.match(licenseClient, /'installation' => wpautop/);
-  assert.match(readme, /= 2\.3\.0 =/);
+  assert.match(readme, /= 2\.4\.0 =/);
   assert.match(readme, /optional checkout checkbox records marketing consent.*only after successful payment/i);
   assert.match(readme, /Tags:.*learnpress-woocommerce/i);
   assert.match(readme, /== Changelog ==/);
@@ -185,8 +183,8 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(Buffer.from(bannerData[1], "base64").toString("utf8"), /Course updates, delivered\./);
 
   const studio = readFileSync(new URL("../server/plugin-studio.ts", import.meta.url), "utf8");
-  assert.match(studio, /version: "2\.3\.0"/);
-  assert.match(studio, /releaseNotes:.*CourseBridge LearnpressWOO Connector 2\.3\.0/s);
+  assert.match(studio, /version: "2\.4\.0"/);
+  assert.match(studio, /releaseNotes:.*CourseBridge LearnpressWOO Connector 2\.4\.0/s);
 });
 
 test("Paid CourseBridge ZIP contains one WordPress plugin entry", () => {
@@ -201,6 +199,40 @@ test("Paid CourseBridge ZIP contains one WordPress plugin entry", () => {
   assert.deepEqual(entries.map(([path]) => path), [`${project.slug}.php`]);
   assert.match(release.files[`${project.slug}.php`], /Plugin Name:\s*CourseBridge LearnpressWOO Connector/);
   assert.match(release.files["readme.txt"], /^=== CourseBridge LearnpressWOO Connector ===/);
+});
+
+test("CourseBridge WordPress.org candidate has directory metadata and no commercial updater", () => {
+  const release = buildCourseBridgeWordPressOrgEdition(project);
+  const readme = release.files["readme.txt"];
+  const main = release.files[`${project.slug}.php`];
+  const phpFiles = Object.entries(release.files).filter(([path]) => path.endsWith(".php"));
+
+  assert.equal(release.folderSlug, project.slug);
+  assert.match(readme, /^=== CourseBridge LearnpressWOO Connector ===/);
+  assert.match(readme, /^Tested up to: 7\.0$/m);
+  assert.match(readme, /^Stable tag: 2\.4\.0$/m);
+  assert.match(readme, /^License: GPLv2 or later$/m);
+  const shortDescription = readme.match(/^License URI:.*\n\n([^\n]+)$/m)?.[1];
+  assert.ok(shortDescription && shortDescription.length <= 150, "directory short description stays within WordPress.org's 150-character limit");
+  assert.match(main, /Text Domain: coursebridge-learnpresswoo-connector/);
+  assert.doesNotMatch(main, /TDLPW_SINGLE_PAID_PLUGIN/);
+  assert.doesNotMatch(JSON.stringify(release.files), /site_transient_update_plugins|auto_update_plugin|plugins_api|Update URI:|class-taskdrip-license/i);
+  assert.ok(Object.keys(release.files).every((path) => !/\.md$/i.test(path)), "directory ZIP excludes nonstandard Markdown files");
+  assert.deepEqual(
+    phpFiles.filter(([, source]) => /Plugin Name\s*:/i.test(source)).map(([path]) => path),
+    [`${project.slug}.php`],
+  );
+
+  const bridge = release.files["includes/class-bridge.php"];
+  const admin = release.files["includes/class-admin.php"];
+  const audience = release.files["includes/class-audience.php"];
+  assert.match(bridge, /%i WHERE/);
+  assert.match(bridge, /CourseBridge enrolled the customer/);
+  assert.match(admin, /wp_kses\(\$latest_order/);
+  assert.match(admin, /%i WHERE/);
+  assert.match(audience, /%i WHERE/);
+  assert.match(release.files["includes/class-course-admin.php"], /%i/);
+  assert.match(release.files["includes/class-course-expiry.php"], /%i/);
 });
 
 test("Plugin Studio exposes prices for monthly, yearly, and lifetime licenses", () => {
