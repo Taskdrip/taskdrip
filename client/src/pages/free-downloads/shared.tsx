@@ -4,7 +4,7 @@ import { Search, ArrowUpRight, Download, FileArchive, Music2, Video, Sparkles, P
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "@/components/ui/footer";
 import { useFreeDownloadCategories, type FreeDownloadSummary } from "@/lib/free-downloads-api";
-import { getFreeDownloadArtwork } from "./artwork";
+import { getFreeDownloadFeaturedImage } from "@shared/free-download-artwork";
 import "./free-downloads.css";
 
 export const basePath = "/downloads";
@@ -86,7 +86,7 @@ export function ResourceCard({ resource, featured = false }: { resource: FreeDow
   const detailsHref = `${basePath}/${item.slug}`;
   return <article className={`fd-resource-card ${featured ? "fd-resource-featured" : ""}`}>
     <div className="fd-card-art"><Link href={detailsHref} className="fd-card-art-link" aria-label={`View details for ${item.title}`}>
-      <img src={item.thumbnailUrl || getFreeDownloadArtwork(item.title, item.format, item.slug)} alt={`${item.title} featured artwork`} loading="lazy" />
+       <img src={item.thumbnailUrl || getFreeDownloadFeaturedImage(item.title, item.format, item.categoryName, item.tags)} alt={`Representative ${item.format || "digital resource"} image for ${item.title}`} loading="lazy" />
     </Link>
       <span className="fd-card-format"><Icon size={12} />{item.format || "Digital"}</span>
       {item.isFeatured && <span className="fd-featured-tag">Staff pick</span>}

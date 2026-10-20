@@ -13367,8 +13367,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         else issues.push({ type: "no_internal_links", severity: "low", path: path8, detail: "Add a contextual link to a genuinely related page or article on Taskdrip." });
         if (externalLinks.length) postsWithExternalLinks++;
         else issues.push({ type: "no_external_sources", severity: "low", path: path8, detail: "Link to relevant primary or authoritative sources for factual claims; do not add unrelated links." });
-        const images = Array.from((post.content || "").matchAll(/<img\b([^>]*)>/gi), (match) => match[1]);
-        const missingAlt = images.filter((attrs) => !/\balt\s*=\s*["'][^"']+["']/i.test(attrs)).length;
+        const images2 = Array.from((post.content || "").matchAll(/<img\b([^>]*)>/gi), (match) => match[1]);
+        const missingAlt = images2.filter((attrs) => !/\balt\s*=\s*["'][^"']+["']/i.test(attrs)).length;
         imagesMissingAlt += missingAlt;
         if (missingAlt) {
           issues.push({ type: "missing_alt_text", severity: "low", path: path8, detail: `${missingAlt} article image${missingAlt === 1 ? "" : "s"} need descriptive alt text.` });
@@ -23263,10 +23263,42 @@ import { stat as stat2, unlink as unlinkAsync } from "node:fs/promises";
 import path3 from "node:path";
 import { z as z2 } from "zod";
 init_db();
+
+// shared/free-download-artwork.ts
+var images = {
+  research: "/images/free-downloads/resources/ai-research.jpg",
+  design: "/images/free-downloads/resources/design-studio.jpg",
+  media: "/images/free-downloads/resources/media-tools.jpg",
+  productivity: "/images/free-downloads/resources/writing-planning.jpg",
+  writing: "/images/free-downloads/resources/writing-planning.jpg",
+  software: "/images/free-downloads/resources/software-workspace.jpg"
+};
+function getFreeDownloadFeaturedImage(title = "", format = "", category = "", tags = []) {
+  const value = `${title} ${format} ${category} ${tags.join(" ")}`.toLowerCase();
+  if (/\b(ai|artificial intelligence|chatgpt|gemini|claude|notebooklm|research|trends|search)\b/.test(value)) {
+    return images.research;
+  }
+  if (/\b(design|illustrat|paint|draw|graphic|font|typography|canva|penpot|inkscape|krita|gimp|photopea|blender)\b/.test(value)) {
+    return images.design;
+  }
+  if (/\b(video|film|audio|sound|music|media|stock|photo|camera|vlc|shotcut|obs studio|resolve|audacity|pexels)\b/.test(value)) {
+    return images.media;
+  }
+  if (/\b(task|project|productivity|planner|calendar|time tracking|office|spreadsheet|document|presentation)\b/.test(value)) {
+    return images.productivity;
+  }
+  if (/\b(writing|writer|book|ebook|reading|lesson|study|education|pdf|resource)\b/.test(value)) {
+    return images.writing;
+  }
+  return images.software;
+}
+
+// server/free-downloads.ts
 var privateFilesDir = path3.resolve(
   process.env.FREE_DOWNLOADS_STORAGE_DIR || path3.join(process.cwd(), "private-downloads")
 );
 var publicMediaDir = path3.resolve(process.cwd(), "uploads", "free-downloads");
+var DEFAULT_FREE_DOWNLOAD_SMARTLINK = "https://taskdrip.online/s/asiafilm-featured";
 mkdirSync2(privateFilesDir, { recursive: true });
 mkdirSync2(publicMediaDir, { recursive: true });
 var allowedFiles = {
@@ -23524,7 +23556,12 @@ function publicDownload(row, unlocked = false) {
     subcategoryId: row.subcategory_id || null,
     subcategoryName: row.subcategory_name || row.subcategoryName || null,
     tags: row.tags || [],
-    thumbnailUrl: row.thumbnail_url || null,
+    thumbnailUrl: row.thumbnail_url || getFreeDownloadFeaturedImage(
+      row.title,
+      row.format,
+      `${row.category_slug || row.categorySlug || ""} ${row.category_name || row.categoryName || ""}`,
+      row.tags || []
+    ),
     previewVideoUrl: row.preview_video_url || null,
     format: row.format || "",
     fileSizeBytes: row.source_size_bytes ? Number(row.source_size_bytes) : null,
@@ -23612,37 +23649,20 @@ async function getAnyBySlug(slug) {
   return result.rows[0];
 }
 async function getAdSettings() {
-  const [downloadSettings, siteSettings] = await Promise.all([
-    pool2.query(
-      `SELECT smartlink_url, ad_requirement_enabled, telegram_url
-       FROM free_download_settings WHERE id = 'default' LIMIT 1`
-    ),
-    pool2.query(`SELECT settings FROM adsterra_settings WHERE id = 'singleton' LIMIT 1`)
-  ]);
+  const downloadSettings = await pool2.query(
+    `SELECT smartlink_url, ad_requirement_enabled, telegram_url
+     FROM free_download_settings WHERE id = 'default' LIMIT 1`
+  );
   const saved = downloadSettings.rows[0] || {
     smartlink_url: "",
     ad_requirement_enabled: false,
     telegram_url: "https://t.me/taskdrip"
   };
   const configuredUrl = safeExternalUrl(saved.smartlink_url);
-  const adSettings = siteSettings.rows[0]?.settings;
-  const activeSmartlink = adSettings?.enabled ? adSettings.placements?.find(
-    (placement) => placement.enabled && placement.format === "smartlink" && typeof placement.shortSlug === "string" && placement.shortSlug
-  ) : null;
-  let siteSmartlinkUrl = null;
-  if (!configuredUrl && activeSmartlink?.shortSlug) {
-    const baseUrl = safeExternalUrl(process.env.PUBLIC_APP_URL || "https://taskdrip.online");
-    if (baseUrl) {
-      siteSmartlinkUrl = safeExternalUrl(
-        new URL(`/s/${encodeURIComponent(activeSmartlink.shortSlug)}`, baseUrl).toString()
-      );
-    }
-  }
-  const usesSiteSmartlink = Boolean(siteSmartlinkUrl);
   return {
     ...saved,
-    smartlink_url: configuredUrl || siteSmartlinkUrl || "",
-    ad_requirement_enabled: Boolean(saved.ad_requirement_enabled || usesSiteSmartlink)
+    smartlink_url: configuredUrl || DEFAULT_FREE_DOWNLOAD_SMARTLINK,
+    ad_requirement_enabled: true
   };
 }
 async function fullDownloadDetail(row, settings, unlocked, adminPreview = false) {
@@ -24087,24 +24107,8 @@ function registerFreeDownloadsRoutes(app2) {
       const row = await getPublishedBySlug(req.params.slug);
       if (!row) return res.status(404).json({ message: "Download not found." });
       const settings = await getAdSettings();
-      res.json({
-        ...publicDownload(row),
-        descriptionHtml: sanitizeRichHtml(row.description_html || ""),
-        features: row.features || [],
-        systemRequirements: row.system_requirements || "",
-        installationInstructions: row.installation_instructions || "",
-        adRequired: Boolean(settings.ad_requirement_enabled),
-        smartlinkConfigured: Boolean(safeExternalUrl(settings.smartlink_url)),
-        seo: {
-          title: row.seo_title || row.title,
-          description: row.seo_description || row.short_description,
-          focusKeyword: row.focus_keyword,
-          canonicalUrl: row.canonical_url,
-          ogTitle: row.og_title || row.seo_title || row.title,
-          ogDescription: row.og_description || row.seo_description || row.short_description,
-          ogImage: row.og_image || row.thumbnail_url
-        }
-      });
+      const detail = await fullDownloadDetail(row, settings, false);
+      res.json({ ...detail, descriptionHtml: sanitizeRichHtml(row.description_html || "") });
     } catch (error) {
       console.error("[free-downloads] Public preview failed:", error);
       res.status(503).json({ message: "Download preview is temporarily unavailable." });
@@ -24573,7 +24577,7 @@ function registerFreeDownloadsRoutes(app2) {
   app2.put("/api/free-downloads/admin/settings", isAuthenticated, isAdmin, async (req, res) => {
     const smartlinkUrl = String(req.body?.smartlinkUrl || "").trim();
     const telegramUrl = String(req.body?.telegramUrl || "https://t.me/taskdrip").trim();
-    const adRequirementEnabled = req.body?.adRequirementEnabled === true;
+    const adRequirementEnabled = true;
     const safeSmartlink = safeExternalUrl(smartlinkUrl);
     const safeTelegram = safeExternalUrl(telegramUrl);
     if (smartlinkUrl && !safeSmartlink) return res.status(400).json({ message: "Adsterra Smartlink must be a valid HTTPS URL." });
@@ -38007,6 +38011,22 @@ function renderArticleHtml(post, origin, image) {
   const meta = visibleDate ? `<p><span>Taskdrip Team</span> \xB7 <time datetime="${escapeHtml2(date)}">${escapeHtml2(visibleDate)}</time></p>` : `<p>Taskdrip Team</p>`;
   return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml2(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content, post.title)}</div></article></main>`;
 }
+function renderDownloadArticleHtml(row, origin, image, canonicalUrl) {
+  const title = escapeHtml2(row.title || "Free resource");
+  const category = escapeHtml2(row.category_name || "Free downloads");
+  const categorySlug = encodeURIComponent(row.category_slug || "");
+  const publisher = row.creator ? `<p><strong>Publisher:</strong> ${escapeHtml2(row.creator)}</p>` : "";
+  const format = row.format ? `<p><strong>Format:</strong> ${escapeHtml2(row.format)}</p>` : "";
+  const featureList = Array.isArray(row.features) && row.features.length ? `<section><h2>Features and what\u2019s included</h2><ul>${row.features.map((item) => `<li>${escapeHtml2(item)}</li>`).join("")}</ul></section>` : "";
+  const requirements = row.system_requirements ? `<section><h2>System requirements</h2><p>${escapeHtml2(row.system_requirements)}</p></section>` : "";
+  const instructions = row.installation_instructions ? `<section><h2>How to get started</h2><p>${escapeHtml2(row.installation_instructions)}</p></section>` : "";
+  const tags = Array.isArray(row.tags) && row.tags.length ? `<p><strong>Topics:</strong> ${row.tags.map((tag) => escapeHtml2(tag)).join(", ")}</p>` : "";
+  const cover = image ? `<img src="${escapeHtml2(image)}" alt="${title} resource preview" width="1200" loading="eager" />` : "";
+  const about = cleanArticleHtml(row.description_html || "", row.title || "Resource");
+  const publishedAt = row.published_at ? new Date(row.published_at).toISOString() : "";
+  const date = publishedAt ? `<p><time datetime="${escapeHtml2(publishedAt)}">${escapeHtml2(new Date(publishedAt).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }))}</time></p>` : "";
+  return `<main class="seo-prerendered-download"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/downloads">Free downloads</a> / <a href="${origin}/downloads/category/${categorySlug}">${category}</a></nav><p>${category}</p><h1>${title}</h1><p>${escapeHtml2(row.short_description || "")}</p>${date}${cover}</header><section><h2>About ${title}</h2>${about}</section>${publisher}${format}${featureList}${requirements}${instructions}${tags}<section><h2>Access this resource</h2><p>Resource details are available publicly. Sign in to Taskdrip to access the official publisher link. The first access click opens the advertising partner in a new tab; return to this page and click again to continue to the resource.</p><a href="${escapeHtml2(canonicalUrl)}">View the resource page</a></section></article></main>`;
+}
 var absolutize = (origin, src) => {
   if (!src) return void 0;
   if (/^https?:\/\//i.test(src)) return src;
@@ -38053,6 +38073,13 @@ var STATIC_DEFAULTS = {
     description: "Shop premium digital products, creator tools, e-books, and resources on Taskdrip. Curated selection of high-quality digital downloads for creators and marketers.",
     keywords: "digital products shop, creator tools, e-books, digital downloads",
     canonicalUrl: "https://taskdrip.online/shop"
+  },
+  "/downloads": {
+    title: "Free Creator Tools & Digital Resources | Taskdrip",
+    description: "Explore free creator tools, open-source software, design resources, AI tools, media editors and productivity apps. Read practical details and access each publisher's official download.",
+    keywords: "free creator tools, free software downloads, free digital resources, open-source tools, AI tools, video editing software, design tools",
+    canonicalUrl: "https://taskdrip.online/downloads",
+    type: "website"
   },
   "/influencers": {
     title: "Find Influencers and Content Creators | Taskdrip",
@@ -38218,6 +38245,85 @@ var STATIC_DEFAULTS = {
   }
 };
 async function lookupRoute(origin, pathname) {
+  const downloadMatch = pathname.match(/^\/downloads\/([^/?#]+)$/);
+  if (downloadMatch && !["request", "my-requests"].includes(downloadMatch[1])) {
+    const slug2 = decodeURIComponent(downloadMatch[1]);
+    let row;
+    try {
+      const result = await pool2.query(
+        `SELECT d.*, c.name AS category_name, c.slug AS category_slug
+         FROM free_download_items d
+         JOIN free_download_categories c ON c.id=d.category_id
+         WHERE d.slug=$1 AND d.publication_status='published' AND c.is_active=TRUE
+         LIMIT 1`,
+        [slug2]
+      );
+      row = result.rows[0];
+    } catch (error) {
+      console.error("[SEO] Free download lookup failed:", error.message);
+      return { title: "Free resource temporarily unavailable | Taskdrip", description: "This resource is temporarily unavailable.", noIndex: true };
+    }
+    if (!row) {
+      return { title: "Free resource not found | Taskdrip", description: "This free resource is not available.", noIndex: true };
+    }
+    const image = absolutize(
+      origin,
+      row.og_image || row.thumbnail_url || getFreeDownloadFeaturedImage(
+        row.title,
+        row.format,
+        `${row.category_name || ""} ${row.category_slug || ""}`,
+        row.tags || []
+      )
+    );
+    const requestedCanonical = row.canonical_url ? absolutize(origin, row.canonical_url) : void 0;
+    let canonicalUrl = `${origin}/downloads/${encodeURIComponent(row.slug)}`;
+    if (requestedCanonical) {
+      try {
+        const candidate = new URL(requestedCanonical);
+        if (candidate.origin === origin) canonicalUrl = candidate.toString();
+      } catch {
+      }
+    }
+    const description = trimText(row.seo_description || row.short_description || `${row.title} free resource and official download details.`, 160);
+    const title = row.seo_title || `${row.title} Free Download & Details | Taskdrip`;
+    const focusKeyword = row.focus_keyword || `${row.title} free download`;
+    const keywords = Array.from(new Set([
+      focusKeyword,
+      ...Array.isArray(row.tags) ? row.tags : [],
+      row.category_name,
+      `${row.title} official download`
+    ].filter(Boolean))).join(", ");
+    const isSoftware = /\b(software|desktop|app|web app|tool|ai)\b/i.test(`${row.format || ""} ${row.category_name || ""}`);
+    const structuredData = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": isSoftware ? "SoftwareApplication" : "CreativeWork",
+      name: row.title,
+      description,
+      image: image ? [image] : void 0,
+      url: canonicalUrl,
+      mainEntityOfPage: canonicalUrl,
+      author: row.creator ? { "@type": "Organization", name: row.creator } : { "@type": "Organization", name: "Taskdrip" },
+      publisher: { "@type": "Organization", name: "Taskdrip", url: origin },
+      keywords,
+      datePublished: row.published_at ? new Date(row.published_at).toISOString() : void 0,
+      dateModified: row.updated_at ? new Date(row.updated_at).toISOString() : void 0,
+      ...isSoftware ? {
+        applicationCategory: row.category_name || "UtilitiesApplication",
+        operatingSystem: row.system_requirements || "Web browser",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", url: canonicalUrl }
+      } : {}
+    });
+    return {
+      title,
+      description,
+      image,
+      type: "article",
+      keywords,
+      canonicalUrl,
+      structuredData,
+      articleHtml: renderDownloadArticleHtml(row, origin, image || "", canonicalUrl)
+    };
+  }
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
     const slug2 = decodeURIComponent(blogMatch[1]);
@@ -38554,6 +38660,7 @@ async function buildSeoHtml(html, req) {
     const pathname = (req.originalUrl || "/").split("?")[0];
     const fallbackImage = await defaultOgImage(origin);
     const meta = await lookupRoute(origin, pathname) || { image: fallbackImage, noIndex: true };
+    if (new URL(req.originalUrl || "/", origin).searchParams.get("preview") === "1") meta.noIndex = true;
     if (isPrivateRoute(pathname)) meta.noIndex = true;
     return injectMeta(html, origin, req.originalUrl || "/", meta, fallbackImage);
   } catch (err) {
@@ -41152,7 +41259,9 @@ var REQUIRED_COLUMNS = [
   { table: "short_link_clicks", column: "city", definition: "varchar" },
   { table: "short_link_clicks", column: "browser", definition: "varchar" },
   { table: "short_link_clicks", column: "os", definition: "varchar" },
-  { table: "short_link_clicks", column: "device", definition: "varchar" }
+  { table: "short_link_clicks", column: "device", definition: "varchar" },
+  // The resource listing query uses this field even when no search filter is active.
+  { table: "free_download_items", column: "download_code", definition: "varchar(32)" }
 ];
 var REQUIRED_TABLES = [
   // Core courses table — must exist before course_lessons and any seeding
@@ -41798,7 +41907,136 @@ var REQUIRED_TABLES = [
     "updated_at" timestamp DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_user_status_idx" ON "creator_studio_subscriptions" ("user_id", "status")`,
-  `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_status_created_idx" ON "creator_studio_subscriptions" ("status", "created_at")`
+  `CREATE INDEX IF NOT EXISTS "creator_studio_subscriptions_status_created_idx" ON "creator_studio_subscriptions" ("status", "created_at")`,
+  // Free Downloads schema — kept additive/idempotent for Railway's external PostgreSQL.
+  `CREATE SEQUENCE IF NOT EXISTS "free_download_code_seq"`,
+  `CREATE TABLE IF NOT EXISTS "free_download_categories" (
+    "id" text PRIMARY KEY,
+    "name" varchar(120) NOT NULL,
+    "slug" varchar(140) NOT NULL UNIQUE,
+    "description" text NOT NULL DEFAULT '',
+    "image_url" text,
+    "sort_order" integer NOT NULL DEFAULT 0,
+    "is_active" boolean NOT NULL DEFAULT true,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_subcategories" (
+    "id" text PRIMARY KEY,
+    "category_id" text NOT NULL REFERENCES "free_download_categories"("id") ON DELETE CASCADE,
+    "name" varchar(120) NOT NULL,
+    "slug" varchar(140) NOT NULL,
+    "sort_order" integer NOT NULL DEFAULT 0,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    UNIQUE ("category_id", "slug")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_preachers" (
+    "id" text PRIMARY KEY,
+    "full_name" varchar(180) NOT NULL,
+    "slug" varchar(200) NOT NULL UNIQUE,
+    "photograph_url" text,
+    "biography" text NOT NULL DEFAULT '',
+    "ministry_name" varchar(180) NOT NULL DEFAULT '',
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_items" (
+    "id" text PRIMARY KEY,
+    "title" varchar(220) NOT NULL,
+    "slug" varchar(240) NOT NULL UNIQUE,
+    "short_description" varchar(600) NOT NULL DEFAULT '',
+    "description_html" text NOT NULL DEFAULT '',
+    "category_id" text NOT NULL REFERENCES "free_download_categories"("id") ON DELETE RESTRICT,
+    "subcategory_id" text REFERENCES "free_download_subcategories"("id") ON DELETE SET NULL,
+    "tags" text[] NOT NULL DEFAULT '{}',
+    "thumbnail_url" text,
+    "gallery_urls" text[] NOT NULL DEFAULT '{}',
+    "preview_video_url" text,
+    "external_demo_url" text,
+    "format" varchar(40) NOT NULL DEFAULT '',
+    "version" varchar(80) NOT NULL DEFAULT '',
+    "creator" varchar(180) NOT NULL DEFAULT '',
+    "release_date" date,
+    "system_requirements" text NOT NULL DEFAULT '',
+    "installation_instructions" text NOT NULL DEFAULT '',
+    "features" text[] NOT NULL DEFAULT '{}',
+    "preacher_id" text REFERENCES "free_download_preachers"("id") ON DELETE SET NULL,
+    "source_file_key" text,
+    "source_file_name" varchar(255),
+    "source_mime_type" varchar(160),
+    "source_size_bytes" bigint,
+    "external_download_url" text,
+    "download_code" varchar(32) NOT NULL DEFAULT ('TFD' || LPAD(nextval('free_download_code_seq')::text, 2, '0')),
+    "seo_title" varchar(220) NOT NULL DEFAULT '',
+    "seo_description" varchar(320) NOT NULL DEFAULT '',
+    "focus_keyword" varchar(160) NOT NULL DEFAULT '',
+    "canonical_url" text,
+    "og_title" varchar(220) NOT NULL DEFAULT '',
+    "og_description" varchar(320) NOT NULL DEFAULT '',
+    "og_image" text,
+    "publication_status" varchar(16) NOT NULL DEFAULT 'draft'
+      CHECK ("publication_status" IN ('draft', 'preview', 'published')),
+    "is_featured" boolean NOT NULL DEFAULT false,
+    "download_count" integer NOT NULL DEFAULT 0,
+    "created_by" text REFERENCES "users"("id") ON DELETE SET NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now(),
+    "published_at" timestamptz
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_unlocks" (
+    "id" text PRIMARY KEY,
+    "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "download_id" text NOT NULL REFERENCES "free_download_items"("id") ON DELETE CASCADE,
+    "ad_redirected_at" timestamptz,
+    "unlocked_at" timestamptz NOT NULL DEFAULT now(),
+    UNIQUE ("user_id", "download_id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_events" (
+    "id" text PRIMARY KEY,
+    "user_id" text REFERENCES "users"("id") ON DELETE SET NULL,
+    "download_id" text REFERENCES "free_download_items"("id") ON DELETE CASCADE,
+    "event_type" varchar(32) NOT NULL
+      CHECK ("event_type" IN ('detail_view', 'ad_redirect', 'unlock', 'download_click')),
+    "completed_at" timestamptz,
+    "created_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_requests" (
+    "id" text PRIMARY KEY,
+    "user_id" text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+    "resource_title" varchar(220) NOT NULL,
+    "category_name" varchar(120) NOT NULL,
+    "description" text NOT NULL,
+    "preferred_format" varchar(80) NOT NULL DEFAULT '',
+    "reference_url" text,
+    "email" varchar(254) NOT NULL,
+    "additional_comments" text NOT NULL DEFAULT '',
+    "status" varchar(20) NOT NULL DEFAULT 'pending'
+      CHECK ("status" IN ('pending', 'processing', 'available', 'rejected')),
+    "internal_notes" text NOT NULL DEFAULT '',
+    "response" text NOT NULL DEFAULT '',
+    "linked_download_id" text REFERENCES "free_download_items"("id") ON DELETE SET NULL,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_slides" (
+    "id" text PRIMARY KEY,
+    "title" varchar(220) NOT NULL,
+    "description" varchar(600) NOT NULL DEFAULT '',
+    "image_url" text NOT NULL,
+    "cta_label" varchar(80) NOT NULL DEFAULT 'Explore downloads',
+    "cta_url" varchar(500) NOT NULL DEFAULT '/downloads',
+    "sort_order" integer NOT NULL DEFAULT 0,
+    "is_active" boolean NOT NULL DEFAULT true,
+    "created_at" timestamptz NOT NULL DEFAULT now(),
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS "free_download_settings" (
+    "id" text PRIMARY KEY DEFAULT 'default',
+    "smartlink_url" text NOT NULL DEFAULT '',
+    "ad_requirement_enabled" boolean NOT NULL DEFAULT false,
+    "telegram_url" text NOT NULL DEFAULT 'https://t.me/taskdrip',
+    "updated_at" timestamptz NOT NULL DEFAULT now()
+  )`
 ];
 async function runStartupMigrations() {
   for (const ddl of REQUIRED_TABLES) {
@@ -41819,6 +42057,56 @@ async function runStartupMigrations() {
       console.error(
         `[startup-migration] Failed to ensure ${fix.table}.${fix.column}: ${err?.message}`
       );
+    }
+  }
+  const freeDownloadRepairs = [
+    `UPDATE free_download_items
+     SET download_code = 'TFD' || LPAD(nextval('free_download_code_seq')::text, 2, '0')
+     WHERE download_code IS NULL OR btrim(download_code) = ''`,
+    `ALTER TABLE IF EXISTS free_download_items
+     ALTER COLUMN download_code SET DEFAULT ('TFD' || LPAD(nextval('free_download_code_seq')::text, 2, '0'))`,
+    `ALTER TABLE IF EXISTS free_download_items ALTER COLUMN download_code SET NOT NULL`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS free_download_items_download_code_unique
+     ON free_download_items(download_code)`,
+    `CREATE INDEX IF NOT EXISTS free_download_items_public_idx
+     ON free_download_items(publication_status, category_id, published_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_items_featured_idx
+     ON free_download_items(is_featured, publication_status, published_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_items_preacher_idx
+     ON free_download_items(preacher_id, publication_status)`,
+    `CREATE INDEX IF NOT EXISTS free_download_unlocks_user_idx
+     ON free_download_unlocks(user_id, unlocked_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_events_type_date_idx
+     ON free_download_events(event_type, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_events_download_date_idx
+     ON free_download_events(download_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_events_user_download_type_idx
+     ON free_download_events(user_id, download_id, event_type, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_requests_user_idx
+     ON free_download_requests(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_requests_status_idx
+     ON free_download_requests(status, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS free_download_requests_category_status_idx
+     ON free_download_requests(category_name, status, created_at DESC)`,
+    `INSERT INTO free_download_settings (id)
+     VALUES ('default') ON CONFLICT (id) DO NOTHING`,
+    `INSERT INTO free_download_categories (id, name, slug, description, sort_order)
+     VALUES
+       ('fd-cat-files', 'Files & Documents', 'files-documents', 'Useful documents, templates, guides and learning resources.', 1),
+       ('fd-cat-ai', 'AI Tools', 'ai-tools', 'AI applications and tools for work and creativity.', 2),
+       ('fd-cat-software', 'Software', 'software', 'Software and applications shared with permission.', 3),
+       ('fd-cat-movies', 'Movies', 'movies', 'Legally distributable films and public-domain cinema.', 4),
+       ('fd-cat-videos', 'Videos', 'videos', 'Video resources, tutorials and creator-authorized media.', 5),
+       ('fd-cat-podcasts', 'Podcasts', 'podcasts', 'Podcast episodes and audio series.', 6),
+       ('fd-cat-music', 'Music', 'music', 'Licensed, public-domain and creator-authorized music.', 7),
+       ('fd-cat-sermons', 'Sermons', 'sermons', 'Sermons and ministry resources shared with permission.', 8)
+     ON CONFLICT (slug) DO NOTHING`
+  ];
+  for (const query of freeDownloadRepairs) {
+    try {
+      await db.execute(sql16.raw(query));
+    } catch (err) {
+      console.error(`[startup-migration] Free Downloads repair error: ${err?.message}`);
     }
   }
   try {
@@ -42229,16 +42517,23 @@ async function seedFreeCreatorTools() {
     }
     const result = await pool2.query(
       `INSERT INTO free_download_items (
-         id, title, slug, short_description, description_html, category_id, tags, format, creator,
-          installation_instructions, system_requirements, features, external_download_url, external_demo_url,
+         id, title, slug, short_description, description_html, category_id, tags, thumbnail_url, format, creator,
+         installation_instructions, system_requirements, features, external_download_url, external_demo_url,
          publication_status, is_featured, seo_title, seo_description, focus_keyword,
-         og_title, og_description, published_at
+         og_title, og_description, og_image, published_at
        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13,
-          'published', $14, $2, $4, $15, $2, $4, NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14,
+          'published', $15, $16, $17, $18, $19, $20, $21, NOW()
        )
-       ON CONFLICT (slug) DO NOTHING
-       RETURNING id`,
+       ON CONFLICT (slug) DO UPDATE SET
+         thumbnail_url=COALESCE(NULLIF(free_download_items.thumbnail_url,''), EXCLUDED.thumbnail_url),
+         og_image=COALESCE(NULLIF(free_download_items.og_image,''), NULLIF(free_download_items.thumbnail_url,''), EXCLUDED.og_image),
+         seo_title=CASE WHEN COALESCE(free_download_items.seo_title,'')='' OR free_download_items.seo_title=free_download_items.title THEN EXCLUDED.seo_title ELSE free_download_items.seo_title END,
+         seo_description=CASE WHEN COALESCE(free_download_items.seo_description,'')='' OR free_download_items.seo_description=free_download_items.short_description THEN EXCLUDED.seo_description ELSE free_download_items.seo_description END,
+         focus_keyword=CASE WHEN COALESCE(free_download_items.focus_keyword,'')='' OR free_download_items.focus_keyword=LOWER(free_download_items.title) THEN EXCLUDED.focus_keyword ELSE free_download_items.focus_keyword END,
+         og_title=CASE WHEN COALESCE(free_download_items.og_title,'')='' OR free_download_items.og_title=free_download_items.title THEN EXCLUDED.og_title ELSE free_download_items.og_title END,
+         og_description=CASE WHEN COALESCE(free_download_items.og_description,'')='' OR free_download_items.og_description=free_download_items.short_description THEN EXCLUDED.og_description ELSE free_download_items.og_description END
+       RETURNING (xmax = 0) AS inserted`,
       [
         randomUUID2(),
         tool.title,
@@ -42247,6 +42542,7 @@ async function seedFreeCreatorTools() {
         `<p>${tool.details[0]}</p><p>${tool.details[1]}</p>`,
         toolCategoryId,
         tool.tags || ["free", "creator tools", tool.format.toLowerCase()],
+        getFreeDownloadFeaturedImage(tool.title, tool.format, tool.categorySlug || FREE_TOOLS_CATEGORY.slug, tool.tags || []),
         tool.format,
         tool.creator || tool.title,
         tool.installationInstructions,
@@ -42254,10 +42550,15 @@ async function seedFreeCreatorTools() {
         tool.features,
         tool.url,
         Boolean(tool.featured),
-        tool.title.toLowerCase()
+        `${tool.title} Free Download & Details | Taskdrip`,
+        `${tool.description} Find features, setup notes and official access on Taskdrip.`,
+        `${tool.title.toLowerCase()} free download`,
+        `${tool.title} free resource | Taskdrip`,
+        tool.description,
+        getFreeDownloadFeaturedImage(tool.title, tool.format, tool.categorySlug || FREE_TOOLS_CATEGORY.slug, tool.tags || [])
       ]
     );
-    added += result.rowCount || 0;
+    if (result.rows[0]?.inserted) added += 1;
   }
   return added;
 }

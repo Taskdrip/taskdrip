@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { pool } from "./db";
+import { getFreeDownloadFeaturedImage } from "../shared/free-download-artwork";
 
 const FREE_TOOLS_CATEGORY = {
   id: "free-creator-tools",
@@ -388,24 +389,32 @@ export async function seedFreeCreatorTools(): Promise<number> {
     }
     const result = await pool.query(
       `INSERT INTO free_download_items (
-         id, title, slug, short_description, description_html, category_id, tags, format, creator,
-          installation_instructions, system_requirements, features, external_download_url, external_demo_url,
+         id, title, slug, short_description, description_html, category_id, tags, thumbnail_url, format, creator,
+         installation_instructions, system_requirements, features, external_download_url, external_demo_url,
          publication_status, is_featured, seo_title, seo_description, focus_keyword,
-         og_title, og_description, published_at
+         og_title, og_description, og_image, published_at
        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13,
-          'published', $14, $2, $4, $15, $2, $4, NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14,
+          'published', $15, $16, $17, $18, $19, $20, $21, NOW()
        )
-       ON CONFLICT (slug) DO NOTHING
-       RETURNING id`,
+       ON CONFLICT (slug) DO UPDATE SET
+         thumbnail_url=COALESCE(NULLIF(free_download_items.thumbnail_url,''), EXCLUDED.thumbnail_url),
+         og_image=COALESCE(NULLIF(free_download_items.og_image,''), NULLIF(free_download_items.thumbnail_url,''), EXCLUDED.og_image),
+         seo_title=CASE WHEN COALESCE(free_download_items.seo_title,'')='' OR free_download_items.seo_title=free_download_items.title THEN EXCLUDED.seo_title ELSE free_download_items.seo_title END,
+         seo_description=CASE WHEN COALESCE(free_download_items.seo_description,'')='' OR free_download_items.seo_description=free_download_items.short_description THEN EXCLUDED.seo_description ELSE free_download_items.seo_description END,
+         focus_keyword=CASE WHEN COALESCE(free_download_items.focus_keyword,'')='' OR free_download_items.focus_keyword=LOWER(free_download_items.title) THEN EXCLUDED.focus_keyword ELSE free_download_items.focus_keyword END,
+         og_title=CASE WHEN COALESCE(free_download_items.og_title,'')='' OR free_download_items.og_title=free_download_items.title THEN EXCLUDED.og_title ELSE free_download_items.og_title END,
+         og_description=CASE WHEN COALESCE(free_download_items.og_description,'')='' OR free_download_items.og_description=free_download_items.short_description THEN EXCLUDED.og_description ELSE free_download_items.og_description END
+       RETURNING (xmax = 0) AS inserted`,
       [
         randomUUID(),
         tool.title,
         tool.slug,
         tool.description,
         `<p>${tool.details[0]}</p><p>${tool.details[1]}</p>`,
-         toolCategoryId,
-         tool.tags || ["free", "creator tools", tool.format.toLowerCase()],
+        toolCategoryId,
+        tool.tags || ["free", "creator tools", tool.format.toLowerCase()],
+        getFreeDownloadFeaturedImage(tool.title, tool.format, tool.categorySlug || FREE_TOOLS_CATEGORY.slug, tool.tags || []),
         tool.format,
         tool.creator || tool.title,
         tool.installationInstructions,
@@ -413,10 +422,15 @@ export async function seedFreeCreatorTools(): Promise<number> {
         tool.features,
         tool.url,
         Boolean(tool.featured),
-        tool.title.toLowerCase(),
+        `${tool.title} Free Download & Details | Taskdrip`,
+        `${tool.description} Find features, setup notes and official access on Taskdrip.`,
+        `${tool.title.toLowerCase()} free download`,
+        `${tool.title} free resource | Taskdrip`,
+        tool.description,
+        getFreeDownloadFeaturedImage(tool.title, tool.format, tool.categorySlug || FREE_TOOLS_CATEGORY.slug, tool.tags || []),
       ],
     );
-    added += result.rowCount || 0;
+    if (result.rows[0]?.inserted) added += 1;
   }
   return added;
 }

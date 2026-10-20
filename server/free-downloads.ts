@@ -9,6 +9,7 @@ import { z } from "zod";
 import { isAdmin, isAuthenticated } from "./auth";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { getFreeDownloadFeaturedImage } from "../shared/free-download-artwork";
 
 const privateFilesDir = path.resolve(
   process.env.FREE_DOWNLOADS_STORAGE_DIR || path.join(process.cwd(), "private-downloads"),
@@ -266,7 +267,12 @@ function publicDownload(row: any, unlocked = false) {
     subcategoryId: row.subcategory_id || null,
     subcategoryName: row.subcategory_name || row.subcategoryName || null,
     tags: row.tags || [],
-    thumbnailUrl: row.thumbnail_url || null,
+    thumbnailUrl: row.thumbnail_url || getFreeDownloadFeaturedImage(
+      row.title,
+      row.format,
+      `${row.category_slug || row.categorySlug || ""} ${row.category_name || row.categoryName || ""}`,
+      row.tags || [],
+    ),
     previewVideoUrl: row.preview_video_url || null,
     format: row.format || "",
     fileSizeBytes: row.source_size_bytes ? Number(row.source_size_bytes) : null,
@@ -843,24 +849,8 @@ export function registerFreeDownloadsRoutes(app: Express) {
       const row = await getPublishedBySlug(req.params.slug);
       if (!row) return res.status(404).json({ message: "Download not found." });
       const settings = await getAdSettings();
-      res.json({
-        ...publicDownload(row),
-        descriptionHtml: sanitizeRichHtml(row.description_html || ""),
-        features: row.features || [],
-        systemRequirements: row.system_requirements || "",
-        installationInstructions: row.installation_instructions || "",
-        adRequired: Boolean(settings.ad_requirement_enabled),
-        smartlinkConfigured: Boolean(safeExternalUrl(settings.smartlink_url)),
-        seo: {
-          title: row.seo_title || row.title,
-          description: row.seo_description || row.short_description,
-          focusKeyword: row.focus_keyword,
-          canonicalUrl: row.canonical_url,
-          ogTitle: row.og_title || row.seo_title || row.title,
-          ogDescription: row.og_description || row.seo_description || row.short_description,
-          ogImage: row.og_image || row.thumbnail_url,
-        },
-      });
+      const detail = await fullDownloadDetail(row, settings, false);
+      res.json({ ...detail, descriptionHtml: sanitizeRichHtml(row.description_html || "") });
     } catch (error) {
       console.error("[free-downloads] Public preview failed:", error);
       res.status(503).json({ message: "Download preview is temporarily unavailable." });

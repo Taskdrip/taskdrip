@@ -1,7 +1,8 @@
-import { db } from "./db";
+import { db, pool } from "./db";
 import { campaigns, blogPosts, shopProducts, users, courses, p2pListings, portfolioItems, pageSeoSettings, pwaSettings, pluginStudioProjects } from "@shared/schema";
 import { and, eq, or } from "drizzle-orm";
 import { load } from "cheerio";
+import { getFreeDownloadFeaturedImage } from "../shared/free-download-artwork";
 
 type Meta = {
   title?: string;
@@ -68,6 +69,36 @@ function renderArticleHtml(post: typeof blogPosts.$inferSelect, origin: string, 
   return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content, post.title)}</div></article></main>`;
 }
 
+function renderDownloadArticleHtml(row: any, origin: string, image: string, canonicalUrl: string): string {
+  const title = escapeHtml(row.title || "Free resource");
+  const category = escapeHtml(row.category_name || "Free downloads");
+  const categorySlug = encodeURIComponent(row.category_slug || "");
+  const publisher = row.creator ? `<p><strong>Publisher:</strong> ${escapeHtml(row.creator)}</p>` : "";
+  const format = row.format ? `<p><strong>Format:</strong> ${escapeHtml(row.format)}</p>` : "";
+  const featureList = Array.isArray(row.features) && row.features.length
+    ? `<section><h2>Features and what’s included</h2><ul>${row.features.map((item: string) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`
+    : "";
+  const requirements = row.system_requirements
+    ? `<section><h2>System requirements</h2><p>${escapeHtml(row.system_requirements)}</p></section>`
+    : "";
+  const instructions = row.installation_instructions
+    ? `<section><h2>How to get started</h2><p>${escapeHtml(row.installation_instructions)}</p></section>`
+    : "";
+  const tags = Array.isArray(row.tags) && row.tags.length
+    ? `<p><strong>Topics:</strong> ${row.tags.map((tag: string) => escapeHtml(tag)).join(", ")}</p>`
+    : "";
+  const cover = image
+    ? `<img src="${escapeHtml(image)}" alt="${title} resource preview" width="1200" loading="eager" />`
+    : "";
+  const about = cleanArticleHtml(row.description_html || "", row.title || "Resource");
+  const publishedAt = row.published_at ? new Date(row.published_at).toISOString() : "";
+  const date = publishedAt
+    ? `<p><time datetime="${escapeHtml(publishedAt)}">${escapeHtml(new Date(publishedAt).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }))}</time></p>`
+    : "";
+
+  return `<main class="seo-prerendered-download"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/downloads">Free downloads</a> / <a href="${origin}/downloads/category/${categorySlug}">${category}</a></nav><p>${category}</p><h1>${title}</h1><p>${escapeHtml(row.short_description || "")}</p>${date}${cover}</header><section><h2>About ${title}</h2>${about}</section>${publisher}${format}${featureList}${requirements}${instructions}${tags}<section><h2>Access this resource</h2><p>Resource details are available publicly. Sign in to Taskdrip to access the official publisher link. The first access click opens the advertising partner in a new tab; return to this page and click again to continue to the resource.</p><a href="${escapeHtml(canonicalUrl)}">View the resource page</a></section></article></main>`;
+}
+
 const absolutize = (origin: string, src?: string | null) => {
   if (!src) return undefined;
   if (/^https?:\/\//i.test(src)) return src;
@@ -118,6 +149,13 @@ const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
     description: "Shop premium digital products, creator tools, e-books, and resources on Taskdrip. Curated selection of high-quality digital downloads for creators and marketers.",
     keywords: "digital products shop, creator tools, e-books, digital downloads",
     canonicalUrl: "https://taskdrip.online/shop",
+  },
+  "/downloads": {
+    title: "Free Creator Tools & Digital Resources | Taskdrip",
+    description: "Explore free creator tools, open-source software, design resources, AI tools, media editors and productivity apps. Read practical details and access each publisher's official download.",
+    keywords: "free creator tools, free software downloads, free digital resources, open-source tools, AI tools, video editing software, design tools",
+    canonicalUrl: "https://taskdrip.online/downloads",
+    type: "website",
   },
   "/influencers": {
     title: "Find Influencers and Content Creators | Taskdrip",
@@ -284,6 +322,86 @@ const STATIC_DEFAULTS: Record<string, Omit<Meta, "image">> = {
 };
 
 async function lookupRoute(origin: string, pathname: string): Promise<Meta | null> {
+  const downloadMatch = pathname.match(/^\/downloads\/([^/?#]+)$/);
+  if (downloadMatch && !["request", "my-requests"].includes(downloadMatch[1])) {
+    const slug = decodeURIComponent(downloadMatch[1]);
+    let row: any;
+    try {
+      const result = await pool.query(
+        `SELECT d.*, c.name AS category_name, c.slug AS category_slug
+         FROM free_download_items d
+         JOIN free_download_categories c ON c.id=d.category_id
+         WHERE d.slug=$1 AND d.publication_status='published' AND c.is_active=TRUE
+         LIMIT 1`,
+        [slug],
+      );
+      row = result.rows[0];
+    } catch (error: any) {
+      console.error("[SEO] Free download lookup failed:", error.message);
+      return { title: "Free resource temporarily unavailable | Taskdrip", description: "This resource is temporarily unavailable.", noIndex: true };
+    }
+    if (!row) {
+      return { title: "Free resource not found | Taskdrip", description: "This free resource is not available.", noIndex: true };
+    }
+
+    const image = absolutize(
+      origin,
+      row.og_image || row.thumbnail_url || getFreeDownloadFeaturedImage(
+        row.title,
+        row.format,
+        `${row.category_name || ""} ${row.category_slug || ""}`,
+        row.tags || [],
+      ),
+    );
+    const requestedCanonical = row.canonical_url ? absolutize(origin, row.canonical_url) : undefined;
+    let canonicalUrl = `${origin}/downloads/${encodeURIComponent(row.slug)}`;
+    if (requestedCanonical) {
+      try {
+        const candidate = new URL(requestedCanonical);
+        if (candidate.origin === origin) canonicalUrl = candidate.toString();
+      } catch { /* Keep the resource's own canonical URL. */ }
+    }
+    const description = trimText(row.seo_description || row.short_description || `${row.title} free resource and official download details.`, 160);
+    const title = row.seo_title || `${row.title} Free Download & Details | Taskdrip`;
+    const focusKeyword = row.focus_keyword || `${row.title} free download`;
+    const keywords = Array.from(new Set([
+      focusKeyword,
+      ...(Array.isArray(row.tags) ? row.tags : []),
+      row.category_name,
+      `${row.title} official download`,
+    ].filter(Boolean))).join(", ");
+    const isSoftware = /\b(software|desktop|app|web app|tool|ai)\b/i.test(`${row.format || ""} ${row.category_name || ""}`);
+    const structuredData = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": isSoftware ? "SoftwareApplication" : "CreativeWork",
+      name: row.title,
+      description,
+      image: image ? [image] : undefined,
+      url: canonicalUrl,
+      mainEntityOfPage: canonicalUrl,
+      author: row.creator ? { "@type": "Organization", name: row.creator } : { "@type": "Organization", name: "Taskdrip" },
+      publisher: { "@type": "Organization", name: "Taskdrip", url: origin },
+      keywords,
+      datePublished: row.published_at ? new Date(row.published_at).toISOString() : undefined,
+      dateModified: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+      ...(isSoftware ? {
+        applicationCategory: row.category_name || "UtilitiesApplication",
+        operatingSystem: row.system_requirements || "Web browser",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", url: canonicalUrl },
+      } : {}),
+    });
+    return {
+      title,
+      description,
+      image,
+      type: "article",
+      keywords,
+      canonicalUrl,
+      structuredData,
+      articleHtml: renderDownloadArticleHtml(row, origin, image || "", canonicalUrl),
+    };
+  }
+
   // /blog/:slug
   const blogMatch = pathname.match(/^\/blog\/([^/?#]+)/);
   if (blogMatch) {
@@ -662,6 +780,7 @@ export async function buildSeoHtml(html: string, req: { protocol: string; get: (
 
     const fallbackImage = await defaultOgImage(origin);
     const meta = (await lookupRoute(origin, pathname)) || { image: fallbackImage, noIndex: true };
+    if (new URL(req.originalUrl || "/", origin).searchParams.get("preview") === "1") meta.noIndex = true;
     if (isPrivateRoute(pathname)) meta.noIndex = true;
     return injectMeta(html, origin, req.originalUrl || "/", meta, fallbackImage);
   } catch (err) {

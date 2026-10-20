@@ -6,7 +6,7 @@ import { freeDownloadsApi, useAdminFreeDownloadPreview, useFreeDownloadDetail, u
 import { useAuth } from "@/hooks/useAuth";
 import { ErrorBlock, FreeDownloadsShell, InlineNotice, LoadingBlock, ResourceGrid } from "./shared";
 import { SeoHead } from "@/components/SeoHead";
-import { getFreeDownloadArtwork } from "./artwork";
+import { getFreeDownloadFeaturedImage } from "@shared/free-download-artwork";
 
 const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
 
@@ -163,7 +163,7 @@ export function FreeDownloadDetailPage() {
       </nav>
       <div className="fd-detail-layout">
         <article className="fd-detail-main">
-          <div className="fd-detail-cover"><img src={guest.thumbnailUrl || getFreeDownloadArtwork(guest.title, guest.format, guest.slug)} alt={`${guest.title} featured artwork`} /></div>
+          <div className="fd-detail-cover"><img src={guest.thumbnailUrl || getFreeDownloadFeaturedImage(guest.title, guest.format, guest.categoryName, guest.tags)} alt={`Representative ${guest.format || "digital resource"} image for ${guest.title}`} /></div>
           <div className="fd-eyebrow"><span />{guest.categoryName}</div><h1>{guest.title}</h1>
           <p className="fd-lede">{guest.shortDescription}</p>
           {guest.downloadCode && <p className="fd-download-code">Download code: <strong>{guest.downloadCode}</strong></p>}
@@ -171,18 +171,20 @@ export function FreeDownloadDetailPage() {
           {guest.previewVideoUrl && <section className="fd-section"><h2>Preview</h2>{guestPreview
             ? <div className="fd-video-frame"><iframe src={guestPreview} title={`${guest.title} preview`} loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div>
             : <a className="fd-text-link" href={guest.previewVideoUrl} target="_blank" rel="noopener noreferrer">Watch the preview <ExternalLink size={14} /></a>}</section>}
+          {guest.creator && <p className="fd-legal-note">Published by {guest.creator}</p>}
           <div className="fd-rich-copy" dangerouslySetInnerHTML={{ __html: guest.descriptionHtml || "" }} />
           <AdsterraSlot position="article-inline" />
           {guest.features?.length > 0 && <section className="fd-section"><h2>What you can do</h2><ul>{guest.features.map(feature => <li key={feature}>{feature}</li>)}</ul></section>}
           {guest.systemRequirements && <section className="fd-section"><h2>System requirements</h2><p className="fd-rich-copy">{guest.systemRequirements}</p></section>}
           {guest.installationInstructions && <section className="fd-section"><h2>Getting started</h2><p className="fd-rich-copy">{guest.installationInstructions}</p></section>}
+          {guest.galleryUrls?.length > 0 && <section className="fd-section"><h2>Inside the resource</h2><div className="fd-resource-grid">{guest.galleryUrls.map((url, i) => <img key={`${url}-${i}`} src={url} alt={`${guest.title} preview ${i + 1}`} loading="lazy" />)}</div></section>}
         </article>
         <aside className="fd-detail-side">
           <h2>Get this resource</h2>
-          <dl><div><dt>Format</dt><dd>{guest.format || "Digital resource"}</dd></div><div><dt>Downloads</dt><dd>{Number(guest.downloadCount || 0).toLocaleString()}</dd></div></dl>
+          <dl><div><dt>Format</dt><dd>{guest.format || "Digital resource"}</dd></div>{guest.creator && <div><dt>Publisher</dt><dd>{guest.creator}</dd></div>}{guest.version && <div><dt>Version</dt><dd>{guest.version}</dd></div>}<div><dt>Downloads</dt><dd>{Number(guest.downloadCount || 0).toLocaleString()}</dd></div></dl>
           {guest.adRequired
             ? guest.smartlinkConfigured
-              ? <p className="fd-ad-explain">The first click opens the Adsterra Smartlink in a new tab. Return to this page and click again to open the publisher’s official resource.</p>
+              ? <p className="fd-ad-explain">Sign in or create a free account to continue. Your first resource click opens the Adsterra Smartlink in a new tab; return here and click again for the official resource.</p>
               : <InlineNotice kind="error">The Adsterra Smartlink is not configured yet. Please check back later.</InlineNotice>
             : <p>Details are open to everyone. Sign in or create a free Taskdrip account to continue to the publisher’s official resource.</p>}
           {(!guest.adRequired || guest.smartlinkConfigured)
@@ -191,6 +193,7 @@ export function FreeDownloadDetailPage() {
             : <button className="fd-button" disabled>Resource unavailable</button>}
         </aside>
       </div>
+      {guest.related?.length > 0 && <section className="fd-section"><div className="fd-section-title"><div><span className="fd-kicker">MORE TO EXPLORE</span><h2>Related free resources</h2><p>More resources from the {guest.categoryName} collection.</p></div></div><ResourceGrid items={guest.related} /></section>}
       <AdsterraSlot position="article-end" />
     </FreeDownloadsShell>;
   }
@@ -224,7 +227,7 @@ export function FreeDownloadDetailPage() {
     </nav>
     <div className="fd-detail-layout">
       <article className="fd-detail-main">
-        <div className="fd-detail-cover"><img src={resource.thumbnailUrl || getFreeDownloadArtwork(resource.title, resource.format, resource.slug)} alt={`${resource.title} featured artwork`} /></div>
+        <div className="fd-detail-cover"><img src={resource.thumbnailUrl || getFreeDownloadFeaturedImage(resource.title, resource.format, resource.categoryName, resource.tags)} alt={`Representative ${resource.format || "digital resource"} image for ${resource.title}`} /></div>
         <div className="fd-eyebrow"><span />{resource.categoryName} {resource.subcategoryName ? ` / ${resource.subcategoryName}` : ""}</div>
         <h1>{resource.title}</h1><p className="fd-lede">{resource.shortDescription}</p>
         {resource.downloadCode && <p className="fd-download-code">Download code: <strong>{resource.downloadCode}</strong></p>}
@@ -261,7 +264,7 @@ export function FreeDownloadDetailPage() {
         {resource.telegramUrl && <a className="fd-text-link" style={{ marginTop: 15 }} href={resource.telegramUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> More from this community</a>}
       </aside>
     </div>
-    {resource.related?.length > 0 && <section className="fd-section"><h2>Related resources</h2><ResourceGrid items={resource.related} /></section>}
+    {!isAdminPreview && resource.related?.length > 0 && <section className="fd-section"><div className="fd-section-title"><div><span className="fd-kicker">MORE TO EXPLORE</span><h2>Related free resources</h2><p>More resources from the {resource.categoryName} collection.</p></div></div><ResourceGrid items={resource.related} /></section>}
     <AdsterraSlot position="article-end" />
     {preview.isError && <div className="fd-legal-note">Public preview metadata is temporarily unavailable.</div>}
   </FreeDownloadsShell>;
