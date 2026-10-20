@@ -1271,6 +1271,9 @@ final class TDLPW_Admin {
             'search' => sanitize_text_field(wp_unslash($_GET['search'] ?? '')),
         );
         $rows = TDLPW_Audience::rows($filters);
+        $bulk_optin_count = count(array_filter($rows, function ($row) {
+            return absint($row['orders'] ?? 0) > 0 && empty($row['optin']);
+        }));
         $host = strtolower((string) wp_parse_url(home_url(), PHP_URL_HOST));
         $host = preg_replace('/^www\./', '', $host);
         if ($host === 'theindustryminer.com') {
@@ -1302,8 +1305,8 @@ final class TDLPW_Admin {
         if ($notice !== '') {
             echo '<div class="notice notice-info inline"><p>' . esc_html($notice) . '</p></div>';
         }
-        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. Search by email or name, then select one opted-in person or several visible contacts. Product, course, and role filters can narrow a group. Campaigns only send to contacts with recorded checkout or administrator opt-in.', '{{SLUG}}'), count($rows))) . '</p>';
-        TDLPW_Consent_Admin::render_form();
+        echo '<p>' . esc_html(sprintf(__('%d WordPress contacts. Search by email or name, then use product, course, and role filters to narrow the audience. Admins can opt in selected purchasers across pages or all matching purchasers at once; campaign emails still go only to contacts with recorded opt-in.', '{{SLUG}}'), count($rows))) . '</p>';
+        TDLPW_Consent_Admin::render_form($filters, $bulk_optin_count);
         echo '<form id="tdlpw-campaign-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_send_campaign">';
         wp_nonce_field('tdlpw_send_campaign');
         echo '<input type="hidden" name="product" value="' . esc_attr((string) $filters['product']) . '">';
@@ -1340,8 +1343,8 @@ final class TDLPW_Admin {
         echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
         echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Choose individual recipients, select contacts across pages, or use the all-matching option above. Product and course filters limit the recipients.', '{{SLUG}}') . '</span></div>';
         echo '<p id="tdlpw-campaign-selection-summary" class="description">' . esc_html__('No recipients selected. Checked recipients stay selected as you move between contact pages.', '{{SLUG}}') . '</p>';
-        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th><th>' . esc_html__('Admin action', '{{SLUG}}') . '</th></tr></thead><tbody>';
-        if (!$rows) { echo '<tr><td colspan="8">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
+        echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th><th><input type="checkbox" data-tdlpw-optin-select-page aria-label="' . esc_attr__('Select all eligible purchasers on this page for opt-in', '{{SLUG}}') . '"></th><th>' . esc_html__('Admin action', '{{SLUG}}') . '</th></tr></thead><tbody>';
+        if (!$rows) { echo '<tr><td colspan="9">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
         foreach ($page_rows as $row) {
             $spend = array();
             foreach ($row['spend_by_currency'] as $currency => $amount) {
@@ -1357,6 +1360,7 @@ final class TDLPW_Admin {
                 '<td>' . esc_html(implode(', ', array_filter($row['courses'])) ?: '—') . '</td>' .
                 '<td>' . esc_html((string) $row['orders']) . ' / ' . esc_html(implode(', ', $spend) ?: '—') . $latest_order . '</td>' .
                 '<td>' . ($row['optin'] ? '<span class="tdlpw-status tdlpw-opted">' . esc_html__('Opted in', '{{SLUG}}') . '</span>' : '<span class="tdlpw-status">' . esc_html__('Not opted in', '{{SLUG}}') . '</span>') . '</td>' .
+                '<td>'; TDLPW_Consent_Admin::render_select_action($row); echo '</td>' .
                 '<td>'; TDLPW_Consent_Admin::render_action($row); echo '</td></tr>';
         }
         echo '</tbody></table></form>';
@@ -1422,6 +1426,60 @@ final class TDLPW_Admin {
             try{sessionStorage.removeItem(storageKey);}catch(ignore){}
           },true);
         })();
+        (function(){
+          var form=document.getElementById("tdlpw-optin-form");
+          if(!form)return;
+          var summary=document.getElementById("tdlpw-optin-selection-summary");
+          var filterKey=["product","course","role","opted_in","search"].map(function(name){
+            var field=form.querySelector("[name=\\""+name+"\\"]");
+            return field?field.value:"";
+          }).join("|");
+          var storageKey="tdlpw-optin-users:"+filterKey;
+          var selected=[];
+          try{selected=JSON.parse(sessionStorage.getItem(storageKey)||"[]");if(!Array.isArray(selected))selected=[];}catch(ignore){selected=[];}
+          selected=selected.map(String);
+          var boxes=function(){return document.querySelectorAll("input[name=\\"selected_ids[]\\"]");};
+          boxes().forEach(function(box){box.checked=selected.indexOf(box.value)!==-1;});
+          var selectedButton=form.querySelector("[data-tdlpw-optin-selected]");
+          function updateSummary(){
+            if(summary)summary.textContent=selected.length+" purchasers selected across contact pages.";
+            if(selectedButton)selectedButton.disabled=selected.length===0;
+          }
+          function persist(){
+            var ids=new Set(selected);
+            boxes().forEach(function(box){if(box.checked)ids.add(box.value);else ids.delete(box.value);});
+            selected=Array.from(ids);
+            try{sessionStorage.setItem(storageKey,JSON.stringify(selected));}catch(ignore){}
+            updateSummary();
+          }
+          updateSummary();
+          document.addEventListener("change",function(e){
+            if(e.target.matches("input[name=\\"selected_ids[]\\"]")){persist();}
+            if(e.target.matches("[data-tdlpw-optin-select-page]")){
+              boxes().forEach(function(box){box.checked=e.target.checked;});
+              persist();
+            }
+          });
+          form.addEventListener("submit",function(e){
+            var submitter=e.submitter;
+            if(submitter&&submitter.value==="all"){
+              if(!window.confirm(submitter.getAttribute("data-confirm-all"))){e.preventDefault();}
+              return;
+            }
+            if(submitter&&submitter.value==="selected"){
+              if(!selected.length){e.preventDefault();window.alert("Select at least one purchaser first.");return;}
+              if(!window.confirm("Record an administrator opt-in for "+selected.length+" selected purchasers? Continue only if each person has given permission.")){e.preventDefault();return;}
+              var present=Array.from(form.querySelectorAll("input[name=\\"selected_ids[]\\"]")).map(function(box){return box.value;});
+              selected.forEach(function(id){
+                if(present.indexOf(id)===-1){
+                  var hidden=document.createElement("input");
+                  hidden.type="hidden";hidden.name="selected_ids[]";hidden.value=id;form.appendChild(hidden);
+                }
+              });
+              try{sessionStorage.removeItem(storageKey);}catch(ignore){}
+            }
+          });
+        })();
         document.addEventListener("click",function(e){
             var button=e.target.closest("[data-tdlpw-insert-token]");
             if(!button)return;
@@ -1455,10 +1513,35 @@ final class TDLPW_Consent_Admin {
         add_action('admin_post_tdlpw_opt_in_customer', array($this, 'opt_in_customer'));
     }
 
-    public static function render_form() {
+    public static function render_form($filters = array(), $eligible_count = 0) {
+        if (!current_user_can('manage_options')) { return; }
         echo '<form id="tdlpw-optin-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tdlpw_opt_in_customer">';
         wp_nonce_field('tdlpw_opt_in_customer');
-        echo '</form>';
+        foreach (array('product', 'course') as $key) {
+            echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr((string) absint($filters[$key] ?? 0)) . '">';
+        }
+        echo '<input type="hidden" name="role" value="' . esc_attr(sanitize_key($filters['role'] ?? '')) . '">';
+        echo '<input type="hidden" name="opted_in" value="' . (!empty($filters['opted_in']) ? '1' : '0') . '">';
+        echo '<input type="hidden" name="search" value="' . esc_attr(sanitize_text_field($filters['search'] ?? '')) . '">';
+        $confirm_all = sprintf(
+            __('This will record an administrator opt-in for all %d matching purchasers, including people who may have unsubscribed. Continue only if each person has given permission.', '{{SLUG}}'),
+            absint($eligible_count)
+        );
+        echo '<div class="tdlpw-optin-bulk-actions"><strong>' . esc_html__('Bulk email opt-in', '{{SLUG}}') . '</strong> ';
+        echo '<button class="button" type="submit" name="bulk_mode" value="selected" data-tdlpw-optin-selected disabled>' . esc_html__('Opt in selected purchasers', '{{SLUG}}') . '</button> ';
+        echo '<button class="button" type="submit" name="bulk_mode" value="all" data-confirm-all="' . esc_attr($confirm_all) . '" ' . ($eligible_count ? '' : 'disabled') . '>' .
+            esc_html(sprintf(__('Opt in all %d matching purchasers', '{{SLUG}}'), absint($eligible_count))) . '</button>';
+        echo '<span id="tdlpw-optin-selection-summary" class="description">' . esc_html__('Select purchasers in the table, or apply this action to every matching purchaser across all pages. Only proceed when you have permission to email them.', '{{SLUG}}') . '</span></div></form>';
+    }
+
+    public static function render_select_action($row) {
+        if (!current_user_can('manage_options') || !empty($row['optin']) || absint($row['orders'] ?? 0) < 1) {
+            echo '—';
+            return;
+        }
+        echo '<input type="checkbox" form="tdlpw-optin-form" name="selected_ids[]" value="' .
+            esc_attr((string) absint($row['id'] ?? 0)) . '" aria-label="' .
+            esc_attr(sprintf(__('Select %s for marketing opt-in', '{{SLUG}}'), $row['email'] ?? '')) . '">';
     }
 
     public static function render_action($row) {
@@ -1473,21 +1556,49 @@ final class TDLPW_Consent_Admin {
     public function opt_in_customer() {
         if (!current_user_can('manage_options')) { wp_die(esc_html__('Access denied.', '{{SLUG}}'), '', array('response' => 403)); }
         check_admin_referer('tdlpw_opt_in_customer');
-        $user_id = absint($_POST['user_id'] ?? 0);
-        $eligible = false;
-        foreach (TDLPW_Audience::rows() as $row) {
-            if (absint($row['id']) === $user_id && absint($row['orders']) > 0) { $eligible = true; break; }
+        $filters = array(
+            'product' => absint(wp_unslash($_POST['product'] ?? 0)),
+            'course' => absint(wp_unslash($_POST['course'] ?? 0)),
+            'role' => sanitize_key(wp_unslash($_POST['role'] ?? '')),
+            'opted_in' => !empty($_POST['opted_in']),
+            'search' => sanitize_text_field(wp_unslash($_POST['search'] ?? '')),
+        );
+        $eligible_ids = array();
+        foreach (TDLPW_Audience::rows($filters) as $row) {
+            if (absint($row['orders'] ?? 0) > 0 && empty($row['optin'])) {
+                $eligible_ids[absint($row['id'])] = true;
+            }
         }
-        $notice = __('No matching purchaser was found; marketing consent was not changed.', '{{SLUG}}');
-        if ($eligible && get_user_by('id', $user_id)) {
-            update_user_meta($user_id, 'tdlpw_email_marketing_optin', '1');
-            update_user_meta($user_id, 'tdlpw_email_marketing_optin_at', current_time('mysql', true));
-            update_user_meta($user_id, 'tdlpw_email_marketing_optin_source', 'admin');
-            $notice = __('The purchaser was opted in to email campaigns.', '{{SLUG}}');
+        $user_id = absint(wp_unslash($_POST['user_id'] ?? 0));
+        $bulk_mode = sanitize_key(wp_unslash($_POST['bulk_mode'] ?? ''));
+        $target_ids = array();
+        if ($user_id) {
+            if (isset($eligible_ids[$user_id])) { $target_ids[] = $user_id; }
+        } elseif ($bulk_mode === 'all') {
+            $target_ids = array_map('absint', array_keys($eligible_ids));
+        } elseif ($bulk_mode === 'selected') {
+            $selected_ids = array_values(array_unique(array_filter(array_map('absint', (array) wp_unslash($_POST['selected_ids'] ?? array())))));
+            $target_ids = array_values(array_intersect($selected_ids, array_map('absint', array_keys($eligible_ids))));
         }
+        $updated = 0;
+        foreach ($target_ids as $target_id) {
+            if (!get_user_by('id', $target_id)) { continue; }
+            update_user_meta($target_id, 'tdlpw_email_marketing_optin', '1');
+            update_user_meta($target_id, 'tdlpw_email_marketing_optin_at', current_time('mysql', true));
+            update_user_meta($target_id, 'tdlpw_email_marketing_optin_source', 'admin');
+            $updated++;
+        }
+        $notice = $updated
+            ? sprintf(_n('%d purchaser was opted in to email campaigns.', '%d purchasers were opted in to email campaigns.', $updated, '{{SLUG}}'), $updated)
+            : __('No matching eligible purchasers were selected; marketing consent was not changed.', '{{SLUG}}');
         wp_safe_redirect(add_query_arg(array(
             'page' => 'tdlpw-dashboard',
             'tab' => 'customers',
+            'product' => $filters['product'] ?: '',
+            'course' => $filters['course'] ?: '',
+            'role' => $filters['role'],
+            'opted_in' => $filters['opted_in'] ? '1' : '',
+            'search' => $filters['search'],
             'notice' => $notice,
         ), admin_url('admin.php')));
         exit;
@@ -1619,7 +1730,7 @@ if (defined('TDLPW_REMOVE_DATA_ON_UNINSTALL') && TDLPW_REMOVE_DATA_ON_UNINSTALL)
 }
 `;
 
-const css = `.tdlpw-wrap{max-width:1320px}.tdlpw-campaign-banner{display:block;width:100%;height:auto;max-height:230px;object-fit:cover;border-radius:12px;margin:20px 0}.tdlpw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:22px 0}.tdlpw-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:20px;margin:22px 0}.tdlpw-card h2{margin-top:0}.tdlpw-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.tdlpw-filters select{min-width:180px}.tdlpw-campaign{display:grid;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}.tdlpw-campaign label,.tdlpw-settings label,.tdlpw-test-email label{display:grid;gap:6px;font-weight:600}.tdlpw-campaign .wp-editor-wrap{font-weight:400}.tdlpw-personalization{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.tdlpw-personalization label{display:inline}.tdlpw-settings{max-width:760px}.tdlpw-settings label,.tdlpw-test-email label{margin:14px 0}.tdlpw-test-email{max-width:760px}.tdlpw-status{display:inline-block;border-radius:999px;padding:3px 8px;background:#f1f1f1}.tdlpw-opted{background:#e7f8ee;color:#146b37}.tdlpw-wrap table td{vertical-align:top}.tdlpw-wrap .notice.inline{padding:8px 12px}.tdlpw-marketing-optin{margin:8px 0}.tdlpw-subscription{display:flex;justify-content:space-between;align-items:center;gap:24px;max-width:820px;padding:20px 24px;margin:22px 0;border:1px solid #bfdbfe;border-radius:14px;background:linear-gradient(120deg,#eff6ff,#fff 65%,#ecfeff);box-shadow:0 4px 18px rgba(15,23,42,.06)}.tdlpw-subscription h2{margin:4px 0}.tdlpw-subscription p{margin:10px 0 4px}.tdlpw-subscription small{color:#64748b}.tdlpw-eyebrow{font-size:11px;letter-spacing:.12em;font-weight:700;color:#2563eb}.tdlpw-plan-price{white-space:nowrap;color:#0f172a;font-size:28px}.tdlpw-plan-price span{font-size:14px;font-weight:500;color:#475569}@media(max-width:600px){.tdlpw-subscription{align-items:flex-start;flex-direction:column}.tdlpw-plan-price{font-size:24px}}
+const css = `.tdlpw-wrap{max-width:1320px}.tdlpw-campaign-banner{display:block;width:100%;height:auto;max-height:230px;object-fit:cover;border-radius:12px;margin:20px 0}.tdlpw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:22px 0}.tdlpw-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:20px;margin:22px 0}.tdlpw-card h2{margin-top:0}.tdlpw-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.tdlpw-filters select{min-width:180px}.tdlpw-campaign{display:grid;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}.tdlpw-campaign label,.tdlpw-settings label,.tdlpw-test-email label{display:grid;gap:6px;font-weight:600}.tdlpw-campaign .wp-editor-wrap{font-weight:400}.tdlpw-personalization{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.tdlpw-personalization label{display:inline}.tdlpw-optin-bulk-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0}.tdlpw-settings{max-width:760px}.tdlpw-settings label,.tdlpw-test-email label{margin:14px 0}.tdlpw-test-email{max-width:760px}.tdlpw-status{display:inline-block;border-radius:999px;padding:3px 8px;background:#f1f1f1}.tdlpw-opted{background:#e7f8ee;color:#146b37}.tdlpw-wrap table td{vertical-align:top}.tdlpw-wrap .notice.inline{padding:8px 12px}.tdlpw-marketing-optin{margin:8px 0}.tdlpw-subscription{display:flex;justify-content:space-between;align-items:center;gap:24px;max-width:820px;padding:20px 24px;margin:22px 0;border:1px solid #bfdbfe;border-radius:14px;background:linear-gradient(120deg,#eff6ff,#fff 65%,#ecfeff);box-shadow:0 4px 18px rgba(15,23,42,.06)}.tdlpw-subscription h2{margin:4px 0}.tdlpw-subscription p{margin:10px 0 4px}.tdlpw-subscription small{color:#64748b}.tdlpw-eyebrow{font-size:11px;letter-spacing:.12em;font-weight:700;color:#2563eb}.tdlpw-plan-price{white-space:nowrap;color:#0f172a;font-size:28px}.tdlpw-plan-price span{font-size:14px;font-weight:500;color:#475569}@media(max-width:600px){.tdlpw-subscription{align-items:flex-start;flex-direction:column}.tdlpw-plan-price{font-size:24px}}
 `;
 
 const campaignHeader = `<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="230" viewBox="0 0 1320 230" role="img" aria-labelledby="title desc"><title id="title">CourseBridge email campaigns</title><desc id="desc">A blue campaign banner for opted-in learners.</desc><defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101b3c"/><stop offset="1" stop-color="#0891b2"/></linearGradient></defs><rect width="1320" height="230" rx="20" fill="url(#bg)"/><circle cx="1160" cy="40" r="145" fill="#60a5fa" opacity=".16"/><text x="72" y="86" fill="#bae6fd" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="3">COURSEBRIDGE PRO</text><text x="72" y="143" fill="#fff" font-family="Arial,sans-serif" font-size="38" font-weight="700">Course updates, delivered.</text><text x="74" y="181" fill="#dbeafe" font-family="Arial,sans-serif" font-size="17">Create polished emails for your opted-in learners.</text></svg>`;

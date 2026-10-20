@@ -100,13 +100,13 @@ const STARTER = {
   slug: "coursebridge-learnpress-woocommerce",
   templateKey: "learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.8",
+  version: "2.1.9",
   author: "Taskdrip",
   shortDescription: "Link WooCommerce purchases to LearnPress courses and manage searchable, time-limited student access.",
   description:
     "CourseBridge Pro for LearnPress and WooCommerce connects WooCommerce products to LearnPress courses and automatically enrolls account-holding buyers after confirmed payment. Administrators can assign courses to WordPress users, search by name, username, or email, set or edit optional access expiry dates, review purchase and enrollment history, and cancel access.\n\nStudents can open purchased or assigned courses from WooCommerce My Account. Contacts & Campaigns provides a searchable directory of every WordPress account, grouped by recorded WooCommerce product purchases and LearnPress enrollments, with product, course, role, order, and spend filters.\n\nSend consent-based course marketing through Resend or WordPress email using the visual editor or HTML text editor, media-library images, links, personalization tags, unsubscribe links, a delivery test, and per-recipient send logs. Filter by course (including VIP Access or Inner Circle), select one or several opted-in contacts across pages, or select all contacts in that course. Large campaigns are delivered in provider-sized batches. Checkout opt-in is applied after successful payment, and administrators can record an opt-in for a purchaser.",
   releaseNotes:
-    "CourseBridge Pro 2.1.8 lets admins select one, several, or all opted-in recipients in a filtered course audience across contact pages, and sends large Resend campaigns in provider-sized batches. It preserves successful-payment checkout consent, backfills paid orders with recorded opt-in, and lets administrators opt in purchasers. Previous orders do not override an unsubscribe.",
+    "CourseBridge Pro 2.1.9 adds selected and all-matching bulk administrator opt-in for filtered purchaser audiences, with cross-page selection and explicit confirmation. Marketing sends still include only users with recorded opt-in, and previous orders do not override an unsubscribe.",
   seoTitle: "CourseBridge Pro – LearnPress & WooCommerce Plugin",
   seoDescription:
     "Link WooCommerce products to LearnPress courses, enroll buyers and assigned students, and give students course start links from My Account with CourseBridge Pro.",

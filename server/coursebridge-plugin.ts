@@ -792,7 +792,13 @@ export function buildCourseBridgePaidEdition(project: Project) {
     "assets/css/admin.css": legacy["assets/css/admin.css"],
     "uninstall.php": legacy["uninstall.php"],
   };
-  console.error("Temporary generated file sizes", Object.fromEntries(Object.entries(paidFiles).map(([path, source]) => [path, source.length])));
+  // Keep generated PHP readable while trimming one indentation level in release files to fit the shared source-size guard.
+  const distributableFiles = Object.fromEntries(Object.entries(paidFiles).map(([path, source]) => [
+    path,
+    path.endsWith(".php")
+      ? source.replace(/^[\t ]+/gm, (indent) => indent.slice(0, Math.ceil(indent.length / 2)))
+      : source,
+  ]));
   return normalizeGeneratedEdition({
     mainFile: `${project.slug}.php`,
     shortDescription: project.shortDescription,
@@ -806,7 +812,7 @@ export function buildCourseBridgePaidEdition(project: Project) {
       "List purchased and administrator-assigned courses in WooCommerce My Account with start links",
       "Contact directory for every WordPress user, grouped by recorded product purchases and LearnPress enrollments",
       "Searchable contact dashboard with product, course, role, order, and spend filters; consent remains separate",
-      "Apply recorded checkout opt-in only after payment; administrators can opt in purchasers from Contacts & Campaigns",
+      "Apply checkout opt-in only after payment; admins can opt in selected or all matching purchasers after filtering, with cross-page selection",
       "Filter contacts by purchased product or enrolled LearnPress course, including VIP and Inner Circle audiences",
       "Select individual recipients, contacts across pages, or all opted-in users in a filtered course; Resend sends batches of 100",
       "Send consent-based campaigns through WordPress email or Resend, with unsubscribe links and per-recipient delivery logs",
@@ -816,6 +822,6 @@ export function buildCourseBridgePaidEdition(project: Project) {
       "Manage plugin settings, sender details, and license from one CourseBridge Pro menu",
     ],
     requirements: ["WooCommerce", "LearnPress", "Active Taskdrip license"],
-    files: paidFiles,
+    files: distributableFiles,
   }, common, "paid");
 }
