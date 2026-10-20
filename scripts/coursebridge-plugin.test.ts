@@ -3,11 +3,12 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildCourseBridgePaidEdition } from "../server/coursebridge-plugin";
 import { buildPluginReleaseFiles } from "../server/wp-plugin-release";
+import { buildPluginLicensePlans, PLUGIN_LICENSE_PLAN_OPTIONS } from "../shared/plugin-plan-utils";
 
 const project = {
-  slug: "coursebridge-learnpress-woocommerce",
-  name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.9",
+  slug: "coursebridge-learnpresswoo-connector",
+  name: "CourseBridge LearnpressWOO Connector",
+  version: "2.3.0",
   author: "Taskdrip",
   shortDescription: "Connect WooCommerce purchases and LearnPress courses.",
   description: "Connect WooCommerce products to LearnPress courses and manage student enrollments.",
@@ -16,7 +17,7 @@ const project = {
     "Search course buyers and WordPress users by email.",
     "Create consent-based email campaigns using Resend or WordPress email.",
   ],
-  releaseNotes: "CourseBridge Pro 2.1.9 adds filtered bulk opt-in for purchasers.",
+  releaseNotes: "CourseBridge LearnpressWOO Connector 2.3.0 refreshes plugin metadata.",
   seoKeywords: "LearnPress WooCommerce, WooCommerce course enrollment, WordPress email marketing",
 };
 
@@ -172,7 +173,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(licenseClient, /unset\( \$transient->response\[self::\$plugin_file\]/);
   assert.match(licenseClient, /'features' => wpautop/);
   assert.match(licenseClient, /'installation' => wpautop/);
-  assert.match(readme, /= 2\.1\.9 =/);
+  assert.match(readme, /= 2\.3\.0 =/);
   assert.match(readme, /optional checkout checkbox records marketing consent.*only after successful payment/i);
   assert.match(readme, /Tags:.*learnpress-woocommerce/i);
   assert.match(readme, /== Changelog ==/);
@@ -184,8 +185,8 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(Buffer.from(bannerData[1], "base64").toString("utf8"), /Course updates, delivered\./);
 
   const studio = readFileSync(new URL("../server/plugin-studio.ts", import.meta.url), "utf8");
-  assert.match(studio, /version: "2\.1\.9"/);
-  assert.match(studio, /releaseNotes:.*CourseBridge Pro 2\.1\.9/s);
+  assert.match(studio, /version: "2\.3\.0"/);
+  assert.match(studio, /releaseNotes:.*CourseBridge LearnpressWOO Connector 2\.3\.0/s);
 });
 
 test("Paid CourseBridge ZIP contains one WordPress plugin entry", () => {
@@ -198,7 +199,27 @@ test("Paid CourseBridge ZIP contains one WordPress plugin entry", () => {
   assert.match(paid.files[paid.mainFile], /includes\/class-audience\.php/);
   assert.match(paid.files[paid.mainFile], /includes\/class-resend\.php/);
   assert.deepEqual(entries.map(([path]) => path), [`${project.slug}.php`]);
-  assert.match(release.files[`${project.slug}.php`], /Plugin Name:\s*CourseBridge Pro for LearnPress & WooCommerce/);
+  assert.match(release.files[`${project.slug}.php`], /Plugin Name:\s*CourseBridge LearnpressWOO Connector/);
+  assert.match(release.files["readme.txt"], /^=== CourseBridge LearnpressWOO Connector ===/);
+});
+
+test("Plugin Studio exposes prices for monthly, yearly, and lifetime licenses", () => {
+  assert.deepEqual(
+    PLUGIN_LICENSE_PLAN_OPTIONS.map(({ cadence }) => cadence),
+    ["monthly", "yearly", "lifetime"],
+  );
+  assert.deepEqual(
+    buildPluginLicensePlans(["monthly", "yearly", "lifetime"], {
+      monthly: 15,
+      yearly: 120,
+      lifetime: 299,
+    }).map(({ id, price }) => ({ id, price })),
+    [
+      { id: "plugin-monthly", price: 15 },
+      { id: "plugin-yearly", price: 120 },
+      { id: "plugin-lifetime", price: 299 },
+    ],
+  );
 });
 
 test("Admin-issued licenses allow a null purchase in both migration paths", () => {

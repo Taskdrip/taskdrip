@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
-  <title id="title">CourseBridge Pro for LearnPress and WooCommerce</title>
-  <desc id="description">CourseBridge Pro connects WooCommerce purchases to LearnPress courses, enrollment management, and customer insights.</desc>
+  <title id="title">CourseBridge LearnpressWOO Connector</title>
+  <desc id="description">CourseBridge LearnpressWOO Connector links WooCommerce purchases to LearnPress courses, enrollment management, and customer insights.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#111936"/>
@@ -22,12 +22,13 @@
   <g font-family="Inter, Arial, sans-serif">
     <rect x="76" y="74" width="178" height="38" rx="19" fill="#fff" opacity=".12"/>
     <text x="165" y="99" fill="#d9dcff" font-size="16" font-weight="700" letter-spacing="2" text-anchor="middle">TASKDRIP PLUGINS</text>
-    <text x="76" y="222" fill="#fff" font-size="66" font-weight="800">CourseBridge Pro</text>
-    <text x="80" y="275" fill="#c7ccf2" font-size="26" font-weight="500">LearnPress + WooCommerce, working together.</text>
-    <text x="80" y="337" fill="#e4e7ff" font-size="19">Automated course enrollment, buyer insights, and</text>
-    <text x="80" y="369" fill="#e4e7ff" font-size="19">consent-based email campaigns in one plugin.</text>
-    <rect x="80" y="423" width="248" height="54" rx="27" fill="url(#accent)"/>
-    <text x="204" y="457" fill="#101735" font-size="17" font-weight="800" text-anchor="middle">BUILT FOR WORDPRESS</text>
+    <text x="76" y="198" fill="#fff" font-size="56" font-weight="800">CourseBridge</text>
+    <text x="80" y="246" fill="#fff" font-size="34" font-weight="800">LearnpressWOO Connector</text>
+    <text x="80" y="296" fill="#c7ccf2" font-size="23" font-weight="500">LearnPress courses + WooCommerce products</text>
+    <text x="80" y="353" fill="#e4e7ff" font-size="19">Automated course enrollment, buyer insights, and</text>
+    <text x="80" y="385" fill="#e4e7ff" font-size="19">consent-based email campaigns in one plugin.</text>
+    <rect x="80" y="432" width="248" height="54" rx="27" fill="url(#accent)"/>
+    <text x="204" y="466" fill="#101735" font-size="17" font-weight="800" text-anchor="middle">BUILT FOR WORDPRESS</text>
   </g>
 
   <g transform="translate(735 155)">

@@ -596,7 +596,7 @@ export default function AdminPluginStudio() {
                   <div className="space-y-3">
                     <div className="space-y-2">
                       <Label>Available license terms and prices (USD)</Label>
-                      <p className="text-xs text-muted-foreground">Select at least one option for this plugin. Monthly and yearly terms are renewed manually after payment approval.</p>
+                      <p className="text-xs text-muted-foreground">Select one or more terms and set each price. Monthly and yearly terms are renewed manually after payment approval; lifetime licenses are one-time and do not expire.</p>
                       <div className="grid gap-3 sm:grid-cols-3">
                         {PLUGIN_LICENSE_PLAN_OPTIONS.map((plan) => {
                           const selected = settings.enabledCadences.includes(plan.cadence);
@@ -760,7 +760,7 @@ export default function AdminPluginStudio() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{license.projectName}</span><Badge variant={license.status === "active" ? "default" : "secondary"}>{license.status}</Badge><Badge variant="outline">{license.cadence}</Badge></div>
                     <p className="mt-1 text-sm">{license.buyerEmail} · {license.keyPrefix} · {license.activeInstalls}/{license.maxActivations} sites</p>
-                    <p className="text-xs text-muted-foreground">Expires {new Date(license.expiresAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">{license.expiresAt ? `Expires ${new Date(license.expiresAt).toLocaleDateString()}` : "Lifetime license · no expiry"}</p>
                     {adminLicenseKeys[license.id] && <p className="mt-2 break-all rounded bg-slate-50 p-2 font-mono text-xs select-all">{adminLicenseKeys[license.id]}</p>}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">

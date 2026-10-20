@@ -9,11 +9,17 @@ Taskdrip Plugin Studio releases two separate editions: a useful free core intend
 
 **How to apply:** preserve separate installable core and add-on ZIPs, require the core before the premium extension, and keep generated releases in draft until an admin has reviewed and tested them.
 
-Every paid Plugin Studio product also needs monthly and yearly plans, Taskdrip-issued per-customer license keys, install limits and usage tracking, expiry-enforced premium feature locking, renewal reminders, update delivery, and a buyer/developer support channel. Keys may be issued after verified payment or directly granted by an administrator to an existing Taskdrip account; an admin grant is not a purchase. The current shop verifies payment proof and admin approval; do not claim automatic recurring charges unless a billing provider is configured.
+Every paid Plugin Studio product also needs monthly, yearly, and lifetime plans, Taskdrip-issued per-customer license keys, install limits and usage tracking, expiry-enforced premium feature locking, renewal reminders, update delivery, and a buyer/developer support channel. Keys may be issued after verified payment or directly granted by an administrator to an existing Taskdrip account; an admin grant is not a purchase. The current shop verifies payment proof and admin approval; do not claim automatic recurring charges unless a billing provider is configured.
 
 **Why:** the user made licensing and subscription management a standing requirement for all paid plugins and explicitly requested direct admin key generation for any plugin. The current checkout does not charge cards automatically.
 
 **How to apply:** require a public HTTPS license-server URL before listing a premium package or issuing WordPress-ready keys. Require the recipient to have a Taskdrip account, link the license to the plugin and shop product even when no purchase exists, and keep renewal payment on the verified-payment flow until an actual billing provider is connected.
+
+The CourseBridge starter plugin's canonical display name is **CourseBridge LearnpressWOO Connector**. Do not put “WooCommerce” in the plugin display name because WordPress.org rejected that restricted term; it remains appropriate in feature descriptions that explain the required integration.
+
+**Why:** the user supplied the WordPress.org rejection and requested this exact replacement name.
+
+**How to apply:** keep generated plugin headers, readme titles, shop listings, and brand artwork aligned with the canonical name while preserving accurate descriptions of its WooCommerce integration.
 
 When an internal plugin feature grows beyond the shared generated-file size limit, split the generated PHP into another included module rather than widening the limit for every plugin.
 
