@@ -883,13 +883,10 @@ final class TDLPW_Resend {
         if (!$from_email || !is_email($from_email)) {
             return new WP_Error('tdlpw_missing_from_email', __('Set a valid sender address in the plugin settings.', '{{SLUG}}'));
         }
-        if (count($recipient_ids) > 100) {
-            return new WP_Error('tdlpw_batch_limit', __('A single campaign can contain at most 100 selected recipients.', '{{SLUG}}'));
-        }
         $emails = array();
-        $recipients = array();
         $sent = 0;
         $failed = 0;
+        $errors = array();
         $safe_html = wp_kses_post($html);
         foreach (array_unique(array_map('absint', $recipient_ids)) as $user_id) {
             $user = get_user_by('id', $user_id);
@@ -912,7 +909,6 @@ final class TDLPW_Resend {
                 $sent_ok ? $sent++ : $failed++;
                 continue;
             }
-            $recipients[] = $user->user_email;
             $emails[] = array(
                 'from' => $from_name . ' <' . $from_email . '>',
                 'to' => array(sanitize_email($user->user_email)),
@@ -928,27 +924,64 @@ final class TDLPW_Resend {
             return array('sent' => $sent, 'failed' => $failed, 'errors' => array());
         }
         if (!$emails) { return array('sent' => 0, 'failed' => 0, 'errors' => array()); }
-        $response = wp_remote_post('https://api.resend.com/emails/batch', array(
-            'timeout' => 25,
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-            ),
-            'body' => wp_json_encode($emails),
-        ));
-        $response_code = is_wp_error($response) ? 0 : wp_remote_retrieve_response_code($response);
-        if (is_wp_error($response) || $response_code < 200 || $response_code >= 300) {
-            $error = is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response);
-            foreach ($recipients as $email) { self::log($subject, $email, 'failed', $error); }
-            return array('sent' => 0, 'failed' => count($recipients), 'errors' => array(substr($error, 0, 500)));
+        foreach (array_chunk($emails, 100) as $batch) {
+            $response = wp_remote_post('https://api.resend.com/emails/batch', array(
+                'timeout' => 25,
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Content-Type' => 'application/json',
+                ),
+                'body' => wp_json_encode($batch),
+            ));
+            $response_code = is_wp_error($response) ? 0 : wp_remote_retrieve_response_code($response);
+            if (is_wp_error($response) || $response_code < 200 || $response_code >= 300) {
+                $error = is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response);
+                $error = substr(sanitize_textarea_field($error), 0, 500);
+                foreach ($batch as $email) {
+                    self::log($subject, $email['to'][0], 'failed', $error);
+                }
+                $failed += count($batch);
+                if (count($errors) < 5) { $errors[] = $error ?: __('Resend rejected an email batch.', '{{SLUG}}'); }
+                continue;
+            }
+            $result = json_decode(wp_remote_retrieve_body($response), true);
+            foreach ($batch as $index => $email) {
+                $provider_id = sanitize_text_field($result['data'][$index]['id'] ?? '');
+                self::log($subject, $email['to'][0], 'sent', $provider_id ? 'Resend ID: ' . $provider_id : '');
+            }
+            $sent += count($batch);
         }
-        $sent = count($recipients);
-        $result = json_decode(wp_remote_retrieve_body($response), true);
-        foreach ($recipients as $index => $email) {
-            $provider_id = sanitize_text_field($result['data'][$index]['id'] ?? '');
-            self::log($subject, $email, 'sent', $provider_id ? 'Resend ID: ' . $provider_id : '');
+        return array('sent' => $sent, 'failed' => $failed, 'errors' => $errors);
+    }
+
+    public static function render_settings($settings, $is_constant_key) {
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-settings">';
+        echo '<input type="hidden" name="action" value="tdlpw_save_settings">';
+        wp_nonce_field('tdlpw_save_settings');
+        echo '<h2>' . esc_html__('Email sender settings', '{{SLUG}}') . '</h2>';
+        echo '<p>' . esc_html__('Choose the WordPress wp_mail transport configured on this site or Resend. Campaigns are restricted to users who checked the optional marketing consent at WooCommerce checkout.', '{{SLUG}}') . '</p>';
+        echo '<label>' . esc_html__('Email delivery method', '{{SLUG}}') . '<select name="email_provider">';
+        echo '<option value="wordpress" ' . selected($settings['email_provider'] ?? 'resend', 'wordpress', false) . '>' . esc_html__('WordPress email (wp_mail)', '{{SLUG}}') . '</option>';
+        echo '<option value="resend" ' . selected($settings['email_provider'] ?? 'resend', 'resend', false) . '>' . esc_html__('Resend', '{{SLUG}}') . '</option>';
+        echo '</select></label>';
+        echo '<label>' . esc_html__('Sender name', '{{SLUG}}') . '<input class="regular-text" name="from_name" value="' . esc_attr($settings['from_name'] ?? get_bloginfo('name')) . '" required></label>';
+        echo '<label>' . esc_html__('Sender email', '{{SLUG}}') . '<input class="regular-text" type="email" name="from_email" value="' . esc_attr($settings['from_email'] ?? get_option('admin_email')) . '" required></label>';
+        echo '<p class="description">' . esc_html__('Resend requires this address to use a verified sending domain. WordPress email uses the mail transport configured on this site.', '{{SLUG}}') . '</p>';
+        if ($is_constant_key) {
+            echo '<p class="notice notice-success inline">' . esc_html__('Resend API key is supplied by wp-config.php and is not editable here.', '{{SLUG}}') . '</p>';
+        } else {
+            echo '<label>' . esc_html__('Resend API key (only needed for Resend delivery)', '{{SLUG}}') . '<input class="regular-text" type="password" name="resend_api_key" value="" autocomplete="new-password" placeholder="' . esc_attr(!empty($settings['resend_api_key']) ? __('Saved — leave blank to keep current key', '{{SLUG}}') : 're_…') . '"></label>';
+            echo '<p class="description">' . esc_html__('The key is stored in this WordPress site. For stronger protection, define TDLPW_RESEND_API_KEY in wp-config.php instead.', '{{SLUG}}') . '</p>';
+            if (!empty($settings['resend_api_key'])) {
+                echo '<label><input type="checkbox" name="remove_resend_api_key" value="1"> ' . esc_html__('Remove the saved Resend API key', '{{SLUG}}') . '</label>';
+            }
         }
-        return array('sent' => $sent, 'failed' => 0, 'errors' => array());
+        echo '<p><button class="button button-primary">' . esc_html__('Save email settings', '{{SLUG}}') . '</button></p></form>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-test-email"><input type="hidden" name="action" value="tdlpw_send_test_email">';
+        wp_nonce_field('tdlpw_send_test_email');
+        echo '<h2>' . esc_html__('Test email delivery', '{{SLUG}}') . '</h2><p>' . esc_html__('Send one operational test email through the selected provider. This does not contact the marketing list.', '{{SLUG}}') . '</p>';
+        echo '<label>' . esc_html__('Test recipient email', '{{SLUG}}') . '<input class="regular-text" type="email" name="test_email" value="' . esc_attr(get_option('admin_email')) . '" required></label>';
+        echo '<p><button class="button">' . esc_html__('Send test email', '{{SLUG}}') . '</button></p></form>';
     }
 
     public static function send_test_email($to) {
@@ -1113,8 +1146,7 @@ final class TDLPW_Admin {
         check_admin_referer('tdlpw_send_campaign');
         $subject = sanitize_text_field(wp_unslash($_POST['subject'] ?? ''));
         $html = wp_kses_post(wp_unslash($_POST['message'] ?? ''));
-        $selected = array_map('absint', (array) wp_unslash($_POST['recipient_ids'] ?? array()));
-        $selected = array_slice(array_values(array_unique(array_filter($selected))), 0, 100);
+        $selected = array_values(array_unique(array_filter(array_map('absint', (array) wp_unslash($_POST['recipient_ids'] ?? array())))));
         $filters = array(
             'product' => absint(wp_unslash($_POST['product'] ?? 0)),
             'course' => absint(wp_unslash($_POST['course'] ?? 0)),
@@ -1186,7 +1218,7 @@ final class TDLPW_Admin {
         if ($tab === 'customers') {
             echo '<img class="tdlpw-campaign-banner" src="{{CAMPAIGN_HEADER_DATA_URI}}" alt="' . esc_attr__('CourseBridge email campaigns', '{{SLUG}}') . '">';
         }
-        if ($tab === 'settings') { $this->render_settings($settings, $is_constant_key); }
+        if ($tab === 'settings') { TDLPW_Resend::render_settings($settings, $is_constant_key); }
         elseif ($tab === 'customers') { $this->render_customers(); }
         else { $this->render_overview(); }
         echo '</div>';
@@ -1306,7 +1338,7 @@ final class TDLPW_Admin {
             echo '<option value="' . esc_attr($token) . '">' . esc_html($label) . '</option>';
         }
         echo '</select><button class="button" type="button" data-tdlpw-insert-token>' . esc_html__('Insert tag', '{{SLUG}}') . '</button><span class="description">' . esc_html__('Tags are filled for each opted-in recipient when a campaign is sent.', '{{SLUG}}') . '</span></div>';
-        echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Maximum 100 selected recipients per send. Product and course filters above limit the recipients.', '{{SLUG}}') . '</span></div>';
+        echo '<button class="button button-primary" type="submit">' . esc_html(sprintf(__('Send to selected opted-in users through %s', '{{SLUG}}'), $provider_label)) . '</button> <span class="description">' . esc_html__('Choose individual recipients, select contacts across pages, or use the all-matching option above. Product and course filters limit the recipients.', '{{SLUG}}') . '</span></div>';
         echo '<p id="tdlpw-campaign-selection-summary" class="description">' . esc_html__('No recipients selected. Checked recipients stay selected as you move between contact pages.', '{{SLUG}}') . '</p>';
         echo '<table class="widefat striped"><thead><tr><th><input type="checkbox" data-tdlpw-select-all aria-label="' . esc_attr__('Select all opted-in contacts on this page', '{{SLUG}}') . '"></th><th>' . esc_html__('WordPress user', '{{SLUG}}') . '</th><th>' . esc_html__('Role', '{{SLUG}}') . '</th><th>' . esc_html__('Products', '{{SLUG}}') . '</th><th>' . esc_html__('LearnPress courses', '{{SLUG}}') . '</th><th>' . esc_html__('Orders / spend / latest', '{{SLUG}}') . '</th><th>' . esc_html__('Email consent', '{{SLUG}}') . '</th><th>' . esc_html__('Admin action', '{{SLUG}}') . '</th></tr></thead><tbody>';
         if (!$rows) { echo '<tr><td colspan="8">' . esc_html__('No matching WordPress users found.', '{{SLUG}}') . '</td></tr>'; }
@@ -1345,7 +1377,7 @@ final class TDLPW_Admin {
         }
         $table = TDLPW_Audience::table();
         $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . $table . " WHERE order_status IN ('processing','completed')");
-        echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; each campaign sends up to 100 selected recipients.', '{{SLUG}}'), $count)) . '</p>';
+        echo '<p class="description">' . esc_html(sprintf(__('Indexed successful WooCommerce orders: %d. Contact records are paginated; Resend campaigns are sent in batches of up to 100 recipients.', '{{SLUG}}'), $count)) . '</p>';
         echo '<script>
         (function(){
           var form=document.getElementById("tdlpw-campaign-form");
@@ -1412,35 +1444,6 @@ final class TDLPW_Admin {
         echo '</tbody></table>';
     }
 
-    private function render_settings($settings, $is_constant_key) {
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-settings">';
-        echo '<input type="hidden" name="action" value="tdlpw_save_settings">';
-        wp_nonce_field('tdlpw_save_settings');
-        echo '<h2>' . esc_html__('Email sender settings', '{{SLUG}}') . '</h2>';
-        echo '<p>' . esc_html__('Choose the WordPress wp_mail transport configured on this site or Resend. Campaigns are restricted to users who checked the optional marketing consent at WooCommerce checkout.', '{{SLUG}}') . '</p>';
-        echo '<label>' . esc_html__('Email delivery method', '{{SLUG}}') . '<select name="email_provider">';
-        echo '<option value="wordpress" ' . selected($settings['email_provider'] ?? 'resend', 'wordpress', false) . '>' . esc_html__('WordPress email (wp_mail)', '{{SLUG}}') . '</option>';
-        echo '<option value="resend" ' . selected($settings['email_provider'] ?? 'resend', 'resend', false) . '>' . esc_html__('Resend', '{{SLUG}}') . '</option>';
-        echo '</select></label>';
-        echo '<label>' . esc_html__('Sender name', '{{SLUG}}') . '<input class="regular-text" name="from_name" value="' . esc_attr($settings['from_name'] ?? get_bloginfo('name')) . '" required></label>';
-        echo '<label>' . esc_html__('Sender email', '{{SLUG}}') . '<input class="regular-text" type="email" name="from_email" value="' . esc_attr($settings['from_email'] ?? get_option('admin_email')) . '" required></label>';
-        echo '<p class="description">' . esc_html__('Resend requires this address to use a verified sending domain. WordPress email uses the mail transport configured on this site.', '{{SLUG}}') . '</p>';
-        if ($is_constant_key) {
-            echo '<p class="notice notice-success inline">' . esc_html__('Resend API key is supplied by wp-config.php and is not editable here.', '{{SLUG}}') . '</p>';
-        } else {
-            echo '<label>' . esc_html__('Resend API key (only needed for Resend delivery)', '{{SLUG}}') . '<input class="regular-text" type="password" name="resend_api_key" value="" autocomplete="new-password" placeholder="' . esc_attr(!empty($settings['resend_api_key']) ? __('Saved — leave blank to keep current key', '{{SLUG}}') : 're_…') . '"></label>';
-            echo '<p class="description">' . esc_html__('The key is stored in this WordPress site. For stronger protection, define TDLPW_RESEND_API_KEY in wp-config.php instead.', '{{SLUG}}') . '</p>';
-            if (!empty($settings['resend_api_key'])) {
-                echo '<label><input type="checkbox" name="remove_resend_api_key" value="1"> ' . esc_html__('Remove the saved Resend API key', '{{SLUG}}') . '</label>';
-            }
-        }
-        echo '<p><button class="button button-primary">' . esc_html__('Save email settings', '{{SLUG}}') . '</button></p></form>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="tdlpw-card tdlpw-test-email"><input type="hidden" name="action" value="tdlpw_send_test_email">';
-        wp_nonce_field('tdlpw_send_test_email');
-        echo '<h2>' . esc_html__('Test email delivery', '{{SLUG}}') . '</h2><p>' . esc_html__('Send one operational test email through the selected provider. This does not contact the marketing list.', '{{SLUG}}') . '</p>';
-        echo '<label>' . esc_html__('Test recipient email', '{{SLUG}}') . '<input class="regular-text" type="email" name="test_email" value="' . esc_attr(get_option('admin_email')) . '" required></label>';
-        echo '<p><button class="button">' . esc_html__('Send test email', '{{SLUG}}') . '</button></p></form>';
-    }
 }
 `;
 
@@ -1519,6 +1522,8 @@ Connect LearnPress courses to WooCommerce products. Confirmed WooCommerce orders
 * View successful product purchases and LearnPress enrollments with WordPress role and spend summaries.
 * Filter the audience by product, course, role, and marketing consent.
 * Filter email recipients by purchased product, enrolled course, WordPress role, and marketing consent.
+* Select individual recipients, contacts across pages, or all opted-in users in a filtered course.
+* Send Resend campaigns in batches of up to 100 recipients while preserving per-recipient delivery logs.
 * Apply a customer's recorded checkout opt-in after payment completes and backfill existing paid orders with recorded consent.
 * Let administrators opt in contacts with a successful WooCommerce purchase from the contacts list.
 * Compose with the WordPress visual or HTML editor; add media-library images, links, and recipient-specific personalization.
@@ -1617,17 +1622,7 @@ if (defined('TDLPW_REMOVE_DATA_ON_UNINSTALL') && TDLPW_REMOVE_DATA_ON_UNINSTALL)
 const css = `.tdlpw-wrap{max-width:1320px}.tdlpw-campaign-banner{display:block;width:100%;height:auto;max-height:230px;object-fit:cover;border-radius:12px;margin:20px 0}.tdlpw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;margin:22px 0}.tdlpw-card{background:#fff;border:1px solid #dcdcde;border-radius:10px;padding:20px;margin:22px 0}.tdlpw-card h2{margin-top:0}.tdlpw-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.tdlpw-filters select{min-width:180px}.tdlpw-campaign{display:grid;gap:12px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px;margin:16px 0}.tdlpw-campaign label,.tdlpw-settings label,.tdlpw-test-email label{display:grid;gap:6px;font-weight:600}.tdlpw-campaign .wp-editor-wrap{font-weight:400}.tdlpw-personalization{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.tdlpw-personalization label{display:inline}.tdlpw-settings{max-width:760px}.tdlpw-settings label,.tdlpw-test-email label{margin:14px 0}.tdlpw-test-email{max-width:760px}.tdlpw-status{display:inline-block;border-radius:999px;padding:3px 8px;background:#f1f1f1}.tdlpw-opted{background:#e7f8ee;color:#146b37}.tdlpw-wrap table td{vertical-align:top}.tdlpw-wrap .notice.inline{padding:8px 12px}.tdlpw-marketing-optin{margin:8px 0}.tdlpw-subscription{display:flex;justify-content:space-between;align-items:center;gap:24px;max-width:820px;padding:20px 24px;margin:22px 0;border:1px solid #bfdbfe;border-radius:14px;background:linear-gradient(120deg,#eff6ff,#fff 65%,#ecfeff);box-shadow:0 4px 18px rgba(15,23,42,.06)}.tdlpw-subscription h2{margin:4px 0}.tdlpw-subscription p{margin:10px 0 4px}.tdlpw-subscription small{color:#64748b}.tdlpw-eyebrow{font-size:11px;letter-spacing:.12em;font-weight:700;color:#2563eb}.tdlpw-plan-price{white-space:nowrap;color:#0f172a;font-size:28px}.tdlpw-plan-price span{font-size:14px;font-weight:500;color:#475569}@media(max-width:600px){.tdlpw-subscription{align-items:flex-start;flex-direction:column}.tdlpw-plan-price{font-size:24px}}
 `;
 
-const campaignHeader = `<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="230" viewBox="0 0 1320 230" role="img" aria-labelledby="title desc">
-<title id="title">CourseBridge email campaigns</title><desc id="desc">A modern blue banner for course updates and email campaigns.</desc>
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101b3c"/><stop offset=".6" stop-color="#1749a2"/><stop offset="1" stop-color="#0891b2"/></linearGradient><linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#dbeafe"/></linearGradient></defs>
-<rect width="1320" height="230" rx="20" fill="url(#bg)"/><circle cx="1150" cy="42" r="142" fill="#60a5fa" opacity=".13"/><circle cx="1240" cy="210" r="120" fill="#67e8f9" opacity=".16"/>
-<path d="M760 0h560v230H690c112-51 165-124 70-230z" fill="#fff" opacity=".045"/>
-<g transform="translate(955 51) rotate(-4 116 66)"><rect width="236" height="132" rx="16" fill="url(#card)"/><path d="m13 22 105 78L223 22" fill="none" stroke="#3b82f6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 112 82 60m140 52-67-52" fill="none" stroke="#93c5fd" stroke-width="7" stroke-linecap="round"/></g>
-<g fill="#bfdbfe" opacity=".8"><circle cx="864" cy="54" r="4"/><circle cx="1235" cy="54" r="4"/><circle cx="1267" cy="94" r="3"/></g>
-<text x="72" y="86" fill="#bae6fd" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="3">COURSEBRIDGE PRO</text>
-<text x="72" y="143" fill="#fff" font-family="Arial,sans-serif" font-size="38" font-weight="700">Course updates, delivered.</text>
-<text x="74" y="181" fill="#dbeafe" font-family="Arial,sans-serif" font-size="17">Create polished emails for your opted-in learners.</text>
-</svg>`;
+const campaignHeader = `<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="230" viewBox="0 0 1320 230" role="img" aria-labelledby="title desc"><title id="title">CourseBridge email campaigns</title><desc id="desc">A blue campaign banner for opted-in learners.</desc><defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101b3c"/><stop offset="1" stop-color="#0891b2"/></linearGradient></defs><rect width="1320" height="230" rx="20" fill="url(#bg)"/><circle cx="1160" cy="40" r="145" fill="#60a5fa" opacity=".16"/><text x="72" y="86" fill="#bae6fd" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="3">COURSEBRIDGE PRO</text><text x="72" y="143" fill="#fff" font-family="Arial,sans-serif" font-size="38" font-weight="700">Course updates, delivered.</text><text x="74" y="181" fill="#dbeafe" font-family="Arial,sans-serif" font-size="17">Create polished emails for your opted-in learners.</text></svg>`;
 
 export function buildWordPressPluginFiles(info: PluginTemplateInfo): Record<string, string> {
   const tokenized: Record<string, string> = {

@@ -7,7 +7,7 @@ import { buildPluginReleaseFiles } from "../server/wp-plugin-release";
 const project = {
   slug: "coursebridge-learnpress-woocommerce",
   name: "CourseBridge Pro for LearnPress & WooCommerce",
-  version: "2.1.7",
+  version: "2.1.8",
   author: "Taskdrip",
   shortDescription: "Connect WooCommerce purchases and LearnPress courses.",
   description: "Connect WooCommerce products to LearnPress courses and manage student enrollments.",
@@ -16,7 +16,7 @@ const project = {
     "Search course buyers and WordPress users by email.",
     "Create consent-based email campaigns using Resend or WordPress email.",
   ],
-  releaseNotes: "CourseBridge Pro 2.1.7 applies checkout consent after successful payment and adds administrator opt-in for purchasers.",
+  releaseNotes: "CourseBridge Pro 2.1.8 adds course-audience selection and batched campaign sending.",
   seoKeywords: "LearnPress WooCommerce, WooCommerce course enrollment, WordPress email marketing",
 };
 
@@ -44,7 +44,9 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(main, /class-course-admin\.php/);
   assert.match(main, /class-course-expiry\.php/);
   assert.match(main, /class-consent-admin\.php/);
-  assert.match(main, /new TDLPW_Consent_Admin\(\)->run\(\)/);
+  assert.match(main, /\(new TDLPW_Consent_Admin\(\)\)->run\(\)/);
+  assert.equal((main.match(/\(new TDLPW_Consent_Admin\(\)\)->run\(\)/g) || []).length, 1);
+  assert.equal((main.match(/class-consent-admin\.php/g) || []).length, 1);
   assert.match(admin, /admin_post_tdlpw_assign_course/);
   assert.match(admin, /admin_post_tdlpw_update_course_expiry/);
   assert.match(admin, /admin_post_tdlpw_cancel_course_access/);
@@ -86,11 +88,14 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(bridge, /update_meta_data\('_tdlpw_marketing_optin_at'/);
   assert.match(bridge, /_tdlpw_marketing_optin_at/);
   assert.match(bridge, /'tdlpw_email_marketing_optin_source', 'checkout'/);
+  assert.match(bridge, /woocommerce_order_status_completed/);
+  assert.match(bridge, /order->get_meta\('_tdlpw_marketing_optin', true\) === '1'/);
+  assert.match(bridge, /Do not let an old paid order[\s\S]*?override an unsubscribe/i);
   assert.match(core, /tdlpw_email_marketing_optout_at/);
   assert.match(campaigns, /email_provider/);
   assert.match(campaigns, /TDLPW_Audience::rows\(\$filters\)/);
   assert.match(campaigns, /array_intersect\(\$selected, \$eligible_ids\)/);
-  assert.match(campaigns, /WordPress email \(wp_mail\)/);
+  assert.match(mailer, /WordPress email \(wp_mail\)/);
   assert.match(campaigns, /Contacts & Campaigns/);
   assert.match(campaigns, /wp_editor\('', 'tdlpw_email_message'/);
   assert.match(campaigns, /quicktags' => true/);
@@ -105,10 +110,16 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(consentAdmin, /absint\(\$row\['orders'\]\) > 0/);
   assert.match(consentAdmin, /form="tdlpw-optin-form"/);
   assert.match(consentAdmin, /'tdlpw_email_marketing_optin_source', 'admin'/);
+  assert.match(consentAdmin, /The purchaser was opted in to email campaigns/);
   assert.match(campaigns, /name="search"/);
   assert.match(campaigns, /Search name or email/);
   assert.match(campaigns, /name="recipient_ids\[\]"/);
   assert.match(campaigns, /select one opted-in person or several visible contacts/);
+  assert.match(campaigns, /name="course"/);
+  assert.match(campaigns, /Select all opted-in contacts on this page/);
+  assert.match(mailer, /array_chunk\(\$emails, 100\)/);
+  assert.doesNotMatch(campaigns, /Maximum 100 selected recipients per send/);
+  assert.match(campaigns, /selected across contact pages/);
   assert.match(campaigns, /id="tdlpw-campaign-form"/);
   assert.match(campaigns, /window\.tinymce\.triggerSave\(\)/);
   assert.match(campaigns, /tdlpw-campaign-recipients:/);
@@ -130,7 +141,7 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(audience, /stripos\(\$row\['name'\], \$search\)/);
   assert.match(audience, /get_user_meta\(\$id, 'tdlpw_email_marketing_optin', true\) === '1'/);
   assert.match(mailer, /get_user_meta\(\$user_id, 'tdlpw_email_marketing_optin', true\) !== '1'/);
-  assert.match(campaigns, /Product and course filters above limit the recipients/);
+  assert.match(campaigns, /Product and course filters limit the recipients/);
   assert.match(mailer, /wp_mail\(/);
   assert.match(mailer, /api\.resend\.com\/emails\/batch/);
   assert.match(mailer, /api\.resend\.com\/emails'/);
@@ -151,8 +162,8 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(licenseClient, /unset\( \$transient->response\[self::\$plugin_file\]/);
   assert.match(licenseClient, /'features' => wpautop/);
   assert.match(licenseClient, /'installation' => wpautop/);
-  assert.match(readme, /= 2\.1\.7 =/);
-  assert.match(readme, /applies checkout consent after successful payment/i);
+  assert.match(readme, /= 2\.1\.8 =/);
+  assert.match(readme, /optional checkout checkbox records marketing consent.*only after successful payment/i);
   assert.match(readme, /Tags:.*learnpress-woocommerce/i);
   assert.match(readme, /== Changelog ==/);
   assert.match(readme, /HTML editor/);
@@ -163,8 +174,8 @@ test("Paid CourseBridge release maps products and exposes assigned courses", () 
   assert.match(Buffer.from(bannerData[1], "base64").toString("utf8"), /Course updates, delivered\./);
 
   const studio = readFileSync(new URL("../server/plugin-studio.ts", import.meta.url), "utf8");
-  assert.match(studio, /version: "2\.1\.7"/);
-  assert.match(studio, /releaseNotes:.*CourseBridge Pro 2\.1\.7/s);
+  assert.match(studio, /version: "2\.1\.8"/);
+  assert.match(studio, /releaseNotes:.*CourseBridge Pro 2\.1\.8/s);
 });
 
 test("Paid CourseBridge ZIP contains one WordPress plugin entry", () => {

@@ -37,14 +37,12 @@ require_once TDLPW_PATH . 'includes/class-audience.php';
 require_once TDLPW_PATH . 'includes/class-resend.php';
 require_once TDLPW_PATH . 'includes/class-admin.php';
 require_once TDLPW_PATH . 'includes/class-consent-admin.php';
-require_once TDLPW_PATH . 'includes/class-consent-admin.php';
 register_activation_hook(__FILE__, array('TDLPW_Activator', 'activate'));
 register_deactivation_hook(__FILE__, array('TDLPW_Activator', 'deactivate'));
 add_action('plugins_loaded', function () {
     load_plugin_textdomain('${project.slug}', false, dirname(plugin_basename(__FILE__)) . '/languages');
     (new TDLPW_Core())->run();
     (new TDLPW_Admin())->run();
-    (new TDLPW_Consent_Admin())->run();
     (new TDLPW_Consent_Admin())->run();
     add_action('init', array('TDLPW_Audience', 'schedule_backfill'));
     add_action('tdlpw_backfill_paid_orders', array('TDLPW_Audience', 'backfill_paid_orders'));
@@ -809,7 +807,9 @@ export function buildCourseBridgePaidEdition(project: Project) {
       "Contact directory for every WordPress user, grouped by recorded product purchases and LearnPress enrollments",
       "Searchable contact dashboard with product, course, role, order, and spend filters; consent remains separate",
       "Apply recorded checkout opt-in only after payment; administrators can opt in purchasers from Contacts & Campaigns",
-      "Filter contacts by purchased product or enrolled course and send consent-based campaigns through WordPress email or Resend",
+      "Filter contacts by purchased product or enrolled LearnPress course, including VIP and Inner Circle audiences",
+      "Select individual recipients, contacts across pages, or all opted-in users in a filtered course; Resend sends batches of 100",
+      "Send consent-based campaigns through WordPress email or Resend, with unsubscribe links and per-recipient delivery logs",
       "Compose campaigns with the WordPress visual and HTML editors, media-library images, links, and recipient personalization",
       "Send a provider test email to an administrator-selected address without emailing the marketing list",
       "Show the requested one-month Industry Miner plan period on that site's campaign page for reference",
