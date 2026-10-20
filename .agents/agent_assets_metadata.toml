@@ -105,3 +105,17 @@ mtime_ms = 1791068875778
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:313556f5-f1ce-4d7f-808e-0ceb8a0b7087/242f176e-9e4a-42f2-93b6-224fd9e6025e/a976ed47-e53b-4176-a4cb-76710aa761b9"
 storage_version_token = "1791069993622520"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "4nsF2Ss3TG8XlB-lAdWrW"
+uri = "file://generated-artifacts/coursebridge-pro-illustrated-guide.pdf"
+type = "pdf"
+title = "CourseBridge Pro — Illustrated Product & Setup Guide"
+description = "16-page A4 guide covering setup, product-to-course mapping, enrollment, student access, contacts, consent-based campaigns, privacy, troubleshooting, and WordPress.org publication readiness. Includes clearly labeled source-based interface illustrations."
+logical_id = "9bf44cc1-bb54-4562-94e5-fb2ce3bfb757"
+content_hash = "sha256:a0faaa23d67f53833a6165dd5330cefbc56331560dba6aa4e362028454db1c70"
+size = 523820
+mtime_ms = 1792499930742
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:6c0c8379-d6fe-4f1a-8078-adfbc62ca7d1/9bf44cc1-bb54-4562-94e5-fb2ce3bfb757/b2c5c1f6-24a5-4e64-9a52-530994611516"
+storage_version_token = "1792499970372503"
+content_type = "application/pdf"

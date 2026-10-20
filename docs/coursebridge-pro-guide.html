@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CourseBridge Pro — Illustrated Product &amp; Setup Guide</title>
+  <meta name="description" content="A comprehensive illustrated guide to CourseBridge Pro for LearnPress and WooCommerce, including setup, course access, contacts, campaigns, privacy, and WordPress.org publication readiness.">
+  <style>
+    @page { size: A4; margin: 0; }
+    :root {
+      --ink: #17213b; --muted: #61708a; --blue: #4168ef; --cyan: #28b8cf;
+      --purple: #7060db; --pale: #f1f5ff; --line: #dbe3f1; --green: #16866e;
+      --amber: #a96512; --red: #a53a4a; --navy: #111936;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #e8edf5; color: var(--ink); font-family: Inter, "Segoe UI", Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-size: 10.2pt; line-height: 1.43; }
+    .page {
+      position: relative; width: 210mm; height: 297mm; overflow: hidden; margin: 0 auto 10mm;
+      padding: 15mm 16mm 17mm; background: white; page-break-after: always; break-after: page;
+    }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    .eyebrow { margin: 0 0 5px; color: var(--blue); font-size: 8pt; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 9px; font-size: 29pt; line-height: 1.08; letter-spacing: -.04em; }
+    h2 { margin: 0 0 9px; font-size: 20pt; line-height: 1.15; letter-spacing: -.025em; }
+    h3 { margin: 0 0 5px; font-size: 11.3pt; line-height: 1.25; }
+    p { margin: 0 0 8px; }
+    .lead { color: var(--muted); font-size: 12pt; line-height: 1.48; }
+    .small { color: var(--muted); font-size: 8.3pt; }
+    .tiny { color: var(--muted); font-size: 7.5pt; }
+    .rule { height: 1px; margin: 10px 0 12px; background: var(--line); }
+    .footer { position: absolute; right: 16mm; bottom: 8mm; left: 16mm; display: flex; justify-content: space-between; color: #8692a7; font-size: 7.2pt; letter-spacing: .07em; text-transform: uppercase; }
+    .pill { display: inline-block; padding: 4px 8px; border: 1px solid var(--line); border-radius: 30px; background: #fff; color: #42506b; font-size: 7.5pt; font-weight: 700; }
+    .pill.blue { border-color: #d9e2ff; background: #eef2ff; color: #435ed0; }
+    .pill.green { border-color: #c7eadf; background: #ecfbf5; color: #187e67; }
+    .pill.amber { border-color: #f1dfbf; background: #fff8eb; color: #946019; }
+    .callout { margin: 9px 0; padding: 10px 12px; border-left: 4px solid var(--blue); border-radius: 5px; background: #f1f5ff; }
+    .callout.warning { border-color: #e1a338; background: #fff8e9; }
+    .callout.success { border-color: #22a483; background: #edfaf5; }
+    .callout.danger { border-color: #cf5665; background: #fff1f3; }
+    .callout strong { display: block; margin-bottom: 3px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .card { padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .card.tint { background: #f7f9ff; }
+    .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+    ul, ol { margin: 5px 0 9px; padding-left: 18px; }
+    li { margin: 0 0 4px; }
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { position: relative; padding-left: 21px; margin-bottom: 7px; }
+    .checklist li:before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--green); font-weight: 900; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .step { display: grid; grid-template-columns: 24px 1fr; gap: 8px; margin: 0 0 10px; }
+    .stepnum { width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: #fff; text-align: center; font-size: 9pt; font-weight: 800; line-height: 22px; }
+    .step p { margin-bottom: 0; }
+    .mock { margin: 10px 0 7px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 8px; background: #f0f0f1; box-shadow: 0 5px 16px #20345718; color: #1d2327; font-family: Arial, sans-serif; font-size: 8pt; line-height: 1.3; }
+    .mockbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; background: #1d2327; color: #fff; font-size: 7.4pt; font-weight: 700; }
+    .mockbar span:last-child { color: #cbd5e1; font-size: 6.7pt; letter-spacing: .08em; }
+    .mockbody { padding: 11px; }
+    .mock h4 { margin: 0 0 7px; font-size: 11pt; }
+    .mock p { margin-bottom: 7px; color: #50575e; }
+    .mock .panel { margin: 7px 0; padding: 9px; border: 1px solid #dcdcde; border-radius: 4px; background: #fff; }
+    .mock label { display: block; margin: 5px 0 3px; color: #343b42; font-size: 7.2pt; font-weight: 700; }
+    .field { min-height: 23px; margin: 3px 0 6px; padding: 5px 7px; border: 1px solid #8c8f94; border-radius: 3px; background: #fff; color: #566171; }
+    .field.multi { min-height: 57px; }
+    .btn { display: inline-block; padding: 5px 9px; border-radius: 3px; background: #2271b1; color: #fff; font-weight: 700; }
+    .btn.light { border: 1px solid #c3c4c7; background: #f6f7f7; color: #2c3338; }
+    .table { width: 100%; border-collapse: collapse; background: #fff; font-size: 7.1pt; }
+    .table th { padding: 6px 5px; border: 1px solid #c3c4c7; background: #f6f7f7; text-align: left; }
+    .table td { padding: 6px 5px; border: 1px solid #dcdcde; vertical-align: top; }
+    .status { display: inline-block; padding: 2px 5px; border-radius: 9px; background: #e7f7ef; color: #147553; font-size: 6.6pt; font-weight: 700; }
+    .status.muted { background: #f0f0f1; color: #646970; }
+    .caption { margin: 0 0 10px; color: #77849a; font-size: 7.5pt; font-style: italic; }
+    .flow { display: flex; align-items: stretch; gap: 6px; margin: 14px 0; }
+    .flowbox { flex: 1; min-height: 74px; padding: 10px 8px; border: 1px solid #dce4f1; border-radius: 9px; background: #f7f9ff; text-align: center; }
+    .flowbox strong { display: block; margin: 0 0 4px; color: #2f4fbb; font-size: 9pt; }
+    .arrow { align-self: center; color: #7987aa; font-size: 16pt; font-weight: 800; }
+    .cover { padding: 0; background: radial-gradient(circle at 82% 14%, #403b88 0, #191f48 30%, #10162f 78%); color: #fff; }
+    .cover-inner { position: relative; height: 100%; padding: 17mm 16mm 15mm; }
+    .cover .eyebrow { color: #9de5ef; }
+    .cover h1 { max-width: 145mm; margin-top: 13mm; font-size: 35pt; }
+    .cover .lead { max-width: 116mm; color: #d4daf3; font-size: 14pt; }
+    .cover-art { width: 100%; height: 91mm; margin: 10mm 0 5mm; border-radius: 10px; object-fit: cover; }
+    .cover-note { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8mm; }
+    .cover-note div { padding: 10px 12px; border: 1px solid #ffffff35; border-radius: 10px; background: #ffffff0d; color: #e9edff; font-size: 8.5pt; }
+    .cover-note strong { display: block; margin-bottom: 3px; color: #8ee2ed; }
+    .cover .footer { color: #9aa9d0; }
+    .tagline { margin: 7px 0 0; color: #b8c5ed; font-size: 9pt; letter-spacing: .02em; }
+    .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-top: 8px; }
+    .toc div { padding: 6px 0; border-bottom: 1px solid #e5eaf2; color: #3f4d67; font-size: 8.6pt; }
+    .toc b { display: inline-block; width: 25px; color: var(--blue); }
+    .key { display: inline-flex; align-items: center; gap: 6px; margin-right: 9px; color: var(--muted); font-size: 7.5pt; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .source { font-size: 8pt; overflow-wrap: anywhere; }
+    @media print { body { background: #fff; } .page { margin: 0; box-shadow: none; } }
+  </style>
+</head>
+<body>
+
+<section class="page cover">
+  <div class="cover-inner">
+    <div class="eyebrow">TASKDRIP · PRODUCT DOCUMENTATION</div>
+    <h1>CourseBridge Pro</h1>
+    <p class="lead">The illustrated guide to connecting WooCommerce purchases with LearnPress courses, managing student access, and sending consent-based course updates.</p>
+    <p class="tagline">For WordPress administrators, course teams, and plugin reviewers</p>
+    <img class="cover-art" src="../client/public/coursebridge-pro-featured.svg" alt="CourseBridge Pro connects WooCommerce products to LearnPress courses">
+    <div class="cover-note">
+      <div><strong>Product baseline</strong>CourseBridge Pro for LearnPress &amp; WooCommerce · generated edition 2.1.9 · documentation prepared 20 October 2026.</div>
+      <div><strong>Important before listing</strong>The current generated Pro package is license-gated. WordPress.org publication needs a separately reviewed, genuinely useful directory edition; see the publication-readiness section.</div>
+      <div><strong>How to read the screens</strong>Interface illustrations in this guide are source-based mock screens, not live WordPress captures. Replace them with real staging screenshots before using them as directory assets.</div>
+      <div><strong>Scope</strong>Describes the current generated Pro feature set. WordPress.org review, approval, compatibility, and listing are controlled by WordPress.org.</div>
+    </div>
+    <div class="footer"><span>COURSEBRIDGE PRO · ILLUSTRATED PRODUCT GUIDE</span><span>01 / 16</span></div>
+  </div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">01 · START HERE</p>
+  <h2>What CourseBridge Pro does</h2>
+  <p class="lead">CourseBridge links the products you sell in WooCommerce to courses hosted in LearnPress. After WooCommerce confirms payment, it enrolls the account-holding buyer in each mapped course. Administrators can also enroll users directly, review access, and manage consent-based email campaigns.</p>
+  <div class="grid3" style="margin:13px 0">
+    <div class="card tint"><h3>Sell a course</h3><p>Connect a WooCommerce product to one or more LearnPress courses.</p></div>
+    <div class="card tint"><h3>Grant access</h3><p>Enroll buyers after payment, or assign a course to a WordPress user.</p></div>
+    <div class="card tint"><h3>Support students</h3><p>Show start links in My Account and manage course-related contacts.</p></div>
+  </div>
+  <div class="two-col">
+    <div>
+      <h3>Product requirements</h3>
+      <ul>
+        <li>WordPress 6.2 or later is the generated package’s declared minimum; PHP 7.4 or later.</li>
+        <li>WooCommerce and LearnPress must be installed and active.</li>
+        <li>Mapped-course purchases require a WordPress account; checkout can prompt account creation.</li>
+        <li>The current Pro edition is marked as requiring an active Taskdrip license.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Who uses each area?</h3>
+      <ul>
+        <li><b>Store / course administrator:</b> product mappings, user assignments, contacts, settings.</li>
+        <li><b>Student:</b> course start links in WooCommerce My Account and LearnPress profile.</li>
+        <li><b>Email recipient:</b> can receive campaigns only when consent is recorded; unsubscribe remains available.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout warning">
+    <strong>Read this before submitting to WordPress.org</strong>
+    The current edition described by the source is a complete paid, license-required package. Do not submit that package unchanged as a paid-only directory download. The project’s release model calls for a useful free core in the directory and a separate premium add-on. WordPress.org makes the final eligibility and approval decision.
+  </div>
+  <h3 style="margin-top:14px">Guide contents</h3>
+  <div class="toc">
+    <div><b>02</b> How enrollment works</div><div><b>03</b> Install and set up</div>
+    <div><b>04</b> Map products to courses</div><div><b>05</b> Orders and enrollment rules</div>
+    <div><b>06</b> Assign and manage access</div><div><b>07</b> Student course access</div>
+    <div><b>08</b> Contacts and filters</div><div><b>09</b> Consent and opt-in</div>
+    <div><b>10</b> Compose and send campaigns</div><div><b>11</b> Email settings</div>
+    <div><b>12</b> Privacy and security</div><div><b>13</b> Troubleshooting</div>
+    <div><b>14</b> WordPress.org readiness</div><div><b>15</b> Quick reference</div>
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · OVERVIEW</span><span>02 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">02 · THE WORKFLOW</p>
+  <h2>From paid order to course start</h2>
+  <p class="lead">The integration is a bridge between two records: the WooCommerce order and the LearnPress course enrollment.</p>
+  <div class="flow">
+    <div class="flowbox"><strong>1 · Map</strong>Choose a product and one or more courses.</div><div class="arrow">→</div>
+    <div class="flowbox"><strong>2 · Pay</strong>WooCommerce reports a successful payment.</div><div class="arrow">→</div>
+    <div class="flowbox"><strong>3 · Enroll</strong>The buyer account is enrolled in mapped courses.</div><div class="arrow">→</div>
+    <div class="flowbox"><strong>4 · Start</strong>Student opens a course from My Account or LearnPress.</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Purchase-based access</h3>
+      <p>CourseBridge listens for successful WooCommerce payment/order events. Orders that have not been paid do not grant access. When an administrator saves a product mapping, the plugin also schedules a check of existing paid orders for that product.</p>
+    </div>
+    <div class="card">
+      <h3>Administrator-assigned access</h3>
+      <p>An administrator searches for a WordPress user, selects a LearnPress course, and optionally enters an expiry date. This direct assignment does not create or change a WooCommerce order.</p>
+    </div>
+  </div>
+  <div class="callout success">
+    <strong>One product can grant several courses</strong>
+    Use a bundle product to map multiple LearnPress courses. The customer needs one WordPress account; CourseBridge enrolls that account in each selected course after confirmed payment.
+  </div>
+  <h3 style="margin-top:14px">What remains in its original system</h3>
+  <ul>
+    <li>Products and orders stay in WooCommerce.</li>
+    <li>Course content, course status, and learner progress stay in LearnPress.</li>
+    <li>CourseBridge stores its access records, contact/order index, consent metadata, and campaign delivery logs in the WordPress site.</li>
+    <li>Deactivating the plugin does not delete WooCommerce orders or LearnPress enrollments. Back up before uninstalling or changing the data model.</li>
+  </ul>
+  <div class="callout warning">
+    <strong>Test a complete checkout on staging</strong>
+    Confirm the order reaches a paid state, the correct user is enrolled in every mapped course, and the student can start it. Do this before a real course launch.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · WORKFLOW</span><span>03 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">03 · INSTALLATION</p>
+  <h2>Install and prepare your site</h2>
+  <p class="lead">Use a staging site first. For the paid Pro build, obtain the ZIP from the authorized publisher and confirm its license and update terms before activating it.</p>
+  <div class="step"><div class="stepnum">1</div><div><h3>Check the foundation</h3><p>Update WordPress, PHP, WooCommerce, and LearnPress. Confirm both required plugins are active and course/product test data exists.</p></div></div>
+  <div class="step"><div class="stepnum">2</div><div><h3>Install the plugin package</h3><p>In WordPress, open <b>Plugins → Add New Plugin → Upload Plugin</b>, select the authorized ZIP, install, and activate. Keep a restorable backup available.</p></div></div>
+  <div class="step"><div class="stepnum">3</div><div><h3>Confirm dependencies and license</h3><p>Resolve any dependency notice. For the generated Pro edition, activate the Taskdrip license using the license workflow supplied with the purchase. The directory edition must be packaged separately.</p></div></div>
+  <div class="step"><div class="stepnum">4</div><div><h3>Link a test product</h3><p>Open <b>CourseBridge Pro → Course Assignments</b>, choose a published WooCommerce product, select one or more LearnPress courses, and save the mapping.</p></div></div>
+  <div class="step"><div class="stepnum">5</div><div><h3>Place a controlled test order</h3><p>Use a test gateway or low-value staging product. Create or sign in to a WordPress account, complete payment, and verify the resulting order and enrollment.</p></div></div>
+  <div class="step"><div class="stepnum">6</div><div><h3>Check the student journey</h3><p>Sign in as the test student. Check WooCommerce <b>My Account</b> and the LearnPress profile, then open the course start link.</p></div></div>
+  <div class="step"><div class="stepnum">7</div><div><h3>Configure email only if needed</h3><p>Choose the email provider, set the sender, and send an operational test message before collecting marketing opt-ins or sending a campaign.</p></div></div>
+  <div class="callout danger">
+    <strong>Do not test on a live customer list</strong>
+    Use a staging database and test addresses. Never send a test campaign to real customers simply to check configuration.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · SETUP</span><span>04 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">04 · PRODUCT MAPPING</p>
+  <h2>Connect a WooCommerce product to courses</h2>
+  <p class="lead">A mapping is the rule that tells CourseBridge which LearnPress course or courses a product grants after payment.</p>
+  <div class="mock">
+    <div class="mockbar"><span>CourseBridge Pro → Course Assignments</span><span>ILLUSTRATIVE UI · NOT A LIVE CAPTURE</span></div>
+    <div class="mockbody">
+      <h4>Assign LearnPress Courses</h4>
+      <p>Link WooCommerce products to LearnPress courses</p>
+      <div class="panel">
+        <h4>Link WooCommerce products to LearnPress courses</h4>
+        <p>Choose a product and one or more courses. After confirmed payment, the buyer is enrolled.</p>
+        <label>WooCommerce product</label><div class="field">Starter Course Bundle ▾</div>
+        <label>LearnPress courses (select one or more)</label>
+        <div class="field multi">☑ LearnPress Essentials<br>☑ Building Your First Store<br>☐ Advanced Analytics</div>
+        <span class="btn">Save course mapping</span>
+      </div>
+      <p class="small">Alternative route: edit the product under Product data → General.</p>
+    </div>
+  </div>
+  <p class="caption">Illustrative screen composed from the current CourseBridge interface labels and controls. Appearance may vary with WordPress, WooCommerce, and admin themes.</p>
+  <div class="two-col">
+    <div>
+      <h3>Steps</h3>
+      <ol>
+        <li>Open Course Assignments.</li>
+        <li>Pick the published product.</li>
+        <li>Select one or more published/private courses in the multi-select list. Use Ctrl or Command to select several.</li>
+        <li>Save and confirm the success notice.</li>
+        <li>Check the product-to-course row on the Overview tab.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Keep mappings easy to audit</h3>
+      <ul>
+        <li>Use descriptive product/course names.</li>
+        <li>Review bundle mappings before changing a live product.</li>
+        <li>Saving a mapping triggers a background reconciliation of existing paid orders for that product.</li>
+        <li>Check a test order and a learner account after changing a mapping.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout">
+    <strong>Access roles</strong>
+    Mapping and product-edit actions check WooCommerce permissions. The Course Assignments screen itself is restricted to administrators with WordPress management capability.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · PRODUCT MAPPING</span><span>05 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">05 · PAYMENT BEHAVIOR</p>
+  <h2>Understand when enrollment happens</h2>
+  <p class="lead">CourseBridge uses WooCommerce payment/order events; it does not treat a checkout attempt as proof of payment.</p>
+  <div class="grid2" style="margin:12px 0">
+    <div class="card tint"><h3>Confirmed payment</h3><p>When WooCommerce reports a successful payment or the order enters a paid processing/completed state, CourseBridge attempts to enroll the buyer account in mapped courses.</p></div>
+    <div class="card"><h3>Awaiting, failed, or cancelled order</h3><p>An unpaid order does not grant purchase-based course access. Follow WooCommerce’s payment status and gateway records when investigating a missing enrollment.</p></div>
+  </div>
+  <h3>Account requirement</h3>
+  <p>Mapped course products require an account. The checkout integration can enable or require account registration when a mapped course product is in the cart. The student’s account is the identity LearnPress uses for enrollment and course access.</p>
+  <h3 style="margin-top:12px">Existing orders after mapping changes</h3>
+  <p>After a mapping is saved, CourseBridge schedules reconciliation of existing paid orders for that product. This supports sites that map products after initial sales or change mappings later. Allow the scheduled work to run, then verify the target users and courses.</p>
+  <div class="callout warning">
+    <strong>Changing a live mapping can affect prior buyers</strong>
+    Before adding or removing a course from a product, decide how historical purchasers should be treated. Test on staging and review reconciled enrollments before announcing the change.
+  </div>
+  <h3>Order-to-enrollment checks</h3>
+  <div class="grid2">
+    <div class="card"><ul class="checklist">
+      <li>Correct product is in the paid order.</li>
+      <li>Product has the intended course mapping.</li>
+      <li>Customer is attached to a WordPress account.</li>
+      <li>WooCommerce order is paid/processing/completed.</li>
+    </ul></div>
+    <div class="card"><ul class="checklist">
+      <li>LearnPress is active and the course exists.</li>
+      <li>Open the customer’s LearnPress profile or course access table.</li>
+      <li>Check for an existing enrollment or recent status change.</li>
+      <li>Do not manually edit plugin tables as a first fix.</li>
+    </ul></div>
+  </div>
+  <p class="small" style="margin-top:10px">Purchase-based expiry is not presented as a configurable product setting in the generated package. Optional expiry dates are available for administrator-managed course access; see the next page.</p>
+  <div class="footer"><span>COURSEBRIDGE PRO · ORDERS</span><span>06 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">06 · COURSE ACCESS</p>
+  <h2>Assign users and manage access</h2>
+  <p class="lead">Use direct assignment for scholarships, support cases, staff access, or other grants that should not create a WooCommerce order.</p>
+  <div class="mock">
+    <div class="mockbar"><span>CourseBridge Pro → Course Assignments</span><span>ILLUSTRATIVE UI · NOT A LIVE CAPTURE</span></div>
+    <div class="mockbody">
+      <h4>Assign LearnPress Courses</h4>
+      <div class="panel">
+        <label>Find a user by name, username, or email</label><div class="field">maya@example.com</div>
+        <label>WordPress user</label><div class="field">Maya Okafor — maya@example.com</div>
+        <label>LearnPress course</label><div class="field">LearnPress Essentials ▾</div>
+        <label>Access expires on (optional)</label><div class="field">2027-06-30 &nbsp; Leave blank for no CourseBridge expiry.</div>
+        <span class="btn">Assign course</span>
+      </div>
+      <h4>Student course access</h4>
+      <table class="table"><tr><th>User</th><th>Course</th><th>Source</th><th>Expires</th><th>Action</th></tr><tr><td>Maya Okafor</td><td>LearnPress Essentials</td><td>Admin</td><td>30 Jun 2027</td><td><span class="btn light">Update expiry</span></td></tr></table>
+    </div>
+  </div>
+  <p class="caption">Illustrative screen composed from source labels and fields, not an actual capture from an installed WordPress site.</p>
+  <div class="two-col">
+    <div>
+      <h3>Assign a course</h3>
+      <ol>
+        <li>Search by display name, username, or email.</li>
+        <li>Select the matching WordPress user.</li>
+        <li>Choose a LearnPress course.</li>
+        <li>Optionally set an expiry date; leave blank for no CourseBridge expiry.</li>
+        <li>Submit and confirm the success notice.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Review or change access</h3>
+      <ul>
+        <li>Review current LearnPress enrollments, access source, start date, and expiry date.</li>
+        <li>Update an existing administrator-assigned expiry date.</li>
+        <li>Cancel access to revoke the user’s LearnPress course access.</li>
+        <li>Expiry is interpreted using the WordPress site timezone and applies at the end of the selected day.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout danger">
+    <strong>Cancellation is consequential</strong>
+    Cancel access only after confirming the user and course. This action revokes the enrollment; it does not create, refund, or edit a WooCommerce order.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · ADMIN ASSIGNMENTS</span><span>07 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">07 · STUDENT EXPERIENCE</p>
+  <h2>Where students find their courses</h2>
+  <p class="lead">A buyer or administrator-assigned learner can start a course without searching for the original order email.</p>
+  <div class="mock">
+    <div class="mockbar"><span>My Account · Dashboard</span><span>ILLUSTRATIVE UI · NOT A LIVE CAPTURE</span></div>
+    <div class="mockbody" style="padding:14px">
+      <div style="display:grid;grid-template-columns:31% 1fr;gap:12px">
+        <div class="panel"><b>My account</b><hr style="border:0;border-top:1px solid #e4e7eb">Dashboard<br><br>Orders<br><br>Downloads<br><br>Account details<br><br>Log out</div>
+        <div class="panel">
+          <h4>My LearnPress courses</h4>
+          <p>Courses assigned to your account or unlocked by a paid order appear here.</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px;border:1px solid #e0e4e9;border-radius:4px;margin:7px 0">
+            <div><b>LearnPress Essentials</b><br><span class="small">Ready to continue</span></div><span class="btn">Start / continue course</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px;border:1px solid #e0e4e9;border-radius:4px;margin:7px 0">
+            <div><b>Building Your First Store</b><br><span class="small">Ready to start</span></div><span class="btn">Start / continue course</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption">Illustrative example of the WooCommerce My Account course block. The actual page inherits the active theme and account layout.</p>
+  <h3>Student checklist</h3>
+  <ul class="checklist">
+    <li>Sign in with the same WordPress account used at checkout or selected for direct assignment.</li>
+    <li>Open WooCommerce My Account and check the “My LearnPress courses” section.</li>
+    <li>If missing, confirm payment status and product mapping with the site administrator.</li>
+    <li>Try the LearnPress profile/course list if the My Account section is not visible in the theme’s layout.</li>
+    <li>Contact the site’s course support team if the course link opens an access-denied page.</li>
+  </ul>
+  <div class="callout">
+    <strong>Theme note</strong>
+    CourseBridge renders within WordPress/WooCommerce account hooks. Theme templates, account plugins, caching, and LearnPress settings can affect where the panel appears; verify the real student experience on the target theme.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · STUDENT ACCESS</span><span>08 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">08 · CONTACTS</p>
+  <h2>Find course customers and their history</h2>
+  <p class="lead">Contacts &amp; Campaigns is a searchable directory of WordPress accounts—not just buyers. Accounts without a recorded order can appear with no purchase/course grouping.</p>
+  <div class="mock">
+    <div class="mockbar"><span>CourseBridge Pro → Contacts &amp; Campaigns</span><span>ILLUSTRATIVE UI · NOT A LIVE CAPTURE</span></div>
+    <div class="mockbody">
+      <h4>Contacts &amp; Campaigns</h4>
+      <div style="display:flex;gap:5px;align-items:center;margin:7px 0"><div class="field" style="flex:1">Search name or email</div><div class="field" style="flex:1">All products ▾</div><div class="field" style="flex:1">All courses ▾</div></div>
+      <div style="display:flex;gap:8px;align-items:center;margin:6px 0 9px"><div class="field" style="flex:1">All WordPress roles ▾</div><span>☐ Marketing opt-ins only</span><span class="btn">Filter contacts</span></div>
+      <table class="table">
+        <tr><th>WordPress user</th><th>Role</th><th>Products / courses</th><th>Orders / spend</th><th>Email consent</th></tr>
+        <tr><td>Maya Okafor<br>maya@example.com</td><td>Customer</td><td>Starter Course Bundle<br>LearnPress Essentials</td><td>2 / $79.00 USD</td><td><span class="status">Opted in</span></td></tr>
+        <tr><td>Sam Adebayo<br>sam@example.com</td><td>Subscriber</td><td>—</td><td>0 / —</td><td><span class="status muted">Not opted in</span></td></tr>
+      </table>
+      <p class="small" style="margin-top:8px">Page 1 of 4 · 326 contacts · Select campaign recipients separately</p>
+    </div>
+  </div>
+  <p class="caption">Illustrative screen based on current filter and contact-table labels. Sample people and totals are fictional.</p>
+  <div class="grid2">
+    <div class="card"><h3>Search and filter</h3><p>Search by name or email. Narrow by WooCommerce product, LearnPress course, WordPress role, and—optionally—recorded marketing opt-in.</p></div>
+    <div class="card"><h3>Review context</h3><p>Rows group recorded products/courses and summarize successful order count, spend by currency, latest order, and consent state. Contact rows are paginated at 100 per page.</p></div>
+  </div>
+  <div class="callout warning">
+    <strong>Seeing a contact is not permission to email them</strong>
+    Contacts can include users with no purchase and users who never opted in. The campaign send path separately checks consent before delivery.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · CONTACT DIRECTORY</span><span>09 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">09 · CONSENT</p>
+  <h2>Keep marketing permission separate</h2>
+  <p class="lead">CourseBridge is designed to preserve the customer’s recorded marketing preference. An order, course enrollment, or account alone does not make a person campaign-eligible.</p>
+  <div class="flow">
+    <div class="flowbox"><strong>Checkout choice</strong>Customer may select the optional marketing opt-in.</div><div class="arrow">→</div>
+    <div class="flowbox"><strong>Payment confirmed</strong>The recorded order choice is applied to the account after successful payment.</div><div class="arrow">→</div>
+    <div class="flowbox"><strong>Campaign eligible</strong>Only contacts with recorded opt-in can be selected and sent.</div>
+  </div>
+  <h3>Administrator opt-in tools</h3>
+  <ul>
+    <li>Record opt-in for a purchaser from Contacts &amp; Campaigns when the person has explicitly agreed through a valid channel.</li>
+    <li>Use filtered selections to record opt-in for selected purchasers across pages, or all matching purchasers, with an explicit confirmation step.</li>
+    <li>The bulk administrator action is for purchasers; it must not be used to infer consent from course enrollment, account creation, or an old order alone.</li>
+    <li>Campaigns continue to exclude contacts without recorded opt-in, even if an admin selects a wider audience.</li>
+  </ul>
+  <div class="callout danger">
+    <strong>Unsubscribe takes priority</strong>
+    Every marketing campaign includes an unsubscribe link. Earlier paid orders do not reverse an unsubscribe. Record a new opt-in only after the person has clearly opted in again.
+  </div>
+  <h3>Good operating practice</h3>
+  <div class="grid2">
+    <div class="card"><ul class="checklist"><li>Keep the checkout checkbox optional and clearly worded.</li><li>Explain the type and frequency of course messages.</li><li>Document the source/date for any manually recorded permission in your own records.</li></ul></div>
+    <div class="card"><ul class="checklist"><li>Filter to the relevant course/product before selecting recipients.</li><li>Review the eligible recipient count before sending.</li><li>Use a test email first; never treat a test as consent.</li></ul></div>
+  </div>
+  <p class="small" style="margin-top:11px">This guide describes plugin behavior, not legal advice. The site owner is responsible for privacy notices, lawful basis, retention, and applicable email-marketing rules.</p>
+  <div class="footer"><span>COURSEBRIDGE PRO · CONSENT</span><span>10 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">10 · CAMPAIGNS</p>
+  <h2>Compose a course update</h2>
+  <p class="lead">Use Contacts &amp; Campaigns to select an eligible audience and prepare a message in the WordPress visual editor or HTML/Text editor.</p>
+  <div class="mock">
+    <div class="mockbar"><span>Contacts &amp; Campaigns · New campaign</span><span>ILLUSTRATIVE UI · NOT A LIVE CAPTURE</span></div>
+    <div class="mockbody">
+      <div class="panel">
+        <label>Email subject (personalization tags supported)</label><div class="field">A new lesson is ready for {{first_name}}</div>
+        <label>Email content</label>
+        <div class="field multi" style="min-height:86px">
+          <b>VISUAL &nbsp;&nbsp; TEXT</b><hr style="border:0;border-top:1px solid #ddd">
+          <b>Course update</b><br><br>Hello {{first_name}},<br><br>A new lesson is now available in your course. Sign in to continue learning.<br><br><u>Open your course</u><br><br>{{unsubscribe_url}}
+        </div>
+        <label>Personalize your email</label><div class="field">First name {{first_name}} ▾ &nbsp; <span class="btn light">Insert tag</span></div>
+        <span class="btn">Send to selected opted-in users through Resend</span>
+      </div>
+      <p class="small">Select individual recipients, select opted-in users across pages, or use the all-matching option above.</p>
+    </div>
+  </div>
+  <p class="caption">Illustrative campaign form. It does not send email; test delivery and recipient consent on the real WordPress site.</p>
+  <h3>Personalization tags</h3>
+  <p><span class="pill blue">{{first_name}}</span> <span class="pill blue">{{last_name}}</span> <span class="pill blue">{{display_name}}</span> <span class="pill blue">{{email}}</span> <span class="pill blue">{{site_name}}</span> <span class="pill blue">{{site_url}}</span> <span class="pill blue">{{unsubscribe_url}}</span></p>
+  <h3 style="margin-top:12px">Before sending</h3>
+  <ol>
+    <li>Filter contacts by course, product, and role as appropriate.</li>
+    <li>Select only opted-in recipients. Selection can be carried across contact pages within the current browser session.</li>
+    <li>Write a clear subject and useful message; preview names and links where available.</li>
+    <li>Send a test message from Settings and confirm sender, formatting, links, and inbox placement.</li>
+    <li>Submit the campaign and review the completed sent/failed counts and per-recipient logs.</li>
+  </ol>
+  <div class="callout warning">
+    <strong>Large lists</strong>
+    Resend campaigns are dispatched in provider-sized batches of up to 100. WordPress email depends on the site’s configured mail transport and hosting limits.
+  </div>
+  <div class="footer"><span>COURSEBRIDGE PRO · CAMPAIGN COMPOSER</span><span>11 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">11 · EMAIL SETTINGS</p>
+  <h2>Configure delivery and verify it</h2>
+  <p class="lead">CourseBridge supports the site’s WordPress mail transport or Resend. The chosen method sends through the corresponding provider; it does not replace domain authentication or email-policy setup.</p>
+  <div class="mock">
+    <div class="mockbar"><span>CourseBridge Pro → Settings</span><span>ILLUSTRATIVE UI · NOT A LIVE CAPTURE</span></div>
+    <div class="mockbody" style="max-width:130mm">
+      <div class="panel">
+        <h4>Email sender settings</h4>
+        <label>Email delivery method</label><div class="field">Resend ▾</div>
+        <label>Sender name</label><div class="field">Learning Team</div>
+        <label>Sender email</label><div class="field">courses@example.com</div>
+        <label>Resend API key (only needed for Resend delivery)</label><div class="field">Saved — leave blank to keep current key</div>
+        <span class="btn">Save email settings</span>
+      </div>
+      <div class="panel">
+        <h4>Test email delivery</h4>
+        <p>Send one operational test email. This does not contact the marketing list.</p>
+        <label>Test recipient email</label><div class="field">admin@example.com</div>
+        <span class="btn light">Send test email</span>
+      </div>
+    </div>
+  </div>
+  <p class="caption">Illustrative Settings screen from the current form structure. Example names and addresses are fictitious.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>WordPress email (wp_mail)</h3>
+      <p>Uses the mail transport already configured on the WordPress site. Configure authenticated SMTP or a trusted mail service where required by the host. The result from the test email confirms the site accepted the send request; check the recipient inbox and spam folder.</p>
+    </div>
+    <div class="card">
+      <h3>Resend</h3>
+      <p>Requires a valid Resend API key and sender address on a verified sending domain. A newly saved key selects Resend. Use a restricted key where available and protect it as a secret.</p>
+    </div>
+  </div>
+  <div class="callout warning">
+    <strong>Protect the Resend key</strong>
+    Prefer defining <code>TDLPW_RESEND_API_KEY</code> in <code>wp-config.php</code>. The settings form can store a key in the WordPress database; limit administrator access and backups accordingly. Never publish a real key in this guide, a screenshot, a support post, or source control.
+  </div>
+  <p class="small">A provider test email is operational and does not contact the marketing audience. Campaign eligibility and the consent checks still apply when sending marketing messages.</p>
+  <div class="footer"><span>COURSEBRIDGE PRO · DELIVERY SETTINGS</span><span>12 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">12 · PRIVACY &amp; SECURITY</p>
+  <h2>Know what the site stores and sends</h2>
+  <p class="lead">CourseBridge works with account identity, order history, course access, email consent, and campaign delivery. Document these data flows in the site privacy notice and any directory submission.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>Data processed by the plugin</h3>
+      <ul>
+        <li>WordPress user ID, display name, username, and email.</li>
+        <li>Recorded WooCommerce orders, product/course IDs, totals, currency, status, and purchase date.</li>
+        <li>LearnPress enrollment and CourseBridge access dates/status.</li>
+        <li>Marketing opt-in/out status and related timestamps/source.</li>
+        <li>Campaign subject, recipient email, result, provider detail, and send time.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>External delivery / licensing</h3>
+      <ul>
+        <li><b>Resend:</b> campaign/test recipient details, message subject/content, and sender information are sent to the email provider when Resend is selected.</li>
+        <li><b>WordPress mail:</b> mail is handed to the transport configured by the site.</li>
+        <li><b>Taskdrip licensing/updates:</b> the Pro build uses a license/update service. Explain its purpose and data flow in the public readme and link applicable service privacy/terms.</li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top:13px">Privacy controls in the current package</h3>
+  <ul>
+    <li>Campaign recipients are gated by recorded marketing opt-in; unsubscribe links update the account’s preference.</li>
+    <li>The plugin registers WordPress personal-data export and erasure handlers for course purchases and email preferences.</li>
+    <li>The erasure handler anonymizes retained purchase references/totals and removes associated campaign logs and consent metadata; the site owner should review the wording and retention policy.</li>
+    <li>Deactivation preserves order and course records; deactivation is not equivalent to erasing plugin data.</li>
+  </ul>
+  <div class="callout">
+    <strong>Admin protection</strong>
+    Destructive course actions and settings/campaign submissions require capability checks and nonce verification in the generated code. Keep WordPress, WooCommerce, LearnPress, and administrator accounts secured and updated.
+  </div>
+  <p class="small">Privacy obligations vary by jurisdiction and site practices. Confirm all data retention, provider terms, transfer, consent, and user-rights statements with the site owner before launch.</p>
+  <div class="footer"><span>COURSEBRIDGE PRO · PRIVACY</span><span>13 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">13 · TROUBLESHOOTING</p>
+  <h2>Common issues and first checks</h2>
+  <table class="table" style="font-size:8pt">
+    <tr><th style="width:27%">Symptom</th><th style="width:35%">Check first</th><th>Next action</th></tr>
+    <tr><td>Course mapping options are empty</td><td>WooCommerce and LearnPress are active; products are published; courses are published or private.</td><td>Confirm user permissions and refresh Course Assignments. Save one test mapping.</td></tr>
+    <tr><td>Paid customer is not enrolled</td><td>Order payment status, linked account, product mapping, course status, and LearnPress enrollment.</td><td>Use order notes/logs and plugin diagnostics. Saving the mapping triggers reconciliation for existing paid orders; then verify the student account.</td></tr>
+    <tr><td>Guest cannot complete mapped-course checkout</td><td>Account creation/registration settings and checkout customizations.</td><td>Mapped course purchases require a WordPress account. Test a normal registration checkout without conflicting checkout extensions.</td></tr>
+    <tr><td>Student cannot see course in My Account</td><td>Correct WordPress login, LearnPress profile, enrollment status, theme account template, caching.</td><td>Test in a clean browser session and check the enrollment in LearnPress as an administrator.</td></tr>
+    <tr><td>Expiry date is rejected or appears wrong</td><td>WordPress site timezone, site date format, date entered, selected user/course.</td><td>Choose today or a future date; leave blank for no CourseBridge expiry; review using the site timezone.</td></tr>
+    <tr><td>Contact is visible but cannot be selected</td><td>Consent status and current filters.</td><td>Only recorded opt-ins are campaign-eligible. Record consent only when you have valid evidence of the person’s choice.</td></tr>
+    <tr><td>Resend test fails</td><td>API key format, verified sending domain, sender address, provider response.</td><td>Check Resend account logs and WordPress logs; retry with a known test address after fixing sender verification.</td></tr>
+    <tr><td>WordPress test email not delivered</td><td>wp_mail transport, host mail limits, sender reputation, spam folder.</td><td>Configure authenticated site mail and send another operational test email.</td></tr>
+    <tr><td>Campaign reports failures</td><td>Provider response/logs, recipient validity, provider limits, and current consent.</td><td>Review per-recipient send logs; correct the issue and send only to still-opted-in contacts.</td></tr>
+  </table>
+  <div class="callout warning" style="margin-top:14px">
+    <strong>Safe support bundle</strong>
+    Include WordPress/PHP/WooCommerce/LearnPress versions, plugin version, steps to reproduce, affected order status (not payment details), and sanitized logs. Remove names, email addresses, API keys, license keys, cookies, and other credentials before sharing.
+  </div>
+  <p class="small">If a problem appears after an update, first reproduce it on staging with one test account and one test order. Avoid editing database rows directly without a verified backup and a defined recovery plan.</p>
+  <div class="footer"><span>COURSEBRIDGE PRO · TROUBLESHOOTING</span><span>14 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">14 · WORDPRESS.ORG READINESS</p>
+  <h2>Prepare a directory-safe release</h2>
+  <p class="lead">A PDF manual is not the plugin directory submission. The directory expects a complete plugin ZIP and reviewable source, a valid readme, compliant assets, and a release that meets the current guidelines.</p>
+  <div class="callout danger">
+    <strong>Separate the editions before submission</strong>
+    The generated CourseBridge Pro edition is explicitly described as a licensed paid package and requires an active Taskdrip license. The project release model specifies a useful free core for WordPress.org and a separately distributed paid add-on. Prepare and review the free core; keep premium code out of its directory ZIP. Do not describe the current Pro ZIP as already approved or directory-ready.
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Package and code checks</h3>
+      <ul class="checklist">
+        <li>Ship a complete, human-readable, GPL-compatible directory edition.</li>
+        <li>Keep paid add-on code and keys out of the free directory ZIP.</li>
+        <li>Declare the external licensing/update/email services, data sent, and relevant terms/privacy links.</li>
+        <li>Run Plugin Check and current coding/security checks.</li>
+        <li>Test a clean install and update on staging across claimed versions.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Readme and listing checks</h3>
+      <ul class="checklist">
+        <li>Validate the exact <code>readme.txt</code> with the official validator.</li>
+        <li>Use the real WordPress.org contributor usernames.</li>
+        <li>Set Stable tag, Requires at least, Requires PHP, and truthful Tested up to.</li>
+        <li>Use an accurate short description and feature list; avoid unsupported claims.</li>
+        <li>Submit real, current screenshots and captions for the free edition.</li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top:13px">Screenshots and listing media</h3>
+  <p>WordPress.org plugin screenshots are typically stored in the SVN repository’s top-level <code>assets/</code> directory (not inside <code>trunk/assets/</code>). Use numbered names such as <code>screenshot-1.png</code> and matching numbered screenshot descriptions in <code>readme.txt</code>. Capture the actual submitted free edition on a clean WordPress site; do not use these illustrative mock screens as production listing screenshots.</p>
+  <h3>Submission sequence</h3>
+  <ol>
+    <li>Finalize the free-core/premium boundary and the license/service disclosures.</li>
+    <li>Build a release ZIP and test it on a clean staging site.</li>
+    <li>Prepare the readme, icon/banner, and real screenshots.</li>
+    <li>Run Plugin Check, readme validation, and any current review tools.</li>
+    <li>Submit through the WordPress.org plugin developer workflow and respond to review feedback.</li>
+    <li>Publish only after the plugin has been approved; keep release tags and stable versions synchronized.</li>
+  </ol>
+  <p class="small">Directory rules and asset specifications can change. Recheck the official handbook immediately before submitting. Acceptance is decided by WordPress.org reviewers.</p>
+  <div class="footer"><span>COURSEBRIDGE PRO · DIRECTORY READINESS</span><span>15 / 16</span></div>
+</section>
+
+<section class="page">
+  <p class="eyebrow">15 · QUICK REFERENCE</p>
+  <h2>Launch checklist and references</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>First-course launch</h3>
+      <ul class="checklist">
+        <li>WordPress, PHP, WooCommerce, LearnPress meet the package requirements.</li>
+        <li>Course and product are published and use clear names.</li>
+        <li>Product maps to the intended one or more courses.</li>
+        <li>Paid test order creates enrollment for the correct account.</li>
+        <li>Student finds and starts the course from My Account / LearnPress.</li>
+        <li>Any optional expiry date is correct in the site timezone.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>First campaign</h3>
+      <ul class="checklist">
+        <li>Privacy notice explains the checkout opt-in and course emails.</li>
+        <li>Provider and sender address are configured and verified.</li>
+        <li>Operational test email succeeds.</li>
+        <li>Filters match the intended course/product audience.</li>
+        <li>Every selected recipient has recorded opt-in.</li>
+        <li>Unsubscribe link and delivery logs are reviewed.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout warning" style="margin-top:12px">
+    <strong>Before public listing</strong>
+    Complete the free directory edition, license separation, compatibility testing, actual screenshots, readme validation, and external-service disclosures. This guide documents the current Pro behavior; it is not a substitute for a directory review.
+  </div>
+  <h3 style="margin-top:13px">Official WordPress references</h3>
+  <p class="source"><b>Detailed Plugin Guidelines</b><br><span>developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/</span></p>
+  <p class="source"><b>Plugin assets: banners, icons, and screenshots</b><br><span>developer.wordpress.org/plugins/wordpress-org/plugin-assets/</span></p>
+  <p class="source"><b>Plugin readme format and validation</b><br><span>developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/</span><br><span>wordpress.org/plugins/developers/readme-validator/</span></p>
+  <p class="small">References reviewed for this guide on 20 October 2026. Recheck current WordPress.org guidance and the exact submitted package before publication.</p>
+  <div class="rule"></div>
+  <p class="small"><b>Product baseline:</b> CourseBridge Pro for LearnPress &amp; WooCommerce, generated edition 2.1.9. Documentation compiled from the project’s plugin source and release metadata. UI illustrations are not captured from a live WordPress instance; any names and data shown are examples only.</p>
+  <div class="footer"><span>TASKDRIP · COURSEBRIDGE PRO · END</span><span>16 / 16</span></div>
+</section>
+
+</body>
+</html>

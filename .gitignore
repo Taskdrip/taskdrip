@@ -17,3 +17,4 @@ uploads/*
 .cache
 .upm
 dist/assets/taskdrip_2027_Notebook_Journal_1792270834126.pdf
+/generated-artifacts/
