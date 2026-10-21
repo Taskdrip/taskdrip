@@ -119,3 +119,17 @@ mtime_ms = 1792499930742
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:6c0c8379-d6fe-4f1a-8078-adfbc62ca7d1/9bf44cc1-bb54-4562-94e5-fb2ce3bfb757/b2c5c1f6-24a5-4e64-9a52-530994611516"
 storage_version_token = "1792499970372503"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "R6o2qPLMbelSNoxn8Cybm"
+uri = "file://generated-artifacts/coursebridge-learnpresswoo-connector-2.4.0-wordpress-org.zip"
+type = "unspecified"
+title = "CourseBridge WordPress.org Core ZIP"
+description = "Free-core listing candidate for CourseBridge LearnpressWOO Connector 2.4.0. It excludes the commercial updater and license client; run WordPress.org Plugin Check and staging tests before submission."
+logical_id = "99785668-4a65-409b-ba31-2a4d2f17d6e5"
+content_hash = "sha256:acf154defc78f82cd23877b08e8601d313ac471e51eac61ae9d0bfca1db6c8e8"
+size = 39667
+mtime_ms = 1792546418370
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:06062f1e-6c08-487a-9f2a-40d6512cc57c/99785668-4a65-409b-ba31-2a4d2f17d6e5/f0a99661-da53-46dc-ae0d-3166a25d9498"
+storage_version_token = "1792546452679791"
+content_type = "application/octet-stream"

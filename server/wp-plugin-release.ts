@@ -180,7 +180,7 @@ function splitPhpCallArguments(source: string, openParen: number): string[] | nu
 
 function phpStringLiteral(argument: string): string | null {
   const value = argument.trim();
-  if (!/^'(?:\\.|[^'\\])*'$|^"(?:\\.|[^"\\])*"$/s.test(value)) return null;
+  if (!/^'(?:\\.|[^'\\])*'$|^"(?:\\.|[^"\\])*"$/.test(value)) return null;
   return value.slice(1, -1).replace(/\\(['"\\])/g, "$1");
 }
 
@@ -194,10 +194,12 @@ function validateWordPressOrgPhp(slug: string, files: Record<string, string>): v
       failures.push(`${path}: remove custom update-checker hooks and Update URI headers from the directory edition`);
     }
     DIRECT_DATABASE_CALL.lastIndex = 0;
-    for (const match of source.matchAll(DIRECT_DATABASE_CALL)) {
+    let databaseCallMatch: RegExpExecArray | null;
+    while ((databaseCallMatch = DIRECT_DATABASE_CALL.exec(source)) !== null) {
+      const match = databaseCallMatch;
       const openParen = (match.index ?? 0) + match[0].lastIndexOf("(");
       const query = splitPhpCallArguments(source, openParen)?.[0] || "";
-      const codeOutsideSingleQuotedStrings = query.replace(/'(?:\\.|[^'\\])*'/gs, "");
+      const codeOutsideSingleQuotedStrings = query.replace(/'(?:\\.|[^'\\])*'/g, "");
       const hasDynamicSql =
         /\$[A-Za-z_][A-Za-z0-9_]*/.test(codeOutsideSingleQuotedStrings) ||
         /%(?:[1-9]\d*\$)?[sdf]/.test(query);
@@ -207,7 +209,9 @@ function validateWordPressOrgPhp(slug: string, files: Record<string, string>): v
       }
     }
     TRANSLATION_CALL.lastIndex = 0;
-    for (const match of source.matchAll(TRANSLATION_CALL)) {
+    let translationCallMatch: RegExpExecArray | null;
+    while ((translationCallMatch = TRANSLATION_CALL.exec(source)) !== null) {
+      const match = translationCallMatch;
       const functionName = match[1];
       const callIndex = match.index ?? 0;
       const openParen = callIndex + match[0].lastIndexOf("(");
@@ -246,7 +250,8 @@ function validateWordPressOrgPhp(slug: string, files: Record<string, string>): v
   }
 
   if (failures.length) {
-    throw new Error(`The free core package failed WordPress.org release checks:\n- ${[...new Set(failures)].join("\n- ")}`);
+    const uniqueFailures = failures.filter((failure, index) => failures.indexOf(failure) === index);
+    throw new Error(`The free core package failed WordPress.org release checks:\n- ${uniqueFailures.join("\n- ")}`);
   }
 }
 
