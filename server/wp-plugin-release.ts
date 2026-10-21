@@ -255,6 +255,31 @@ function validateWordPressOrgPhp(slug: string, files: Record<string, string>): v
   }
 }
 
+function validateWordPressOrgReadme(readme: string, version: string): void {
+  const stableTag = cleanHeaderValue(version, 30).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const requiredHeaders: Array<[string, RegExp]> = [
+    ["plugin title", /^=== .+ ===$/m],
+    ["contributors", /^Contributors:\s*\S.+$/m],
+    ["tags", /^Tags:\s*\S.+$/m],
+    ["minimum WordPress version", /^Requires at least:\s*\d+(?:\.\d+)?$/m],
+    ["minimum PHP version", /^Requires PHP:\s*\d+(?:\.\d+)?$/m],
+    ["tested WordPress version", /^Tested up to:\s*\d+(?:\.\d+)?$/m],
+    ["stable tag matching the plugin version", new RegExp(`^Stable tag:\\s*${stableTag}$`, "m")],
+    ["GPL license", /^License:\s*GPLv2 or later$/m],
+    ["license URL", /^License URI:\s*https:\/\/\S+$/m],
+  ];
+  const missingHeaders = requiredHeaders
+    .filter(([, pattern]) => !pattern.test(readme))
+    .map(([label]) => label);
+  const shortDescription = readme.match(/^License URI:[^\n]*\n\n([^\n]+)$/m)?.[1]?.trim();
+  if (!shortDescription || shortDescription.length > 150) {
+    missingHeaders.push("a short description of no more than 150 characters");
+  }
+  if (missingHeaders.length) {
+    throw new Error(`The free core readme is missing valid WordPress.org metadata: ${missingHeaders.join(", ")}.`);
+  }
+}
+
 function addCoreDependencyContract(
   source: string,
   project: { slug: string; name: string; version: string },
@@ -540,9 +565,7 @@ Review licensing, generated source, WordPress compatibility, security, and the i
   }
   if (edition === "core") {
     validateWordPressOrgPhp(project.slug, files);
-    if (!/^Tested up to:\s*\d+(?:\.\d+)?$/m.test(files["readme.txt"])) {
-      throw new Error("The free core readme must include a valid Tested up to version.");
-    }
+    validateWordPressOrgReadme(files["readme.txt"], project.version);
   }
   if (edition !== "core") {
     const mainEntry = Object.entries(sourceFiles).find(([path, source]) =>

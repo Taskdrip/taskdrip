@@ -291,6 +291,12 @@ test("future WordPress.org core builds reject updater hooks, mismatched domains,
     },
   });
   const project = { slug: "sample-plugin", name: "Sample Plugin", version: "1.0.0", author: "Example" };
+  const releaseProject = {
+    ...project,
+    shortDescription: "Connect sample courses to paid products.",
+    description: "A free plugin for connecting products with courses.",
+    testedUpTo: "7.1",
+  };
 
   assert.doesNotThrow(() =>
     normalizeGeneratedEdition(generated("echo esc_html__('Ready', 'sample-plugin');"), project, "core"),
@@ -311,4 +317,26 @@ test("future WordPress.org core builds reject updater hooks, mismatched domains,
     () => normalizeGeneratedEdition(generated("echo esc_html__('Saved for %s', 'sample-plugin');"), project, "core"),
     /translators: comment/,
   );
+
+  const core = normalizeGeneratedEdition(generated("echo esc_html__('Ready', 'sample-plugin');"), releaseProject, "core");
+  const release = buildPluginReleaseFiles(releaseProject, "core", core.files);
+  const readme = release.files["readme.txt"];
+  assert.match(readme, /^=== Sample Plugin Core ===/m);
+  assert.match(readme, /^Requires at least: 6\.2$/m);
+  assert.match(readme, /^Requires PHP: 7\.4$/m);
+  assert.match(readme, /^Tested up to: 7\.1$/m);
+  assert.match(readme, /^Stable tag: 1\.0\.0$/m);
+  assert.match(readme, /^License: GPLv2 or later$/m);
+  assert.ok(Object.keys(release.files).every((path) => !/\.md$/i.test(path)));
+  assert.throws(
+    () => buildPluginReleaseFiles({ ...releaseProject, testedUpTo: "latest" }, "core", core.files),
+    /tested WordPress version/,
+  );
+
+  const studio = readFileSync(new URL("../server/plugin-studio.ts", import.meta.url), "utf8");
+  assert.match(studio, /check the user's capability separately from the nonce/);
+  assert.match(studio, /permission_callback/);
+  assert.match(studio, /Escape every dynamic value at the final output context/);
+  assert.match(studio, /register the relevant WordPress privacy exporters\/erasers/);
+  assert.match(studio, /Never put a custom plugin updater, Update URI header/);
 });
