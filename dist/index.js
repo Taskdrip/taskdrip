@@ -18754,7 +18754,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 init_schema();
 
 // server/wp-plugin-release.ts
-var DEFAULT_TESTED_UP_TO = "7.0";
+var DEFAULT_TESTED_UP_TO = "7.1";
 var MAX_FILES = 12;
 var MAX_FILE_CHARS = 37e3;
 var MAX_EDITION_CHARS = 132e3;
@@ -18803,6 +18803,142 @@ function coreVersionConstant(slug) {
 function phpSingleQuoted(value) {
   const safe = value.replace(/[\r\n\u0000]/g, " ").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   return `'${safe}'`;
+}
+var TRANSLATION_DOMAIN_ARGUMENT = {
+  __: 1,
+  _e: 1,
+  _x: 2,
+  _ex: 2,
+  _n: 3,
+  _nx: 4,
+  _n_noop: 2,
+  _nx_noop: 3,
+  esc_html__: 1,
+  esc_attr__: 1,
+  esc_html_e: 1,
+  esc_attr_e: 1,
+  esc_html_x: 2,
+  esc_attr_x: 2,
+  translate: 1
+};
+var TRANSLATION_CALL = new RegExp(
+  `\\b(${Object.keys(TRANSLATION_DOMAIN_ARGUMENT).sort((a, b) => b.length - a.length).join("|")})\\s*\\(`,
+  "g"
+);
+var DIRECT_DATABASE_CALL = /\$wpdb\s*->\s*(?:get_results|get_row|get_var|query)\s*\(/g;
+var PHP_STRING_PLACEHOLDER = /%(?:[1-9]\d*\$)?[bcdeEfFgGosuxX]/;
+function splitPhpCallArguments(source, openParen) {
+  const args = [];
+  let start = openParen + 1;
+  let parentheses = 0;
+  let brackets = 0;
+  let braces = 0;
+  let quote = "";
+  for (let index2 = start; index2 < source.length; index2 += 1) {
+    const char = source[index2];
+    const next = source[index2 + 1];
+    if (quote) {
+      if (char === "\\") {
+        index2 += 1;
+      } else if (char === quote) {
+        quote = "";
+      }
+      continue;
+    }
+    if (char === "'" || char === '"' || char === "`") {
+      quote = char;
+    } else if (char === "/" && next === "*") {
+      const commentEnd = source.indexOf("*/", index2 + 2);
+      if (commentEnd < 0) return null;
+      index2 = commentEnd + 1;
+    } else if (char === "/" && next === "/" || char === "#" && next !== "[") {
+      const newline = source.indexOf("\n", index2 + 1);
+      if (newline < 0) return null;
+      index2 = newline;
+    } else if (char === "(") {
+      parentheses += 1;
+    } else if (char === ")") {
+      if (parentheses === 0 && brackets === 0 && braces === 0) {
+        const finalArg = source.slice(start, index2).trim();
+        if (finalArg || args.length) args.push(finalArg);
+        return args;
+      }
+      parentheses -= 1;
+    } else if (char === "[") {
+      brackets += 1;
+    } else if (char === "]") {
+      brackets -= 1;
+    } else if (char === "{") {
+      braces += 1;
+    } else if (char === "}") {
+      braces -= 1;
+    } else if (char === "," && parentheses === 0 && brackets === 0 && braces === 0) {
+      args.push(source.slice(start, index2).trim());
+      start = index2 + 1;
+    }
+  }
+  return null;
+}
+function phpStringLiteral(argument) {
+  const value = argument.trim();
+  if (!/^'(?:\\.|[^'\\])*'$|^"(?:\\.|[^"\\])*"$/s.test(value)) return null;
+  return value.slice(1, -1).replace(/\\(['"\\])/g, "$1");
+}
+function validateWordPressOrgPhp(slug, files) {
+  const failures = [];
+  const forbiddenUpdaterCode = /\b(?:site_transient_update_plugins|pre_set_site_transient_update_plugins|auto_update_plugin|plugins_api|upgrader_pre_download)\b|^\s*\*?\s*Update URI\s*:/im;
+  for (const [path8, source] of Object.entries(files).filter(([filePath2]) => filePath2.endsWith(".php"))) {
+    if (forbiddenUpdaterCode.test(source)) {
+      failures.push(`${path8}: remove custom update-checker hooks and Update URI headers from the directory edition`);
+    }
+    DIRECT_DATABASE_CALL.lastIndex = 0;
+    for (const match of source.matchAll(DIRECT_DATABASE_CALL)) {
+      const openParen = (match.index ?? 0) + match[0].lastIndexOf("(");
+      const query = splitPhpCallArguments(source, openParen)?.[0] || "";
+      const codeOutsideSingleQuotedStrings = query.replace(/'(?:\\.|[^'\\])*'/gs, "");
+      const hasDynamicSql = /\$[A-Za-z_][A-Za-z0-9_]*/.test(codeOutsideSingleQuotedStrings) || /%(?:[1-9]\d*\$)?[sdf]/.test(query);
+      if (hasDynamicSql && !/\$wpdb\s*->\s*prepare\s*\(/i.test(query)) {
+        const line = source.slice(0, match.index ?? 0).split("\n").length;
+        failures.push(`${path8}:${line}: wrap dynamic SQL in $wpdb->prepare() and use placeholders for values and identifiers`);
+      }
+    }
+    TRANSLATION_CALL.lastIndex = 0;
+    for (const match of source.matchAll(TRANSLATION_CALL)) {
+      const functionName = match[1];
+      const callIndex = match.index ?? 0;
+      const openParen = callIndex + match[0].lastIndexOf("(");
+      const args = splitPhpCallArguments(source, openParen);
+      const domainIndex = TRANSLATION_DOMAIN_ARGUMENT[functionName];
+      const domain = args?.[domainIndex] ? phpStringLiteral(args[domainIndex]) : null;
+      if (domain !== slug) {
+        failures.push(`${path8}: ${functionName}() must use the plugin text domain "${slug}"`);
+        continue;
+      }
+      const translatableStrings = [args?.[0], functionName === "_n" || functionName === "_nx" ? args?.[1] : null].filter((value) => Boolean(value)).map(phpStringLiteral).filter((value) => value !== null);
+      if (translatableStrings.some((value) => PHP_STRING_PLACEHOLDER.test(value))) {
+        const precedingLines = source.slice(0, callIndex).split(/\r?\n/).slice(-4).join("\n");
+        if (!/\btranslators:/i.test(precedingLines)) {
+          const line = source.slice(0, callIndex).split("\n").length;
+          failures.push(`${path8}:${line}: add a translators: comment explaining the placeholders`);
+        }
+      }
+    }
+  }
+  const rootEntries = Object.entries(files).filter(
+    ([path8, source]) => !path8.includes("/") && path8.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source)
+  );
+  if (rootEntries.length !== 1) {
+    failures.push("include exactly one root-level PHP plugin entry file");
+  } else if (!new RegExp(
+    `Text Domain:\\s*${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*(?:\\r?\\n|\\*/)`,
+    "i"
+  ).test(rootEntries[0][1])) {
+    failures.push(`the main plugin header must declare the "${slug}" text domain`);
+  }
+  if (failures.length) {
+    throw new Error(`The free core package failed WordPress.org release checks:
+- ${[...new Set(failures)].join("\n- ")}`);
+  }
 }
 function addCoreDependencyContract(source, project, edition) {
   if (edition === "paid") return source;
@@ -18889,8 +19025,9 @@ function normalizeGeneratedEdition(input, project, edition) {
     coreSlug
   });
   normalizedFiles[`${pluginSlug}.php`] = addCoreDependencyContract(normalizedMain, project, edition);
+  if (edition === "core") validateWordPressOrgPhp(pluginSlug, normalizedFiles);
   const strings = (value, maxItems, maxLength) => Array.isArray(value) ? value.map((item) => String(item).trim().slice(0, maxLength)).filter(Boolean).slice(0, maxItems) : [];
-  const shortDescription = String(candidate?.shortDescription || "").trim().slice(0, 180);
+  const shortDescription = String(candidate?.shortDescription || "").trim().slice(0, edition === "core" ? 150 : 180);
   const description = String(candidate?.description || "").trim().slice(0, 6e3);
   const features = strings(candidate?.features, 8, 180);
   const requirements = strings(candidate?.requirements, 8, 120);
@@ -18909,7 +19046,8 @@ function normalizeGeneratedEdition(input, project, edition) {
 function buildPluginReleaseFiles(project, edition, sourceFiles) {
   const folderSlug = edition === "premium" ? `${project.slug}-premium` : project.slug;
   const pluginName = edition === "premium" ? `${project.name} Premium` : edition === "core" ? project.corePluginName || `${project.name} Core` : project.name;
-  const shortDescription = edition === "core" ? project.coreShortDescription || `${project.name} free core plugin` : project.shortDescription || `${project.name} paid plugin`;
+  const rawShortDescription = edition === "core" ? project.coreShortDescription || `${project.name} free core plugin` : project.shortDescription || `${project.name} paid plugin`;
+  const shortDescription = cleanReadmeText(rawShortDescription).slice(0, edition === "core" ? 150 : 180);
   const description = edition === "core" ? project.coreDescription || project.description : project.description;
   const tags = (project.seoKeywords || "").split(",").map((tag) => tag.toLowerCase().replace(/[^a-z0-9 -]/g, "").trim().replace(/\s+/g, "-")).filter((tag) => tag.length > 1 && tag.length <= 30).slice(0, 5);
   const editionFeatures = edition === "core" ? project.coreFeatures || project.features : project.features;
@@ -19028,6 +19166,12 @@ This premium add-on is distributed through Taskdrip Shop. Customers must install
 
 Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
 `;
+  }
+  if (edition === "core") {
+    validateWordPressOrgPhp(project.slug, files);
+    if (!/^Tested up to:\s*\d+(?:\.\d+)?$/m.test(files["readme.txt"])) {
+      throw new Error("The free core readme must include a valid Tested up to version.");
+    }
   }
   if (edition !== "core") {
     const mainEntry = Object.entries(sourceFiles).find(([path8, source]) => !path8.includes("/") && path8.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
@@ -22028,7 +22172,12 @@ function buildCourseBridgeWordPressOrgEdition(project) {
   if (!main) {
     throw new Error("The CourseBridge source package is missing its main plugin file.");
   }
-  files[paid.mainFile] = main.replace("define('TDLPW_SINGLE_PAID_PLUGIN', true);\n", "");
+  const directoryDescription = "Connect WooCommerce products to LearnPress courses and enroll buyers after confirmed payment.";
+  const paidDescription = ` * Description: Licensed standalone plugin: ${project.name}.`;
+  if (!main.includes(paidDescription)) {
+    throw new Error("The CourseBridge source package is missing the expected paid-plugin description.");
+  }
+  files[paid.mainFile] = main.replace("define('TDLPW_SINGLE_PAID_PLUGIN', true);\n", "").replace(paidDescription, ` * Description: ${directoryDescription}`);
   files["includes/class-bridge.php"] = files["includes/class-bridge.php"].replaceAll("Taskdrip Course Bridge", "CourseBridge");
   const coreFeatures = [
     "Map WooCommerce products to one or more LearnPress courses.",
@@ -22043,13 +22192,13 @@ function buildCourseBridgeWordPressOrgEdition(project) {
   const release = buildPluginReleaseFiles({
     ...project,
     corePluginName: project.name,
-    coreShortDescription: "Connect WooCommerce products to LearnPress courses and enroll buyers after confirmed payment.",
+    coreShortDescription: directoryDescription,
     coreDescription: "CourseBridge connects WooCommerce products with LearnPress courses. When an order is confirmed as paid, the account-holding buyer is enrolled in the mapped course. Administrators can map products to multiple courses, assign existing users, manage optional access expiry, and review course access.\n\nStudents can open their courses from WooCommerce My Account or their LearnPress profile. The plugin also includes consent-based email campaigns. Checkout opt-in is applied only after successful payment; campaign sends re-check consent and include unsubscribe links. Email can be delivered with WordPress or an administrator-configured Resend account.",
     coreFeatures,
     features: coreFeatures,
     seoKeywords: "learnpress, woocommerce, course enrollment, lms, online courses",
     releaseNotes: "CourseBridge 2.4.0 adds a free, license-free WordPress.org submission package.",
-    testedUpTo: "7.0"
+    testedUpTo: "7.1"
   }, "core", files);
   return release;
 }
@@ -23315,7 +23464,11 @@ Build rules:
 - The premium entry file must declare the WordPress plugin dependency on the core slug "${slug}" and show a clear admin notice if that core is inactive. Use the stable public hooks/functions defined by the core; do not duplicate core implementation.
 - The core must define this stable version contract constant: TASKDRIP_${slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_CORE_VERSION. The premium add-on should use it to check that the core is loaded. The server will add a guarded core definition and a missing-core admin notice.
 - Both main files must begin with PHP and contain a standard WordPress plugin header comment including Plugin Name, Description, Version 1.0.0, Author ${author}, GPL-2.0-or-later License, and text domain. The server will normalize these headers.
-- Use PHP 7.4-compatible, namespaced or uniquely prefixed code, WordPress APIs, capability checks, nonce verification for state-changing actions, input validation/sanitization, escaped output, prepared database queries, and safe activation/uninstall behavior.
+- The WordPress.org core must use the exact slug "${slug}" as its text domain in every translation call. Add a translators: comment immediately before every translated string containing a printf placeholder.
+- Use PHP 7.4-compatible, namespaced or uniquely prefixed code, WordPress APIs, capability checks, nonce verification for state-changing actions, and input validation/sanitization. Escape output at the final HTML, attribute, URL, or JavaScript context; use $wpdb->prepare() for dynamic SQL, with %i identifiers and %s/%d values.
+- Never put a custom plugin updater, Update URI header, license gate, or code that changes WordPress update routines in the free core. WordPress.org handles core updates.
+- Keep all advertised features functional in the free core, use WordPress default libraries, and avoid direct SQL interpolation, unescaped output, unsolicited tracking, and public-site links that users have not approved.
+- The server creates the directory readme and its Tested up to field. Do not claim WordPress/PHP versions were tested; the administrator must verify the declared WordPress version on staging and run the current Plugin Check before submission.
 - No secrets, telemetry, hidden admin users, backdoors, remote executable code, licensing locks in the free core, or unrequested third-party dependencies. Do not claim tests, approvals, or compatibility that were not performed.
 - Return complete source code, not pseudocode. Keep each package to at most 12 PHP/CSS/JS source files and return no binary or image files. Do not include README or documentation files; the server creates release documentation.
 - Include 3\u20136 short, specific features per edition, and list accurate WordPress/PHP/plugin requirements. Each edition needs a useful description and a root-level main PHP file.`

@@ -887,7 +887,7 @@ export function buildCourseBridgeWordPressOrgEdition(project: Project) {
     features: coreFeatures,
     seoKeywords: "learnpress, woocommerce, course enrollment, lms, online courses",
     releaseNotes: "CourseBridge 2.4.0 adds a free, license-free WordPress.org submission package.",
-    testedUpTo: "7.0",
+    testedUpTo: "7.1",
   }, "core", files);
 
   return release;

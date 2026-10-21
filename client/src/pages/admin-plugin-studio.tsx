@@ -816,7 +816,7 @@ export default function AdminPluginStudio() {
           <Card className="border-amber-200 bg-amber-50/60">
             <CardHeader><CardTitle className="text-base">Test, list, and sell</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm leading-6 text-muted-foreground">
-              <p>Download the free CourseBridge core ZIP to prepare a WordPress.org submission. It includes a directory-format readme with a Tested up to header, GPL license notice, and no commercial license updater. Test it on a staging site and run the current WordPress Plugin Check before submitting.</p>
+              <p>Download the free CourseBridge core ZIP to prepare a WordPress.org submission. It includes a directory-format readme targeting WordPress 7.1, a GPL license notice, and no commercial license updater. Confirm compatibility with WordPress 7.1 on staging and run the current WordPress Plugin Check before submitting.</p>
               <p>WordPress.org reviews and approves submissions individually and manages its SVN release; downloading this candidate does not submit or guarantee approval. The separately distributed paid package remains for verified Taskdrip buyers.</p>
             </CardContent>
           </Card>

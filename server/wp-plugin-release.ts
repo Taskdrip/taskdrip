@@ -27,7 +27,9 @@ type ReleaseProject = {
   features?: string[] | null;
 };
 
-const DEFAULT_TESTED_UP_TO = "7.0";
+// WordPress.org readmes use a major.minor version; update this target only
+// after staging verification on that release.
+const DEFAULT_TESTED_UP_TO = "7.1";
 const MAX_FILES = 12;
 const MAX_FILE_CHARS = 37_000;
 const MAX_EDITION_CHARS = 132_000;
@@ -96,6 +98,156 @@ function coreVersionConstant(slug: string): string {
 function phpSingleQuoted(value: string): string {
   const safe = value.replace(/[\r\n\u0000]/g, " ").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
   return `'${safe}'`;
+}
+
+const TRANSLATION_DOMAIN_ARGUMENT: Record<string, number> = {
+  __: 1,
+  _e: 1,
+  _x: 2,
+  _ex: 2,
+  _n: 3,
+  _nx: 4,
+  _n_noop: 2,
+  _nx_noop: 3,
+  esc_html__: 1,
+  esc_attr__: 1,
+  esc_html_e: 1,
+  esc_attr_e: 1,
+  esc_html_x: 2,
+  esc_attr_x: 2,
+  translate: 1,
+};
+const TRANSLATION_CALL = new RegExp(
+  `\\b(${Object.keys(TRANSLATION_DOMAIN_ARGUMENT).sort((a, b) => b.length - a.length).join("|")})\\s*\\(`,
+  "g",
+);
+const DIRECT_DATABASE_CALL = /\$wpdb\s*->\s*(?:get_results|get_row|get_var|query)\s*\(/g;
+const PHP_STRING_PLACEHOLDER = /%(?:[1-9]\d*\$)?[bcdeEfFgGosuxX]/;
+
+function splitPhpCallArguments(source: string, openParen: number): string[] | null {
+  const args: string[] = [];
+  let start = openParen + 1;
+  let parentheses = 0;
+  let brackets = 0;
+  let braces = 0;
+  let quote = "";
+
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (quote) {
+      if (char === "\\") {
+        index += 1;
+      } else if (char === quote) {
+        quote = "";
+      }
+      continue;
+    }
+    if (char === "'" || char === '"' || char === "`") {
+      quote = char;
+    } else if (char === "/" && next === "*") {
+      const commentEnd = source.indexOf("*/", index + 2);
+      if (commentEnd < 0) return null;
+      index = commentEnd + 1;
+    } else if ((char === "/" && next === "/") || (char === "#" && next !== "[")) {
+      const newline = source.indexOf("\n", index + 1);
+      if (newline < 0) return null;
+      index = newline;
+    } else if (char === "(") {
+      parentheses += 1;
+    } else if (char === ")") {
+      if (parentheses === 0 && brackets === 0 && braces === 0) {
+        const finalArg = source.slice(start, index).trim();
+        if (finalArg || args.length) args.push(finalArg);
+        return args;
+      }
+      parentheses -= 1;
+    } else if (char === "[") {
+      brackets += 1;
+    } else if (char === "]") {
+      brackets -= 1;
+    } else if (char === "{") {
+      braces += 1;
+    } else if (char === "}") {
+      braces -= 1;
+    } else if (char === "," && parentheses === 0 && brackets === 0 && braces === 0) {
+      args.push(source.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  return null;
+}
+
+function phpStringLiteral(argument: string): string | null {
+  const value = argument.trim();
+  if (!/^'(?:\\.|[^'\\])*'$|^"(?:\\.|[^"\\])*"$/s.test(value)) return null;
+  return value.slice(1, -1).replace(/\\(['"\\])/g, "$1");
+}
+
+function validateWordPressOrgPhp(slug: string, files: Record<string, string>): void {
+  const failures: string[] = [];
+  const forbiddenUpdaterCode =
+    /\b(?:site_transient_update_plugins|pre_set_site_transient_update_plugins|auto_update_plugin|plugins_api|upgrader_pre_download)\b|^\s*\*?\s*Update URI\s*:/im;
+
+  for (const [path, source] of Object.entries(files).filter(([filePath]) => filePath.endsWith(".php"))) {
+    if (forbiddenUpdaterCode.test(source)) {
+      failures.push(`${path}: remove custom update-checker hooks and Update URI headers from the directory edition`);
+    }
+    DIRECT_DATABASE_CALL.lastIndex = 0;
+    for (const match of source.matchAll(DIRECT_DATABASE_CALL)) {
+      const openParen = (match.index ?? 0) + match[0].lastIndexOf("(");
+      const query = splitPhpCallArguments(source, openParen)?.[0] || "";
+      const codeOutsideSingleQuotedStrings = query.replace(/'(?:\\.|[^'\\])*'/gs, "");
+      const hasDynamicSql =
+        /\$[A-Za-z_][A-Za-z0-9_]*/.test(codeOutsideSingleQuotedStrings) ||
+        /%(?:[1-9]\d*\$)?[sdf]/.test(query);
+      if (hasDynamicSql && !/\$wpdb\s*->\s*prepare\s*\(/i.test(query)) {
+        const line = source.slice(0, match.index ?? 0).split("\n").length;
+        failures.push(`${path}:${line}: wrap dynamic SQL in $wpdb->prepare() and use placeholders for values and identifiers`);
+      }
+    }
+    TRANSLATION_CALL.lastIndex = 0;
+    for (const match of source.matchAll(TRANSLATION_CALL)) {
+      const functionName = match[1];
+      const callIndex = match.index ?? 0;
+      const openParen = callIndex + match[0].lastIndexOf("(");
+      const args = splitPhpCallArguments(source, openParen);
+      const domainIndex = TRANSLATION_DOMAIN_ARGUMENT[functionName];
+      const domain = args?.[domainIndex] ? phpStringLiteral(args[domainIndex]) : null;
+      if (domain !== slug) {
+        failures.push(`${path}: ${functionName}() must use the plugin text domain "${slug}"`);
+        continue;
+      }
+
+      const translatableStrings = [args?.[0], functionName === "_n" || functionName === "_nx" ? args?.[1] : null]
+        .filter((value): value is string => Boolean(value))
+        .map(phpStringLiteral)
+        .filter((value): value is string => value !== null);
+      if (translatableStrings.some((value) => PHP_STRING_PLACEHOLDER.test(value))) {
+        const precedingLines = source.slice(0, callIndex).split(/\r?\n/).slice(-4).join("\n");
+        if (!/\btranslators:/i.test(precedingLines)) {
+          const line = source.slice(0, callIndex).split("\n").length;
+          failures.push(`${path}:${line}: add a translators: comment explaining the placeholders`);
+        }
+      }
+    }
+  }
+
+  const rootEntries = Object.entries(files).filter(([path, source]) =>
+    !path.includes("/") && path.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source),
+  );
+  if (rootEntries.length !== 1) {
+    failures.push("include exactly one root-level PHP plugin entry file");
+  } else if (!new RegExp(
+    `Text Domain:\\s*${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*(?:\\r?\\n|\\*/)`,
+    "i",
+  ).test(rootEntries[0][1])) {
+    failures.push(`the main plugin header must declare the "${slug}" text domain`);
+  }
+
+  if (failures.length) {
+    throw new Error(`The free core package failed WordPress.org release checks:\n- ${[...new Set(failures)].join("\n- ")}`);
+  }
 }
 
 function addCoreDependencyContract(
@@ -210,12 +362,13 @@ export function normalizeGeneratedEdition(
     coreSlug,
   });
   normalizedFiles[`${pluginSlug}.php`] = addCoreDependencyContract(normalizedMain, project, edition);
+  if (edition === "core") validateWordPressOrgPhp(pluginSlug, normalizedFiles);
 
   const strings = (value: unknown, maxItems: number, maxLength: number) =>
     Array.isArray(value)
       ? value.map((item) => String(item).trim().slice(0, maxLength)).filter(Boolean).slice(0, maxItems)
       : [];
-  const shortDescription = String(candidate?.shortDescription || "").trim().slice(0, 180);
+  const shortDescription = String(candidate?.shortDescription || "").trim().slice(0, edition === "core" ? 150 : 180);
   const description = String(candidate?.description || "").trim().slice(0, 6_000);
   const features = strings(candidate?.features, 8, 180);
   const requirements = strings(candidate?.requirements, 8, 120);
@@ -241,9 +394,10 @@ export function buildPluginReleaseFiles(
   const pluginName = edition === "premium"
     ? `${project.name} Premium`
     : edition === "core" ? project.corePluginName || `${project.name} Core` : project.name;
-  const shortDescription = edition === "core"
+  const rawShortDescription = edition === "core"
     ? project.coreShortDescription || `${project.name} free core plugin`
     : project.shortDescription || `${project.name} paid plugin`;
+  const shortDescription = cleanReadmeText(rawShortDescription).slice(0, edition === "core" ? 150 : 180);
   const description = edition === "core" ? project.coreDescription || project.description : project.description;
   const tags = (project.seoKeywords || "")
     .split(",")
@@ -378,6 +532,12 @@ This premium add-on is distributed through Taskdrip Shop. Customers must install
 
 Review licensing, generated source, WordPress compatibility, security, and the included staging test checklist before publishing this product.
 `;
+  }
+  if (edition === "core") {
+    validateWordPressOrgPhp(project.slug, files);
+    if (!/^Tested up to:\s*\d+(?:\.\d+)?$/m.test(files["readme.txt"])) {
+      throw new Error("The free core readme must include a valid Tested up to version.");
+    }
   }
   if (edition !== "core") {
     const mainEntry = Object.entries(sourceFiles).find(([path, source]) =>

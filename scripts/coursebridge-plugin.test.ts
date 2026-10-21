@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { buildCourseBridgePaidEdition, buildCourseBridgeWordPressOrgEdition } from "../server/coursebridge-plugin";
-import { buildPluginReleaseFiles } from "../server/wp-plugin-release";
+import { buildPluginReleaseFiles, normalizeGeneratedEdition } from "../server/wp-plugin-release";
 import { buildPluginLicensePlans, PLUGIN_LICENSE_PLAN_OPTIONS } from "../shared/plugin-plan-utils";
 
 const project = {
@@ -209,7 +209,7 @@ test("CourseBridge WordPress.org candidate has directory metadata and no commerc
 
   assert.equal(release.folderSlug, project.slug);
   assert.match(readme, /^=== CourseBridge LearnpressWOO Connector ===/);
-  assert.match(readme, /^Tested up to: 7\.0$/m);
+  assert.match(readme, /^Tested up to: 7\.1$/m);
   assert.match(readme, /^Stable tag: 2\.4\.0$/m);
   assert.match(readme, /^License: GPLv2 or later$/m);
   const shortDescription = readme.match(/^License URI:.*\n\n([^\n]+)$/m)?.[1];
@@ -277,4 +277,38 @@ test("Admin-issued licenses allow a null purchase in both migration paths", () =
   );
   assert.match(startupMigrations, /ALTER TABLE IF EXISTS "plugin_licenses" ALTER COLUMN "purchase_id" DROP NOT NULL/);
   assert.match(licenseMigration, /ALTER COLUMN purchase_id DROP NOT NULL/);
+});
+
+test("future WordPress.org core builds reject updater hooks, mismatched domains, and undocumented placeholders", () => {
+  const generated = (body: string) => ({
+    mainFile: "sample-plugin.php",
+    shortDescription: "Connect sample courses to paid products.",
+    description: "A free plugin for connecting products with courses.",
+    features: ["Map products to courses."],
+    requirements: ["WordPress 6.2+"],
+    files: {
+      "sample-plugin.php": `<?php\n/**\n * Plugin Name: Sample Plugin\n * Text Domain: sample-plugin\n */\n${body}\n`,
+    },
+  });
+  const project = { slug: "sample-plugin", name: "Sample Plugin", version: "1.0.0", author: "Example" };
+
+  assert.doesNotThrow(() =>
+    normalizeGeneratedEdition(generated("echo esc_html__('Ready', 'sample-plugin');"), project, "core"),
+  );
+  assert.throws(
+    () => normalizeGeneratedEdition(generated("add_filter('site_transient_update_plugins', 'sample_update');"), project, "core"),
+    /custom update-checker hooks/,
+  );
+  assert.throws(
+    () => normalizeGeneratedEdition(generated("$wpdb->get_row($table . ' WHERE user_id = %d');"), project, "core"),
+    /wrap dynamic SQL in \$wpdb->prepare/,
+  );
+  assert.throws(
+    () => normalizeGeneratedEdition(generated("echo esc_html__('Ready', 'wrong-domain');"), project, "core"),
+    /must use the plugin text domain/,
+  );
+  assert.throws(
+    () => normalizeGeneratedEdition(generated("echo esc_html__('Saved for %s', 'sample-plugin');"), project, "core"),
+    /translators: comment/,
+  );
 });
