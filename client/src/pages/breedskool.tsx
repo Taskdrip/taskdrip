@@ -1241,10 +1241,19 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+function getActiveCourseSalePrice(course: any): string | null {
+  const price = Number(course.price);
+  const salePrice = Number(course.salePrice);
+  if (!course.saleDeadline || !Number.isFinite(price) || !Number.isFinite(salePrice)) return null;
+  if (new Date(course.saleDeadline).getTime() <= Date.now() || salePrice >= price) return null;
+  return salePrice.toFixed(2);
+}
+
 function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
   const gradient = CATEGORY_GRADIENTS[course.category] || "from-violet-500 to-indigo-600";
   const fallbackImg = CATEGORY_FALLBACK_IMAGES[course.category] || CATEGORY_FALLBACK_IMAGES.general;
   const rating = parseFloat(course.averageRating || "0");
+  const salePrice = getActiveCourseSalePrice(course);
   const [, navigate] = useLocation();
 
   return (
@@ -1254,7 +1263,12 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
           <img src={course.thumbnail || fallbackImg} alt={course.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { (e.target as HTMLImageElement).src = fallbackImg; }} />
           <div className={`absolute inset-0 bg-gradient-to-t ${gradient} opacity-20`} />
           <div className="absolute top-3 left-3 flex gap-2">
-            {course.isFree ? <Badge className="bg-green-500 text-white text-xs font-bold shadow-lg">FREE</Badge> : <Badge className="bg-white text-gray-900 text-xs font-bold shadow-lg">${course.price}</Badge>}
+            {course.isFree ? <Badge className="bg-green-500 text-white text-xs font-bold shadow-lg">FREE</Badge> : (
+              <Badge className={`${salePrice ? "bg-orange-500 text-white" : "bg-white text-gray-900"} text-xs font-bold shadow-lg`}>
+                {salePrice ? <>${salePrice} <span className="ml-1 line-through opacity-75">${Number(course.price).toFixed(2)}</span></> : `$${course.price}`}
+              </Badge>
+            )}
+            {salePrice && <Badge className="bg-red-600 text-white text-xs font-bold shadow-lg">Launch offer</Badge>}
             {course.isFeatured && <Badge className="bg-violet-600 text-white text-xs font-bold shadow-lg">⭐ Featured</Badge>}
           </div>
           {enrolled && <div className="absolute top-3 right-3"><div className="bg-green-500 rounded-full p-1"><CheckCircle2 className="h-4 w-4 text-white" /></div></div>}
@@ -1313,6 +1327,7 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
   const gradient = CATEGORY_GRADIENTS[course.category] || "from-violet-500 to-indigo-600";
   const fallbackImg = CATEGORY_FALLBACK_IMAGES[course.category] || CATEGORY_FALLBACK_IMAGES.general;
   const enrolled = enrolledIds.has(course.id);
+  const salePrice = getActiveCourseSalePrice(course);
   const [, navigate] = useLocation();
 
   return (
@@ -1327,7 +1342,12 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
         <div className={`relative p-8 md:p-12 min-h-[260px] flex flex-col justify-end transition-opacity duration-300 ${fading ? "opacity-0" : "opacity-100"}`}>
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Badge className="bg-yellow-400 text-yellow-900 font-bold text-xs px-3 py-1">⭐ Spotlight Course</Badge>
-            {course.isFree ? <Badge className="bg-green-500 text-white text-xs font-bold">FREE</Badge> : <Badge className="bg-white/20 text-white border border-white/30 text-xs">${course.price}</Badge>}
+            {course.isFree ? <Badge className="bg-green-500 text-white text-xs font-bold">FREE</Badge> : (
+              <Badge className={`${salePrice ? "bg-orange-500 text-white" : "bg-white/20 text-white border border-white/30"} text-xs font-bold`}>
+                {salePrice ? <>${salePrice} <span className="ml-1 line-through opacity-75">${Number(course.price).toFixed(2)}</span></> : `$${course.price}`}
+              </Badge>
+            )}
+            {salePrice && <Badge className="bg-red-600 text-white text-xs font-bold">Launch offer ends Nov 9</Badge>}
             {enrolled && <Badge className="bg-emerald-500 text-white text-xs font-bold">✓ Enrolled</Badge>}
           </div>
           <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-1 max-w-2xl leading-tight">{course.title}</h2>

@@ -72,9 +72,8 @@ function AnimatedPromoNote({ deadline }: { deadline: string | null }) {
         className="text-xs sm:text-sm font-medium text-orange-800 transition-opacity duration-700 break-words overflow-hidden min-w-0 flex-1"
         style={{ opacity: visible ? 1 : 0.35 }}
       >
-        🎉 You're enjoying access to this course at the{" "}
-        <span className="font-bold text-red-600">promo price</span> for the month of{" "}
-        <span className="font-bold text-orange-600">{month} {year}</span> — don't miss it!
+        🎉 Limited-time launch price through{" "}
+        <span className="font-bold text-orange-600">{deadlineDate?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) || `${month} ${year}`}</span>.
       </p>
     </div>
   );
@@ -117,16 +116,16 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
               <Zap className="h-3 w-3" /> {Math.round((savings / parseFloat(course.price)) * 100)}% OFF
             </span>
             <span className="bg-orange-50 text-orange-700 text-xs font-semibold px-3 py-1 rounded-full border border-orange-200">
-              You save ${savings.toFixed(0)} USDT
+              You save ${savings.toFixed(2)}
             </span>
           </div>
 
           {/* Pricing row */}
           <div className="flex items-baseline gap-2 flex-wrap mb-1">
             <span className="text-3xl sm:text-4xl font-extrabold text-gray-900" style={{ letterSpacing: "-0.03em" }}>
-              ${salePrice.toFixed(0)}
+              ${salePrice.toFixed(2)}
             </span>
-            <span className="text-base text-gray-400 line-through">${parseFloat(course.price).toFixed(0)} USDT</span>
+            <span className="text-base text-gray-400 line-through">${parseFloat(course.price).toFixed(2)}</span>
             <span className="text-xs text-gray-400 font-medium">original price</span>
           </div>
 
@@ -172,7 +171,7 @@ function PromoCountdownBanner({ course, onEnroll, isEnrolled, isPending }: {
                 style={{ background: "linear-gradient(90deg,#f97316,#ef4444)", boxShadow: "0 8px 24px rgba(249,115,22,0.35)" }}
               >
                 <Zap className="h-5 w-5" />
-                Enroll at Promo Price — ${salePrice.toFixed(0)} USDT
+                Enroll at Promo Price — ${salePrice.toFixed(2)}
                 <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">Ends {deadlineStr}</span>
               </button>
             )}

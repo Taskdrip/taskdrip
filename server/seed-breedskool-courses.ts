@@ -4,6 +4,110 @@ import { eq, sql } from "drizzle-orm";
 
 const BREEDSKOOL_PLATFORM_COURSES = [
   {
+    courseKey: "money_2027",
+    title: "The Easiest Online Money Strategy in 2027",
+    description: "A practical, beginner-friendly affiliate publishing course. Build a simple website or free blog, choose products to promote, create useful short videos and search-focused articles, and understand the basics of website advertising. Includes step-by-step lessons, tool recommendations, a learner community, and a realistic launch plan. Results depend on your work, audience, platform approvals, and market conditions; income is not guaranteed.",
+    shortDescription: "Build a useful product-content site with affiliate links, short videos, organic search, and website ad monetization.",
+    category: "monetization",
+    level: "beginner",
+    duration: "Self-paced · 11 lessons",
+    price: "47.00",
+    salePrice: "14.99",
+    saleDeadline: new Date("2026-11-09T23:59:59+01:00"),
+    thumbnail: "/images/online-money-strategy-2027.png",
+    tags: ["breedskool_money_2027", "affiliate marketing", "content publishing", "website monetization", "breedskool"],
+    whatYouLearn: [
+      "Choose a focused product niche and check demand before investing",
+      "Plan a professional website or a free Blogger site",
+      "Set up affiliate links and disclose them clearly",
+      "Create original short-form product videos with a repeatable workflow",
+      "Write useful, search-focused articles that help readers make decisions",
+      "Understand AdSense and Adsterra eligibility, setup, and policy basics",
+      "Track clicks and content performance without relying on vanity metrics",
+      "Build a practical 30-day publishing plan and get peer feedback",
+    ],
+    requirements: [
+      "A phone or computer and an internet connection",
+      "A topic you are willing to research and publish about consistently",
+      "No prior website, video-editing, or marketing experience required",
+      "Affiliate and advertising account approval is subject to each provider's rules",
+    ],
+    syllabus: [
+      { week: "Start here", topic: "The model, expectations, and your first project" },
+      { week: "Build", topic: "Niche research, website setup, and product selection" },
+      { week: "Publish", topic: "Affiliate links, short videos, and SEO articles" },
+      { week: "Monetize", topic: "AdSense, Adsterra, measurement, and the 30-day plan" },
+    ],
+    lessons: [
+      {
+        title: "Welcome — The Content-to-Commerce Model",
+        content: "Welcome. This course walks through one connected workflow: publish helpful content about a focused topic, introduce relevant products with properly disclosed affiliate links, and build an audience over time. You will create small assets as you go rather than wait until everything is perfect.\n\nImportant expectations: affiliate commissions and ad revenue are not guaranteed. Traffic takes time, platforms can change their rules, and some programs require approval or minimum thresholds. Start with a low-cost setup, verify current terms directly with each provider, and never buy inventory or promise results based on this course.\n\nYour first task: write down three topics you know or are curious about, the kind of reader you want to help, and one real problem that reader has.",
+        isPreview: true,
+        order: 1,
+      },
+      {
+        title: "Choose a Niche and Validate Real Reader Demand",
+        content: "A niche is a specific audience and the questions they repeatedly ask—not simply a list of products. Start with a subject you can research responsibly, then narrow it to a reader and use case (for example, practical home-office gear for students).\n\nResearch workflow:\n1. List 10 questions people ask before choosing products in the topic.\n2. Look at search suggestions, community discussions, review questions, and trend tools for recurring needs.\n3. Compare existing results. Note what is missing: clear comparisons, local context, sizing details, setup instructions, or honest limitations.\n4. Check whether relevant products have an affiliate program and whether the economics and delivery regions make sense.\n5. Pick a small first content cluster: one overview, two comparisons, and three focused product guides.\n\nUse Google Trends, search autocomplete, AnswerThePublic's free features, Reddit, and a simple spreadsheet as research aids. Treat tool estimates as clues, not proof. Assignment: write a one-sentence audience statement and collect five reader questions you can answer with original research.",
+        isPreview: false,
+        order: 2,
+      },
+      {
+        title: "Set Up Your Home Base — Website or Free Blog",
+        content: "Choose the simplest publishing home that fits your budget and goals. A free Blogger site can help you practise publishing; a self-hosted WordPress site gives you more control over design, plugins, analytics, and monetization but requires hosting and routine maintenance. Neither option guarantees traffic or ad approval.\n\nProfessional setup checklist:\n• Choose a short, readable name that does not imitate a brand or imply official endorsement.\n• Use a clear logo or text wordmark, consistent colors, and a mobile-friendly layout.\n• Create About, Contact, Privacy Policy, and affiliate disclosure pages. Keep them accurate and easy to find.\n• Organize content into a few useful categories and make navigation obvious.\n• Set up a domain you control when practical; use HTTPS and keep login credentials private.\n• Test the site on a phone and remove broken links, copied content, and intrusive pop-ups.\n\nTools to explore: Blogger for a hosted free start; WordPress.org with a reputable host for more control; Canva for simple graphics; Google Search Console for search visibility. Assignment: publish a one-page site map and draft your About page.",
+        isPreview: false,
+        order: 3,
+      },
+      {
+        title: "Product Research and Affiliate Link Foundations",
+        content: "Promote products only when you can explain who they suit, what they do well, and where they fall short. Read current listing details, compare alternatives, check shipping and return information for your target market, and do not claim you personally tested an item unless you actually did.\n\nAn affiliate link may earn you a commission if a reader buys. Apply to the program, read its current terms, and use its approved link generator. Do not cloak links in ways the program forbids, place links in prohibited channels, or click your own links to create activity. Put a plain-language disclosure near recommendations, such as: “Some links may be affiliate links. If you buy through them, I may earn a commission at no extra cost to you.” Also follow the rules where you live and the program's rules.\n\nFor this course exercise, the button below opens the AliExpress registration link supplied by the instructor. Registration does not guarantee acceptance into any affiliate program; apply separately through the current official affiliate portal and verify eligibility and terms.",
+        isPreview: false,
+        order: 4,
+      },
+      {
+        title: "Build Helpful Product Pages That Earn Reader Trust",
+        content: "A product page should help a reader decide—not just repeat a seller's description. Start with the reader's question and answer it directly. Explain who the product may suit, important specifications, practical strengths and limitations, and what to compare before buying.\n\nA useful page structure:\n1. Descriptive title that matches the reader's intent.\n2. A short summary and clear disclosure before affiliate recommendations.\n3. The evaluation criteria you used and what you could not verify.\n4. A comparison table with accurate, dated details and links to sources.\n5. Pros, limitations, alternatives, and answers to common questions.\n6. A clear next step using a button whose label describes where it goes.\n\nUse your own words and only images you have permission to publish. Check links and product facts regularly; availability and prices change. Assignment: outline one honest comparison article and identify the sources you will verify before publishing.",
+        isPreview: false,
+        order: 5,
+      },
+      {
+        title: "Short-Form Product Videos — Plan, Film, Edit, Publish",
+        content: "Short videos can introduce a topic and send interested viewers to a relevant guide, but virality is unpredictable. Focus on a useful promise you can actually deliver, then show a clear example. Do not use misleading earnings claims, fake scarcity, copied clips, or a product demo you did not record.\n\nA repeatable 20–40 second structure:\n• Hook: name a specific problem or question in the first seconds.\n• Demonstration: show a detail, comparison, setup step, or limitation.\n• Context: explain who might find it useful and what to check before buying.\n• Call to action: invite viewers to read the full guide or comparison.\n\nUse a phone camera, natural light, clean audio, and readable captions. CapCut or your platform's editor can trim pauses, add captions, and resize a vertical clip. Make a few variations from your own footage, follow music and platform licensing rules, and review retention and click-through trends rather than chasing views alone. Assignment: draft three distinct hooks for one product question.",
+        isPreview: false,
+        order: 6,
+      },
+      {
+        title: "Write Search-Friendly Articles That Help People",
+        content: "Search visibility grows from useful, original answers—not keyword repetition or mass-produced filler. Choose one clear question for each page and answer it early. Research the topic, verify claims with reliable sources, and add firsthand experience only when it is true.\n\nArticle workflow:\n1. Check the search results and related questions to understand intent.\n2. Choose a specific title and write a concise outline with descriptive headings.\n3. Cover the decision criteria, alternatives, limitations, and follow-up questions.\n4. Add original examples, diagrams, photos, or comparison data where possible.\n5. Link to related guides and trusted sources; use descriptive link text.\n6. Add a natural meta description, compress images, and check mobile readability.\n7. Publish, request indexing in Search Console if appropriate, and update the page when facts change.\n\nAvoid copied or lightly rewritten seller text, fabricated product tests, hidden links, and guarantees of ranking. Assignment: publish or draft one complete article that answers one real reader question.",
+        isPreview: false,
+        order: 7,
+      },
+      {
+        title: "Website Monetization with Google AdSense",
+        content: "AdSense is an advertising program, not an automatic payout button. Google reviews sites and accounts, applies eligibility and policy rules, and can limit or withhold ads when traffic or content violates its requirements. Check the current official AdSense policies and eligibility requirements before applying because they can change.\n\nPrepare responsibly:\n• Publish a useful body of original content and make navigation work.\n• Provide accurate About, Contact, and Privacy pages and disclose affiliate relationships.\n• Avoid prohibited content, copied pages, deceptive controls, and purchased or incentivized traffic.\n• Apply using your real site and account information; do not click your own ads or ask others to do so.\n• After approval, place ads so they do not obscure content or trick users into clicks.\n• Review reports and policy alerts; low-quality or invalid traffic can jeopardize the account.\n\nTreat revenue estimates as uncertain and focus first on reader value and consistent publishing. Assignment: create a pre-application checklist from the current official AdSense documentation.",
+        isPreview: false,
+        order: 8,
+      },
+      {
+        title: "Adsterra Setup, Ad Placements, and Policy Checks",
+        content: "Adsterra is another advertising network to evaluate for your site. Read its current publisher terms, supported traffic and content rules, payment conditions, and available ad formats before signing up. Network approval and earnings are not guaranteed, and intrusive ads can reduce trust or violate platform expectations.\n\nStart conservatively: verify your domain, add only the placements you understand, test the site on mobile, and make close or navigation controls clear. Watch for unwanted redirects, poor user experience, or formats that conflict with other networks. If anything looks unsafe or misleads visitors, remove the placement and contact provider support.\n\nThe button below uses the instructor's referral invitation. It opens the Adsterra publisher registration page in a new tab. Referral disclosure: the instructor may receive a referral benefit if you register through this link; your application and terms are controlled by Adsterra. Assignment: compare the current publisher rules with your site plan before applying.",
+        isPreview: false,
+        order: 9,
+      },
+      {
+        title: "Measure Clicks, Traffic, and What to Improve",
+        content: "Use measurement to make better publishing decisions, not to declare success from one viral post. Set up Google Search Console to monitor queries, impressions, clicks, and indexing. If you use an analytics tool, configure it in line with privacy and consent requirements that apply to your audience.\n\nTrack a small set of signals weekly:\n• Which pages are published, updated, and indexed?\n• Which queries bring impressions and clicks, and do the pages answer them?\n• Which video topics lead people to the site?\n• Are affiliate link clicks relevant and allowed under the program's rules?\n• Do visitors find the page useful, or do they leave because key details are missing?\n\nMake one change at a time, annotate what changed, and give search content time to be discovered. Never send fake clicks, buy traffic that violates provider rules, or expose personal information in tracking reports. Assignment: build a simple weekly scorecard with a baseline and one improvement hypothesis.",
+        isPreview: false,
+        order: 10,
+      },
+      {
+        title: "Your 30-Day Publishing Plan and Community Capstone",
+        content: "Turn the lessons into a modest plan you can sustain. The goal for this month is to publish and learn—not to promise a particular income result.\n\nWeek 1: choose one audience, validate questions, select a site format, and draft your disclosure and About page.\nWeek 2: publish a useful starter guide and one product comparison after verifying facts and affiliate terms.\nWeek 3: make and publish three original short videos that point to relevant guides; note which questions viewers raise.\nWeek 4: improve one article, review Search Console or analytics, and prepare the next four topics based on actual reader questions.\n\nCommunity capstone: share your audience statement, one draft or live page, one video concept, your disclosure, and the metric you will watch next. Ask a focused question and give constructive feedback to another learner. Use the course community to request feedback and clarify lesson topics. Keep your plans compliant with platform rules, protect account access, and remember that traffic, approvals, and income vary widely.",
+        isPreview: false,
+        order: 11,
+      },
+    ],
+  },
+  {
     courseKey: "webdev",
     title: "Web Development & Vibe Coding",
     description: "Build modern websites, web apps, and vibe-coded digital products from scratch. Master HTML, CSS, JavaScript, React, Node.js, and deployment in this 8-week intensive bootcamp. Collaborate with fellow students in group chat and get private support from your tutor.",
@@ -360,7 +464,30 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
 
       if (existing.length > 0) {
         courseId = existing[0].id;
-        if (course.courseKey === "free_foundations") {
+        if (course.courseKey === "money_2027") {
+          await db.update(courses)
+            .set({
+              title: course.title,
+              description: course.description,
+              shortDescription: course.shortDescription,
+              category: course.category,
+              thumbnail: (course as any).thumbnail,
+              price: course.price,
+              salePrice: (course as any).salePrice,
+              saleDeadline: (course as any).saleDeadline,
+              isFree: false,
+              isPublished: true,
+              status: "published",
+              isFeatured: true,
+              level: course.level,
+              duration: course.duration,
+              tags: course.tags,
+              whatYouLearn: course.whatYouLearn,
+              requirements: course.requirements,
+              syllabus: course.syllabus as any,
+            } as any)
+            .where(eq(courses.id, courseId));
+        } else if (course.courseKey === "free_foundations") {
           await db.update(courses)
             .set({
               title: course.title,
@@ -382,14 +509,17 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
           description: course.description,
           shortDescription: course.shortDescription,
           category: course.category,
+          thumbnail: (course as any).thumbnail,
           instructorId: adminId,
           price: course.price,
+          salePrice: (course as any).salePrice,
+          saleDeadline: (course as any).saleDeadline,
           isFree: course.courseKey === "free_foundations",
           level: course.level as any,
           duration: course.duration,
           status: "published",
           isPublished: true,
-          isFeatured: false,
+          isFeatured: course.courseKey === "money_2027",
           tags: course.tags,
           whatYouLearn: course.whatYouLearn,
           requirements: course.requirements,
@@ -419,9 +549,8 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
         await db.execute(
           sql`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
-      } else if (course.courseKey === "free_foundations" && course.lessons?.length) {
-        // The free foundations course is part of the public campaign promise.
-        // Keep its seeded curriculum in sync while leaving admin-authored
+      } else if ((course.courseKey === "free_foundations" || course.courseKey === "money_2027") && course.lessons?.length) {
+        // Keep these platform-owned curricula in sync while leaving admin-authored
         // lessons for every other BreedSkool course untouched.
         for (const lesson of course.lessons) {
           const existingLesson = existingLessons.find((item) => item.order === lesson.order);

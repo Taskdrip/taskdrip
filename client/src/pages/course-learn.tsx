@@ -18,7 +18,7 @@ import {
   Lock, Send, MessageSquare, MessagesSquare, Trophy, FileText, Download,
   Sparkles, PartyPopper, Award, Loader2, File as FileIcon,
   UploadCloud, UserPlus, UserCheck, Reply, X, ClipboardList, CheckCircle,
-  Clock, AlertCircle,
+  Clock, AlertCircle, ExternalLink,
 } from "lucide-react";
 
 type Lesson = {
@@ -135,6 +135,7 @@ export default function CourseLearn() {
   }, [sortedLessons, lessonId]);
 
   const current = currentIdx >= 0 ? sortedLessons[currentIdx] : null;
+  const isOnlineMoneyCourse = Array.isArray(course?.tags) && course.tags.includes("breedskool_money_2027");
 
   const isApproved = enrollment && (enrollment.status === "active" || enrollment.isPaid || course?.isFree);
 
@@ -509,6 +510,38 @@ export default function CourseLearn() {
                     {current.content && (
                       <div className="prose prose-sm max-w-none mt-4 text-gray-700 whitespace-pre-wrap">
                         {current.content}
+                      </div>
+                    )}
+
+                    {isOnlineMoneyCourse && current.order === 4 && (
+                      <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50 p-4">
+                        <a
+                          href="https://s.click.aliexpress.com/e/_c33fHyNF"
+                          target="_blank"
+                          rel="sponsored nofollow noopener noreferrer"
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
+                        >
+                          Create an AliExpress account <ExternalLink className="h-4 w-4" />
+                        </a>
+                        <p className="mt-2 text-xs leading-relaxed text-sky-900/75">
+                          Instructor-provided registration link. The course creator may receive a referral benefit if you use it.
+                        </p>
+                      </div>
+                    )}
+
+                    {isOnlineMoneyCourse && current.order === 9 && (
+                      <div className="mt-5 rounded-xl border border-violet-100 bg-violet-50 p-4">
+                        <a
+                          href="https://beta.publishers.adsterra.com/referral/Z6Uk6tKDhX"
+                          target="_blank"
+                          rel="sponsored nofollow noopener noreferrer"
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700 focus-visible:ring-offset-2"
+                        >
+                          Join Adsterra as a publisher <ExternalLink className="h-4 w-4" />
+                        </a>
+                        <p className="mt-2 text-xs leading-relaxed text-violet-900/75">
+                          Instructor referral link. The course creator may receive a referral benefit; Adsterra controls eligibility and account terms.
+                        </p>
                       </div>
                     )}
 
