@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SeoHead } from "@/components/SeoHead";
+import { slugifyCourseTitle } from "@shared/course-slug";
 import {
   BookOpen, Users, Star, Clock, Play, Search, TrendingUp, Zap,
   Instagram, Youtube, DollarSign, Award, ChevronRight, ChevronLeft, CheckCircle2,
@@ -1255,9 +1256,10 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
   const rating = parseFloat(course.averageRating || "0");
   const salePrice = getActiveCourseSalePrice(course);
   const [, navigate] = useLocation();
+  const courseUrl = `/breedskool/${slugifyCourseTitle(course.title || course.id)}`;
 
   return (
-    <div onClick={() => navigate(`/breedskool/${course.id}`)} role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate(`/breedskool/${course.id}`)}>
+    <div onClick={() => navigate(courseUrl)} role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate(courseUrl)}>
       <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer h-full flex flex-col">
         <div className="relative overflow-hidden">
           <img src={course.thumbnail || fallbackImg} alt={course.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { (e.target as HTMLImageElement).src = fallbackImg; }} />
@@ -1270,6 +1272,7 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
             )}
             {salePrice && <Badge className="bg-red-600 text-white text-xs font-bold shadow-lg">Launch offer</Badge>}
             {course.isFeatured && <Badge className="bg-violet-600 text-white text-xs font-bold shadow-lg">⭐ Featured</Badge>}
+            {Array.isArray(course.tags) && course.tags.includes("bestseller") && <Badge className="bg-amber-300 text-amber-950 text-xs font-bold shadow-lg">Bestseller</Badge>}
           </div>
           {enrolled && <div className="absolute top-3 right-3"><div className="bg-green-500 rounded-full p-1"><CheckCircle2 className="h-4 w-4 text-white" /></div></div>}
           <div className="absolute bottom-3 right-3"><div className="bg-white/90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"><Play className="h-4 w-4 text-violet-600 fill-violet-600" /></div></div>
@@ -1329,10 +1332,11 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
   const enrolled = enrolledIds.has(course.id);
   const salePrice = getActiveCourseSalePrice(course);
   const [, navigate] = useLocation();
+  const courseUrl = `/breedskool/${slugifyCourseTitle(course.title || course.id)}`;
 
   return (
     <div className="mb-10">
-      <div className="relative rounded-3xl overflow-hidden group cursor-pointer" onClick={() => navigate(`/breedskool/${course.id}`)}>
+      <div className="relative rounded-3xl overflow-hidden group cursor-pointer" onClick={() => navigate(courseUrl)}>
         <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
         <img src={course.thumbnail || fallbackImg} alt={course.title}
           className={`absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-all duration-500 group-hover:scale-105 ${fading ? "opacity-0" : ""}`}
@@ -1355,7 +1359,7 @@ function CourseSpotlightCarousel({ courses, enrolledIds }: { courses: any[]; enr
           <div className="flex flex-wrap items-center gap-4">
             {course.duration && <span className="text-white/70 text-sm flex items-center gap-1"><Clock className="w-4 h-4" />{course.duration}</span>}
             {course.lessonsCount > 0 && <span className="text-white/70 text-sm flex items-center gap-1"><BookOpen className="w-4 h-4" />{course.lessonsCount} lessons</span>}
-            <Button onClick={e => { e.stopPropagation(); navigate(`/breedskool/${course.id}`); }} className={`ml-auto font-bold px-5 rounded-xl shadow-lg ${enrolled ? "bg-emerald-500 hover:bg-emerald-400 text-white" : "bg-white text-gray-900 hover:bg-yellow-50"}`} data-testid={`btn-spotlight-course-${course.id}`}>
+            <Button onClick={e => { e.stopPropagation(); navigate(courseUrl); }} className={`ml-auto font-bold px-5 rounded-xl shadow-lg ${enrolled ? "bg-emerald-500 hover:bg-emerald-400 text-white" : "bg-white text-gray-900 hover:bg-yellow-50"}`} data-testid={`btn-spotlight-course-${course.id}`}>
               {enrolled ? <><CheckCircle2 className="w-4 h-4 mr-1.5" />Continue</> : <>View Course <ChevronRight className="w-4 h-4 ml-1" /></>}
             </Button>
           </div>

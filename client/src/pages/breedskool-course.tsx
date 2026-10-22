@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AuthModal } from "@/components/ui/auth-modal";
+import { SeoHead } from "@/components/SeoHead";
+import { slugifyCourseTitle } from "@shared/course-slug";
 import {
   BookOpen, Users, Star, Clock, Play, CheckCircle2, Lock,
   Heart, MessageCircle, Send, ChevronDown, ChevronUp, Award,
@@ -533,40 +535,44 @@ export default function BreedSkoolCourse() {
       return res.json();
     },
   });
+  const courseId = course?.id || id;
+  const courseSlug = course?.title ? slugifyCourseTitle(course.title) : "";
 
   const { data: enrollment } = useQuery<any>({
-    queryKey: ["/api/courses", id, "enrollment"],
+    queryKey: ["/api/courses", courseId, "enrollment"],
     queryFn: async () => {
-      const res = await fetch(`/api/courses/${id}/enrollment`);
+      const res = await fetch(`/api/courses/${courseId}/enrollment`);
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!course?.id,
   });
 
   const { data: comments = [] } = useQuery<any[]>({
-    queryKey: ["/api/courses", id, "comments"],
+    queryKey: ["/api/courses", courseId, "comments"],
     queryFn: async () => {
-      const res = await fetch(`/api/courses/${id}/comments`);
+      const res = await fetch(`/api/courses/${courseId}/comments`);
       return res.ok ? res.json() : [];
     },
+    enabled: !!course?.id,
   });
 
   const { data: reviews = [] } = useQuery<any[]>({
-    queryKey: ["/api/courses", id, "reviews"],
+    queryKey: ["/api/courses", courseId, "reviews"],
     queryFn: async () => {
-      const res = await fetch(`/api/courses/${id}/reviews`);
+      const res = await fetch(`/api/courses/${courseId}/reviews`);
       return res.ok ? res.json() : [];
     },
+    enabled: !!course?.id,
   });
 
   const { data: liked } = useQuery<boolean>({
-    queryKey: ["/api/courses", id, "liked"],
+    queryKey: ["/api/courses", courseId, "liked"],
     queryFn: async () => {
-      const res = await fetch(`/api/courses/${id}/liked`);
+      const res = await fetch(`/api/courses/${courseId}/liked`);
       return res.ok ? res.json() : false;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!course?.id,
   });
 
   const { data: paymentMethodsRaw = [] } = useQuery<any[]>({
@@ -580,7 +586,7 @@ export default function BreedSkoolCourse() {
   const enrollMutation = useMutation({
     mutationFn: async () => {
       if (course?.isFree) {
-        const res = await apiRequest("POST", `/api/courses/${id}/enroll`, { paymentMethod: "free" });
+        const res = await apiRequest("POST", `/api/courses/${courseId}/enroll`, { paymentMethod: "free" });
         return res.json();
       }
       const fd = new FormData();
@@ -591,7 +597,7 @@ export default function BreedSkoolCourse() {
       } else if (proofUrl || paymentProof) {
         fd.append("paymentProofUrl", proofUrl || paymentProof);
       }
-      const res = await fetch(`/api/courses/${id}/enroll`, { method: "POST", body: fd, credentials: "include" });
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "POST", body: fd, credentials: "include" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Enrollment failed" }));
         throw new Error(err.message || "Enrollment failed");
@@ -599,7 +605,7 @@ export default function BreedSkoolCourse() {
       return res.json();
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "enrollment"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "enrollment"] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
       setEnrollStep("done");
       setRedirectCountdown(3);
@@ -612,7 +618,7 @@ export default function BreedSkoolCourse() {
             clearInterval(timer);
             setShowEnrollModal(false);
             setEnrollStep("choose");
-            setLocation(`/breedskool/${id}/learn`);
+            setLocation(`/breedskool/${courseId}/learn`);
           }
         }, 1000);
       }
@@ -622,11 +628,11 @@ export default function BreedSkoolCourse() {
 
   const commentMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/courses/${id}/comments`, { content: comment });
+      const res = await apiRequest("POST", `/api/courses/${courseId}/comments`, { content: comment });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "comments"] });
       setComment("");
       toast({ title: "Comment posted!" });
     },
@@ -635,12 +641,12 @@ export default function BreedSkoolCourse() {
 
   const reviewMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/courses/${id}/reviews`, { rating: reviewRating, comment: reviewComment });
+      const res = await apiRequest("POST", `/api/courses/${courseId}/reviews`, { rating: reviewRating, comment: reviewComment });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "reviews"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
       setShowReviewForm(false);
       setReviewComment("");
       setReviewRating(5);
@@ -651,12 +657,12 @@ export default function BreedSkoolCourse() {
 
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/courses/${id}/like`);
+      const res = await apiRequest("POST", `/api/courses/${courseId}/like`);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "liked"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/courses", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "liked"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
     },
   });
 
@@ -694,9 +700,38 @@ export default function BreedSkoolCourse() {
   // Compute effective price — use salePrice if active promo
   const hasSalePromo = !!(course.salePrice && course.saleDeadline && new Date(course.saleDeadline) > new Date() && parseFloat(course.salePrice) < parseFloat(course.price || "0"));
   const effectivePrice = hasSalePromo ? parseFloat(course.salePrice).toFixed(2) : (course.price || "0.00");
+  const canonicalUrl = courseSlug && typeof window !== "undefined"
+    ? `${window.location.origin}/breedskool/${courseSlug}`
+    : undefined;
+  const ogImage = course.thumbnail?.startsWith("http")
+    ? course.thumbnail
+    : course.thumbnail && typeof window !== "undefined"
+      ? `${window.location.origin}${course.thumbnail.startsWith("/") ? course.thumbnail : `/${course.thumbnail}`}`
+      : undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <SeoHead
+        title={`${course.title} | BreedSkool`}
+        description={course.shortDescription || course.description}
+        keywords={Array.isArray(course.tags) ? course.tags.join(", ") : undefined}
+        ogImage={ogImage}
+        canonicalUrl={canonicalUrl}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Course",
+          name: course.title,
+          description: course.shortDescription || course.description,
+          provider: { "@type": "Organization", name: "BreedSkool" },
+          ...(ogImage ? { image: ogImage } : {}),
+          offers: {
+            "@type": "Offer",
+            price: effectivePrice,
+            priceCurrency: "USD",
+            availability: "https://schema.org/InStock",
+          },
+        }}
+      />
       <NavigationFixed />
 
       {/* Hero Banner */}
@@ -723,6 +758,7 @@ export default function BreedSkoolCourse() {
                 <Badge className="bg-white text-gray-900">${course.price} USDT</Badge>
               )}
               {course.isFeatured && <Badge className="bg-violet-600 text-white">⭐ Featured</Badge>}
+              {Array.isArray(course.tags) && course.tags.includes("bestseller") && <Badge className="bg-amber-400 text-amber-950">Bestseller</Badge>}
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">{course.title}</h1>
             <p className="text-white/70 mb-6 leading-relaxed">{course.shortDescription || course.description.slice(0, 150) + "..."}</p>
@@ -843,7 +879,7 @@ export default function BreedSkoolCourse() {
             )}
 
             {/* Lessons */}
-            {id && <LessonsSection courseId={id} isEnrolled={isEnrolled} isInstructor={isInstructor} />}
+            {courseId && <LessonsSection courseId={courseId} isEnrolled={isEnrolled} isInstructor={isInstructor} />}
 
             {/* Requirements */}
             {requirements.length > 0 && (
@@ -866,9 +902,9 @@ export default function BreedSkoolCourse() {
             </div>
 
             {/* Course Chat */}
-            {id && (
+            {courseId && (
               <CourseChatSection
-                courseId={id}
+                courseId={courseId}
                 isEnrolled={isEnrolled}
                 isInstructor={isInstructor}
               />
@@ -1221,10 +1257,10 @@ export default function BreedSkoolCourse() {
                     const fd = new FormData();
                     fd.append("payLater", "true");
                     fd.append("paymentMethod", selectedMethod?.label || "Pay Later");
-                    fetch(`/api/courses/${id}/enroll`, { method: "POST", body: fd, credentials: "include" })
+                    fetch(`/api/courses/${courseId}/enroll`, { method: "POST", body: fd, credentials: "include" })
                       .then(r => r.json())
                       .then(() => {
-                        queryClient.invalidateQueries({ queryKey: ["/api/courses", id, "enrollment"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId, "enrollment"] });
                         queryClient.invalidateQueries({ queryKey: ["/api/courses/my-enrollments"] });
                         setEnrollStep("done");
                         toast({ title: "Enrolled (Pay Later)", description: "You now have access. Complete payment to unlock all features." });
@@ -1296,7 +1332,7 @@ export default function BreedSkoolCourse() {
 
                 {selectedMethod?.type === 'paypal' && (
                   <div className="bg-sky-900 rounded-2xl p-4">
-                    <p className="text-sky-200 text-xs mb-2">Send ${course?.price} via PayPal to:</p>
+                    <p className="text-sky-200 text-xs mb-2">Send ${effectivePrice} via PayPal to:</p>
                     <div className="flex items-center gap-2">
                       <span className="text-white font-semibold">{selectedMethod.paypalEmail}</span>
                       <button onClick={() => { navigator.clipboard.writeText(selectedMethod.paypalEmail); toast({ title: "Copied!" }); }} className="p-1 rounded bg-sky-800 text-sky-300">
@@ -1435,7 +1471,7 @@ export default function BreedSkoolCourse() {
                     setShowEnrollModal(false);
                     setEnrollStep("choose");
                     if (course?.isFree) {
-                      setLocation(`/breedskool/${id}/learn`);
+                      setLocation(`/breedskool/${courseId}/learn`);
                     } else {
                       setLocation("/my-training");
                     }

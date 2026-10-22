@@ -513,36 +513,62 @@ export default function CourseLearn() {
                       </div>
                     )}
 
-                    {isOnlineMoneyCourse && current.order === 4 && (
-                      <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50 p-4">
-                        <a
-                          href="https://s.click.aliexpress.com/e/_c33fHyNF"
-                          target="_blank"
-                          rel="sponsored nofollow noopener noreferrer"
-                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
-                        >
-                          Create an AliExpress account <ExternalLink className="h-4 w-4" />
-                        </a>
-                        <p className="mt-2 text-xs leading-relaxed text-sky-900/75">
-                          Instructor-provided registration link. The course creator may receive a referral benefit if you use it.
-                        </p>
-                      </div>
+                    {isOnlineMoneyCourse && /aliexpress|product[\s-]+affiliate|affiliate link foundations/i.test(current.title) && (
+                      <section
+                        aria-labelledby="aliexpress-resource-title"
+                        className="mt-5 overflow-hidden rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50"
+                      >
+                        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-800/70">Lesson resource</p>
+                            <h3 id="aliexpress-resource-title" className="mt-1 text-base font-semibold text-slate-900">
+                              Ready to explore product affiliate?
+                            </h3>
+                            <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-600">
+                              Open the AliExpress registration page to follow along. The course creator may receive a referral benefit if you register through this link.
+                            </p>
+                          </div>
+                          <a
+                            href="https://s.click.aliexpress.com/e/_c33fHyNF"
+                            target="_blank"
+                            rel="sponsored nofollow noopener noreferrer"
+                            aria-label="Create an AliExpress account (opens in a new tab)"
+                            className="inline-flex min-h-11 w-full flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-sky-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-800 focus-visible:ring-offset-2 sm:w-auto"
+                          >
+                            Create an AliExpress account
+                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        </div>
+                      </section>
                     )}
 
-                    {isOnlineMoneyCourse && current.order === 9 && (
-                      <div className="mt-5 rounded-xl border border-violet-100 bg-violet-50 p-4">
-                        <a
-                          href="https://beta.publishers.adsterra.com/referral/Z6Uk6tKDhX"
-                          target="_blank"
-                          rel="sponsored nofollow noopener noreferrer"
-                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700 focus-visible:ring-offset-2"
-                        >
-                          Join Adsterra as a publisher <ExternalLink className="h-4 w-4" />
-                        </a>
-                        <p className="mt-2 text-xs leading-relaxed text-violet-900/75">
-                          Instructor referral link. The course creator may receive a referral benefit; Adsterra controls eligibility and account terms.
-                        </p>
-                      </div>
+                    {isOnlineMoneyCourse && /\badsterra\b/i.test(current.title) && (
+                      <section
+                        aria-labelledby="adsterra-resource-title"
+                        className="mt-5 overflow-hidden rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50"
+                      >
+                        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-800/70">Lesson resource</p>
+                            <h3 id="adsterra-resource-title" className="mt-1 text-base font-semibold text-slate-900">
+                              Continue with Adsterra
+                            </h3>
+                            <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-600">
+                              Visit the publisher registration page from this lesson. The course creator may receive a referral benefit; Adsterra sets its own eligibility and account terms.
+                            </p>
+                          </div>
+                          <a
+                            href="https://beta.publishers.adsterra.com/referral/Z6Uk6tKDhX"
+                            target="_blank"
+                            rel="sponsored nofollow noopener noreferrer"
+                            aria-label="Join Adsterra as a publisher (opens in a new tab)"
+                            className="inline-flex min-h-11 w-full flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-violet-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-violet-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-800 focus-visible:ring-offset-2 sm:w-auto"
+                          >
+                            Join as an Adsterra publisher
+                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        </div>
+                      </section>
                     )}
 
                     {Array.isArray(current.lessonFiles) && current.lessonFiles.length > 0 && (

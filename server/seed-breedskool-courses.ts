@@ -15,7 +15,7 @@ const BREEDSKOOL_PLATFORM_COURSES = [
     salePrice: "14.99",
     saleDeadline: new Date("2026-11-09T23:59:59+01:00"),
     thumbnail: "/images/online-money-strategy-2027.png",
-    tags: ["breedskool_money_2027", "affiliate marketing", "content publishing", "website monetization", "breedskool"],
+    tags: ["breedskool_money_2027", "affiliate marketing", "content publishing", "website monetization", "bestseller", "breedskool"],
     whatYouLearn: [
       "Choose a focused product niche and check demand before investing",
       "Plan a professional website or a free Blogger site",

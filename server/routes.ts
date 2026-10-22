@@ -12,6 +12,7 @@ import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationE
 import { activityAuditMiddleware, recordActivity } from "./activity-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
 import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, blogPosts, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
+import { slugifyCourseTitle } from "@shared/course-slug";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
 import { desc, sql, eq, and, count, gte, inArray, ilike, or, isNull } from "drizzle-orm";
@@ -7783,7 +7784,8 @@ Instructions:
   // Public: get a single course
   app.get('/api/courses/:id', async (req, res) => {
     try {
-      const course = await storage.getCourseById(req.params.id);
+      const course = await storage.getCourseById(req.params.id)
+        ?? (await storage.getAllCourses(true)).find((candidate) => slugifyCourseTitle(candidate.title) === req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
       res.json(course);
     } catch (error) {
