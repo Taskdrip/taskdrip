@@ -1736,6 +1736,37 @@ export const insertPageSeoSettingsSchema = createInsertSchema(pageSeoSettings).o
 export type PageSeoSettings = typeof pageSeoSettings.$inferSelect;
 export type InsertPageSeoSettings = z.infer<typeof insertPageSeoSettingsSchema>;
 
+// Citygate application leads — separate from Taskdrip's general discovery CRM.
+export const citygateLoanApplications = pgTable("citygate_loan_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fullName: varchar("full_name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone").notNull(),
+  dateOfBirth: varchar("date_of_birth").notNull(),
+  state: varchar("state").notNull(),
+  loanType: varchar("loan_type").notNull(),
+  employmentStatus: varchar("employment_status").notNull(),
+  businessType: text("business_type"),
+  productSold: text("product_sold"),
+  sixMonthTurnover: varchar("six_month_turnover"),
+  monthlyNetIncome: varchar("monthly_net_income"),
+  assetAmount: varchar("asset_amount"),
+  requestedAmount: varchar("requested_amount"),
+  tenureMonths: integer("tenure_months").notNull(),
+  estimateNaira: varchar("estimate_naira").notNull(),
+  estimateBasis: text("estimate_basis").notNull(),
+  consent: boolean("consent").notNull().default(false),
+  marketingConsent: boolean("marketing_consent").notNull().default(false),
+  segment: varchar("segment").notNull().default("citygate-global"),
+  source: varchar("source").notNull().default("/citygate-global-loans"),
+  status: varchar("status").notNull().default("new"),
+  emailNotificationStatus: varchar("email_notification_status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("citygate_loan_applications_segment_created_idx").on(table.segment, table.createdAt),
+  index("citygate_loan_applications_email_idx").on(table.email),
+]);
+
 // ──────────────────────────────────────────────────────────────
 // Leads — global business + influencer discovery / outreach CRM
 // ──────────────────────────────────────────────────────────────
@@ -2314,6 +2345,7 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   name: varchar("name"),
   status: varchar("status").default("active"), // active | unsubscribed
   source: varchar("source").default("footer"), // footer | popup | campaign
+  segment: varchar("segment").default("general"),
   ipAddress: varchar("ip_address"),
   subscribedAt: timestamp("subscribed_at").defaultNow(),
 });

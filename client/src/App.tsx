@@ -12,6 +12,8 @@ import { GlobalSeo, RouteSeo } from "@/components/GlobalSeo";
 import { AsiafilmSmartlinkCard } from "@/components/AsiafilmSmartlinkCard";
 
 const FinalLanding = lazy(() => import("@/pages/final-landing"));
+const LoansDirectory = lazy(() => import("@/pages/loans"));
+const CitygateLoans = lazy(() => import("@/pages/loans").then((m) => ({ default: m.CitygateLoansPage })));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const SimpleDashboard = lazy(() => import("@/pages/simple-dashboard"));
 const AdminUserManagement = lazy(() => import("@/pages/admin-user-management"));
@@ -207,6 +209,8 @@ function Router() {
           if (userType === 'brand') return <BrandDashboard />;
           return <SimpleDashboard />;
         }) : FinalLanding} />
+        <Route path="/loans" component={LoansDirectory} />
+        <Route path="/citygate-global-loans" component={CitygateLoans} />
         <Route path="/signup" component={SimpleSignup} />
         <Route path="/login" component={Login} />
         <Route path="/admin-login" component={AdminLogin} />

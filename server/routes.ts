@@ -20,6 +20,7 @@ import { recordCreatorProductSale, registerCreatorPublishingRoutes } from "./cre
 import { registerPluginStudioRoutes } from "./plugin-studio";
 import { registerFreeDownloadsRoutes } from "./free-downloads";
 import { activatePluginLicenseForPurchase, getPluginLicenseSummaryForPurchase } from "./plugin-licensing";
+import { registerCitygateLoanRoutes } from "./citygate-loans";
 
 // ── Subscription tier helper ──────────────────────────────────────────────────
 function getSubscriptionTier(user: any): 'free' | 'monthly' | 'yearly' {
@@ -13515,6 +13516,8 @@ Instructions:
     if (req.user.userType !== "admin" && req.user.role !== "admin") return res.status(403).json({ message: "Admin only" });
     next();
   };
+
+  registerCitygateLoanRoutes(app, isAuthenticated, requireAdmin);
 
   app.get('/api/admin/leads/providers', isAuthenticated, requireAdmin, (_req, res) => {
     res.json(providerStatus());
