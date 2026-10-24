@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "wouter";
 import {
   ArrowDownRight,
@@ -18,6 +18,9 @@ import {
   Landmark,
   LockKeyhole,
   Menu,
+  MessageCircle,
+  Pause,
+  Play,
   ShieldCheck,
   Wallet,
   X,
@@ -33,7 +36,7 @@ const pageStyles = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 .td-loans{--ink:#1d2f2b;--muted:#65736c;--paper:#f7f7f1;--white:#fffefa;--line:#dfe5dc;--green:#1b5947;--green-deep:#103d32;--lime:#d8ed8c;--orange:#ef8c3b;color:var(--ink);background:var(--paper);font-family:'DM Sans',sans-serif;min-height:100dvh;overflow:hidden}
 .td-loans *{box-sizing:border-box}.td-loans h1,.td-loans h2,.td-loans h3{font-family:'Manrope',sans-serif;letter-spacing:-.045em}.td-loans a{color:inherit;text-decoration:none}.td-loans button,.td-loans input,.td-loans select{font:inherit}.td-wrap{width:min(1160px,calc(100% - 48px));margin:0 auto}
-.td-nav{height:76px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:5}.td-brand{display:flex;align-items:center;gap:10px;font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-.05em;font-size:20px}.td-mark{width:34px;height:34px;background:var(--green);color:#f3f3e8;display:grid;place-items:center;border-radius:11px 11px 11px 3px;font-size:16px}.td-brand small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#728077;font-weight:700;display:block;margin-top:-2px}.td-navlinks{display:flex;gap:32px;align-items:center;font-size:13px;font-weight:600;color:#46574f}.td-navlinks a:hover{color:var(--green)}.td-navright{display:flex;gap:11px;align-items:center}.td-quiet{border:0;background:transparent;padding:11px 14px;color:var(--ink);font-size:13px;font-weight:700;cursor:pointer}.td-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--green);color:white!important;border:0;border-radius:7px;padding:14px 19px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,background .2s}.td-btn:hover{background:var(--green-deep);transform:translateY(-2px)}.td-btn-light{background:var(--lime);color:var(--ink)!important}.td-btn-light:hover{background:#e4f2b4}.td-btn-outline{background:transparent;color:var(--ink)!important;border:1px solid #c7d0c6}.td-btn-outline:hover{background:#edf0e8}.td-mobile-menu{display:none}
+ .td-nav{height:76px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:5}.td-brand{display:flex;align-items:center;gap:10px;font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-.05em;font-size:20px}.td-mark{width:34px;height:34px;background:var(--green);color:#f3f3e8;display:grid;place-items:center;border-radius:11px 11px 11px 3px;font-size:16px}.td-brand small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#728077;font-weight:700;display:block;margin-top:-2px}.td-navlinks{display:flex;gap:32px;align-items:center;font-size:13px;font-weight:600;color:#46574f}.td-navlinks a:hover{color:var(--green)}.td-navright{display:flex;gap:11px;align-items:center}.td-quiet{border:0;background:transparent;padding:11px 14px;color:var(--ink);font-size:13px;font-weight:700;cursor:pointer}.td-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--green);color:white!important;border:0;border-radius:7px;padding:14px 19px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,background .2s}.td-btn:hover{background:var(--green-deep);transform:translateY(-2px)}.td-btn-light{background:var(--lime);color:var(--ink)!important}.td-btn-light:hover{background:#e4f2b4}.td-btn-outline{background:transparent;color:var(--ink)!important;border:1px solid #c7d0c6}.td-btn-outline:hover{background:#edf0e8}.td-mobile-menu{display:none}.td-mobile-links{display:none}
 .td-eyebrow{display:inline-flex;align-items:center;gap:9px;text-transform:uppercase;letter-spacing:.15em;font-size:10px;font-weight:800;color:var(--green)}.td-eyebrow:before{content:'';width:22px;height:1px;background:currentColor}.td-dir-hero{position:relative;padding:58px 0 86px}.td-dir-grid{display:grid;grid-template-columns:1fr .88fr;gap:70px;align-items:center}.td-dir-copy h1{font-size:clamp(48px,6vw,76px);line-height:1.03;margin:22px 0 22px;max-width:680px}.td-dir-copy h1 em{color:var(--green);font-style:normal}.td-lede{font-size:17px;line-height:1.72;color:#66756d;max-width:525px}.td-dir-actions{display:flex;align-items:center;gap:24px;margin-top:30px}.td-textlink{font-weight:700;font-size:13px;display:flex;align-items:center;gap:9px}.td-trustline{display:flex;align-items:center;gap:12px;margin-top:38px;font-size:11px;color:#69776f}.td-trustline svg{color:var(--green)}.td-hero-visual{position:relative;min-height:470px}.td-hero-photo{position:absolute;inset:0 18px 18px 0;border-radius:170px 170px 12px 12px;background:#dce5dc;overflow:hidden}.td-hero-photo img{width:100%;height:100%;object-fit:cover;object-position:61% center}.td-photo-tag{position:absolute;left:0;bottom:3px;background:var(--white);padding:17px 21px;border:1px solid var(--line);box-shadow:0 12px 34px #1b392616;border-radius:8px;display:flex;gap:12px;align-items:center}.td-photo-tag-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--green);background:#edf3dc}.td-photo-tag strong{display:block;font-size:12px}.td-photo-tag span{font-size:10px;color:var(--muted)}.td-orbit{position:absolute;right:-8px;top:22px;writing-mode:vertical-rl;letter-spacing:.2em;text-transform:uppercase;font-size:9px;color:#738078}
 .td-section{padding:90px 0}.td-section-head{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:36px}.td-section-head h2{font-size:clamp(34px,4.5vw,54px);line-height:1.08;margin:12px 0 0;max-width:620px}.td-section-head p{max-width:340px;color:var(--muted);font-size:13px;line-height:1.7;margin:0 0 4px}.td-lenders{background:#e9eee5}.td-lender-card{display:grid;grid-template-columns:1.1fr .9fr;background:var(--white);border:1px solid #d8e0d5;border-radius:11px;overflow:hidden;min-height:400px}.td-lender-content{padding:clamp(28px,5vw,58px);display:flex;flex-direction:column;align-items:flex-start}.td-citygate-mark{font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.04em;display:flex;align-items:center;gap:10px}.td-citygate-symbol{color:var(--orange);width:30px;height:30px;border:2px solid currentColor;display:grid;place-items:center;border-radius:9px 9px 9px 2px}.td-lender-content h3{font-size:34px;line-height:1.12;margin:34px 0 12px;max-width:480px}.td-lender-content p{font-size:14px;line-height:1.75;color:var(--muted);max-width:470px;margin:0}.td-lender-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;margin-top:auto;padding-top:35px}.td-lender-foot span{font-size:11px;color:#67776e;display:flex;align-items:center;gap:8px}.td-lender-image{position:relative;min-height:360px;overflow:hidden}.td-lender-image img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}.td-lender-image:after{content:'';position:absolute;inset:45% 0 0;background:linear-gradient(transparent,#15392e8c)}.td-lender-image-label{position:absolute;z-index:1;left:24px;bottom:23px;color:white;font-size:12px;font-weight:700;letter-spacing:.04em}.td-more-note{margin-top:20px;color:#617067;font-size:12px;display:flex;gap:10px;align-items:center}
 .td-products{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.td-product{padding:25px 24px 29px;border-right:1px solid var(--line)}.td-product:last-child{border:0}.td-product-icon{width:40px;height:40px;border-radius:50%;background:#e7eddd;color:var(--green);display:grid;place-items:center;margin-bottom:22px}.td-product h3{font-size:17px;letter-spacing:-.03em;margin:0 0 9px}.td-product p{font-size:12px;line-height:1.7;color:var(--muted);margin:0}
@@ -45,10 +48,57 @@ const pageStyles = `
 .td-tenure-control{display:flex;align-items:center;gap:13px}.td-tenure-control input{accent-color:#28634f;padding:0;flex:1}.td-tenure-value{min-width:70px;font-weight:800;font-size:13px;color:#275740}.td-estimate-box{background:#edf2e8;border:1px solid #d8e3d4;border-radius:6px;padding:17px 18px;margin:18px 0}.td-estimate-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:#617168}.td-estimate-number{font-family:'Manrope',sans-serif;font-weight:800;font-size:32px;letter-spacing:-.06em;margin:5px 0}.td-estimate-box p{font-size:10px;line-height:1.6;color:#67766d;margin:0}.td-consent{display:flex;align-items:flex-start;gap:10px;font-size:11px;color:#5e6c63;line-height:1.55}.td-consent input{margin:2px 0 0;accent-color:#28634f}.td-success-state{text-align:center;padding:48px 30px}.td-success-icon{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:#e5efdd;color:#2d674e;margin:0 auto 18px}.td-success-state h3{font-size:27px;margin:0 0 10px}.td-success-state p{font-size:13px;color:#68766e;line-height:1.7;max-width:410px;margin:0 auto 18px}.td-reference{padding:72px 0;background:#f7f7f1}.td-reference-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.td-reference-card{background:#e9eee5;border-radius:9px;padding:27px;display:flex;gap:17px;align-items:flex-start}.td-reference-card svg{color:var(--green);flex:0 0 auto}.td-reference-card h3{font-size:16px;margin:0 0 7px}.td-reference-card p{font-size:11px;line-height:1.65;color:#66746b;margin:0}
 .td-faq{padding:78px 0}.td-faq-grid{display:grid;grid-template-columns:.75fr 1.25fr;gap:70px}.td-faq h2{font-size:42px;line-height:1.1;margin:14px 0}.td-faq-list{border-top:1px solid var(--line)}.td-faq details{border-bottom:1px solid var(--line);padding:19px 0}.td-faq summary{list-style:none;display:flex;justify-content:space-between;gap:15px;cursor:pointer;font-size:13px;font-weight:700}.td-faq summary::-webkit-details-marker{display:none}.td-faq details p{font-size:12px;color:var(--muted);line-height:1.7;max-width:600px;margin:13px 0 0}.td-city-footer{background:var(--green-deep);color:#f3f3e9;padding:30px 0}.td-city-footer .td-footer-inner p,.td-city-footer .td-footer-links{color:#c3d0c5}.td-error{background:#fff0eb;border:1px solid #f0c8b7;padding:12px 14px;color:#943c20;font-size:11px;border-radius:5px;margin-top:15px}
 .td-loans a:focus-visible,.td-loans button:focus-visible,.td-loans summary:focus-visible{outline:3px solid #e9a761;outline-offset:3px}.td-reveal{animation:td-rise .65s both}.td-reveal-delay{animation-delay:.12s}@keyframes td-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:850px){.td-navlinks{display:none}.td-mobile-menu{display:grid;place-items:center;border:1px solid var(--line);background:transparent;width:40px;height:40px;border-radius:6px;color:var(--ink)}.td-navright>.td-quiet{display:none}.td-dir-grid,.td-city-hero-grid{grid-template-columns:1fr;gap:34px}.td-dir-hero{padding:36px 0 64px}.td-hero-visual{min-height:390px;max-width:560px;width:100%;margin:0 auto}.td-section{padding:68px 0}.td-products{grid-template-columns:1fr 1fr}.td-product:nth-child(2){border-right:0}.td-product:nth-child(-n+2){border-bottom:1px solid var(--line)}.td-honesty,.td-estimator-grid,.td-faq-grid{grid-template-columns:1fr;gap:30px}.td-estimator-intro{position:static}.td-city-hero-grid{gap:20px}.td-city-copy{padding:20px 0 0}.td-city-hero-photo{height:390px}.td-estimator-section{padding:68px 0}.td-lender-card{grid-template-columns:1fr 1fr}.td-lender-content{padding:30px}.td-lender-foot{align-items:flex-start;flex-direction:column}.td-lender-content h3{font-size:29px;margin-top:24px}}
-@media(max-width:580px){.td-wrap{width:min(100% - 32px,1160px)}.td-nav{height:66px}.td-brand{font-size:18px}.td-navright .td-btn{padding:11px 12px;font-size:11px}.td-dir-copy h1{font-size:48px}.td-lede{font-size:15px}.td-dir-actions{align-items:flex-start;flex-direction:column;gap:16px}.td-hero-visual{min-height:335px}.td-hero-photo{right:10px;border-radius:120px 120px 8px 8px}.td-photo-tag{padding:12px}.td-orbit{right:-3px}.td-section-head{align-items:flex-start;flex-direction:column;margin-bottom:26px}.td-section-head h2{font-size:37px}.td-lender-card{grid-template-columns:1fr}.td-lender-image{min-height:250px;order:-1}.td-lender-content{padding:25px}.td-lender-content h3{font-size:27px}.td-lender-foot{padding-top:24px}.td-products{grid-template-columns:1fr 1fr}.td-product{padding:19px 14px}.td-product h3{font-size:15px}.td-product p{font-size:11px}.td-steps{grid-template-columns:1fr}.td-step,.td-step:not(:first-child){padding:18px 0;border-right:0;border-bottom:1px solid #ffffff36}.td-step:last-child{border-bottom:0}.td-step h3{margin:12px 0 6px}.td-honesty{gap:14px}.td-footer-inner{align-items:flex-start;flex-direction:column}.td-footer-links{flex-wrap:wrap}.td-city-copy h1{font-size:48px}.td-city-hero-photo{height:330px;border-radius:12px 115px 12px 12px}.td-chip{font-size:9px;padding:8px}.td-estimator-card{margin:0 -1px}.td-estimator-top{padding:20px}.td-form-body{padding:22px 20px}.td-field-grid{grid-template-columns:1fr;gap:13px}.td-field-full{grid-column:auto}.td-form-actions{align-items:stretch;flex-direction:column-reverse}.td-form-actions .td-btn{width:100%}.td-privacy{justify-content:center}.td-reference-grid{grid-template-columns:1fr}.td-faq h2{font-size:36px}}
+.td-slider{isolation:isolate}.td-slider-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .7s ease}.td-slider-image.is-active{opacity:1}.td-slider-controls{position:absolute;z-index:2;right:14px;bottom:14px;display:flex;align-items:center;gap:7px;padding:6px;border-radius:99px;background:#15392e9c;backdrop-filter:blur(8px)}.td-slider-controls button{display:grid;place-items:center;width:33px;height:33px;border-radius:50%;border:1px solid #ffffff80;background:#fffefa;color:#1d2f2b;cursor:pointer}.td-slider-controls button:hover{background:#d8ed8c}.td-slider-dots{display:flex;align-items:center;gap:5px;padding:0 4px}.td-slider-controls .td-slider-dot{width:7px;height:7px;min-width:7px;height:7px;padding:0;border:0;background:#ffffff80}.td-slider-controls .td-slider-dot.is-active{width:18px;border-radius:99px;background:#d8ed8c}.td-city-hero-photo .td-slider-controls{bottom:60px}.td-citygate-context{margin-top:22px;padding:15px 17px;border-left:2px solid var(--orange);background:#fffefa88;color:#56665d;font-size:12px;line-height:1.7;max-width:495px}.td-citygate-context strong{color:var(--ink)}
+.td-products-citygate{grid-template-columns:repeat(5,1fr)}
+@media(max-width:850px){.td-navlinks{display:none}.td-mobile-menu{display:grid;place-items:center;border:1px solid var(--line);background:transparent;width:40px;height:40px;border-radius:6px;color:var(--ink)}.td-navright>.td-quiet{display:none}.td-dir-grid,.td-city-hero-grid{grid-template-columns:1fr;gap:34px}.td-dir-hero{padding:36px 0 64px}.td-hero-visual{min-height:390px;max-width:560px;width:100%;margin:0 auto}.td-section{padding:68px 0}.td-products{grid-template-columns:1fr 1fr}.td-products-citygate{grid-template-columns:repeat(3,1fr)}.td-product:nth-child(2){border-right:0}.td-product:nth-child(-n+2){border-bottom:1px solid var(--line)}.td-honesty,.td-estimator-grid,.td-faq-grid{grid-template-columns:1fr;gap:30px}.td-estimator-intro{position:static}.td-city-hero-grid{gap:20px}.td-city-copy{padding:20px 0 0}.td-city-hero-photo{height:390px}.td-estimator-section{padding:68px 0}.td-lender-card{grid-template-columns:1fr 1fr}.td-lender-content{padding:30px}.td-lender-foot{align-items:flex-start;flex-direction:column}.td-lender-content h3{font-size:29px;margin-top:24px}}
+@media(max-width:580px){.td-wrap{width:min(100% - 32px,1160px)}.td-nav{height:66px}.td-brand{font-size:18px}.td-navright .td-btn{padding:11px 12px;font-size:11px}.td-dir-copy h1{font-size:48px}.td-lede{font-size:15px}.td-dir-actions{align-items:flex-start;flex-direction:column;gap:16px}.td-hero-visual{min-height:335px}.td-hero-photo{right:10px;border-radius:120px 120px 8px 8px}.td-photo-tag{padding:12px}.td-orbit{right:-3px}.td-section-head{align-items:flex-start;flex-direction:column;margin-bottom:26px}.td-section-head h2{font-size:37px}.td-lender-card{grid-template-columns:1fr}.td-lender-image{min-height:250px;order:-1}.td-lender-content{padding:25px}.td-lender-content h3{font-size:27px}.td-lender-foot{padding-top:24px}.td-products{grid-template-columns:1fr 1fr}.td-products-citygate{grid-template-columns:1fr 1fr}.td-product{padding:19px 14px}.td-product h3{font-size:15px}.td-product p{font-size:11px}.td-steps{grid-template-columns:1fr}.td-step,.td-step:not(:first-child){padding:18px 0;border-right:0;border-bottom:1px solid #ffffff36}.td-step:last-child{border-bottom:0}.td-step h3{margin:12px 0 6px}.td-honesty{gap:14px}.td-footer-inner{align-items:flex-start;flex-direction:column}.td-footer-links{flex-wrap:wrap}.td-city-copy h1{font-size:48px}.td-city-hero-photo{height:330px;border-radius:12px 115px 12px 12px}.td-chip{font-size:9px;padding:8px}.td-estimator-card{margin:0 -1px}.td-estimator-top{padding:20px}.td-form-body{padding:22px 20px}.td-field-grid{grid-template-columns:1fr;gap:13px}.td-field-full{grid-column:auto}.td-form-actions{align-items:stretch;flex-direction:column-reverse}.td-form-actions .td-btn{width:100%}.td-privacy{justify-content:center}.td-reference-grid{grid-template-columns:1fr}.td-faq h2{font-size:36px}}
+@media(max-width:850px){.td-mobile-links{display:flex;flex-direction:column;gap:0;position:relative;z-index:6;margin:-2px auto 12px;width:min(1160px,calc(100% - 48px));padding:7px;background:var(--white);border:1px solid var(--line);border-radius:8px;box-shadow:0 14px 32px #1b392616}.td-mobile-links a{padding:12px 10px;font-size:13px;font-weight:700;border-bottom:1px solid var(--line)}.td-mobile-links a:last-child{border:0}}
 @media(prefers-reduced-motion:reduce){.td-reveal{animation:none}.td-loans *{scroll-behavior:auto!important;transition-duration:.01ms!important}}
 `;
+
+function HeroPhotoSlider({ citygate = false }: { citygate?: boolean }) {
+  const [active, setActive] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const slides = [
+    { src: heroImage, alt: citygate ? "A couple outside their home, planning what comes next" : "A Nigerian couple looking at their home improvement plans" },
+    { src: businessImage, alt: "A Nigerian small-business owner reviewing products in her shop" },
+  ];
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => {
+      setReducedMotion(preference.matches);
+      if (preference.matches) setAutoPlay(false);
+    };
+    syncPreference();
+    preference.addEventListener("change", syncPreference);
+    return () => preference.removeEventListener("change", syncPreference);
+  }, []);
+
+  useEffect(() => {
+    if (!autoPlay || reducedMotion) return;
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 6500);
+    return () => window.clearInterval(timer);
+  }, [autoPlay, reducedMotion, slides.length]);
+
+  return (
+    <div className={`${citygate ? "td-city-hero-photo" : "td-hero-photo"} td-slider`} role="region" aria-roledescription="carousel" aria-label={citygate ? "Citygate loan options photographs" : "Taskdrip loans directory photographs"}>
+      {slides.map((slide, index) => (
+        <img key={slide.src} className={`td-slider-image${active === index ? " is-active" : ""}`} src={slide.src} alt={slide.alt} aria-hidden={active !== index} />
+      ))}
+      {citygate && <span className="td-image-caption"><Building2 size={16} /> Citygate Global · Loan options</span>}
+      <div className="td-slider-controls" role="group" aria-label="Image controls">
+        <button type="button" aria-label="Show previous image" onClick={() => setActive((active + slides.length - 1) % slides.length)}><ArrowLeft size={15} /></button>
+        <div className="td-slider-dots" aria-label={`Image ${active + 1} of ${slides.length}`}>
+          {slides.map((slide, index) => <button key={slide.src} type="button" className={`td-slider-dot${active === index ? " is-active" : ""}`} aria-label={`Show image ${index + 1}`} aria-pressed={active === index} onClick={() => setActive(index)} />)}
+        </div>
+        <button type="button" aria-label="Show next image" onClick={() => setActive((active + 1) % slides.length)}><ArrowRight size={15} /></button>
+        <button type="button" aria-label={reducedMotion ? "Automatic image rotation disabled by motion preference" : autoPlay ? "Pause automatic image rotation" : "Play automatic image rotation"} aria-pressed={autoPlay} disabled={reducedMotion} onClick={() => setAutoPlay((playing) => !playing)}>{autoPlay ? <Pause size={14} /> : <Play size={14} />}</button>
+      </div>
+    </div>
+  );
+}
 
 function Logo({ citygate = false }: { citygate?: boolean }) {
   return citygate ? (
@@ -86,6 +136,10 @@ const products = [
   { icon: BriefcaseBusiness, title: "SME working capital", label: "For businesses", copy: "Explore working capital options for a business need." },
   { icon: House, title: "Asset financing", label: "For planned purchases", copy: "Financing options for assets and home improvements." },
 ];
+const citygateProducts = [
+  ...products,
+  { icon: HandCoins, title: "Monee", label: "Citygate service", copy: "Monee is a Citygate Global service. Contact Citygate Global for service details, eligibility and current terms." },
+];
 
 export default function LoansDirectory() {
   return (
@@ -105,7 +159,7 @@ export default function LoansDirectory() {
             <div className="td-trustline"><ShieldCheck size={17} /><span>Clear information. No promises of approval.</span></div>
           </div>
           <div className="td-hero-visual td-reveal td-reveal-delay">
-            <div className="td-hero-photo"><img src={heroImage} alt="A Nigerian couple looking at their home improvement plans" /></div>
+            <HeroPhotoSlider />
             <span className="td-orbit">Loans, made easier to explore</span>
             <div className="td-photo-tag"><span className="td-photo-tag-icon"><FileCheck2 size={18} /></span><span><strong>Start with the details</strong><span>Know what to ask before you apply</span></span></div>
           </div>
@@ -196,6 +250,29 @@ export function CitygateLoansPage() {
   }, [data.monthlyNetIncome, data.sixMonthTurnover]);
   const capacity = cashFlow * .3 * data.tenureMonths;
   const estimate = Math.min(data.requestedAmount ? Number(data.requestedAmount) || 0 : capacity, capacity);
+  const whatsappMessage = [
+    "Citygate Global loan enquiry — Taskdrip",
+    `Application reference: ${result?.id || ""}`,
+    `Full name: ${data.fullName}`,
+    `Email: ${data.email}`,
+    `Phone: ${data.phone}`,
+    `Date of birth: ${data.dateOfBirth}`,
+    `State of residence: ${data.state}`,
+    `Loan option: ${loanNames[data.loanType]}`,
+    `Employment status: ${data.employmentStatus || "Not provided"}`,
+    `Business type: ${data.businessType || "Not provided"}`,
+    `Product or service sold: ${data.productSold || "Not provided"}`,
+    `Six-month turnover (NGN): ${data.sixMonthTurnover || "Not provided"}`,
+    `Monthly net income (NGN): ${data.monthlyNetIncome || "Not provided"}`,
+    `Asset amount (NGN): ${data.assetAmount || "Not provided"}`,
+    `Requested amount (NGN): ${data.requestedAmount || "Not provided"}`,
+    `Illustration term: ${data.tenureMonths} months`,
+    `Application sharing consent: ${data.consent ? "Yes" : "No"}`,
+    `Optional product updates consent: ${data.marketingConsent ? "Yes" : "No"}`,
+    `Returned estimate: ${result ? money(result.estimateNaira) : money(estimate)}`,
+    `Estimate basis: ${result?.estimateBasis || "Deterministic cash-flow illustration; non-binding, not credit underwriting."}`,
+  ].join("\n");
+  const whatsappUrl = `https://wa.me/2347081024793?text=${encodeURIComponent(whatsappMessage)}`;
   const update = (key: keyof ApplicationData, value: string | number | boolean) => setData((previous) => ({ ...previous, [key]: value }));
   const scrollToEstimate = () => document.getElementById("estimate")?.scrollIntoView({ behavior: "smooth" });
   const next = () => {
@@ -235,25 +312,26 @@ export function CitygateLoansPage() {
           <div className="td-city-copy td-reveal">
             <span className="td-eyebrow">Taskdrip lender directory · Citygate Global</span>
             <h1>Make room for the things <span>you’re building.</span></h1>
-            <p>Explore Citygate Global loan options for salary earners, SMEs and people planning an asset purchase or home improvement. Start with the details that matter to you.</p>
+            <p>Explore Citygate Global Investment Limited loan options for salary earners, SMEs and people planning an asset purchase or home improvement. Start with the details that matter to you.</p>
+            <div className="td-citygate-context"><strong>Citygate Global Investment Limited</strong> is featured in the Taskdrip loans directory, with product categories for salary-based lending, SME working capital, asset financing and its Monee service.</div>
             <div className="td-dir-actions"><button className="td-btn" onClick={scrollToEstimate}>Build a cash-flow estimate <ArrowRight size={16} /></button><Link href="/loans" className="td-textlink"><ArrowLeft size={15} /> Back to all loan options</Link></div>
-            <div className="td-productstrip"><span className="td-chip"><Wallet size={13} /> Payday</span><span className="td-chip"><Landmark size={13} /> Payroll</span><span className="td-chip"><BriefcaseBusiness size={13} /> SME working capital</span><span className="td-chip"><House size={13} /> Asset financing</span></div>
+            <div className="td-productstrip"><span className="td-chip"><Wallet size={13} /> Payday</span><span className="td-chip"><Landmark size={13} /> Payroll</span><span className="td-chip"><BriefcaseBusiness size={13} /> SME working capital</span><span className="td-chip"><House size={13} /> Asset financing</span><span className="td-chip"><HandCoins size={13} /> Monee service</span></div>
           </div>
-          <div className="td-city-hero-photo td-reveal td-reveal-delay"><img src={heroImage} alt="A couple standing in front of their home" /><span className="td-image-caption"><Building2 size={16} /> Citygate Global · Loan options</span></div>
+          <div className="td-reveal td-reveal-delay"><HeroPhotoSlider citygate /></div>
         </div>
       </section>
       <section id="loan-options" className="td-section">
         <div className="td-wrap">
           <div className="td-section-head"><div><span className="td-eyebrow">Options to explore</span><h2>Start with the need in front of you.</h2></div><p>These are product categories supplied for Citygate Global. Ask the lender for current eligibility, requirements and official terms.</p></div>
-          <div className="td-products">{products.map(({ icon: Icon, title, label, copy }) => <article key={title} className="td-product"><span className="td-product-icon"><Icon size={19} /></span><span className="td-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p></article>)}</div>
+          <div className="td-products td-products-citygate">{citygateProducts.map(({ icon: Icon, title, label, copy }) => <article key={title} className="td-product"><span className="td-product-icon"><Icon size={19} /></span><span className="td-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p></article>)}</div>
         </div>
       </section>
       <section id="estimate" className="td-estimator-section">
         <div className="td-wrap td-estimator-grid">
-          <div className="td-estimator-intro"><span className="td-eyebrow">A clear first look</span><h2>Estimate with your cash flow in mind.</h2><p>Share a few details to create a simple illustration. It is not a loan decision, does not set official Citygate terms, and does not guarantee access or approval.</p><div className="td-estimate-warning">Calculation: the lower of your requested amount (if entered) and 30% of monthly cash flow × chosen term. Cash flow uses monthly net income; if that is zero, it uses six-month turnover ÷ 6. Term: 1–6 months. Interest and fees are excluded.</div></div>
+          <div className="td-estimator-intro"><span className="td-eyebrow">A clear first look</span><h2>Estimate with your cash flow in mind.</h2><p>Share a few details to create a deterministic, non-binding illustration. It is not a loan decision, does not set official Citygate terms, and does not guarantee access or approval. No AI credit underwriting is performed.</p><div className="td-estimate-warning">Calculation: the lower of your requested amount (if entered) and 30% of monthly cash flow × chosen term. Cash flow uses monthly net income; if that is zero, it uses six-month turnover ÷ 6. Term: 1–6 months. Interest and fees are excluded.</div></div>
           <section className="td-estimator-card" aria-label="Citygate Global loan application and estimate">
             {result ? (
-              <div className="td-success-state"><span className="td-success-icon"><Check size={27} /></span><h3>Details received</h3><p>Your reference is <strong>{result.id}</strong>. The estimate returned is <strong>{money(result.estimateNaira)}</strong>. This is a cash-flow illustration, not lender approval or official terms.</p><p>{result.emailSent ? "An email confirmation was sent to the address provided." : "Your details were submitted. Email confirmation was not reported."}</p><button className="td-btn td-btn-outline" onClick={() => { setResult(null); setData(initialApplication); setStep(1); }}>Start another estimate</button></div>
+              <div className="td-success-state"><span className="td-success-icon"><Check size={27} /></span><h3>Details received</h3><p>Your reference is <strong>{result.id}</strong>. The estimate returned is <strong>{money(result.estimateNaira)}</strong>. This is a deterministic, non-binding cash-flow illustration—not AI credit underwriting, lender approval or official terms.</p><p>{result.emailSent ? "An email confirmation was sent to the address provided." : "Your details were submitted. Email confirmation was not reported."}</p><p>When you choose the WhatsApp action, your answers and estimate will be placed in a message to Citygate Global for their review. You will review and send the message in WhatsApp.</p><a className="td-btn" href={whatsappUrl} target="_blank" rel="noopener noreferrer"><MessageCircle size={16} /> Review and send in WhatsApp</a><div style={{ marginTop: 12 }}><button className="td-btn td-btn-outline" onClick={() => { setResult(null); setData(initialApplication); setStep(1); }}>Start another estimate</button></div></div>
             ) : (
               <>
                 <div className="td-estimator-top"><div className="td-step-meta"><span>Application & estimate</span><span>Step {step} of 2</span></div><div className="td-progress"><span style={{ width: step === 1 ? "50%" : "100%" }} /></div></div>

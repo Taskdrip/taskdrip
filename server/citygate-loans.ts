@@ -112,11 +112,18 @@ export function registerCitygateLoanRoutes(
           target: newsletterSubscribers.email,
           set: {
             status: "active",
-            segment: sql`CASE
-              WHEN COALESCE(${newsletterSubscribers.segment}, '') = '' THEN 'loans,citygate-global'
-              WHEN ${newsletterSubscribers.segment} LIKE '%citygate-global%' THEN ${newsletterSubscribers.segment}
-              ELSE ${newsletterSubscribers.segment} || ',loans,citygate-global'
-            END`,
+            segment: sql`concat_ws(
+              ',',
+              nullif(trim(coalesce(${newsletterSubscribers.segment}, '')), ''),
+              CASE
+                WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,loans,%' THEN NULL
+                ELSE 'loans'
+              END,
+              CASE
+                WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,citygate-global,%' THEN NULL
+                ELSE 'citygate-global'
+              END
+            )`,
           },
         });
       }

@@ -362,6 +362,9 @@ export function Footer() {
               <Link href="/downloads" className="text-gray-400 hover:text-white transition-colors text-sm" data-testid="link-footer-free-downloads">
                 Free Downloads
               </Link>
+              <Link href="/loans" className="text-gray-400 hover:text-white transition-colors text-sm" data-testid="link-footer-loans">
+                Loan options
+              </Link>
               <Link href="/terms" className="text-gray-400 hover:text-white transition-colors text-sm">
                 Terms of Service
               </Link>
