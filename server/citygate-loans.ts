@@ -86,24 +86,24 @@ export function registerCitygateLoanRoutes(
     const ipAddress = (req.headers["x-forwarded-for"] as string || req.ip || "").split(",")[0].trim().slice(0, 64);
 
     try {
-      const application = await db.transaction(async (tx) => {
-        const [savedApplication] = await tx.insert(citygateLoanApplications).values({
-          ...input,
-          email,
-          sixMonthTurnover: String(input.sixMonthTurnover),
-          monthlyNetIncome: String(input.monthlyNetIncome),
-          assetAmount: String(input.assetAmount),
-          requestedAmount: String(input.requestedAmount),
-          estimateNaira: String(estimate.estimateNaira),
-          estimateBasis: estimate.estimateBasis,
-          source: "/citygate-global-loans",
-          segment: "citygate-global",
-          status: "new",
-          emailNotificationStatus: "pending",
-        }).returning({ id: citygateLoanApplications.id });
+      const [application] = await db.insert(citygateLoanApplications).values({
+        ...input,
+        email,
+        sixMonthTurnover: String(input.sixMonthTurnover),
+        monthlyNetIncome: String(input.monthlyNetIncome),
+        assetAmount: String(input.assetAmount),
+        requestedAmount: String(input.requestedAmount),
+        estimateNaira: String(estimate.estimateNaira),
+        estimateBasis: estimate.estimateBasis,
+        source: "/citygate-global-loans",
+        segment: "citygate-global",
+        status: "new",
+        emailNotificationStatus: "pending",
+      }).returning({ id: citygateLoanApplications.id });
 
-        if (input.marketingConsent) {
-          await tx.insert(newsletterSubscribers).values({
+      if (input.marketingConsent) {
+        try {
+          await db.insert(newsletterSubscribers).values({
             email,
             name: input.fullName,
             source: "loans",
@@ -129,10 +129,12 @@ export function registerCitygateLoanRoutes(
               )`,
             },
           });
+        } catch (marketingError) {
+          // The loan enquiry is the primary request. An optional newsletter
+          // subscription failure must not roll it back or turn it into a 500.
+          console.error("[citygate-loans] Application saved, but marketing opt-in sync failed:", marketingError);
         }
-
-        return savedApplication;
-      });
+      }
 
       const fields: Array<[string, string]> = [
         ["Name", input.fullName],

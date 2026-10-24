@@ -136,7 +136,7 @@ const products = [
   { icon: Landmark, title: "Payroll", label: "Public sector", copy: "For eligible workers in public-sector organisations.", loanType: "payroll" },
   { icon: BriefcaseBusiness, title: "SME working capital", label: "For businesses", copy: "Explore working capital options for a business need.", loanType: "sme" },
   { icon: House, title: "Asset financing", label: "For planned purchases", copy: "Financing options for assets and home improvements.", loanType: "asset" },
-];
+] as const;
 const citygateProducts = [
   ...products,
   { icon: HandCoins, title: "Monee", label: "Citygate service", copy: "Monee is a Citygate Global service. Contact Citygate Global for service details, eligibility and current terms.", loanType: "monee" as const },
