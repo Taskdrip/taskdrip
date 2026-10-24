@@ -12093,6 +12093,14 @@ Instructions:
       // Newsletter subscribers
       const nsRows = await dbInst.select().from(nsSubs);
       const activeNsSubs = nsRows.filter((s: any) => s.status === 'active');
+      const subscribersInSegment = (segment: string) => activeNsSubs.filter((subscriber: any) =>
+        String(subscriber.segment || "")
+          .split(",")
+          .map((value: string) => value.trim().toLowerCase())
+          .includes(segment)
+      );
+      const loanSubscribers = subscribersInSegment("loans");
+      const citygateSubscribers = subscribersInSegment("citygate-global");
 
       const creators = allUsers.filter((u: any) => u.userType === 'creator');
       const brands = allUsers.filter((u: any) => u.userType === 'brand');
@@ -12145,6 +12153,24 @@ Instructions:
             color: 'pink',
             icon: 'bell',
             members: activeNsSubs.map((s: any) => ({ id: s.id, email: s.email, firstName: s.name || '', lastName: '', userType: 'newsletter' })),
+          },
+          {
+            key: 'loans',
+            label: 'Loan Updates',
+            description: 'People who opted in to loan product updates',
+            count: loanSubscribers.length,
+            color: 'orange',
+            icon: 'package',
+            members: loanSubscribers.map((s: any) => ({ id: s.id, email: s.email, firstName: s.name || '', lastName: '', userType: 'newsletter' })),
+          },
+          {
+            key: 'citygate-global',
+            label: 'Citygate Global',
+            description: 'People who opted in to Citygate Global loan updates',
+            count: citygateSubscribers.length,
+            color: 'green',
+            icon: 'building',
+            members: citygateSubscribers.map((s: any) => ({ id: s.id, email: s.email, firstName: s.name || '', lastName: '', userType: 'newsletter' })),
           },
           {
             key: 'all',

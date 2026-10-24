@@ -455,11 +455,19 @@ export async function blastCampaign(campaignId: string): Promise<{ sent: number;
 
   const seg = campaign.targetSegment;
 
-  // For newsletter segment, query subscribers separately
-  if (seg === "newsletter") {
+  // Newsletter subscribers are stored separately from registered user accounts.
+  // Loan and lender campaigns target only subscribers who opted in to those tags.
+  if (["newsletter", "loans", "citygate-global"].includes(seg)) {
     const { newsletterSubscribers } = await import("@shared/schema");
     const nsRows = await db.select().from(newsletterSubscribers);
-    const activeSubs = nsRows.filter((s: any) => s.status === "active");
+    const activeSubs = nsRows.filter((subscriber: any) => {
+      if (subscriber.status !== "active") return false;
+      if (seg === "newsletter") return true;
+      return String(subscriber.segment || "")
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .includes(seg);
+    });
     let sent = 0, failed = 0;
     const errors: string[] = [];
     for (const sub of activeSubs) {

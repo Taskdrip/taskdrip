@@ -50,6 +50,7 @@ const pageStyles = `
 .td-loans a:focus-visible,.td-loans button:focus-visible,.td-loans summary:focus-visible{outline:3px solid #e9a761;outline-offset:3px}.td-reveal{animation:td-rise .65s both}.td-reveal-delay{animation-delay:.12s}@keyframes td-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 .td-slider{isolation:isolate}.td-slider-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .7s ease}.td-slider-image.is-active{opacity:1}.td-slider-controls{position:absolute;z-index:2;right:14px;bottom:14px;display:flex;align-items:center;gap:7px;padding:6px;border-radius:99px;background:#15392e9c;backdrop-filter:blur(8px)}.td-slider-controls button{display:grid;place-items:center;width:33px;height:33px;border-radius:50%;border:1px solid #ffffff80;background:#fffefa;color:#1d2f2b;cursor:pointer}.td-slider-controls button:hover{background:#d8ed8c}.td-slider-dots{display:flex;align-items:center;gap:5px;padding:0 4px}.td-slider-controls .td-slider-dot{width:7px;height:7px;min-width:7px;height:7px;padding:0;border:0;background:#ffffff80}.td-slider-controls .td-slider-dot.is-active{width:18px;border-radius:99px;background:#d8ed8c}.td-city-hero-photo .td-slider-controls{bottom:60px}.td-citygate-context{margin-top:22px;padding:15px 17px;border-left:2px solid var(--orange);background:#fffefa88;color:#56665d;font-size:12px;line-height:1.7;max-width:495px}.td-citygate-context strong{color:var(--ink)}
 .td-products-citygate{grid-template-columns:repeat(5,1fr)}
+.td-product-link{display:block;color:inherit;text-decoration:none;transition:background .2s,transform .2s}.td-product-link:hover{background:#eef2e9;transform:translateY(-2px)}.td-product-action{display:block;width:100%;height:100%;text-align:left;color:inherit;background:transparent;border:0;cursor:pointer;transition:background .2s,transform .2s}.td-product-action:hover{background:#eef2e9;transform:translateY(-2px)}.td-product-action.is-selected{background:#edf2e8;box-shadow:inset 0 -3px var(--green)}.td-product-action:focus-visible,.td-product-link:focus-visible{outline:3px solid #e9a761;outline-offset:3px;position:relative;z-index:1}.td-product-cta{display:flex;align-items:center;gap:6px;margin-top:15px;color:var(--green);font-size:11px;font-weight:800}
 @media(max-width:850px){.td-navlinks{display:none}.td-mobile-menu{display:grid;place-items:center;border:1px solid var(--line);background:transparent;width:40px;height:40px;border-radius:6px;color:var(--ink)}.td-navright>.td-quiet{display:none}.td-dir-grid,.td-city-hero-grid{grid-template-columns:1fr;gap:34px}.td-dir-hero{padding:36px 0 64px}.td-hero-visual{min-height:390px;max-width:560px;width:100%;margin:0 auto}.td-section{padding:68px 0}.td-products{grid-template-columns:1fr 1fr}.td-products-citygate{grid-template-columns:repeat(3,1fr)}.td-product:nth-child(2){border-right:0}.td-product:nth-child(-n+2){border-bottom:1px solid var(--line)}.td-honesty,.td-estimator-grid,.td-faq-grid{grid-template-columns:1fr;gap:30px}.td-estimator-intro{position:static}.td-city-hero-grid{gap:20px}.td-city-copy{padding:20px 0 0}.td-city-hero-photo{height:390px}.td-estimator-section{padding:68px 0}.td-lender-card{grid-template-columns:1fr 1fr}.td-lender-content{padding:30px}.td-lender-foot{align-items:flex-start;flex-direction:column}.td-lender-content h3{font-size:29px;margin-top:24px}}
 @media(max-width:580px){.td-wrap{width:min(100% - 32px,1160px)}.td-nav{height:66px}.td-brand{font-size:18px}.td-navright .td-btn{padding:11px 12px;font-size:11px}.td-dir-copy h1{font-size:48px}.td-lede{font-size:15px}.td-dir-actions{align-items:flex-start;flex-direction:column;gap:16px}.td-hero-visual{min-height:335px}.td-hero-photo{right:10px;border-radius:120px 120px 8px 8px}.td-photo-tag{padding:12px}.td-orbit{right:-3px}.td-section-head{align-items:flex-start;flex-direction:column;margin-bottom:26px}.td-section-head h2{font-size:37px}.td-lender-card{grid-template-columns:1fr}.td-lender-image{min-height:250px;order:-1}.td-lender-content{padding:25px}.td-lender-content h3{font-size:27px}.td-lender-foot{padding-top:24px}.td-products{grid-template-columns:1fr 1fr}.td-products-citygate{grid-template-columns:1fr 1fr}.td-product{padding:19px 14px}.td-product h3{font-size:15px}.td-product p{font-size:11px}.td-steps{grid-template-columns:1fr}.td-step,.td-step:not(:first-child){padding:18px 0;border-right:0;border-bottom:1px solid #ffffff36}.td-step:last-child{border-bottom:0}.td-step h3{margin:12px 0 6px}.td-honesty{gap:14px}.td-footer-inner{align-items:flex-start;flex-direction:column}.td-footer-links{flex-wrap:wrap}.td-city-copy h1{font-size:48px}.td-city-hero-photo{height:330px;border-radius:12px 115px 12px 12px}.td-chip{font-size:9px;padding:8px}.td-estimator-card{margin:0 -1px}.td-estimator-top{padding:20px}.td-form-body{padding:22px 20px}.td-field-grid{grid-template-columns:1fr;gap:13px}.td-field-full{grid-column:auto}.td-form-actions{align-items:stretch;flex-direction:column-reverse}.td-form-actions .td-btn{width:100%}.td-privacy{justify-content:center}.td-reference-grid{grid-template-columns:1fr}.td-faq h2{font-size:36px}}
 @media(max-width:850px){.td-mobile-links{display:flex;flex-direction:column;gap:0;position:relative;z-index:6;margin:-2px auto 12px;width:min(1160px,calc(100% - 48px));padding:7px;background:var(--white);border:1px solid var(--line);border-radius:8px;box-shadow:0 14px 32px #1b392616}.td-mobile-links a{padding:12px 10px;font-size:13px;font-weight:700;border-bottom:1px solid var(--line)}.td-mobile-links a:last-child{border:0}}
@@ -131,14 +132,14 @@ function PublicNav({ citygate = false }: { citygate?: boolean }) {
 }
 
 const products = [
-  { icon: Wallet, title: "Payday", label: "Private sector", copy: "For eligible salary earners in private companies." },
-  { icon: Landmark, title: "Payroll", label: "Public sector", copy: "For eligible workers in public-sector organisations." },
-  { icon: BriefcaseBusiness, title: "SME working capital", label: "For businesses", copy: "Explore working capital options for a business need." },
-  { icon: House, title: "Asset financing", label: "For planned purchases", copy: "Financing options for assets and home improvements." },
+  { icon: Wallet, title: "Payday", label: "Private sector", copy: "For eligible salary earners in private companies.", loanType: "payday" },
+  { icon: Landmark, title: "Payroll", label: "Public sector", copy: "For eligible workers in public-sector organisations.", loanType: "payroll" },
+  { icon: BriefcaseBusiness, title: "SME working capital", label: "For businesses", copy: "Explore working capital options for a business need.", loanType: "sme" },
+  { icon: House, title: "Asset financing", label: "For planned purchases", copy: "Financing options for assets and home improvements.", loanType: "asset" },
 ];
 const citygateProducts = [
   ...products,
-  { icon: HandCoins, title: "Monee", label: "Citygate service", copy: "Monee is a Citygate Global service. Contact Citygate Global for service details, eligibility and current terms." },
+  { icon: HandCoins, title: "Monee", label: "Citygate service", copy: "Monee is a Citygate Global service. Contact Citygate Global for service details, eligibility and current terms.", loanType: "monee" as const },
 ];
 
 export default function LoansDirectory() {
@@ -183,7 +184,7 @@ export default function LoansDirectory() {
       <section id="about-directory" className="td-section">
         <div className="td-wrap">
           <div className="td-section-head"><div><span className="td-eyebrow">Start with what you need</span><h2>Different plans. Different kinds of lending.</h2></div><p>Product descriptions are a starting point, not an eligibility decision. Confirm requirements and terms directly with the lender.</p></div>
-          <div className="td-products">{products.map(({ icon: Icon, title, label, copy }) => <article key={title} className="td-product"><span className="td-product-icon"><Icon size={19} /></span><span className="td-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p></article>)}</div>
+          <div className="td-products">{products.map(({ icon: Icon, title, label, copy, loanType }) => <Link key={title} href={`/citygate-global-loans?product=${loanType}`} className="td-product td-product-link" aria-label={`Explore Citygate Global ${title} and open the estimate`}><span className="td-product-icon"><Icon size={19} /></span><span className="td-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p><span className="td-product-cta">Choose this option <ArrowRight size={14} /></span></Link>)}</div>
         </div>
       </section>
       <section id="how-it-works" className="td-section td-process">
@@ -239,7 +240,14 @@ function Field({ label, name, value, onChange, type = "text", placeholder, requi
 }
 
 export function CitygateLoansPage() {
-  const [data, setData] = useState<ApplicationData>(initialApplication);
+  const [data, setData] = useState<ApplicationData>(() => {
+    if (typeof window === "undefined") return initialApplication;
+    const selectedProduct = new URLSearchParams(window.location.search).get("product");
+    const selectedLoan = selectedProduct && Object.hasOwn(loanNames, selectedProduct)
+      ? selectedProduct as LoanType
+      : initialApplication.loanType;
+    return { ...initialApplication, loanType: selectedLoan };
+  });
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -275,6 +283,17 @@ export function CitygateLoansPage() {
   const whatsappUrl = `https://wa.me/2347081024793?text=${encodeURIComponent(whatsappMessage)}`;
   const update = (key: keyof ApplicationData, value: string | number | boolean) => setData((previous) => ({ ...previous, [key]: value }));
   const scrollToEstimate = () => document.getElementById("estimate")?.scrollIntoView({ behavior: "smooth" });
+  const selectOffer = (loanType: LoanType) => {
+    update("loanType", loanType);
+    setError("");
+    setStep(1);
+    scrollToEstimate();
+  };
+  useEffect(() => {
+    const selectedProduct = new URLSearchParams(window.location.search).get("product");
+    if (!selectedProduct || !Object.hasOwn(loanNames, selectedProduct)) return;
+    window.requestAnimationFrame(() => document.getElementById("estimate")?.scrollIntoView({ behavior: "smooth" }));
+  }, []);
   const next = () => {
     setError("");
     if (step === 1 && !data.loanType) setError("Choose a loan option to continue.");
@@ -323,7 +342,7 @@ export function CitygateLoansPage() {
       <section id="loan-options" className="td-section">
         <div className="td-wrap">
           <div className="td-section-head"><div><span className="td-eyebrow">Options to explore</span><h2>Start with the need in front of you.</h2></div><p>These are product categories supplied for Citygate Global. Ask the lender for current eligibility, requirements and official terms.</p></div>
-          <div className="td-products td-products-citygate">{citygateProducts.map(({ icon: Icon, title, label, copy }) => <article key={title} className="td-product"><span className="td-product-icon"><Icon size={19} /></span><span className="td-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p></article>)}</div>
+          <div className="td-products td-products-citygate">{citygateProducts.map(({ icon: Icon, title, label, copy, loanType }) => <button key={title} type="button" className={`td-product td-product-action${data.loanType === loanType ? " is-selected" : ""}`} aria-pressed={data.loanType === loanType} onClick={() => selectOffer(loanType)}><span className="td-product-icon"><Icon size={19} /></span><span className="td-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p><span className="td-product-cta">Choose & estimate <ArrowRight size={14} /></span></button>)}</div>
         </div>
       </section>
       <section id="estimate" className="td-estimator-section">

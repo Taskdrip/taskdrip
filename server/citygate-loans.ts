@@ -86,47 +86,53 @@ export function registerCitygateLoanRoutes(
     const ipAddress = (req.headers["x-forwarded-for"] as string || req.ip || "").split(",")[0].trim().slice(0, 64);
 
     try {
-      const [application] = await db.insert(citygateLoanApplications).values({
-        ...input,
-        email,
-        sixMonthTurnover: String(input.sixMonthTurnover),
-        monthlyNetIncome: String(input.monthlyNetIncome),
-        assetAmount: String(input.assetAmount),
-        requestedAmount: String(input.requestedAmount),
-        estimateNaira: String(estimate.estimateNaira),
-        estimateBasis: estimate.estimateBasis,
-        source: "/citygate-global-loans",
-        segment: "citygate-global",
-        status: "new",
-        emailNotificationStatus: "pending",
-      }).returning({ id: citygateLoanApplications.id });
-
-      if (input.marketingConsent) {
-        await db.insert(newsletterSubscribers).values({
+      const application = await db.transaction(async (tx) => {
+        const [savedApplication] = await tx.insert(citygateLoanApplications).values({
+          ...input,
           email,
-          name: input.fullName,
-          source: "loans",
-          segment: "loans,citygate-global",
-          ipAddress,
-        }).onConflictDoUpdate({
-          target: newsletterSubscribers.email,
-          set: {
-            status: "active",
-            segment: sql`concat_ws(
-              ',',
-              nullif(trim(coalesce(${newsletterSubscribers.segment}, '')), ''),
-              CASE
-                WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,loans,%' THEN NULL
-                ELSE 'loans'
-              END,
-              CASE
-                WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,citygate-global,%' THEN NULL
-                ELSE 'citygate-global'
-              END
-            )`,
-          },
-        });
-      }
+          sixMonthTurnover: String(input.sixMonthTurnover),
+          monthlyNetIncome: String(input.monthlyNetIncome),
+          assetAmount: String(input.assetAmount),
+          requestedAmount: String(input.requestedAmount),
+          estimateNaira: String(estimate.estimateNaira),
+          estimateBasis: estimate.estimateBasis,
+          source: "/citygate-global-loans",
+          segment: "citygate-global",
+          status: "new",
+          emailNotificationStatus: "pending",
+        }).returning({ id: citygateLoanApplications.id });
+
+        if (input.marketingConsent) {
+          await tx.insert(newsletterSubscribers).values({
+            email,
+            name: input.fullName,
+            source: "loans",
+            segment: "loans,citygate-global",
+            ipAddress,
+          }).onConflictDoUpdate({
+            target: newsletterSubscribers.email,
+            set: {
+              name: input.fullName,
+              source: "loans",
+              status: "active",
+              segment: sql`concat_ws(
+                ',',
+                nullif(trim(coalesce(${newsletterSubscribers.segment}, '')), ''),
+                CASE
+                  WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,loans,%' THEN NULL
+                  ELSE 'loans'
+                END,
+                CASE
+                  WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,citygate-global,%' THEN NULL
+                  ELSE 'citygate-global'
+                END
+              )`,
+            },
+          });
+        }
+
+        return savedApplication;
+      });
 
       const fields: Array<[string, string]> = [
         ["Name", input.fullName],
@@ -152,22 +158,33 @@ export function registerCitygateLoanRoutes(
         .map(([label, value]) => `<tr><th align="left" style="border:1px solid #ddd">${escapeHtml(label)}</th><td style="border:1px solid #ddd">${escapeHtml(value)}</td></tr>`)
         .join("")}</table><p>This estimate is an illustrative cash-flow calculation, not a credit decision or Citygate offer.</p>`;
 
-      const notification = await sendEmail({
-        to: "taskdrip@gmail.com",
-        cc: ["victoria.ojo@citygate.com"],
-        subject: `Citygate loan enquiry — ${input.fullName}`,
-        html,
-        text: fields.filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join("\n"),
-      });
-      await db.update(citygateLoanApplications)
-        .set({ emailNotificationStatus: notification.success ? "sent" : "failed" })
-        .where(eq(citygateLoanApplications.id, application.id));
+      let emailSent = false;
+      try {
+        const notification = await sendEmail({
+          to: "taskdrip@gmail.com",
+          cc: ["victoria.ojo@citygate.com"],
+          subject: `Citygate loan enquiry — ${input.fullName}`,
+          html,
+          text: fields.filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join("\n"),
+        });
+        emailSent = notification.success;
+      } catch (notificationError) {
+        console.error("[citygate-loans] Email notification failed:", notificationError);
+      }
+
+      try {
+        await db.update(citygateLoanApplications)
+          .set({ emailNotificationStatus: emailSent ? "sent" : "failed" })
+          .where(eq(citygateLoanApplications.id, application.id));
+      } catch (statusError) {
+        console.error("[citygate-loans] Could not save email notification status:", statusError);
+      }
 
       return res.status(201).json({
         id: application.id,
         estimateNaira: estimate.estimateNaira,
         estimateBasis: estimate.estimateBasis,
-        emailSent: notification.success,
+        emailSent,
       });
     } catch (error) {
       console.error("[citygate-loans] Application could not be saved or processed:", error);
