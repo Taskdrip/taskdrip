@@ -246,9 +246,13 @@ function safeExternalUrl(value: unknown, allowRelative = false): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const input = value.trim();
   if (allowRelative && input.startsWith("/") && !input.startsWith("//")) return input;
+  if (/[\s\u0000-\u001f\u007f]/.test(input)) return null;
   try {
     const parsed = new URL(input);
-    return parsed.protocol === "https:" ? parsed.toString() : null;
+    if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) return null;
+    // Keep signed CDN/Drive query strings byte-for-byte as entered; URL.toString()
+    // can normalize a final download URL and invalidate some providers' signatures.
+    return input;
   } catch {
     return null;
   }
@@ -1015,13 +1019,19 @@ export function registerFreeDownloadsRoutes(app: Express) {
         );
         if (!unlock.rowCount) return res.status(403).json({ message: "Complete the partner redirect to unlock this download." });
       }
-      const countedEvent = await addEvent("download_click", row.id, req.user.id, true);
-      if (countedEvent) {
-        await pool.query("UPDATE free_download_items SET download_count=download_count+1 WHERE id=$1", [row.id]);
+      try {
+        const countedEvent = await addEvent("download_click", row.id, req.user.id, true);
+        if (countedEvent) {
+          await pool.query("UPDATE free_download_items SET download_count=download_count+1 WHERE id=$1", [row.id]);
+        }
+      } catch (trackingError) {
+        // Analytics must never turn a valid, unlocked download into a 503.
+        console.warn("[free-downloads] Download delivery continued without click tracking:", trackingError);
       }
       if (row.external_download_url) {
         const target = safeExternalUrl(row.external_download_url);
         if (!target) return res.status(410).json({ message: "This download link is no longer valid." });
+        res.setHeader("Cache-Control", "no-store");
         return res.redirect(302, target);
       }
       if (!row.source_file_key || !/^[a-f0-9-]{36}\.[a-z0-9]{1,8}$/i.test(row.source_file_key)) {
