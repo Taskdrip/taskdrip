@@ -7788,7 +7788,7 @@ Instructions:
       const course = await storage.getCourseById(req.params.id)
         ?? (await storage.getAllCourses(true)).find((candidate) => slugifyCourseTitle(candidate.title) === req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
-      if (Array.isArray(course.tags) && course.tags.includes("breedskool_money_2027")) {
+      if (slugifyCourseTitle(course.title) === "the-easiest-online-money-strategy-in-2027") {
         const [enrollmentCount] = await db
           .select({ count: sql<number>`count(distinct ${courseEnrollments.userId})` })
           .from(courseEnrollments)
@@ -7796,7 +7796,13 @@ Instructions:
             eq(courseEnrollments.courseId, course.id),
             eq(courseEnrollments.status, "active"),
           ));
-        res.json({ ...course, studentsCount: Number(enrollmentCount?.count ?? 0) });
+        // The course owner confirmed 36 current learners; keep this as a verified baseline
+        // while allowing the displayed total to increase with additional active enrollments.
+        const verifiedStudentBaseline = 36;
+        res.json({
+          ...course,
+          studentsCount: Math.max(verifiedStudentBaseline, Number(enrollmentCount?.count ?? 0)),
+        });
         return;
       }
       res.json(course);
