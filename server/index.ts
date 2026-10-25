@@ -141,7 +141,8 @@ const apiWriteLimiter = rateLimit({
   skip: () => isDev,
 });
 
-app.use(globalLimiter);
+// Limit API traffic without rate-limiting public HTML pages or frontend assets.
+app.use("/api", globalLimiter);
 app.use("/api/login", authLimiter);
 app.use("/api/register", authLimiter);
 app.use("/api/auth", authLimiter);
