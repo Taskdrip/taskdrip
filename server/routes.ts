@@ -7788,6 +7788,17 @@ Instructions:
       const course = await storage.getCourseById(req.params.id)
         ?? (await storage.getAllCourses(true)).find((candidate) => slugifyCourseTitle(candidate.title) === req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
+      if (Array.isArray(course.tags) && course.tags.includes("breedskool_money_2027")) {
+        const [enrollmentCount] = await db
+          .select({ count: sql<number>`count(distinct ${courseEnrollments.userId})` })
+          .from(courseEnrollments)
+          .where(and(
+            eq(courseEnrollments.courseId, course.id),
+            eq(courseEnrollments.status, "active"),
+          ));
+        res.json({ ...course, studentsCount: Number(enrollmentCount?.count ?? 0) });
+        return;
+      }
       res.json(course);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch course" });
