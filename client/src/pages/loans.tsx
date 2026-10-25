@@ -22,8 +22,6 @@ import {
   Pause,
   Play,
   ShieldCheck,
-  Sparkles,
-  Send,
   Wallet,
   X,
 } from "lucide-react";
@@ -54,6 +52,34 @@ const pageStyles = `
 @media(max-width:390px){.td-navright .td-btn{font-size:0;gap:0;padding:10px}.td-navright .td-btn svg{width:17px}.td-dir-copy h1,.td-city-copy h1{font-size:54px}.td-products-citygate{grid-template-columns:1fr}.td-products-citygate .td-product{border-right:0;border-bottom:1px solid var(--line)}.td-products-citygate .td-product:last-child{border-bottom:0}}
 @media(max-width:900px){.td-mobile-links{display:flex;flex-direction:column;gap:0;position:relative;z-index:11;margin:-2px auto 12px;width:min(1190px,calc(100% - 56px));padding:7px;background:var(--white);border:1px solid var(--line);box-shadow:0 14px 32px #1b392616}.td-mobile-links a{padding:12px 10px;font-size:12px;font-weight:700;border-bottom:1px solid var(--line)}.td-mobile-links a:last-child{border:0}}
 @media(prefers-reduced-motion:reduce){.td-reveal{animation:none}.td-loans *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}.td-slider-controls button:hover{transform:none}}
+.td-citygate-page .td-eyebrow{font-size:11px;letter-spacing:.12em}
+.td-citygate-page .td-navlinks,.td-citygate-page .td-navright .td-quiet{font-size:14px}
+.td-citygate-page .td-btn{font-size:14px}
+.td-citygate-page .td-textlink{font-size:14px}
+.td-citygate-page .td-city-copy>p{font-size:16px;line-height:1.75;color:#46554c}
+.td-citygate-page .td-citygate-context{font-size:14px;line-height:1.75;color:#435249}
+.td-citygate-page .td-chip{font-size:12px}
+.td-citygate-page .td-image-caption{font-size:12px}
+.td-citygate-page .td-section-head p{font-size:15px;line-height:1.75;color:#48564d}
+.td-citygate-page .td-product p{font-size:14px;line-height:1.7;color:#46554c}
+.td-citygate-page .td-product-cta{font-size:12px}
+.td-citygate-page .td-estimator-intro p{font-size:16px;line-height:1.8;color:#d8e2da}
+.td-citygate-page .td-estimate-warning{font-size:13px;line-height:1.8;color:#e0e9e1}
+.td-citygate-page .td-step-meta{font-size:11px}
+.td-citygate-page .td-form-hint{font-size:14px;line-height:1.6;color:#59675e}
+.td-citygate-page .td-field label{font-size:13px;color:#33483d}
+.td-citygate-page .td-field input,.td-citygate-page .td-field select{font-size:16px}
+.td-citygate-page .td-tenure-value{font-size:14px}
+.td-citygate-page .td-estimate-label{font-size:11px}
+.td-citygate-page .td-estimate-box p{font-size:13px;line-height:1.7;color:#4d5c52}
+.td-citygate-page .td-privacy{font-size:12px}
+.td-citygate-page .td-consent{font-size:13px;line-height:1.7;color:#46554c}
+.td-citygate-page .td-success-state p{font-size:14px;line-height:1.8}
+.td-citygate-page .td-reference-card p{font-size:14px;line-height:1.75;color:#4d5a51}
+.td-citygate-page .td-faq summary{font-size:15px}
+.td-citygate-page .td-faq details p{font-size:14px;line-height:1.8;color:#4d5a51}
+.td-citygate-page .td-footer-inner p,.td-citygate-page .td-footer-links{font-size:13px}
+.td-citygate-page .td-error{font-size:14px}
 `;
 
 function HeroPhotoSlider({ citygate = false }: { citygate?: boolean }) {
@@ -122,7 +148,6 @@ function PublicNav({ citygate = false }: { citygate?: boolean }) {
         <div className="td-navlinks">
           <a href={citygate ? "#loan-options" : "#lenders"}>Loan options</a>
           <a href={citygate ? "#estimate" : "#how-it-works"}>{citygate ? "Cash-flow estimate" : "How it works"}</a>
-          {citygate && <a href="#loan-guide">AI loan guide</a>}
           <a href={citygate ? "#questions" : "#about-directory"}>{citygate ? "Questions" : "About"}</a>
         </div>
         <div className="td-navright">
@@ -131,7 +156,7 @@ function PublicNav({ citygate = false }: { citygate?: boolean }) {
           <button type="button" className="td-mobile-menu" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
         </div>
       </nav>
-      {open && <div className="td-mobile-links"><a href={citygate ? "#loan-options" : "#lenders"} onClick={() => setOpen(false)}>Loan options</a><a href={citygate ? "#estimate" : "#how-it-works"} onClick={() => setOpen(false)}>{citygate ? "Cash-flow estimate" : "How it works"}</a>{citygate && <a href="#loan-guide" onClick={() => setOpen(false)}>AI loan guide</a>}<a href={citygate ? "#questions" : "#about-directory"} onClick={() => setOpen(false)}>{citygate ? "Questions" : "About the directory"}</a><Link href="/loans" onClick={() => setOpen(false)}>Directory home</Link></div>}
+      {open && <div className="td-mobile-links"><a href={citygate ? "#loan-options" : "#lenders"} onClick={() => setOpen(false)}>Loan options</a><a href={citygate ? "#estimate" : "#how-it-works"} onClick={() => setOpen(false)}>{citygate ? "Cash-flow estimate" : "How it works"}</a><a href={citygate ? "#questions" : "#about-directory"} onClick={() => setOpen(false)}>{citygate ? "Questions" : "About the directory"}</a><Link href="/loans" onClick={() => setOpen(false)}>Directory home</Link></div>}
     </div>
   );
 }
@@ -283,91 +308,6 @@ function Field({ label, name, value, onChange, type = "text", placeholder, requi
   return <div className="td-field"><label htmlFor={name}>{label}{required && " *"}</label>{children || <input id={name} name={name} type={type} value={value ?? ""} onChange={(event) => onChange?.(event.target.value)} placeholder={placeholder} required={required} min={min} max={max} />}</div>;
 }
 
-function CitygateLoanGuide({ loanType }: { loanType: LoanType }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [error, setError] = useState("");
-  const [asking, setAsking] = useState(false);
-
-  const askGuide = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmedQuestion = question.trim();
-    if (trimmedQuestion.length < 3) {
-      setError("Enter a question of at least 3 characters.");
-      return;
-    }
-
-    setError("");
-    setAnswer("");
-    setAsking(true);
-    try {
-      const response = await apiRequest("POST", "/api/citygate-loans/guide", {
-        question: trimmedQuestion,
-        loanType,
-      });
-      const payload = await response.json();
-      setAnswer(payload.answer);
-    } catch (guideError) {
-      setError(readableApiError(guideError, "The AI guide is temporarily unavailable. Please use the calculator or contact Citygate directly."));
-    } finally {
-      setAsking(false);
-    }
-  };
-
-  return (
-    <section id="loan-guide" className="td-ai-guide-section" aria-labelledby="td-ai-guide-title">
-      <style>{`
-        .td-ai-guide-section{padding:58px 0 76px;background:#e8ece2}
-        .td-ai-guide{max-width:900px;margin:0 auto;padding:clamp(24px,5vw,48px);background:#fffdf6;border:1px solid #d9ded2;box-shadow:0 18px 50px #1b392610}
-        .td-ai-guide-heading{display:grid;grid-template-columns:42px 1fr;gap:14px;align-items:start}
-        .td-ai-guide-icon{width:42px;height:42px;display:grid;place-items:center;background:#e9eedc;color:#245947;border-radius:50%}
-        .td-ai-guide h2{font-size:clamp(35px,4.5vw,52px);line-height:1;margin:9px 0 10px}
-        .td-ai-guide-heading p{margin:0;color:#68766f;font-size:12px;line-height:1.75;max-width:640px}
-        .td-ai-prompts{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
-        .td-ai-prompts button{border:1px solid #d9ded2;background:#f5f3e9;padding:9px 11px;color:#40534a;font-size:10px;cursor:pointer}
-        .td-ai-prompts button:hover{border-color:#245947;color:#245947}
-        .td-ai-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
-        .td-ai-form label{display:grid;gap:7px;font-size:10px;font-weight:700;color:#40534a}
-        .td-ai-form textarea{width:100%;min-height:76px;resize:vertical;border:1px solid #d6dfd4;border-radius:2px;background:#fffdf6;padding:12px;color:#263930;font:inherit;font-size:12px;line-height:1.5;outline:none}
-        .td-ai-form textarea:focus{border-color:#31745b;box-shadow:0 0 0 3px #31745b1b}
-        .td-ai-form button{min-height:44px}
-        .td-ai-disclosure{margin:13px 0 0;color:#718078;font-size:10px;line-height:1.7}
-        .td-ai-answer{margin-top:18px;padding:17px 19px;border-left:2px solid #245947;background:#e8ece2;color:#34483e;font-size:12px;line-height:1.8;white-space:pre-wrap}
-        .td-ai-error{margin:14px 0 0;color:#8c3c2b;font-size:11px;line-height:1.6}
-        @media(max-width:600px){.td-ai-guide-section{padding:40px 0 52px}.td-ai-form{grid-template-columns:1fr}.td-ai-form button{width:100%}.td-ai-guide-heading{grid-template-columns:36px 1fr;gap:10px}.td-ai-guide-icon{width:36px;height:36px}}
-      `}</style>
-      <div className="td-wrap">
-        <div className="td-ai-guide">
-          <div className="td-ai-guide-heading">
-            <span className="td-ai-guide-icon"><Sparkles size={19} /></span>
-            <div>
-              <span className="td-eyebrow">General information · AI assisted</span>
-              <h2 id="td-ai-guide-title">Ask before you apply.</h2>
-              <p>Get a plain-language explanation of the listed options or how the estimate works. This guide cannot assess eligibility or make a lending decision.</p>
-            </div>
-          </div>
-          <div className="td-ai-prompts" aria-label="Example questions">
-            <button type="button" onClick={() => setQuestion("How is the cash-flow estimate calculated?")}>How is the estimate calculated?</button>
-            <button type="button" onClick={() => setQuestion("What should I confirm with Citygate before applying?")}>What should I confirm with Citygate?</button>
-          </div>
-          <form className="td-ai-form" onSubmit={askGuide}>
-            <label htmlFor="citygate-guide-question">
-              Your question
-              <textarea id="citygate-guide-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={500} placeholder="Ask about the options or calculator — not your personal application." required />
-            </label>
-            <button className="td-btn" type="submit" disabled={asking || question.trim().length < 3}>
-              <Send size={14} /> {asking ? "Thinking…" : "Ask the guide"}
-            </button>
-          </form>
-          <p className="td-ai-disclosure">Your question and selected product category are sent to the AI service for a reply, but are not attached to your loan enquiry or email list. Do not enter names, contact details, account numbers or personal financial information. AI answers may be incomplete; confirm current terms directly with Citygate Global.</p>
-          {error && <p className="td-ai-error" role="alert">{error}</p>}
-          {answer && <div className="td-ai-answer" role="status" aria-live="polite">{answer}</div>}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function CitygateLoansPage() {
   const [data, setData] = useState<ApplicationData>(() => {
     if (typeof window === "undefined") return initialApplication;
@@ -476,7 +416,7 @@ export function CitygateLoansPage() {
   };
 
   return (
-    <main className="td-loans">
+    <main className="td-loans td-citygate-page">
       <style>{pageStyles}</style>
       <PublicNav citygate />
       <section className="td-city-hero">
@@ -562,7 +502,6 @@ export function CitygateLoansPage() {
           <article className="td-reference-card"><FileCheck2 size={20} /><div><h3>Confirm the full picture</h3><p>Ask Citygate Global directly about eligibility, rates, fees, documentation and repayment before making a decision.</p></div></article>
         </div>
       </section>
-      <CitygateLoanGuide loanType={data.loanType} />
       <section id="questions" className="td-faq">
         <div className="td-wrap td-faq-grid">
           <div><span className="td-eyebrow">Before you continue</span><h2>Questions, answered plainly.</h2><p style={{ color: "var(--muted)", lineHeight: 1.7, fontSize: 11 }}>Understanding the limits of an estimate is part of making an informed choice.</p></div>
