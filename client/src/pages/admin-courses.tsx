@@ -526,7 +526,7 @@ export default function AdminCourses() {
     queryKey: ["/api/courses/admin/all"],
   });
 
-  const { data: enrollments = [] } = useQuery<any[]>({
+  const { data: enrollments = [], isError: enrollmentsError, refetch: refetchEnrollments } = useQuery<any[]>({
     queryKey: ["/api/courses/admin/enrollments"],
   });
 
@@ -606,6 +606,19 @@ export default function AdminCourses() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const deleteEnrollmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/courses/enrollments/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      toast({ title: "Course order deleted", description: "The enrollment and course access were removed." });
+    },
+    onError: (error: any) => toast({ title: "Failed to delete course order", description: error.message, variant: "destructive" }),
+  });
+
   const openEdit = (course: any) => {
     setEditingCourse(course);
     setThumbnail(course.thumbnail || "");
@@ -641,8 +654,7 @@ export default function AdminCourses() {
     .reduce((sum: number, e: any) => sum + parseFloat(e.amount || "0"), 0);
 
   // Students tab data
-  const activeEnrollments = enrollments.filter((e: any) => e.status === "active");
-  const filteredStudents = activeEnrollments.filter((e: any) => {
+  const filteredStudents = enrollments.filter((e: any) => {
     if (studentCourseFilter !== "all" && e.courseId !== studentCourseFilter) return false;
     if (studentSearch) {
       const q = studentSearch.toLowerCase();
@@ -807,7 +819,7 @@ export default function AdminCourses() {
             </TabsTrigger>
             <TabsTrigger value="students" data-testid="admin-tab-students">
               <Users className="h-4 w-4 mr-1.5" /> Students
-              <Badge className="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5">{activeEnrollments.length}</Badge>
+              <Badge className="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5">{enrollments.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="pending" data-testid="admin-tab-pending">
               <Eye className="h-4 w-4 mr-1.5" /> Approvals
@@ -925,7 +937,7 @@ export default function AdminCourses() {
               <CardHeader>
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-blue-600" /> Enrolled Students ({filteredStudents.length})
+                    <Users className="h-5 w-5 text-blue-600" /> Course Enrollments ({filteredStudents.length})
                   </CardTitle>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Input
@@ -950,10 +962,15 @@ export default function AdminCourses() {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredStudents.length === 0 ? (
+                {enrollmentsError ? (
+                  <div className="text-center py-12 text-red-600">
+                    <p className="font-medium">Could not load course enrollment records.</p>
+                    <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchEnrollments()}>Try again</Button>
+                  </div>
+                ) : filteredStudents.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>No students match the filter.</p>
+                    <p>No course enrollments match the filter.</p>
                   </div>
                 ) : (
                   <Table>
@@ -1014,6 +1031,20 @@ export default function AdminCourses() {
                                   <Eye className="h-3 w-3" /> View
                                 </Button>
                               </Link>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="ml-2 gap-1 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                                disabled={deleteEnrollmentMutation.isPending}
+                                onClick={() => {
+                                  if (window.confirm(`Delete this course order for ${e.user?.firstName || e.user?.email || "this student"}? This also revokes course access and cannot be undone.`)) {
+                                    deleteEnrollmentMutation.mutate(e.id);
+                                  }
+                                }}
+                                data-testid={`btn-delete-enrollment-${e.id}`}
+                              >
+                                <Trash2 className="h-3 w-3" /> Delete
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -1082,6 +1113,19 @@ export default function AdminCourses() {
                                 onClick={() => approveEnrollmentMutation.mutate(e.id)}
                                 disabled={approveEnrollmentMutation.isPending}>
                                 <CheckCircle2 className="h-3 w-3" /> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1 border-red-200 text-red-600 hover:bg-red-50"
+                                disabled={deleteEnrollmentMutation.isPending}
+                                onClick={() => {
+                                  if (window.confirm(`Delete this course order for ${e.user?.firstName || e.user?.email || "this student"}? This cannot be undone.`)) {
+                                    deleteEnrollmentMutation.mutate(e.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" /> Delete
                               </Button>
                             </div>
                           </TableCell>

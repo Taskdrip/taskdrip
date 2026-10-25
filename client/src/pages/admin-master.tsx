@@ -2217,7 +2217,7 @@ export default function AdminMaster() {
     retry: false,
   });
 
-  const { data: bsRegistrations = [], refetch: refetchBsRegs } = useQuery<any[]>({
+  const { data: bsRegistrations = [], isError: bsRegistrationsError, refetch: refetchBsRegs } = useQuery<any[]>({
     queryKey: ["/api/admin/breedskool/registrations"],
     enabled: isFullAdmin,
     retry: false,
@@ -6344,7 +6344,12 @@ export default function AdminMaster() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {bsFiltered.length === 0 ? (
+                      {bsRegistrationsError ? (
+                        <div className="text-center py-10 text-red-600">
+                          <p className="font-medium">Could not load BreedSkool registrations.</p>
+                          <Button size="sm" variant="outline" className="mt-3" onClick={() => refetchBsRegs()}>Try again</Button>
+                        </div>
+                      ) : bsFiltered.length === 0 ? (
                         <div className="text-center py-10 text-gray-400">
                           <GraduationCap className="h-10 w-10 mx-auto mb-2 opacity-30" />
                           <p>No registrations found</p>
@@ -6399,9 +6404,25 @@ export default function AdminMaster() {
                                     {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}
                                   </TableCell>
                                   <TableCell>
-                                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setBsViewReg(r); setBsPayNote(r.notes || ""); }}>
-                                      <Eye className="h-3 w-3" /> View
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setBsViewReg(r); setBsPayNote(r.notes || ""); }}>
+                                        <Eye className="h-3 w-3" /> View
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs gap-1 border-red-200 text-red-600 hover:bg-red-50"
+                                        disabled={deleteRegMutation.isPending}
+                                        onClick={() => {
+                                          if (window.confirm(`Delete the course order for ${r.fullName}? This cannot be undone.`)) {
+                                            deleteRegMutation.mutate(r.id);
+                                          }
+                                        }}
+                                        data-testid={`button-delete-breedskool-registration-${r.id}`}
+                                      >
+                                        <Trash2 className="h-3 w-3" /> Delete
+                                      </Button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}

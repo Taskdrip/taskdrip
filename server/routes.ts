@@ -7772,6 +7772,29 @@ Instructions:
     }
   });
 
+  // Admin: delete a course order/enrollment and revoke access
+  app.delete('/api/courses/enrollments/:id', isAuthenticated, async (req: any, res) => {
+    if ((req.user as any).userType !== 'admin' && (req.user as any).role !== 'admin') {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    try {
+      const [enrollment] = await db.select().from(courseEnrollments)
+        .where(eq(courseEnrollments.id, req.params.id))
+        .limit(1);
+      if (!enrollment) return res.status(404).json({ message: "Course enrollment not found" });
+
+      await db.delete(courseEnrollments).where(eq(courseEnrollments.id, enrollment.id));
+      if (enrollment.status === "active") {
+        await db.update(courses)
+          .set({ studentsCount: sql`GREATEST(COALESCE(${courses.studentsCount}, 0) - 1, 0)` })
+          .where(eq(courses.id, enrollment.courseId));
+      }
+      res.json({ success: true, message: "Course enrollment deleted" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete course enrollment" });
+    }
+  });
+
   // Auth: get my enrollments
   app.get('/api/courses/my-enrollments', isAuthenticated, async (req: any, res) => {
     try {
@@ -8168,8 +8191,9 @@ Instructions:
       const proofPath = req.file
         ? `/uploads/${req.file.filename}`
         : (req.body.paymentProofUrl || req.body.paymentProof || null);
-      // Pay-later students get active access immediately so they can start learning
-      const isPayLater = req.body.payLater === 'true' || req.body.payLater === true;
+      if (req.body.payLater === 'true' || req.body.payLater === true) {
+        return res.status(400).json({ message: "Pay-later enrollment is no longer available. Please complete payment to enroll." });
+      }
       // Determine effective price: use sale price if active (deadline not expired)
       let effectivePrice = course.isFree ? "0.00" : (course.price || "0.00");
       if (!course.isFree && (course as any).salePrice && (course as any).saleDeadline) {
@@ -8181,7 +8205,7 @@ Instructions:
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
-        isFree: course.isFree || isPayLater,
+        isFree: course.isFree,
         paymentMethod: req.body.paymentMethod,
         paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
@@ -8205,7 +8229,7 @@ Instructions:
       }
 
       // Notify admin of new paid course enrollment
-      if (!course.isFree && !isPayLater) {
+      if (!course.isFree) {
         try {
           const adminForEnroll = await storage.getAdminUser();
           if (adminForEnroll) {

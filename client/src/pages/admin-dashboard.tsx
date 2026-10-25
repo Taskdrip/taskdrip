@@ -234,7 +234,12 @@ export default function AdminDashboard() {
   const [courseForm, setCourseForm] = useState({ title: "", description: "", shortDescription: "", category: "instagram_growth", thumbnail: "", price: "0.00", isFree: true, level: "beginner", duration: "", lessonsCount: 0, isPublished: false, isFeatured: false });
 
   const { data: allCourses = [], isLoading: coursesLoading } = useQuery<any[]>({ queryKey: ["/api/courses"] });
-  const { data: adminEnrollments = [], isLoading: enrollmentsLoading } = useQuery<any[]>({ queryKey: ["/api/courses/admin/enrollments"] });
+  const {
+    data: adminEnrollments = [],
+    isLoading: enrollmentsLoading,
+    isError: enrollmentsError,
+    refetch: refetchEnrollments,
+  } = useQuery<any[]>({ queryKey: ["/api/courses/admin/enrollments"] });
 
   // Fixed: status field is "pending_payment" not "pending_verification"
   const pendingCoursePayments = (adminEnrollments as any[]).filter((e: any) =>
@@ -273,6 +278,19 @@ export default function AdminDashboard() {
     mutationFn: async (id: string) => { const r = await apiRequest("POST", `/api/courses/enrollments/${id}/reject`); return r.json(); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] }); toast({ title: "Enrollment Rejected" }); },
     onError: () => toast({ title: "Failed to reject", variant: "destructive" }),
+  });
+
+  const deleteCourseEnrollmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/courses/enrollments/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/courses/admin/enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      toast({ title: "Course order deleted", description: "The enrollment and course access were removed." });
+    },
+    onError: (error: any) => toast({ title: "Failed to delete course order", description: error.message, variant: "destructive" }),
   });
 
   function openCreateCourse() {
@@ -1291,10 +1309,15 @@ export default function AdminDashboard() {
               <div className="space-y-3">
                 {enrollmentsLoading ? (
                   <div className="text-center py-8 text-gray-400">Loading enrollments...</div>
+                ) : enrollmentsError ? (
+                  <Card><CardContent className="py-8 text-center">
+                    <p className="text-red-600">Could not load course enrollment records.</p>
+                    <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchEnrollments()}>Try again</Button>
+                  </CardContent></Card>
                 ) : adminEnrollments.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                    <p>No enrollments yet.</p>
+                    <p>No course enrollments yet.</p>
                   </div>
                 ) : adminEnrollments.map((e: any) => (
                   <Card key={e.id} className="border border-gray-200">
@@ -1308,6 +1331,20 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <StatusBadge status={e.paymentStatus || e.status || "active"} />
                           {e.completedAt && <Badge className="bg-green-100 text-green-700" variant="outline">Completed</Badge>}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-red-200 text-red-600 hover:bg-red-50"
+                            disabled={deleteCourseEnrollmentMutation.isPending}
+                            onClick={() => {
+                              if (window.confirm(`Delete this course order for ${e.user?.firstName || e.user?.email || "this student"}? This also revokes course access and cannot be undone.`)) {
+                                deleteCourseEnrollmentMutation.mutate(e.id);
+                              }
+                            }}
+                            data-testid={`btn-delete-course-order-${e.id}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
