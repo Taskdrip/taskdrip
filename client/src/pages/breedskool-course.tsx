@@ -697,6 +697,7 @@ export default function BreedSkoolCourse() {
   const whatYouLearn = Array.isArray(course.whatYouLearn) ? course.whatYouLearn : [];
   const requirements = Array.isArray(course.requirements) ? course.requirements : [];
   const demoReviewCount = reviews.filter((review: any) => review.isDemo).length;
+  const showReviewsSection = courseSlug !== "the-easiest-online-money-strategy-in-2027";
 
   // Compute effective price — use salePrice if active promo
   const hasSalePromo = !!(course.salePrice && course.saleDeadline && new Date(course.saleDeadline) > new Date() && parseFloat(course.salePrice) < parseFloat(course.price || "0"));
@@ -918,7 +919,8 @@ export default function BreedSkoolCourse() {
             )}
 
             {/* Reviews */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            {showReviewsSection && (
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
@@ -987,7 +989,8 @@ export default function BreedSkoolCourse() {
                   ))}
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
             {/* General Discussion */}
             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
