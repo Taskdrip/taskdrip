@@ -32,7 +32,7 @@ type CitygateApplication = {
   marketingConsent?: boolean;
 };
 
-const statusChoices = ["new", "reviewing", "contacted", "approved", "declined", "archived"];
+const statusChoices = ["new", "contacted", "qualified", "closed"];
 const ngn = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
 const amount = (value?: string | number | null) => {
   if (value === undefined || value === null || value === "") return "Not provided";

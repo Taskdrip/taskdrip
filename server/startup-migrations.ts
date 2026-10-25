@@ -8,6 +8,7 @@ type ColumnFix = {
 };
 
 const REQUIRED_COLUMNS: ColumnFix[] = [
+  { table: "newsletter_subscribers", column: "segment", definition: "varchar DEFAULT 'general'" },
   { table: "plugin_studio_projects", column: "source_prompt", definition: "text" },
   { table: "plugin_studio_projects", column: "core_short_description", definition: "varchar" },
   { table: "plugin_studio_projects", column: "core_description", definition: "text" },
@@ -337,9 +338,42 @@ const REQUIRED_TABLES: string[] = [
     "name" varchar,
     "source" varchar DEFAULT 'footer',
     "status" varchar DEFAULT 'active',
+    "segment" varchar DEFAULT 'general',
     "ip_address" varchar,
     "subscribed_at" timestamp DEFAULT now()
   )`,
+
+  // Citygate enquiry submissions are additive and safe to ensure on app startup.
+  `CREATE TABLE IF NOT EXISTS "citygate_loan_applications" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "full_name" varchar NOT NULL,
+    "email" varchar NOT NULL,
+    "phone" varchar NOT NULL,
+    "date_of_birth" varchar NOT NULL,
+    "state" varchar NOT NULL,
+    "loan_type" varchar NOT NULL,
+    "employment_status" varchar NOT NULL,
+    "business_type" text,
+    "product_sold" text,
+    "six_month_turnover" varchar,
+    "monthly_net_income" varchar,
+    "asset_amount" varchar,
+    "requested_amount" varchar,
+    "tenure_months" integer NOT NULL,
+    "estimate_naira" varchar NOT NULL,
+    "estimate_basis" text NOT NULL,
+    "consent" boolean NOT NULL DEFAULT false,
+    "marketing_consent" boolean NOT NULL DEFAULT false,
+    "segment" varchar NOT NULL DEFAULT 'citygate-global',
+    "source" varchar NOT NULL DEFAULT '/citygate-global-loans',
+    "status" varchar NOT NULL DEFAULT 'new',
+    "email_notification_status" varchar NOT NULL DEFAULT 'pending',
+    "created_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "citygate_loan_applications_segment_created_idx"
+    ON "citygate_loan_applications" ("segment", "created_at" DESC)`,
+  `CREATE INDEX IF NOT EXISTS "citygate_loan_applications_email_idx"
+    ON "citygate_loan_applications" ("email")`,
 
   // Legal pages (terms, privacy, cookies, disclaimer)
   `CREATE TABLE IF NOT EXISTS "legal_pages" (

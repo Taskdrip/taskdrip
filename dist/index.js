@@ -34,6 +34,7 @@ __export(schema_exports, {
   campaignMicroTasks: () => campaignMicroTasks,
   campaignParticipations: () => campaignParticipations,
   campaigns: () => campaigns,
+  citygateLoanApplications: () => citygateLoanApplications,
   contentReports: () => contentReports,
   courseAssignments: () => courseAssignments,
   courseCertificateTemplate: () => courseCertificateTemplate,
@@ -226,7 +227,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, pluginLicenses, pluginLicenseSites, pluginLicenseEvents, pluginSupportThreads, pluginSupportMessages, productReviews, creatorBooks, creatorNotebookProjects, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, adsterraSettings, adsterraEvents, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
+var sessions, users, campaigns, campaignParticipations, campaignMicroTasks, microTaskSubmissions, transactions, blogPosts, blogLikes, blogComments, blogCategoryFollows, shopProducts, pluginStudioProjects, purchases, pluginLicenses, pluginLicenseSites, pluginLicenseEvents, pluginSupportThreads, pluginSupportMessages, productReviews, creatorBooks, creatorNotebookProjects, creatorPublishingProducts, creatorProductEarnings, creatorProductDownloads, creatorStudioSubscriptions, productLikes, messages, blockedUsers, taskSubmissions, notifications, activityLogs, insertActivityLogSchema, escrowPayments, socialPlatforms, userSocialLinks, directHireOffers, insertDirectHireOfferSchema, p2pListings, p2pTaskAddonSubmissions, insertP2pTaskAddonSubmissionSchema, p2pFeeConfigs, platformFees, p2pTransactions, p2pMessages, p2pActionLogs, insertP2PListingSchema, insertP2PTransactionSchema, insertP2PMessageSchema, insertP2PFeeConfigSchema, insertPlatformFeeSchema, portfolioItems, pushSubscriptions, pushNotificationCampaigns, userPoints, insertUserPointSchema, welcomeTaskCompletions, insertWelcomeTaskCompletionSchema, insertSocialPlatformSchema, insertUserSocialLinkSchema, insertPortfolioItemSchema, insertPushNotificationCampaignSchema, insertUserSchema, insertCampaignSchema, contentReports, insertCampaignMicroTaskSchema, insertMicroTaskSubmissionSchema, insertCampaignParticipationSchema, insertTransactionSchema, insertBlogPostSchema, insertShopProductSchema, insertPurchaseSchema, insertMessageSchema, insertTaskSubmissionSchema, insertNotificationSchema, insertBlogCommentSchema, paymentDeposits, adminWallets, brandWallets, posts, postLikes, postComments, userFollows, userReviews, subscriptions, payoutRequests, payoutMessages, referrals, insertPostSchema, insertPostCommentSchema, insertUserReviewSchema, insertSubscriptionSchema, insertPayoutRequestSchema, insertReferralSchema, paymentMethods, insertPaymentMethodSchema, platformSettings, insertPaymentDepositSchema, insertAdminWalletSchema, insertBrandWalletSchema, courses, courseEnrollments, courseReviews, courseComments, courseLikes, courseLessons, courseMessages, courseLessonProgress, courseCertificateTemplate, courseAssignments, insertCourseAssignmentSchema, courseCertificates, courseCommunityPosts, courseCommunityLikes, insertCourseCommunityPostSchema, paymentNetworks, insertPaymentNetworkSchema, siteContent, insertSiteContentSchema, pwaSettings, insertPwaSettingsSchema, pageSeoSettings, insertPageSeoSettingsSchema, citygateLoanApplications, leads, insertLeadSchema, leadMessages, insertLeadMessageSchema, pageViews, footerColumns, insertFooterColumnSchema, insertCourseSchema, insertCourseEnrollmentSchema, insertCourseReviewSchema, insertCourseCommentSchema, insertCourseLessonSchema, insertCourseMessageSchema, paymentFeatureToggles, insertPaymentFeatureToggleSchema, sponsoredAds, insertSponsoredAdSchema, adAnalytics, advertiseApplications, insertAdvertiseApplicationSchema, emailSettings, emailTemplates, insertEmailTemplateSchema, emailCampaigns, insertEmailCampaignSchema, emailAutoResponders, insertEmailAutoResponderSchema, emailLogs, heroSliders, insertHeroSliderSchema, pageContent, insertPageContentSchema, blogTips, insertBlogTipSchema, leaderboardRewards, insertLeaderboardRewardSchema, leaderboardGiveaways, insertLeaderboardGiveawaySchema, socialQuickTasks, insertSocialQuickTaskSchema, userSocialTaskCompletions, siteSocialLinks, insertSiteSocialLinkSchema, spotlightItems, insertSpotlightItemSchema, adNetworkPlacements, insertAdNetworkPlacementSchema, legalPages, insertLegalPageSchema, newsletterSubscribers, insertNewsletterSubscriberSchema, shortLinks, shortLinkClicks, shortenerSettings, insertShortLinkSchema, adsterraSettings, adsterraEvents, keywordTrackers, trackedContent, trendingTopics, autoBlogSources, autoBlogJobs, autoBloggerSettings, insertKeywordTrackerSchema, insertAutoBlogSourceSchema, pageHeroBackgrounds, insertPageHeroBackgroundSchema, appSettings, breedskoolCoursePricing, insertBreedskoolCoursePricingSchema, breedskoolRegistrations, insertBreedskoolRegistrationSchema, referralClicks, referralCommissions, socialLeads;
 var init_schema = __esm({
   "shared/schema.ts"() {
     "use strict";
@@ -1760,6 +1761,35 @@ var init_schema = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     insertPageSeoSettingsSchema = createInsertSchema(pageSeoSettings).omit({ id: true, updatedAt: true });
+    citygateLoanApplications = pgTable("citygate_loan_applications", {
+      id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+      fullName: varchar("full_name").notNull(),
+      email: varchar("email").notNull(),
+      phone: varchar("phone").notNull(),
+      dateOfBirth: varchar("date_of_birth").notNull(),
+      state: varchar("state").notNull(),
+      loanType: varchar("loan_type").notNull(),
+      employmentStatus: varchar("employment_status").notNull(),
+      businessType: text("business_type"),
+      productSold: text("product_sold"),
+      sixMonthTurnover: varchar("six_month_turnover"),
+      monthlyNetIncome: varchar("monthly_net_income"),
+      assetAmount: varchar("asset_amount"),
+      requestedAmount: varchar("requested_amount"),
+      tenureMonths: integer("tenure_months").notNull(),
+      estimateNaira: varchar("estimate_naira").notNull(),
+      estimateBasis: text("estimate_basis").notNull(),
+      consent: boolean("consent").notNull().default(false),
+      marketingConsent: boolean("marketing_consent").notNull().default(false),
+      segment: varchar("segment").notNull().default("citygate-global"),
+      source: varchar("source").notNull().default("/citygate-global-loans"),
+      status: varchar("status").notNull().default("new"),
+      emailNotificationStatus: varchar("email_notification_status").notNull().default("pending"),
+      createdAt: timestamp("created_at").defaultNow()
+    }, (table) => [
+      index("citygate_loan_applications_segment_created_idx").on(table.segment, table.createdAt),
+      index("citygate_loan_applications_email_idx").on(table.email)
+    ]);
     leads = pgTable("leads", {
       id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
       kind: varchar("kind").notNull(),
@@ -2247,6 +2277,7 @@ var init_schema = __esm({
       // active | unsubscribed
       source: varchar("source").default("footer"),
       // footer | popup | campaign
+      segment: varchar("segment").default("general"),
       ipAddress: varchar("ip_address"),
       subscribedAt: timestamp("subscribed_at").defaultNow()
     });
@@ -2911,21 +2942,21 @@ async function sendAdminActivityEmail(opts) {
       advertising: "New advertising enquiry",
       activity: "Platform activity"
     };
-    const escapeHtml3 = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const escapeHtml4 = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const rows = opts.details.filter((item) => item.value !== null && item.value !== void 0 && String(item.value).trim() !== "").map((item) => `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:30%;font-weight:600">${escapeHtml3(item.label)}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;white-space:pre-line">${escapeHtml3(String(item.value))}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:30%;font-weight:600">${escapeHtml4(item.label)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;white-space:pre-line">${escapeHtml4(String(item.value))}</td>
         </tr>`).join("");
     const customerLines = [
-      opts.customer.name ? `<strong>${escapeHtml3(opts.customer.name)}</strong>` : "",
-      opts.customer.email ? escapeHtml3(opts.customer.email) : "",
-      opts.customer.phone ? escapeHtml3(opts.customer.phone) : ""
+      opts.customer.name ? `<strong>${escapeHtml4(opts.customer.name)}</strong>` : "",
+      opts.customer.email ? escapeHtml4(opts.customer.email) : "",
+      opts.customer.phone ? escapeHtml4(opts.customer.phone) : ""
     ].filter(Boolean).join("<br>");
     const html = buildDefaultEmailHtml(`
       <div style="font-family:Arial,sans-serif">
         <p style="margin:0 0 6px;color:#7c3aed;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">${eventLabels[opts.event]}</p>
-        <h2 style="margin:0 0 18px;color:#111827">${escapeHtml3(opts.subject)}</h2>
+        <h2 style="margin:0 0 18px;color:#111827">${escapeHtml4(opts.subject)}</h2>
         <div style="margin-bottom:18px;padding:12px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px">
           <p style="margin:0 0 4px;color:#6b7280;font-size:12px;font-weight:700;text-transform:uppercase">Customer</p>
           <p style="margin:0;line-height:1.55">${customerLines || "Customer details unavailable"}</p>
@@ -2985,10 +3016,14 @@ async function blastCampaign(campaignId) {
   if (!campaign) return { sent: 0, failed: 0, errors: ["Campaign not found"] };
   await db.update(emailCampaigns).set({ status: "sending" }).where(eq2(emailCampaigns.id, campaignId));
   const seg = campaign.targetSegment;
-  if (seg === "newsletter") {
+  if (["newsletter", "loans", "citygate-global"].includes(seg)) {
     const { newsletterSubscribers: newsletterSubscribers2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
     const nsRows = await db.select().from(newsletterSubscribers2);
-    const activeSubs = nsRows.filter((s) => s.status === "active");
+    const activeSubs = nsRows.filter((subscriber) => {
+      if (subscriber.status !== "active") return false;
+      if (seg === "newsletter") return true;
+      return String(subscriber.segment || "").split(",").map((value) => value.trim().toLowerCase()).includes(seg);
+    });
     let sent2 = 0, failed2 = 0;
     const errors2 = [];
     for (const sub of activeSubs) {
@@ -3902,18 +3937,39 @@ var seed_breedskool_courses_exports = {};
 __export(seed_breedskool_courses_exports, {
   seedBreedskoolCourses: () => seedBreedskoolCourses
 });
-import { eq as eq15, sql as sql9 } from "drizzle-orm";
+import { eq as eq16, sql as sql10 } from "drizzle-orm";
 async function seedBreedskoolCourses(adminId) {
   let created = 0;
   let linked = 0;
   for (const course of BREEDSKOOL_PLATFORM_COURSES) {
     try {
       const tagToFind = `breedskool_${course.courseKey}`;
-      const existing = await db.select({ id: courses.id }).from(courses).where(sql9`${courses.tags} @> ARRAY[${tagToFind}]::text[]`).limit(1);
+      const existing = await db.select({ id: courses.id }).from(courses).where(sql10`${courses.tags} @> ARRAY[${tagToFind}]::text[]`).limit(1);
       let courseId;
       if (existing.length > 0) {
         courseId = existing[0].id;
-        if (course.courseKey === "free_foundations") {
+        if (course.courseKey === "money_2027") {
+          await db.update(courses).set({
+            title: course.title,
+            description: course.description,
+            shortDescription: course.shortDescription,
+            category: course.category,
+            thumbnail: course.thumbnail,
+            price: course.price,
+            salePrice: course.salePrice,
+            saleDeadline: course.saleDeadline,
+            isFree: false,
+            isPublished: true,
+            status: "published",
+            isFeatured: true,
+            level: course.level,
+            duration: course.duration,
+            tags: course.tags,
+            whatYouLearn: course.whatYouLearn,
+            requirements: course.requirements,
+            syllabus: course.syllabus
+          }).where(eq16(courses.id, courseId));
+        } else if (course.courseKey === "free_foundations") {
           await db.update(courses).set({
             title: course.title,
             description: course.description,
@@ -3925,7 +3981,7 @@ async function seedBreedskoolCourses(adminId) {
             whatYouLearn: course.whatYouLearn,
             requirements: course.requirements,
             syllabus: course.syllabus
-          }).where(eq15(courses.id, courseId));
+          }).where(eq16(courses.id, courseId));
         }
       } else {
         const [newCourse] = await db.insert(courses).values({
@@ -3933,14 +3989,17 @@ async function seedBreedskoolCourses(adminId) {
           description: course.description,
           shortDescription: course.shortDescription,
           category: course.category,
+          thumbnail: course.thumbnail,
           instructorId: adminId,
           price: course.price,
+          salePrice: course.salePrice,
+          saleDeadline: course.saleDeadline,
           isFree: course.courseKey === "free_foundations",
           level: course.level,
           duration: course.duration,
           status: "published",
           isPublished: true,
-          isFeatured: false,
+          isFeatured: course.courseKey === "money_2027",
           tags: course.tags,
           whatYouLearn: course.whatYouLearn,
           requirements: course.requirements,
@@ -3949,7 +4008,7 @@ async function seedBreedskoolCourses(adminId) {
         courseId = newCourse.id;
         created++;
       }
-      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq15(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
+      const existingLessons = await db.select({ id: courseLessons.id, order: courseLessons.order }).from(courseLessons).where(eq16(courseLessons.courseId, courseId)).orderBy(courseLessons.order);
       if (existingLessons.length === 0 && course.lessons?.length) {
         for (const lesson of course.lessons) {
           await db.insert(courseLessons).values({
@@ -3961,9 +4020,9 @@ async function seedBreedskoolCourses(adminId) {
           });
         }
         await db.execute(
-          sql9`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
+          sql10`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
-      } else if (course.courseKey === "free_foundations" && course.lessons?.length) {
+      } else if ((course.courseKey === "free_foundations" || course.courseKey === "money_2027") && course.lessons?.length) {
         for (const lesson of course.lessons) {
           const existingLesson = existingLessons.find((item) => item.order === lesson.order);
           if (existingLesson) {
@@ -3972,7 +4031,7 @@ async function seedBreedskoolCourses(adminId) {
               content: lesson.content,
               isPreview: lesson.isPreview,
               order: lesson.order
-            }).where(eq15(courseLessons.id, existingLesson.id));
+            }).where(eq16(courseLessons.id, existingLesson.id));
           } else {
             await db.insert(courseLessons).values({
               courseId,
@@ -3984,10 +4043,10 @@ async function seedBreedskoolCourses(adminId) {
           }
         }
         await db.execute(
-          sql9`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
+          sql10`UPDATE courses SET lessons_count = ${course.lessons.length} WHERE id = ${courseId}`
         );
       }
-      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq15(breedskoolCoursePricing.courseKey, course.courseKey));
+      await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq16(breedskoolCoursePricing.courseKey, course.courseKey));
       linked++;
     } catch (e) {
       console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
@@ -4002,6 +4061,110 @@ var init_seed_breedskool_courses = __esm({
     init_db();
     init_schema();
     BREEDSKOOL_PLATFORM_COURSES = [
+      {
+        courseKey: "money_2027",
+        title: "The Easiest Online Money Strategy in 2027",
+        description: "A practical, beginner-friendly affiliate publishing course. Build a simple website or free blog, choose products to promote, create useful short videos and search-focused articles, and understand the basics of website advertising. Includes step-by-step lessons, tool recommendations, a learner community, and a realistic launch plan. Results depend on your work, audience, platform approvals, and market conditions; income is not guaranteed.",
+        shortDescription: "Build a useful product-content site with affiliate links, short videos, organic search, and website ad monetization.",
+        category: "monetization",
+        level: "beginner",
+        duration: "Self-paced \xB7 11 lessons",
+        price: "47.00",
+        salePrice: "14.99",
+        saleDeadline: /* @__PURE__ */ new Date("2026-11-09T23:59:59+01:00"),
+        thumbnail: "/images/online-money-strategy-2027.png",
+        tags: ["breedskool_money_2027", "affiliate marketing", "content publishing", "website monetization", "bestseller", "breedskool"],
+        whatYouLearn: [
+          "Choose a focused product niche and check demand before investing",
+          "Plan a professional website or a free Blogger site",
+          "Set up affiliate links and disclose them clearly",
+          "Create original short-form product videos with a repeatable workflow",
+          "Write useful, search-focused articles that help readers make decisions",
+          "Understand AdSense and Adsterra eligibility, setup, and policy basics",
+          "Track clicks and content performance without relying on vanity metrics",
+          "Build a practical 30-day publishing plan and get peer feedback"
+        ],
+        requirements: [
+          "A phone or computer and an internet connection",
+          "A topic you are willing to research and publish about consistently",
+          "No prior website, video-editing, or marketing experience required",
+          "Affiliate and advertising account approval is subject to each provider's rules"
+        ],
+        syllabus: [
+          { week: "Start here", topic: "The model, expectations, and your first project" },
+          { week: "Build", topic: "Niche research, website setup, and product selection" },
+          { week: "Publish", topic: "Affiliate links, short videos, and SEO articles" },
+          { week: "Monetize", topic: "AdSense, Adsterra, measurement, and the 30-day plan" }
+        ],
+        lessons: [
+          {
+            title: "Welcome \u2014 The Content-to-Commerce Model",
+            content: "Welcome. This course walks through one connected workflow: publish helpful content about a focused topic, introduce relevant products with properly disclosed affiliate links, and build an audience over time. You will create small assets as you go rather than wait until everything is perfect.\n\nImportant expectations: affiliate commissions and ad revenue are not guaranteed. Traffic takes time, platforms can change their rules, and some programs require approval or minimum thresholds. Start with a low-cost setup, verify current terms directly with each provider, and never buy inventory or promise results based on this course.\n\nYour first task: write down three topics you know or are curious about, the kind of reader you want to help, and one real problem that reader has.",
+            isPreview: true,
+            order: 1
+          },
+          {
+            title: "Choose a Niche and Validate Real Reader Demand",
+            content: "A niche is a specific audience and the questions they repeatedly ask\u2014not simply a list of products. Start with a subject you can research responsibly, then narrow it to a reader and use case (for example, practical home-office gear for students).\n\nResearch workflow:\n1. List 10 questions people ask before choosing products in the topic.\n2. Look at search suggestions, community discussions, review questions, and trend tools for recurring needs.\n3. Compare existing results. Note what is missing: clear comparisons, local context, sizing details, setup instructions, or honest limitations.\n4. Check whether relevant products have an affiliate program and whether the economics and delivery regions make sense.\n5. Pick a small first content cluster: one overview, two comparisons, and three focused product guides.\n\nUse Google Trends, search autocomplete, AnswerThePublic's free features, Reddit, and a simple spreadsheet as research aids. Treat tool estimates as clues, not proof. Assignment: write a one-sentence audience statement and collect five reader questions you can answer with original research.",
+            isPreview: false,
+            order: 2
+          },
+          {
+            title: "Set Up Your Home Base \u2014 Website or Free Blog",
+            content: "Choose the simplest publishing home that fits your budget and goals. A free Blogger site can help you practise publishing; a self-hosted WordPress site gives you more control over design, plugins, analytics, and monetization but requires hosting and routine maintenance. Neither option guarantees traffic or ad approval.\n\nProfessional setup checklist:\n\u2022 Choose a short, readable name that does not imitate a brand or imply official endorsement.\n\u2022 Use a clear logo or text wordmark, consistent colors, and a mobile-friendly layout.\n\u2022 Create About, Contact, Privacy Policy, and affiliate disclosure pages. Keep them accurate and easy to find.\n\u2022 Organize content into a few useful categories and make navigation obvious.\n\u2022 Set up a domain you control when practical; use HTTPS and keep login credentials private.\n\u2022 Test the site on a phone and remove broken links, copied content, and intrusive pop-ups.\n\nTools to explore: Blogger for a hosted free start; WordPress.org with a reputable host for more control; Canva for simple graphics; Google Search Console for search visibility. Assignment: publish a one-page site map and draft your About page.",
+            isPreview: false,
+            order: 3
+          },
+          {
+            title: "Product Research and Affiliate Link Foundations",
+            content: "Promote products only when you can explain who they suit, what they do well, and where they fall short. Read current listing details, compare alternatives, check shipping and return information for your target market, and do not claim you personally tested an item unless you actually did.\n\nAn affiliate link may earn you a commission if a reader buys. Apply to the program, read its current terms, and use its approved link generator. Do not cloak links in ways the program forbids, place links in prohibited channels, or click your own links to create activity. Put a plain-language disclosure near recommendations, such as: \u201CSome links may be affiliate links. If you buy through them, I may earn a commission at no extra cost to you.\u201D Also follow the rules where you live and the program's rules.\n\nFor this course exercise, the button below opens the AliExpress registration link supplied by the instructor. Registration does not guarantee acceptance into any affiliate program; apply separately through the current official affiliate portal and verify eligibility and terms.",
+            isPreview: false,
+            order: 4
+          },
+          {
+            title: "Build Helpful Product Pages That Earn Reader Trust",
+            content: "A product page should help a reader decide\u2014not just repeat a seller's description. Start with the reader's question and answer it directly. Explain who the product may suit, important specifications, practical strengths and limitations, and what to compare before buying.\n\nA useful page structure:\n1. Descriptive title that matches the reader's intent.\n2. A short summary and clear disclosure before affiliate recommendations.\n3. The evaluation criteria you used and what you could not verify.\n4. A comparison table with accurate, dated details and links to sources.\n5. Pros, limitations, alternatives, and answers to common questions.\n6. A clear next step using a button whose label describes where it goes.\n\nUse your own words and only images you have permission to publish. Check links and product facts regularly; availability and prices change. Assignment: outline one honest comparison article and identify the sources you will verify before publishing.",
+            isPreview: false,
+            order: 5
+          },
+          {
+            title: "Short-Form Product Videos \u2014 Plan, Film, Edit, Publish",
+            content: "Short videos can introduce a topic and send interested viewers to a relevant guide, but virality is unpredictable. Focus on a useful promise you can actually deliver, then show a clear example. Do not use misleading earnings claims, fake scarcity, copied clips, or a product demo you did not record.\n\nA repeatable 20\u201340 second structure:\n\u2022 Hook: name a specific problem or question in the first seconds.\n\u2022 Demonstration: show a detail, comparison, setup step, or limitation.\n\u2022 Context: explain who might find it useful and what to check before buying.\n\u2022 Call to action: invite viewers to read the full guide or comparison.\n\nUse a phone camera, natural light, clean audio, and readable captions. CapCut or your platform's editor can trim pauses, add captions, and resize a vertical clip. Make a few variations from your own footage, follow music and platform licensing rules, and review retention and click-through trends rather than chasing views alone. Assignment: draft three distinct hooks for one product question.",
+            isPreview: false,
+            order: 6
+          },
+          {
+            title: "Write Search-Friendly Articles That Help People",
+            content: "Search visibility grows from useful, original answers\u2014not keyword repetition or mass-produced filler. Choose one clear question for each page and answer it early. Research the topic, verify claims with reliable sources, and add firsthand experience only when it is true.\n\nArticle workflow:\n1. Check the search results and related questions to understand intent.\n2. Choose a specific title and write a concise outline with descriptive headings.\n3. Cover the decision criteria, alternatives, limitations, and follow-up questions.\n4. Add original examples, diagrams, photos, or comparison data where possible.\n5. Link to related guides and trusted sources; use descriptive link text.\n6. Add a natural meta description, compress images, and check mobile readability.\n7. Publish, request indexing in Search Console if appropriate, and update the page when facts change.\n\nAvoid copied or lightly rewritten seller text, fabricated product tests, hidden links, and guarantees of ranking. Assignment: publish or draft one complete article that answers one real reader question.",
+            isPreview: false,
+            order: 7
+          },
+          {
+            title: "Website Monetization with Google AdSense",
+            content: "AdSense is an advertising program, not an automatic payout button. Google reviews sites and accounts, applies eligibility and policy rules, and can limit or withhold ads when traffic or content violates its requirements. Check the current official AdSense policies and eligibility requirements before applying because they can change.\n\nPrepare responsibly:\n\u2022 Publish a useful body of original content and make navigation work.\n\u2022 Provide accurate About, Contact, and Privacy pages and disclose affiliate relationships.\n\u2022 Avoid prohibited content, copied pages, deceptive controls, and purchased or incentivized traffic.\n\u2022 Apply using your real site and account information; do not click your own ads or ask others to do so.\n\u2022 After approval, place ads so they do not obscure content or trick users into clicks.\n\u2022 Review reports and policy alerts; low-quality or invalid traffic can jeopardize the account.\n\nTreat revenue estimates as uncertain and focus first on reader value and consistent publishing. Assignment: create a pre-application checklist from the current official AdSense documentation.",
+            isPreview: false,
+            order: 8
+          },
+          {
+            title: "Adsterra Setup, Ad Placements, and Policy Checks",
+            content: "Adsterra is another advertising network to evaluate for your site. Read its current publisher terms, supported traffic and content rules, payment conditions, and available ad formats before signing up. Network approval and earnings are not guaranteed, and intrusive ads can reduce trust or violate platform expectations.\n\nStart conservatively: verify your domain, add only the placements you understand, test the site on mobile, and make close or navigation controls clear. Watch for unwanted redirects, poor user experience, or formats that conflict with other networks. If anything looks unsafe or misleads visitors, remove the placement and contact provider support.\n\nThe button below uses the instructor's referral invitation. It opens the Adsterra publisher registration page in a new tab. Referral disclosure: the instructor may receive a referral benefit if you register through this link; your application and terms are controlled by Adsterra. Assignment: compare the current publisher rules with your site plan before applying.",
+            isPreview: false,
+            order: 9
+          },
+          {
+            title: "Measure Clicks, Traffic, and What to Improve",
+            content: "Use measurement to make better publishing decisions, not to declare success from one viral post. Set up Google Search Console to monitor queries, impressions, clicks, and indexing. If you use an analytics tool, configure it in line with privacy and consent requirements that apply to your audience.\n\nTrack a small set of signals weekly:\n\u2022 Which pages are published, updated, and indexed?\n\u2022 Which queries bring impressions and clicks, and do the pages answer them?\n\u2022 Which video topics lead people to the site?\n\u2022 Are affiliate link clicks relevant and allowed under the program's rules?\n\u2022 Do visitors find the page useful, or do they leave because key details are missing?\n\nMake one change at a time, annotate what changed, and give search content time to be discovered. Never send fake clicks, buy traffic that violates provider rules, or expose personal information in tracking reports. Assignment: build a simple weekly scorecard with a baseline and one improvement hypothesis.",
+            isPreview: false,
+            order: 10
+          },
+          {
+            title: "Your 30-Day Publishing Plan and Community Capstone",
+            content: "Turn the lessons into a modest plan you can sustain. The goal for this month is to publish and learn\u2014not to promise a particular income result.\n\nWeek 1: choose one audience, validate questions, select a site format, and draft your disclosure and About page.\nWeek 2: publish a useful starter guide and one product comparison after verifying facts and affiliate terms.\nWeek 3: make and publish three original short videos that point to relevant guides; note which questions viewers raise.\nWeek 4: improve one article, review Search Console or analytics, and prepare the next four topics based on actual reader questions.\n\nCommunity capstone: share your audience statement, one draft or live page, one video concept, your disclosure, and the metric you will watch next. Ask a focused question and give constructive feedback to another learner. Use the course community to request feedback and clarify lesson topics. Keep your plans compliant with platform rules, protect account access, and remember that traffic, approvals, and income vary widely.",
+            isPreview: false,
+            order: 11
+          }
+        ]
+      },
       {
         courseKey: "webdev",
         title: "Web Development & Vibe Coding",
@@ -4349,11 +4512,11 @@ __export(seed_breedskool_exports, {
   seedBreedskoolPaymentSettings: () => seedBreedskoolPaymentSettings,
   seedBreedskoolPricing: () => seedBreedskoolPricing
 });
-import { eq as eq16, inArray as inArray10, and as and12 } from "drizzle-orm";
+import { eq as eq17, inArray as inArray10, and as and13 } from "drizzle-orm";
 async function seedBreedskoolPaymentSettings() {
   for (const { key, value } of BREEDSKOOL_PAYMENT_DEFAULTS) {
     try {
-      const existing = await db.select().from(appSettings).where(eq16(appSettings.key, key)).limit(1);
+      const existing = await db.select().from(appSettings).where(eq17(appSettings.key, key)).limit(1);
       if (existing.length === 0) {
         await db.insert(appSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
       }
@@ -4367,7 +4530,7 @@ async function seedBreedskoolPricing() {
   let skipped = 0;
   for (const course of BREEDSKOOL_COURSES) {
     try {
-      const existing = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
+      const existing = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, course.courseKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(breedskoolCoursePricing).values({
           ...course,
@@ -4390,7 +4553,7 @@ async function seedBreedskoolPricing() {
           isActive: course.isActive,
           acceptedPayments: course.acceptedPayments,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq16(breedskoolCoursePricing.courseKey, course.courseKey));
+        }).where(eq17(breedskoolCoursePricing.courseKey, course.courseKey));
         skipped++;
       }
     } catch (e) {
@@ -4406,10 +4569,10 @@ async function fixVerifiedBreedskoolEnrollments() {
     for (const reg of verified) {
       let resolvedUserId = reg.userId;
       if (!resolvedUserId && reg.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq16(users.email, reg.email.toLowerCase().trim())).limit(1);
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq17(users.email, reg.email.toLowerCase().trim())).limit(1);
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq16(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq17(breedskoolRegistrations.id, reg.id));
         }
       }
       if (!resolvedUserId) {
@@ -4418,20 +4581,20 @@ async function fixVerifiedBreedskoolEnrollments() {
       }
       let courseId = reg.linkedCourseId;
       if (!courseId && reg.selectedCourseKey) {
-        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq16(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
+        const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq17(breedskoolCoursePricing.courseKey, reg.selectedCourseKey)).limit(1);
         courseId = pricing?.linkedCourseId || null;
       }
       if (!courseId) {
         noLink++;
         continue;
       }
-      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and12(
-        eq16(courseEnrollments.courseId, courseId),
-        eq16(courseEnrollments.userId, reg.userId)
+      const [existing] = await db.select({ id: courseEnrollments.id, status: courseEnrollments.status }).from(courseEnrollments).where(and13(
+        eq17(courseEnrollments.courseId, courseId),
+        eq17(courseEnrollments.userId, reg.userId)
       )).limit(1);
       if (existing) {
         if (existing.status !== "active") {
-          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq16(courseEnrollments.id, existing.id));
+          await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq17(courseEnrollments.id, existing.id));
           fixed++;
         } else {
           skipped++;
@@ -4448,7 +4611,7 @@ async function fixVerifiedBreedskoolEnrollments() {
         fixed++;
       }
       if (!reg.linkedCourseId && courseId) {
-        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq16(breedskoolRegistrations.id, reg.id));
+        await db.update(breedskoolRegistrations).set({ linkedCourseId: courseId }).where(eq17(breedskoolRegistrations.id, reg.id));
       }
     }
   } catch (e) {
@@ -4797,7 +4960,7 @@ var social_crawler_exports = {};
 __export(social_crawler_exports, {
   runSocialCrawler: () => runSocialCrawler
 });
-import { sql as sql11 } from "drizzle-orm";
+import { sql as sql12 } from "drizzle-orm";
 async function fetchReddit2(endpoint) {
   try {
     const res = await fetch(`https://www.reddit.com${endpoint}`, {
@@ -4994,7 +5157,7 @@ async function savePosts(posts2) {
   let saved = 0;
   for (const post of posts2) {
     try {
-      const result = await db.execute(sql11`
+      const result = await db.execute(sql12`
         INSERT INTO social_leads (
           platform, source_id, title, body, url, author, subreddit,
           platform_score, comments_count, relevance_score, ai_summary,
@@ -5125,7 +5288,7 @@ __export(influencer_crm_service_exports, {
   getTierInfo: () => getTierInfo,
   sendInfluencerOutreach: () => sendInfluencerOutreach
 });
-import { eq as eq17, inArray as inArray11 } from "drizzle-orm";
+import { eq as eq18, inArray as inArray11 } from "drizzle-orm";
 function classifyTier(followers) {
   if (!followers || followers <= 0) return "unknown";
   for (const t of TIERS) {
@@ -5334,7 +5497,7 @@ async function crawlInfluencersAI(opts) {
   }
   if (includeInternal) {
     const { users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-    const internal = await db.select().from(users3).where(eq17(users3.userType, "influencer")).limit(100);
+    const internal = await db.select().from(users3).where(eq18(users3.userType, "influencer")).limit(100);
     if (internal.length > 0) sourcesUsed.push("internal");
     for (const u of internal) {
       const followers = u.totalFollowers || 0;
@@ -5379,7 +5542,7 @@ function dedupeByExternalId(items) {
   });
 }
 async function getInfluencerTierStats() {
-  const rows = await db.select().from(leads).where(eq17(leads.kind, "influencer"));
+  const rows = await db.select().from(leads).where(eq18(leads.kind, "influencer"));
   const tierCounts = {};
   const tierContacted = {};
   for (const r of rows) {
@@ -5428,7 +5591,7 @@ async function sendInfluencerOutreach(opts) {
     sentBy: sentBy || null
   });
   if (status === "sent" || status === "logged") {
-    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq17(leads.id, lead.id));
+    await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id));
   }
   return { success: status !== "failed", channel: "email", error };
 }
@@ -5526,7 +5689,7 @@ var init_vite_config = __esm({
 import express3 from "express";
 import path7 from "path";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit2 from "express-rate-limit";
 import { createServer as createServer2 } from "http";
 
 // server/routes.ts
@@ -13787,9 +13950,16 @@ function scanRequestBody(body, depth = 0) {
 
 // server/routes.ts
 init_schema();
+
+// shared/course-slug.ts
+function slugifyCourseTitle(title) {
+  return title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// server/routes.ts
 init_lead_service();
 init_db();
-import { desc as desc13, sql as sql13, eq as eq18, and as and14, count as count4, gte as gte3, inArray as inArray12, ilike as ilike2, or as or3 } from "drizzle-orm";
+import { desc as desc14, sql as sql14, eq as eq19, and as and15, count as count4, gte as gte3, inArray as inArray12, ilike as ilike3, or as or4 } from "drizzle-orm";
 
 // server/creator-publishing.ts
 init_schema();
@@ -18881,7 +19051,7 @@ function splitPhpCallArguments(source, openParen) {
 }
 function phpStringLiteral(argument) {
   const value = argument.trim();
-  if (!/^'(?:\\.|[^'\\])*'$|^"(?:\\.|[^"\\])*"$/s.test(value)) return null;
+  if (!/^'(?:\\.|[^'\\])*'$|^"(?:\\.|[^"\\])*"$/.test(value)) return null;
   return value.slice(1, -1).replace(/\\(['"\\])/g, "$1");
 }
 function validateWordPressOrgPhp(slug, files) {
@@ -18892,10 +19062,12 @@ function validateWordPressOrgPhp(slug, files) {
       failures.push(`${path8}: remove custom update-checker hooks and Update URI headers from the directory edition`);
     }
     DIRECT_DATABASE_CALL.lastIndex = 0;
-    for (const match of source.matchAll(DIRECT_DATABASE_CALL)) {
+    let databaseCallMatch;
+    while ((databaseCallMatch = DIRECT_DATABASE_CALL.exec(source)) !== null) {
+      const match = databaseCallMatch;
       const openParen = (match.index ?? 0) + match[0].lastIndexOf("(");
       const query = splitPhpCallArguments(source, openParen)?.[0] || "";
-      const codeOutsideSingleQuotedStrings = query.replace(/'(?:\\.|[^'\\])*'/gs, "");
+      const codeOutsideSingleQuotedStrings = query.replace(/'(?:\\.|[^'\\])*'/g, "");
       const hasDynamicSql = /\$[A-Za-z_][A-Za-z0-9_]*/.test(codeOutsideSingleQuotedStrings) || /%(?:[1-9]\d*\$)?[sdf]/.test(query);
       if (hasDynamicSql && !/\$wpdb\s*->\s*prepare\s*\(/i.test(query)) {
         const line = source.slice(0, match.index ?? 0).split("\n").length;
@@ -18903,7 +19075,9 @@ function validateWordPressOrgPhp(slug, files) {
       }
     }
     TRANSLATION_CALL.lastIndex = 0;
-    for (const match of source.matchAll(TRANSLATION_CALL)) {
+    let translationCallMatch;
+    while ((translationCallMatch = TRANSLATION_CALL.exec(source)) !== null) {
+      const match = translationCallMatch;
       const functionName = match[1];
       const callIndex = match.index ?? 0;
       const openParen = callIndex + match[0].lastIndexOf("(");
@@ -18936,8 +19110,31 @@ function validateWordPressOrgPhp(slug, files) {
     failures.push(`the main plugin header must declare the "${slug}" text domain`);
   }
   if (failures.length) {
+    const uniqueFailures = failures.filter((failure, index2) => failures.indexOf(failure) === index2);
     throw new Error(`The free core package failed WordPress.org release checks:
-- ${[...new Set(failures)].join("\n- ")}`);
+- ${uniqueFailures.join("\n- ")}`);
+  }
+}
+function validateWordPressOrgReadme(readme2, version) {
+  const stableTag = cleanHeaderValue(version, 30).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const requiredHeaders = [
+    ["plugin title", /^=== .+ ===$/m],
+    ["contributors", /^Contributors:\s*\S.+$/m],
+    ["tags", /^Tags:\s*\S.+$/m],
+    ["minimum WordPress version", /^Requires at least:\s*\d+(?:\.\d+)?$/m],
+    ["minimum PHP version", /^Requires PHP:\s*\d+(?:\.\d+)?$/m],
+    ["tested WordPress version", /^Tested up to:\s*\d+(?:\.\d+)?$/m],
+    ["stable tag matching the plugin version", new RegExp(`^Stable tag:\\s*${stableTag}$`, "m")],
+    ["GPL license", /^License:\s*GPLv2 or later$/m],
+    ["license URL", /^License URI:\s*https:\/\/\S+$/m]
+  ];
+  const missingHeaders = requiredHeaders.filter(([, pattern]) => !pattern.test(readme2)).map(([label]) => label);
+  const shortDescription = readme2.match(/^License URI:[^\n]*\n\n([^\n]+)$/m)?.[1]?.trim();
+  if (!shortDescription || shortDescription.length > 150) {
+    missingHeaders.push("a short description of no more than 150 characters");
+  }
+  if (missingHeaders.length) {
+    throw new Error(`The free core readme is missing valid WordPress.org metadata: ${missingHeaders.join(", ")}.`);
   }
 }
 function addCoreDependencyContract(source, project, edition) {
@@ -19169,9 +19366,7 @@ Review licensing, generated source, WordPress compatibility, security, and the i
   }
   if (edition === "core") {
     validateWordPressOrgPhp(project.slug, files);
-    if (!/^Tested up to:\s*\d+(?:\.\d+)?$/m.test(files["readme.txt"])) {
-      throw new Error("The free core readme must include a valid Tested up to version.");
-    }
+    validateWordPressOrgReadme(files["readme.txt"], project.version);
   }
   if (edition !== "core") {
     const mainEntry = Object.entries(sourceFiles).find(([path8, source]) => !path8.includes("/") && path8.toLowerCase().endsWith(".php") && /Plugin Name\s*:/i.test(source));
@@ -23464,8 +23659,13 @@ Build rules:
 - The premium entry file must declare the WordPress plugin dependency on the core slug "${slug}" and show a clear admin notice if that core is inactive. Use the stable public hooks/functions defined by the core; do not duplicate core implementation.
 - The core must define this stable version contract constant: TASKDRIP_${slug.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_CORE_VERSION. The premium add-on should use it to check that the core is loaded. The server will add a guarded core definition and a missing-core admin notice.
 - Both main files must begin with PHP and contain a standard WordPress plugin header comment including Plugin Name, Description, Version 1.0.0, Author ${author}, GPL-2.0-or-later License, and text domain. The server will normalize these headers.
-- The WordPress.org core must use the exact slug "${slug}" as its text domain in every translation call. Add a translators: comment immediately before every translated string containing a printf placeholder.
-- Use PHP 7.4-compatible, namespaced or uniquely prefixed code, WordPress APIs, capability checks, nonce verification for state-changing actions, and input validation/sanitization. Escape output at the final HTML, attribute, URL, or JavaScript context; use $wpdb->prepare() for dynamic SQL, with %i identifiers and %s/%d values.
+- Internationalize every user-visible string with WordPress translation functions and the exact core slug "${slug}" or premium slug "${premiumSlug}" as its text domain. Add a translators: comment immediately before every translated string containing a printf placeholder.
+- Use PHP 7.4-compatible, namespaced or uniquely prefixed code and prefer WordPress APIs over custom implementations. Treat request data, options, metadata, and database values as untrusted: unslash request values, validate expected types and ranges, and sanitize inputs at their boundary.
+- For every state-changing admin-post or AJAX handler, check the user's capability separately from the nonce (check_admin_referer() / check_ajax_referer()). For REST routes, provide a restrictive permission_callback. A nonce is CSRF protection, not authorization.
+- Escape every dynamic value at the final output context (esc_html(), esc_attr(), esc_url(), or wp_kses() with an explicit allowed-HTML set); never print raw request, database, option, or metadata values.
+- Use $wpdb->prepare() for dynamic SQL values and identifiers (%s, %d, %f, %i); use WordPress CRUD APIs when they meet the requirement. Never interpolate request data or identifiers into SQL.
+- Use the Settings API and WordPress HTTP API where applicable. Enqueue local scripts and styles only on the screens that need them; do not load unrequested CDN assets, perform undisclosed network calls, execute remote code, or collect telemetry.
+- If the plugin stores personal data, collect only what the feature needs, document retention, register the relevant WordPress privacy exporters/erasers, and delete only plugin-owned data during uninstall. Never silently opt users into marketing.
 - Never put a custom plugin updater, Update URI header, license gate, or code that changes WordPress update routines in the free core. WordPress.org handles core updates.
 - Keep all advertised features functional in the free core, use WordPress default libraries, and avoid direct SQL interpolation, unescaped output, unsolicited tracking, and public-site links that users have not approved.
 - The server creates the directory readme and its Tested up to field. Do not claim WordPress/PHP versions were tested; the administrator must verify the declared WordPress version on staging and run the current Plugin Check before submission.
@@ -24189,7 +24389,7 @@ var detailJoins = `
 `;
 async function addEvent(type, downloadId, userId, dedupe = false) {
   const id = randomUUID();
-  const sql17 = dedupe ? `INSERT INTO free_download_events (id, user_id, download_id, event_type)
+  const sql18 = dedupe ? `INSERT INTO free_download_events (id, user_id, download_id, event_type)
        SELECT $1, $2, $3, $4
        WHERE NOT EXISTS (
          SELECT 1 FROM free_download_events
@@ -24198,7 +24398,7 @@ async function addEvent(type, downloadId, userId, dedupe = false) {
        )
        RETURNING id` : `INSERT INTO free_download_events (id, user_id, download_id, event_type)
        VALUES ($1, $2, $3, $4) RETURNING id`;
-  const result = await pool2.query(sql17, [id, userId, downloadId, type]);
+  const result = await pool2.query(sql18, [id, userId, downloadId, type]);
   return result.rows[0]?.id;
 }
 async function getPublishedBySlug(slug) {
@@ -25383,8 +25583,283 @@ function registerFreeDownloadsRoutes(app2) {
   });
 }
 
-// server/routes.ts
+// server/citygate-loans.ts
+init_schema();
+init_db();
+init_email_service();
+import { rateLimit } from "express-rate-limit";
+import { and as and12, desc as desc12, eq as eq15, ilike as ilike2, or as or3, sql as sql9 } from "drizzle-orm";
 import { z as z3 } from "zod";
+var applicationSchema = z3.object({
+  fullName: z3.string().trim().min(2).max(120),
+  email: z3.string().trim().email().max(254),
+  phone: z3.string().trim().min(7).max(24).regex(/^[+()\d\s.-]+$/),
+  dateOfBirth: z3.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  state: z3.string().trim().min(2).max(100),
+  loanType: z3.enum(["payday", "payroll", "sme", "asset", "monee"]),
+  employmentStatus: z3.string().trim().min(2).max(80),
+  businessType: z3.string().trim().max(120).optional().default(""),
+  productSold: z3.string().trim().max(160).optional().default(""),
+  sixMonthTurnover: z3.coerce.number().min(0).max(1e11).optional().default(0),
+  monthlyNetIncome: z3.coerce.number().min(0).max(1e11).optional().default(0),
+  assetAmount: z3.coerce.number().min(0).max(1e11).optional().default(0),
+  requestedAmount: z3.coerce.number().min(0).max(1e11).optional().default(0),
+  tenureMonths: z3.coerce.number().int().min(1).max(6),
+  consent: z3.literal(true),
+  marketingConsent: z3.boolean().optional().default(false)
+});
+var applicationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  limit: 6,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many applications from this connection. Please try again later." }
+});
+var loanGuideLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "The loan guide is receiving too many questions. Please try again later." }
+});
+function escapeHtml2(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+function estimateAffordability(input) {
+  const usesBusinessTurnover = input.monthlyNetIncome <= 0 && input.sixMonthTurnover > 0;
+  const monthlyCashFlow = usesBusinessTurnover ? input.sixMonthTurnover / 6 : input.monthlyNetIncome;
+  const affordabilityCeiling = Math.floor(monthlyCashFlow * 0.3 * input.tenureMonths);
+  const amount = input.requestedAmount > 0 ? Math.min(affordabilityCeiling, input.requestedAmount) : affordabilityCeiling;
+  const basis = usesBusinessTurnover ? `Illustration uses 30% of the reported average monthly business turnover (six-month turnover divided by six) over ${input.tenureMonths} month(s), before interest or fees.` : `Illustration uses 30% of the reported monthly net income over ${input.tenureMonths} month(s), before interest or fees.`;
+  return { estimateNaira: amount, estimateBasis: basis };
+}
+function registerCitygateLoanRoutes(app2, isAuthenticated2, requireAdmin3) {
+  app2.post("/api/citygate-loans/guide", loanGuideLimiter, async (req, res) => {
+    const parsed = z3.object({
+      question: z3.string().trim().min(3).max(500),
+      loanType: z3.enum(["payday", "payroll", "sme", "asset", "monee"]).optional()
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Enter a short question about the loan options or estimate." });
+    }
+    const question = parsed.data.question;
+    const includesContactDetails = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(question) || /(?:\+?234|0)[\s().-]*(?:\d[\s().-]*){10,}/.test(question);
+    if (includesContactDetails) {
+      return res.status(400).json({ message: "Please remove email addresses and phone numbers from your question." });
+    }
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ message: "The AI loan guide is unavailable right now. You can still use the calculator or contact Citygate directly." });
+    }
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content: `You are the Taskdrip loan information guide. Answer general questions about how to use the Citygate Global loan-options page and its calculator. Known facts: the listed categories are Payday, Payroll, SME working capital, Asset financing, and Monee; the on-page estimate is a deterministic illustration using the lower of the requested amount (if entered) and 30% of monthly net income times the selected 1\u20136 month term; if monthly net income is zero, the illustration can use six-month business turnover divided by six. It excludes interest and fees.
+
+Do not claim or predict eligibility, approval, access to funds, repayment terms, rates, or fees. Do not invent lender requirements or official product terms. The lender alone makes decisions and confirms current terms. If asked for a personalized decision, direct the person to submit an enquiry and confirm details with Citygate Global. Never ask for personal, contact, identity, health, or financial account details. Keep the answer factual, calm, and under 100 words. Do not use emojis.`
+            },
+            {
+              role: "user",
+              content: `Selected loan category: ${parsed.data.loanType || "not selected"}
+Question: ${question}`
+            }
+          ],
+          max_tokens: 220,
+          temperature: 0.2
+        }),
+        signal: AbortSignal.timeout(12e3)
+      });
+      if (!response.ok) {
+        console.error(`[citygate-loans] AI guide provider returned HTTP ${response.status}.`);
+        return res.status(502).json({ message: "The AI loan guide is temporarily unavailable. Please try again or use the calculator." });
+      }
+      const payload = await response.json();
+      const answer = payload.choices?.[0]?.message?.content?.trim();
+      if (!answer) {
+        return res.status(502).json({ message: "The AI loan guide could not prepare an answer. Please try again." });
+      }
+      return res.json({ answer });
+    } catch (error) {
+      console.error("[citygate-loans] AI guide request failed:", error);
+      return res.status(502).json({ message: "The AI loan guide is temporarily unavailable. Please try again or use the calculator." });
+    }
+  });
+  app2.post("/api/citygate-loans/applications", applicationLimiter, async (req, res) => {
+    const parsed = applicationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: "Please check the application details and try again.",
+        errors: parsed.error.flatten().fieldErrors
+      });
+    }
+    const input = parsed.data;
+    const birthDate = /* @__PURE__ */ new Date(`${input.dateOfBirth}T00:00:00.000Z`);
+    if (Number.isNaN(birthDate.getTime()) || birthDate.toISOString().slice(0, 10) !== input.dateOfBirth) {
+      return res.status(400).json({ message: "Enter a valid date of birth." });
+    }
+    const today = /* @__PURE__ */ new Date();
+    let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    const beforeBirthday = today.getUTCMonth() < birthDate.getUTCMonth() || today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() < birthDate.getUTCDate();
+    if (beforeBirthday) age -= 1;
+    if (age < 18 || age > 100) {
+      return res.status(400).json({ message: "Applicants must be at least 18 years old." });
+    }
+    const estimate = estimateAffordability(input);
+    const email = input.email.toLowerCase();
+    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim().slice(0, 64);
+    try {
+      const [application] = await db.insert(citygateLoanApplications).values({
+        ...input,
+        email,
+        sixMonthTurnover: String(input.sixMonthTurnover),
+        monthlyNetIncome: String(input.monthlyNetIncome),
+        assetAmount: String(input.assetAmount),
+        requestedAmount: String(input.requestedAmount),
+        estimateNaira: String(estimate.estimateNaira),
+        estimateBasis: estimate.estimateBasis,
+        source: "/citygate-global-loans",
+        segment: "citygate-global",
+        status: "new",
+        emailNotificationStatus: "pending"
+      }).returning({ id: citygateLoanApplications.id });
+      if (input.marketingConsent) {
+        try {
+          await db.insert(newsletterSubscribers).values({
+            email,
+            name: input.fullName,
+            source: "loans",
+            segment: "loans,citygate-global",
+            ipAddress
+          }).onConflictDoUpdate({
+            target: newsletterSubscribers.email,
+            set: {
+              name: input.fullName,
+              source: "loans",
+              status: "active",
+              segment: sql9`concat_ws(
+                ',',
+                nullif(trim(coalesce(${newsletterSubscribers.segment}, '')), ''),
+                CASE
+                  WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,loans,%' THEN NULL
+                  ELSE 'loans'
+                END,
+                CASE
+                  WHEN (',' || coalesce(${newsletterSubscribers.segment}, '') || ',') LIKE '%,citygate-global,%' THEN NULL
+                  ELSE 'citygate-global'
+                END
+              )`
+            }
+          });
+        } catch (marketingError) {
+          console.error("[citygate-loans] Application saved, but marketing opt-in sync failed:", marketingError);
+        }
+      }
+      const fields = [
+        ["Name", input.fullName],
+        ["Email", email],
+        ["Phone", input.phone],
+        ["Date of birth", input.dateOfBirth],
+        ["State", input.state],
+        ["Loan type", input.loanType],
+        ["Employment status", input.employmentStatus],
+        ["Business type", input.businessType],
+        ["Product sold", input.productSold],
+        ["Six-month business turnover", input.sixMonthTurnover ? `\u20A6${input.sixMonthTurnover.toLocaleString("en-NG")}` : ""],
+        ["Monthly net income", input.monthlyNetIncome ? `\u20A6${input.monthlyNetIncome.toLocaleString("en-NG")}` : ""],
+        ["Asset value", input.assetAmount ? `\u20A6${input.assetAmount.toLocaleString("en-NG")}` : ""],
+        ["Amount requested", input.requestedAmount ? `\u20A6${input.requestedAmount.toLocaleString("en-NG")}` : ""],
+        ["Chosen period", `${input.tenureMonths} month(s)`],
+        ["Illustrative cash-flow estimate", `\u20A6${estimate.estimateNaira.toLocaleString("en-NG")}`],
+        ["Estimate basis", estimate.estimateBasis],
+        ["Marketing opt-in", input.marketingConsent ? "Yes" : "No"]
+      ];
+      const html = `<h2>New Citygate Global loan enquiry</h2><p>Application reference: ${escapeHtml2(application.id)}</p><table cellpadding="8" cellspacing="0" style="border-collapse:collapse">${fields.filter(([, value]) => value).map(([label, value]) => `<tr><th align="left" style="border:1px solid #ddd">${escapeHtml2(label)}</th><td style="border:1px solid #ddd">${escapeHtml2(value)}</td></tr>`).join("")}</table><p>This estimate is an illustrative cash-flow calculation, not a credit decision or Citygate offer.</p>`;
+      let emailSent = false;
+      try {
+        const notification = await sendEmail({
+          to: "taskdrip@gmail.com",
+          cc: ["victoria.ojo@citygate.com"],
+          subject: `Citygate loan enquiry \u2014 ${input.fullName}`,
+          html,
+          text: fields.filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join("\n")
+        });
+        emailSent = notification.success;
+      } catch (notificationError) {
+        console.error("[citygate-loans] Email notification failed:", notificationError);
+      }
+      try {
+        await db.update(citygateLoanApplications).set({ emailNotificationStatus: emailSent ? "sent" : "failed" }).where(eq15(citygateLoanApplications.id, application.id));
+      } catch (statusError) {
+        console.error("[citygate-loans] Could not save email notification status:", statusError);
+      }
+      return res.status(201).json({
+        id: application.id,
+        estimateNaira: estimate.estimateNaira,
+        estimateBasis: estimate.estimateBasis,
+        emailSent
+      });
+    } catch (error) {
+      console.error("[citygate-loans] Application could not be saved or processed:", error);
+      return res.status(500).json({ message: "We could not save your application. Please try again." });
+    }
+  });
+  app2.get("/api/admin/citygate-loan-applications", isAuthenticated2, requireAdmin3, async (req, res) => {
+    try {
+      const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 120) : "";
+      const status = typeof req.query.status === "string" ? req.query.status : "";
+      const filters = [];
+      if (search) {
+        const term = `%${search.replace(/[%_]/g, "\\$&")}%`;
+        filters.push(or3(
+          ilike2(citygateLoanApplications.fullName, term),
+          ilike2(citygateLoanApplications.email, term),
+          ilike2(citygateLoanApplications.phone, term)
+        ));
+      }
+      if (status && ["new", "contacted", "qualified", "closed"].includes(status)) {
+        filters.push(eq15(citygateLoanApplications.status, status));
+      }
+      const query = db.select().from(citygateLoanApplications).orderBy(desc12(citygateLoanApplications.createdAt)).limit(300);
+      const rows = filters.length ? await query.where(and12(...filters)) : await query;
+      res.json(rows);
+    } catch (error) {
+      console.error("[citygate-loans] Admin list failed:", error);
+      res.status(500).json({ message: "Unable to load loan applications." });
+    }
+  });
+  app2.patch("/api/admin/citygate-loan-applications/:id/status", isAuthenticated2, requireAdmin3, async (req, res) => {
+    const status = req.body?.status;
+    if (!["new", "contacted", "qualified", "closed"].includes(status)) {
+      return res.status(400).json({ message: "Choose a valid application status." });
+    }
+    try {
+      const [updated] = await db.update(citygateLoanApplications).set({ status }).where(eq15(citygateLoanApplications.id, req.params.id)).returning({ id: citygateLoanApplications.id });
+      if (!updated) return res.status(404).json({ message: "Application not found." });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[citygate-loans] Status update failed:", error);
+      res.status(500).json({ message: "Unable to update application status." });
+    }
+  });
+}
+
+// server/routes.ts
+import { z as z4 } from "zod";
 import multer5 from "multer";
 import bcrypt3 from "bcryptjs";
 import { nanoid as nanoid5 } from "nanoid";
@@ -25718,7 +26193,7 @@ async function getShopProductByPublicKey(key) {
     const [project2] = await db.select({
       slug: pluginStudioProjects.slug,
       status: pluginStudioProjects.status
-    }).from(pluginStudioProjects).where(eq18(pluginStudioProjects.shopProductId, productById.id)).limit(1);
+    }).from(pluginStudioProjects).where(eq19(pluginStudioProjects.shopProductId, productById.id)).limit(1);
     return {
       ...productById,
       ...project2?.status === "published" && productById.isActive ? { pluginSlug: project2.slug } : {}
@@ -25727,9 +26202,9 @@ async function getShopProductByPublicKey(key) {
   const [project] = await db.select({
     slug: pluginStudioProjects.slug,
     shopProductId: pluginStudioProjects.shopProductId
-  }).from(pluginStudioProjects).where(and14(
-    eq18(pluginStudioProjects.slug, key),
-    eq18(pluginStudioProjects.status, "published")
+  }).from(pluginStudioProjects).where(and15(
+    eq19(pluginStudioProjects.slug, key),
+    eq19(pluginStudioProjects.status, "published")
   )).limit(1);
   if (!project?.shopProductId) return void 0;
   const product = await storage.getShopProductById(project.shopProductId);
@@ -25896,7 +26371,7 @@ async function logP2PAction(actorId, action, data) {
 }
 async function getP2PFeeConfig(type) {
   const safeType = p2pTypes.includes(type) ? type : "service";
-  const [existing] = await db.select().from(p2pFeeConfigs).where(eq18(p2pFeeConfigs.transactionType, safeType));
+  const [existing] = await db.select().from(p2pFeeConfigs).where(eq19(p2pFeeConfigs.transactionType, safeType));
   if (existing) return existing;
   const [created] = await db.insert(p2pFeeConfigs).values({
     transactionType: safeType,
@@ -25958,7 +26433,7 @@ async function enrichP2PListing(listing) {
 }
 async function enrichP2PTransaction(tx) {
   const [listing, buyer, seller, admin2] = await Promise.all([
-    db.select().from(p2pListings).where(eq18(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
+    db.select().from(p2pListings).where(eq19(p2pListings.id, tx.listingId)).then((rows) => rows[0]),
     storage.getUser(tx.buyerId),
     storage.getUser(tx.sellerId),
     tx.adminId ? storage.getUser(tx.adminId) : Promise.resolve(null)
@@ -26047,37 +26522,37 @@ async function registerRoutes(app2, existingServer) {
     next();
   });
   app2.post("/api/portfolio/olajumoke-owoeye/contact", async (req, res) => {
-    const inquirySchema = z3.object({
-      name: z3.string().trim().min(2).max(100),
-      email: z3.string().trim().email().max(254),
-      service: z3.enum([
+    const inquirySchema = z4.object({
+      name: z4.string().trim().min(2).max(100),
+      email: z4.string().trim().email().max(254),
+      service: z4.enum([
         "Content creation",
         "Social media management",
         "Marketing strategy",
         "Website & web content",
         "Other"
       ]),
-      budget: z3.string().trim().min(2).max(80),
-      projectBrief: z3.string().trim().min(20).max(2500),
-      website: z3.string().max(0).optional()
+      budget: z4.string().trim().min(2).max(80),
+      projectBrief: z4.string().trim().min(20).max(2500),
+      website: z4.string().max(0).optional()
     });
     const parsed = inquirySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: "Please check the form and complete all required fields." });
     }
     if (parsed.data.website) return res.json({ ok: true });
-    const escapeHtml3 = (value) => value.replace(/[&<>"']/g, (character) => ({
+    const escapeHtml4 = (value) => value.replace(/[&<>"']/g, (character) => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
       "'": "&#39;"
     })[character]);
-    const name = escapeHtml3(parsed.data.name);
-    const email = escapeHtml3(parsed.data.email);
-    const service = escapeHtml3(parsed.data.service);
-    const budget = escapeHtml3(parsed.data.budget);
-    const projectBrief = escapeHtml3(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
+    const name = escapeHtml4(parsed.data.name);
+    const email = escapeHtml4(parsed.data.email);
+    const service = escapeHtml4(parsed.data.service);
+    const budget = escapeHtml4(parsed.data.budget);
+    const projectBrief = escapeHtml4(parsed.data.projectBrief).replace(/\r?\n/g, "<br />");
     try {
       const subject = `New ${parsed.data.service.toLowerCase()} enquiry from ${parsed.data.name}`;
       const html = `
@@ -26586,7 +27061,7 @@ async function registerRoutes(app2, existingServer) {
       const startOfMonth = /* @__PURE__ */ new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and14(eq18(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
+      const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and15(eq19(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
       res.json({ count: Number(postCount), limit: limit === Infinity ? null : limit, tier });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -26605,7 +27080,7 @@ async function registerRoutes(app2, existingServer) {
         const startOfMonth = /* @__PURE__ */ new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
-        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and14(eq18(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
+        const [{ value: postCount }] = await db.select({ value: count4() }).from(posts).where(and15(eq19(posts.userId, req.user.id), gte3(posts.createdAt, startOfMonth)));
         if (Number(postCount) >= postLimit) {
           return res.status(429).json({
             message: `You've reached your ${postLimit}-post monthly limit on the ${tier === "free" ? "Free" : "Monthly"} plan.`,
@@ -26901,7 +27376,7 @@ async function registerRoutes(app2, existingServer) {
       const campaignTier = getSubscriptionTier(campaignUser);
       const campaignLimit = CAMPAIGN_LIMITS[campaignTier];
       if (campaignLimit !== Infinity) {
-        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq18(campaigns.brandId, user.id));
+        const [{ value: campCount }] = await db.select({ value: count4() }).from(campaigns).where(eq19(campaigns.brandId, user.id));
         if (Number(campCount) >= campaignLimit) {
           return res.status(429).json({
             message: `Free brands can post up to ${campaignLimit} campaigns. Upgrade to Premium to post unlimited campaigns.`,
@@ -27605,17 +28080,17 @@ async function registerRoutes(app2, existingServer) {
       const post = await storage.getBlogPostBySlug(req.params.slug);
       if (!post) return res.status(404).json({ message: "Blog post not found" });
       const conditions = [
-        eq18(blogPosts.isPublished, true),
-        sql13`${blogPosts.slug} <> ${req.params.slug}`
+        eq19(blogPosts.isPublished, true),
+        sql14`${blogPosts.slug} <> ${req.params.slug}`
       ];
-      if (post.category) conditions.push(eq18(blogPosts.category, post.category));
+      if (post.category) conditions.push(eq19(blogPosts.category, post.category));
       const related = await db.select({
         title: blogPosts.title,
         slug: blogPosts.slug,
         excerpt: blogPosts.excerpt,
         category: blogPosts.category,
         featuredImage: blogPosts.featuredImage
-      }).from(blogPosts).where(and14(...conditions)).orderBy(desc13(blogPosts.publishedAt)).limit(3);
+      }).from(blogPosts).where(and15(...conditions)).orderBy(desc14(blogPosts.publishedAt)).limit(3);
       res.json(related);
     } catch (error) {
       console.error("Error fetching related blog posts:", error);
@@ -28045,7 +28520,7 @@ async function registerRoutes(app2, existingServer) {
                     referralBonusEarned: newBonus.toFixed(2),
                     availableBalance: newBalance.toFixed(2)
                   });
-                  await db.update(referrals).set({ status: "rewarded" }).where(eq18(referrals.id, userReferral.id));
+                  await db.update(referrals).set({ status: "rewarded" }).where(eq19(referrals.id, userReferral.id));
                   await storage.createNotification({
                     userId: referrer.id,
                     type: "referral_bonus",
@@ -28145,10 +28620,10 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/campaigns/:id/micro-tasks", async (req, res) => {
     try {
       const userId = req.user?.id;
-      const tasks = await db.select().from(campaignMicroTasks).where(and14(eq18(campaignMicroTasks.campaignId, req.params.id), eq18(campaignMicroTasks.isActive, true))).orderBy(desc13(campaignMicroTasks.createdAt));
+      const tasks = await db.select().from(campaignMicroTasks).where(and15(eq19(campaignMicroTasks.campaignId, req.params.id), eq19(campaignMicroTasks.isActive, true))).orderBy(desc14(campaignMicroTasks.createdAt));
       let submissions = [];
       if (userId) {
-        submissions = await db.select().from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.campaignId, req.params.id), eq18(microTaskSubmissions.userId, userId)));
+        submissions = await db.select().from(microTaskSubmissions).where(and15(eq19(microTaskSubmissions.campaignId, req.params.id), eq19(microTaskSubmissions.userId, userId)));
       }
       res.json(tasks.map((task) => ({
         ...task,
@@ -28166,7 +28641,7 @@ async function registerRoutes(app2, existingServer) {
       const rows = await db.select({
         task: campaignMicroTasks,
         campaign: campaigns
-      }).from(campaignMicroTasks).leftJoin(campaigns, eq18(campaignMicroTasks.campaignId, campaigns.id)).where(eq18(campaignMicroTasks.brandId, userId)).orderBy(desc13(campaignMicroTasks.createdAt));
+      }).from(campaignMicroTasks).leftJoin(campaigns, eq19(campaignMicroTasks.campaignId, campaigns.id)).where(eq19(campaignMicroTasks.brandId, userId)).orderBy(desc14(campaignMicroTasks.createdAt));
       res.json(rows.map(({ task, campaign }) => ({ ...task, campaign })));
     } catch (error) {
       console.error("Error fetching brand micro tasks:", error);
@@ -28224,7 +28699,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq18(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq19(campaignMicroTasks.id, req.params.id));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -28250,7 +28725,7 @@ async function registerRoutes(app2, existingServer) {
       const rewardChanged = req.body.tdripReward !== void 0 && newReward !== task.tdripReward;
       const limitChanged = req.body.participantLimit !== void 0 && newLimit !== task.participantLimit;
       if (rewardChanged || limitChanged) {
-        const [{ count: approvedCount }] = await db.select({ count: sql13`count(*)::int` }).from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.microTaskId, task.id), eq18(microTaskSubmissions.status, "approved")));
+        const [{ count: approvedCount }] = await db.select({ count: sql14`count(*)::int` }).from(microTaskSubmissions).where(and15(eq19(microTaskSubmissions.microTaskId, task.id), eq19(microTaskSubmissions.status, "approved")));
         if (newLimit < Number(approvedCount || 0)) {
           return res.status(400).json({ message: `Cannot reduce participant limit below approved submissions (${approvedCount}).` });
         }
@@ -28274,7 +28749,7 @@ async function registerRoutes(app2, existingServer) {
         updates.participantLimit = newLimit;
         updates.escrowedPoints = newEscrow;
       }
-      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq18(campaignMicroTasks.id, req.params.id)).returning();
+      const [updated] = await db.update(campaignMicroTasks).set(updates).where(eq19(campaignMicroTasks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating micro task:", error);
@@ -28285,7 +28760,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq18(campaignMicroTasks.id, req.params.id));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq19(campaignMicroTasks.id, req.params.id));
       if (!task || !task.isActive) return res.status(404).json({ message: "Micro task not found" });
       const proofText = String(req.body.proofText || "").trim();
       const proofUrl = String(req.body.proofUrl || "").trim();
@@ -28294,11 +28769,11 @@ async function registerRoutes(app2, existingServer) {
         return res.status(400).json({ message: "Please add proof text, a proof link, or upload a file" });
       }
       const confirmText = !task.proofRequired && !proofText ? "User confirmed action completed" : proofText;
-      const existing = await db.select().from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.microTaskId, task.id), eq18(microTaskSubmissions.userId, userId)));
+      const existing = await db.select().from(microTaskSubmissions).where(and15(eq19(microTaskSubmissions.microTaskId, task.id), eq19(microTaskSubmissions.userId, userId)));
       if (existing.some((submission2) => submission2.status !== "rejected")) {
         return res.status(400).json({ message: "You already submitted this micro task" });
       }
-      const approvedRows = await db.select({ count: sql13`count(*)` }).from(microTaskSubmissions).where(and14(eq18(microTaskSubmissions.microTaskId, task.id), eq18(microTaskSubmissions.status, "approved")));
+      const approvedRows = await db.select({ count: sql14`count(*)` }).from(microTaskSubmissions).where(and15(eq19(microTaskSubmissions.microTaskId, task.id), eq19(microTaskSubmissions.status, "approved")));
       const approvedCount = Number(approvedRows[0]?.count || 0);
       if (task.participantLimit && approvedCount >= task.participantLimit) {
         return res.status(400).json({ message: "This micro task has reached its participant limit" });
@@ -28334,7 +28809,7 @@ async function registerRoutes(app2, existingServer) {
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq18(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq18(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq18(microTaskSubmissions.userId, users.id)).where(eq18(campaignMicroTasks.brandId, userId)).orderBy(desc13(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq19(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq19(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq19(microTaskSubmissions.userId, users.id)).where(eq19(campaignMicroTasks.brandId, userId)).orderBy(desc14(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -28350,14 +28825,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [admin2] = await db.select().from(users).where(eq18(users.id, userId));
+      const [admin2] = await db.select().from(users).where(eq19(users.id, userId));
       if (admin2?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const rows = await db.select({
         submission: microTaskSubmissions,
         task: campaignMicroTasks,
         campaign: campaigns,
         user: users
-      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq18(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq18(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq18(microTaskSubmissions.userId, users.id)).orderBy(desc13(microTaskSubmissions.submittedAt));
+      }).from(microTaskSubmissions).leftJoin(campaignMicroTasks, eq19(microTaskSubmissions.microTaskId, campaignMicroTasks.id)).leftJoin(campaigns, eq19(microTaskSubmissions.campaignId, campaigns.id)).leftJoin(users, eq19(microTaskSubmissions.userId, users.id)).orderBy(desc14(microTaskSubmissions.submittedAt));
       res.json(rows.map(({ submission, task, campaign, user }) => ({
         ...submission,
         task,
@@ -28373,9 +28848,9 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
-      const [submission] = await db.select().from(microTaskSubmissions).where(eq18(microTaskSubmissions.id, req.params.id));
+      const [submission] = await db.select().from(microTaskSubmissions).where(eq19(microTaskSubmissions.id, req.params.id));
       if (!submission) return res.status(404).json({ message: "Submission not found" });
-      const [task] = await db.select().from(campaignMicroTasks).where(eq18(campaignMicroTasks.id, submission.microTaskId));
+      const [task] = await db.select().from(campaignMicroTasks).where(eq19(campaignMicroTasks.id, submission.microTaskId));
       if (!task) return res.status(404).json({ message: "Micro task not found" });
       const access = await canManageCampaign(userId, task.campaignId);
       if (!access.ok) return res.status(403).json({ message: access.message });
@@ -28390,7 +28865,7 @@ async function registerRoutes(app2, existingServer) {
         reviewedAt: /* @__PURE__ */ new Date(),
         reviewNotes: req.body.notes || null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(microTaskSubmissions.id, req.params.id)).returning();
+      }).where(eq19(microTaskSubmissions.id, req.params.id)).returning();
       if (action === "approved") {
         await storage.awardPoints(submission.userId, "micro_task_reward", task.tdripReward, `$TDRIP micro task reward: ${task.title}`, submission.id);
       }
@@ -28508,7 +28983,7 @@ async function registerRoutes(app2, existingServer) {
       if (!campaign) return res.status(404).json({ message: "Campaign not found" });
       const isParty = participation.userId === req.user.id || campaign.brandId === req.user.id || req.user.userType === "admin";
       if (!isParty) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "campaign_participation"), eq18(userReviews.referenceId, participation.id))).orderBy(desc13(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and15(eq19(userReviews.referenceType, "campaign_participation"), eq19(userReviews.referenceId, participation.id))).orderBy(desc14(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28528,7 +29003,7 @@ async function registerRoutes(app2, existingServer) {
       const rating = Number(req.body.rating);
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
-      const existing = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "campaign_participation"), eq18(userReviews.referenceId, participation.id), eq18(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and15(eq19(userReviews.referenceType, "campaign_participation"), eq19(userReviews.referenceId, participation.id), eq19(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this" });
       const revieweeId = req.user.id === brandId ? creatorId : brandId;
       const [review] = await db.insert(userReviews).values({
@@ -28539,8 +29014,8 @@ async function registerRoutes(app2, existingServer) {
         referenceType: "campaign_participation",
         referenceId: participation.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})` }).from(userReviews).where(eq18(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql14`AVG(${userReviews.rating})` }).from(userReviews).where(eq19(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq19(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -28904,8 +29379,8 @@ async function registerRoutes(app2, existingServer) {
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             const { transactions: transactions3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-            const { eq: eq24 } = await import("drizzle-orm");
-            return await db2.select().from(transactions3).where(eq24(transactions3.id, id));
+            const { eq: eq25 } = await import("drizzle-orm");
+            return await db2.select().from(transactions3).where(eq25(transactions3.id, id));
           } catch {
             return [null];
           }
@@ -28936,7 +29411,7 @@ async function registerRoutes(app2, existingServer) {
       let courseRevenue = 0;
       for (const e of allEnrollmentRows) {
         if (e.status === "active" || e.paymentStatus === "approved") {
-          const course = await db.select({ price: courses.price }).from(courses).where(eq18(courses.id, e.courseId)).limit(1);
+          const course = await db.select({ price: courses.price }).from(courses).where(eq19(courses.id, e.courseId)).limit(1);
           courseRevenue += parseFloat(course[0]?.price || "0");
         }
       }
@@ -28981,7 +29456,7 @@ async function registerRoutes(app2, existingServer) {
       const approvedEnrollmentIds = allEnrollments.filter((e) => e.status === "active" || e.paymentStatus === "approved");
       let courseTotal = 0;
       for (const e of approvedEnrollmentIds) {
-        const course = await db.select({ price: courses.price }).from(courses).where(eq18(courses.id, e.courseId)).limit(1);
+        const course = await db.select({ price: courses.price }).from(courses).where(eq19(courses.id, e.courseId)).limit(1);
         courseTotal += parseFloat(course[0]?.price || "0");
       }
       const allSubs = await db.select({ amount: subscriptions.amount, status: subscriptions.status }).from(subscriptions);
@@ -29111,13 +29586,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const [txs, p2ps, purchaseRows, escrows, depositRows, subRows, hireRows, allUsers] = await Promise.all([
-        db.select().from(transactions).orderBy(desc13(transactions.createdAt)),
-        db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt)),
-        db.select().from(purchases).orderBy(desc13(purchases.createdAt)),
-        db.select().from(escrowPayments).orderBy(desc13(escrowPayments.createdAt)),
-        db.select().from(paymentDeposits).orderBy(desc13(paymentDeposits.createdAt)),
-        db.select().from(subscriptions).orderBy(desc13(subscriptions.createdAt)),
-        db.select().from(directHireOffers).orderBy(desc13(directHireOffers.createdAt)),
+        db.select().from(transactions).orderBy(desc14(transactions.createdAt)),
+        db.select().from(p2pTransactions).orderBy(desc14(p2pTransactions.createdAt)),
+        db.select().from(purchases).orderBy(desc14(purchases.createdAt)),
+        db.select().from(escrowPayments).orderBy(desc14(escrowPayments.createdAt)),
+        db.select().from(paymentDeposits).orderBy(desc14(paymentDeposits.createdAt)),
+        db.select().from(subscriptions).orderBy(desc14(subscriptions.createdAt)),
+        db.select().from(directHireOffers).orderBy(desc14(directHireOffers.createdAt)),
         db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)
       ]);
       const userMap = new Map(allUsers.map((u2) => [u2.id, u2]));
@@ -29284,7 +29759,7 @@ async function registerRoutes(app2, existingServer) {
         approvedAt: courseEnrollments.approvedAt,
         createdAt: courseEnrollments.createdAt,
         courseTitle: courses.title
-      }).from(courseEnrollments).leftJoin(courses, eq18(courseEnrollments.courseId, courses.id)).orderBy(desc13(courseEnrollments.createdAt));
+      }).from(courseEnrollments).leftJoin(courses, eq19(courseEnrollments.courseId, courses.id)).orderBy(desc14(courseEnrollments.createdAt));
       for (const t of enrollmentRows) {
         const enrollStatus = t.isPaid && t.status === "active" ? "paid" : t.status === "pending_payment" ? "pending" : t.status === "active" ? "active" : t.status || "pending";
         unified.push({
@@ -29345,13 +29820,13 @@ async function registerRoutes(app2, existingServer) {
         allCourses,
         allProducts
       ] = await Promise.all([
-        safeSelect(db.select().from(subscriptions).orderBy(desc13(subscriptions.createdAt))),
-        safeSelect(db.select().from(purchases).orderBy(desc13(purchases.createdAt))),
-        safeSelect(db.select().from(courseEnrollments).orderBy(desc13(courseEnrollments.createdAt))),
-        safeSelect(db.select().from(directHireOffers).orderBy(desc13(directHireOffers.createdAt))),
-        safeSelect(db.select().from(escrowPayments).orderBy(desc13(escrowPayments.createdAt))),
-        safeSelect(db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt))),
-        safeSelect(db.select().from(payoutRequests).orderBy(desc13(payoutRequests.createdAt))),
+        safeSelect(db.select().from(subscriptions).orderBy(desc14(subscriptions.createdAt))),
+        safeSelect(db.select().from(purchases).orderBy(desc14(purchases.createdAt))),
+        safeSelect(db.select().from(courseEnrollments).orderBy(desc14(courseEnrollments.createdAt))),
+        safeSelect(db.select().from(directHireOffers).orderBy(desc14(directHireOffers.createdAt))),
+        safeSelect(db.select().from(escrowPayments).orderBy(desc14(escrowPayments.createdAt))),
+        safeSelect(db.select().from(p2pTransactions).orderBy(desc14(p2pTransactions.createdAt))),
+        safeSelect(db.select().from(payoutRequests).orderBy(desc14(payoutRequests.createdAt))),
         safeSelect(db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email, username: users.username, profileImageUrl: users.profileImageUrl, userType: users.userType, companyName: users.companyName }).from(users)),
         safeSelect(db.select({ id: courses.id, title: courses.title }).from(courses)),
         safeSelect(db.select({ id: shopProducts.id, title: shopProducts.title, price: shopProducts.price, featuredImage: shopProducts.featuredImage }).from(shopProducts))
@@ -29703,23 +30178,23 @@ async function registerRoutes(app2, existingServer) {
       }
       let verifiedPurchaseId;
       const { creatorPublishingProducts: publishingProducts, purchases: shopPurchases } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and14(
-        eq18(publishingProducts.shopProductId, req.params.id),
-        eq18(publishingProducts.status, "published")
+      const [publishingProduct] = await db.select({ id: publishingProducts.id }).from(publishingProducts).where(and15(
+        eq19(publishingProducts.shopProductId, req.params.id),
+        eq19(publishingProducts.status, "published")
       )).limit(1);
       if (publishingProduct) {
-        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and14(
-          eq18(shopPurchases.productId, req.params.id),
-          eq18(shopPurchases.userId, user.id),
+        const [verifiedPurchase] = await db.select({ id: shopPurchases.id }).from(shopPurchases).where(and15(
+          eq19(shopPurchases.productId, req.params.id),
+          eq19(shopPurchases.userId, user.id),
           inArray12(shopPurchases.status, ["paid", "approved", "delivered"])
         )).limit(1);
         if (!verifiedPurchase) {
           return res.status(403).json({ message: "Only verified buyers can review this digital product." });
         }
         verifiedPurchaseId = verifiedPurchase.id;
-        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and14(
-          eq18(productReviews.productId, req.params.id),
-          eq18(productReviews.userId, user.id)
+        const [existingReview] = await db.select({ id: productReviews.id }).from(productReviews).where(and15(
+          eq19(productReviews.productId, req.params.id),
+          eq19(productReviews.userId, user.id)
         )).limit(1);
         if (existingReview) return res.status(409).json({ message: "You have already reviewed this product." });
       }
@@ -29759,7 +30234,7 @@ async function registerRoutes(app2, existingServer) {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq18(pluginStudioProjects.shopProductId, productId)).limit(1);
+      const [pluginProject] = await db.select({ id: pluginStudioProjects.id }).from(pluginStudioProjects).where(eq19(pluginStudioProjects.shopProductId, productId)).limit(1);
       if (pluginProject && !["plugin-monthly", "plugin-yearly"].includes(String(planId || ""))) {
         return res.status(400).json({ message: "Choose a monthly or yearly plugin license plan before checkout." });
       }
@@ -30368,7 +30843,7 @@ async function registerRoutes(app2, existingServer) {
       }).catch(() => {
       });
       try {
-        const admins = await db.select().from(users).where(eq18(users.userType, "admin"));
+        const admins = await db.select().from(users).where(eq19(users.userType, "admin"));
         for (const a of admins) {
           await storage.createNotification({
             userId: a.id,
@@ -30392,7 +30867,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const list = await db.select().from(contentReports).orderBy(desc13(contentReports.createdAt));
+      const list = await db.select().from(contentReports).orderBy(desc14(contentReports.createdAt));
       res.json(list);
     } catch (error) {
       res.status(500).json({ message: "Failed to list reports" });
@@ -30402,14 +30877,14 @@ async function registerRoutes(app2, existingServer) {
     try {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const [dep] = await db.select().from(paymentDeposits).where(eq18(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq19(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "approved",
         approvedBy: req.user.id,
         approvedAt: /* @__PURE__ */ new Date(),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq19(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -30431,13 +30906,13 @@ async function registerRoutes(app2, existingServer) {
       const me = await storage.getUser(req.user.id);
       if (me?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const reason = String(req.body?.reason || "").trim();
-      const [dep] = await db.select().from(paymentDeposits).where(eq18(paymentDeposits.id, req.params.id));
+      const [dep] = await db.select().from(paymentDeposits).where(eq19(paymentDeposits.id, req.params.id));
       if (!dep) return res.status(404).json({ message: "Deposit not found" });
       const [updated] = await db.update(paymentDeposits).set({
         status: "rejected",
         adminNotes: reason || dep.adminNotes,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq19(paymentDeposits.id, req.params.id)).returning();
       if (dep.brandId) {
         await storage.createNotification({
           userId: dep.brandId,
@@ -30498,7 +30973,7 @@ async function registerRoutes(app2, existingServer) {
       const adminUser = await storage.getUser(req.user.id);
       if (adminUser?.userType !== "admin") return res.status(403).json({ message: "Admin only" });
       const existingSub = await storage.getUserSubscription(req.user.id);
-      const subRecord = await db.select().from(subscriptions).where(eq18(subscriptions.id, req.params.id)).limit(1);
+      const subRecord = await db.select().from(subscriptions).where(eq19(subscriptions.id, req.params.id)).limit(1);
       const subData = subRecord[0];
       const { plan } = req.body;
       const now = /* @__PURE__ */ new Date();
@@ -30532,7 +31007,7 @@ async function registerRoutes(app2, existingServer) {
               referralBonusEarned: newBonus.toFixed(2),
               availableBalance: newBalance.toFixed(2)
             });
-            await db.update(referrals).set({ status: "converted" }).where(eq18(referrals.id, userReferral.id));
+            await db.update(referrals).set({ status: "converted" }).where(eq19(referrals.id, userReferral.id));
             await storage.createNotification({
               userId: referrer.id,
               type: "referral_bonus",
@@ -30581,7 +31056,7 @@ async function registerRoutes(app2, existingServer) {
       const { status, adminNote } = req.body || {};
       const validStatuses = ["pending", "accepted", "in_progress", "payment_window", "completed", "rejected", "cancelled"];
       if (!validStatuses.includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(directHireOffers.id, req.params.id)).returning();
+      const [updated] = await db.update(directHireOffers).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(directHireOffers.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Hire request not found" });
       if (updated.brandId) {
         const statusLabels = {
@@ -30885,12 +31360,12 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const clickRows = await db.select().from(referralClicks).where(eq18(referralClicks.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq19(referralClicks.referrerId, userId));
       const totalClicks = clickRows.length;
       const productClicks = clickRows.filter((c) => c.itemType === "product").length;
       const courseClicks = clickRows.filter((c) => c.itemType === "course").length;
       const userClicks = clickRows.filter((c) => c.itemType === "user").length;
-      const commRows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq19(referralCommissions.referrerId, userId));
       const totalCommissions = commRows.reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const pendingCommissions = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const paidCommissions = commRows.filter((r) => r.status === "paid").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
@@ -30926,8 +31401,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const userId = req.user.id;
       const rawReferrals = await storage.getReferralsByReferrer(userId);
-      const commRows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, userId));
-      const clickRows = await db.select().from(referralClicks).where(eq18(referralClicks.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq19(referralCommissions.referrerId, userId));
+      const clickRows = await db.select().from(referralClicks).where(eq19(referralClicks.referrerId, userId));
       const timeline = [];
       for (let i = 29; i >= 0; i--) {
         const d = /* @__PURE__ */ new Date();
@@ -30979,7 +31454,7 @@ async function registerRoutes(app2, existingServer) {
   });
   app2.get("/api/referrals/commissions", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, req.user.id)).orderBy(desc13(referralCommissions.createdAt));
+      const rows = await db.select().from(referralCommissions).where(eq19(referralCommissions.referrerId, req.user.id)).orderBy(desc14(referralCommissions.createdAt));
       res.json(rows);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch commissions" });
@@ -31021,7 +31496,7 @@ async function registerRoutes(app2, existingServer) {
       if (!amount || isNaN(amountNum) || amountNum < 10) {
         return res.status(400).json({ message: "Minimum payout amount is $10" });
       }
-      const commRows = await db.select().from(referralCommissions).where(eq18(referralCommissions.referrerId, userId));
+      const commRows = await db.select().from(referralCommissions).where(eq19(referralCommissions.referrerId, userId));
       const pendingTotal = commRows.filter((r) => r.status === "pending").reduce((s, r) => s + parseFloat(r.commissionAmount || "0"), 0);
       const legacyBonus = parseFloat((await storage.getUser(userId))?.referralBonusEarned || "0");
       const available = pendingTotal + legacyBonus;
@@ -31036,7 +31511,7 @@ async function registerRoutes(app2, existingServer) {
         status: "pending",
         notes: note ? `[Referral Payout] ${note}` : "[Referral Payout] Commission withdrawal"
       }).returning();
-      const adminUsers = await db.select().from(users).where(eq18(users.userType, "admin")).limit(3);
+      const adminUsers = await db.select().from(users).where(eq19(users.userType, "admin")).limit(3);
       for (const admin2 of adminUsers) {
         await storage.createNotification({
           userId: admin2.id,
@@ -31079,7 +31554,7 @@ async function registerRoutes(app2, existingServer) {
         commissionAmount: referralCommissions.commissionAmount,
         status: referralCommissions.status,
         createdAt: referralCommissions.createdAt
-      }).from(referralCommissions).leftJoin(referrerAlias, eq18(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc13(referralCommissions.createdAt)).limit(200);
+      }).from(referralCommissions).leftJoin(referrerAlias, eq19(referralCommissions.referrerId, referrerAlias.id)).orderBy(desc14(referralCommissions.createdAt)).limit(200);
       const referralPayouts = await db.select({
         id: payoutRequests.id,
         userId: payoutRequests.userId,
@@ -31092,15 +31567,15 @@ async function registerRoutes(app2, existingServer) {
         lastName: users.lastName,
         username: users.username,
         email: users.email
-      }).from(payoutRequests).leftJoin(users, eq18(payoutRequests.userId, users.id)).where(sql13`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc13(payoutRequests.createdAt)).limit(100);
+      }).from(payoutRequests).leftJoin(users, eq19(payoutRequests.userId, users.id)).where(sql14`${payoutRequests.status} IN ('pending', 'processing', 'completed', 'rejected') AND (${payoutRequests.adminNotes} LIKE '%Referral Payout%' OR (${payoutRequests.sourceType} = 'manual' AND ${payoutRequests.adminNotes} IS NULL))`).orderBy(desc14(payoutRequests.createdAt)).limit(100);
       const filteredPayouts = referralPayouts.filter(
         (p) => !p.adminNotes || p.adminNotes.includes("Referral Payout")
       );
       const [totalComm] = await db.select({
-        totalPending: sql13`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'pending' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
-        totalApproved: sql13`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'approved' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
-        totalPaid: sql13`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'paid' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
-        totalAll: sql13`COALESCE(SUM(${referralCommissions.commissionAmount}::numeric), 0)`
+        totalPending: sql14`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'pending' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalApproved: sql14`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'approved' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalPaid: sql14`COALESCE(SUM(CASE WHEN ${referralCommissions.status} = 'paid' THEN ${referralCommissions.commissionAmount}::numeric ELSE 0 END), 0)`,
+        totalAll: sql14`COALESCE(SUM(${referralCommissions.commissionAmount}::numeric), 0)`
       }).from(referralCommissions);
       res.json({ commissions, referralPayouts: filteredPayouts, totals: totalComm });
     } catch (error) {
@@ -31117,7 +31592,7 @@ async function registerRoutes(app2, existingServer) {
       const updateData = { status };
       if (status === "approved") updateData.approvedAt = /* @__PURE__ */ new Date();
       if (status === "paid") updateData.paidAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(referralCommissions).set(updateData).where(eq18(referralCommissions.id, id)).returning();
+      const [updated] = await db.update(referralCommissions).set(updateData).where(eq19(referralCommissions.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Commission not found" });
       res.json(updated);
     } catch (error) {
@@ -31130,9 +31605,9 @@ async function registerRoutes(app2, existingServer) {
       const isAdmin7 = req.user.userType === "admin";
       let allMessages;
       if (isAdmin7) {
-        allMessages = await db.select().from(messages).orderBy(desc13(messages.createdAt));
+        allMessages = await db.select().from(messages).orderBy(desc14(messages.createdAt));
       } else {
-        allMessages = await db.select().from(messages).where(sql13`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc13(messages.createdAt));
+        allMessages = await db.select().from(messages).where(sql14`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`).orderBy(desc14(messages.createdAt));
       }
       const convMap = {};
       for (const msg of allMessages) {
@@ -31190,7 +31665,7 @@ async function registerRoutes(app2, existingServer) {
       let rawMessages;
       if (convKey.startsWith("direct_")) {
         const parts = convKey.replace("direct_", "").split("_");
-        rawMessages = await db.select().from(messages).where(sql13`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).orderBy(messages.createdAt);
+        rawMessages = await db.select().from(messages).where(sql14`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).orderBy(messages.createdAt);
         rawMessages = rawMessages.filter((m) => {
           const pair = `direct_${[m.senderId, m.receiverId].sort().join("_")}`;
           return pair === convKey;
@@ -31239,7 +31714,7 @@ async function registerRoutes(app2, existingServer) {
       const { content, subject, targetUserId } = req.body;
       if (!content?.trim()) return res.status(400).json({ message: "Content required" });
       if (convKey.startsWith("direct_")) {
-        const existingMsgs = await db.select().from(messages).where(sql13`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).limit(10);
+        const existingMsgs = await db.select().from(messages).where(sql14`${messages.campaignId} IS NULL AND (${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId})`).limit(10);
         const matchMsg = existingMsgs.find((m) => {
           const pair = `direct_${[m.senderId, m.receiverId].sort().join("_")}`;
           return pair === convKey;
@@ -31337,7 +31812,7 @@ async function registerRoutes(app2, existingServer) {
   app2.get("/api/admin/conversations", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const allMessages = await db.select().from(messages).orderBy(desc13(messages.createdAt));
+      const allMessages = await db.select().from(messages).orderBy(desc14(messages.createdAt));
       const convMap = {};
       for (const msg of allMessages) {
         if (!msg.campaignId) continue;
@@ -31365,7 +31840,7 @@ async function registerRoutes(app2, existingServer) {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
       if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
-      const existing = await db.select().from(blockedUsers).where(and14(eq18(blockedUsers.blockerId, blockerId), eq18(blockedUsers.blockedId, blockedId))).limit(1);
+      const existing = await db.select().from(blockedUsers).where(and15(eq19(blockedUsers.blockerId, blockerId), eq19(blockedUsers.blockedId, blockedId))).limit(1);
       if (existing.length > 0) return res.json({ blocked: true });
       await db.insert(blockedUsers).values({ blockerId, blockedId });
       res.json({ blocked: true });
@@ -31377,7 +31852,7 @@ async function registerRoutes(app2, existingServer) {
     try {
       const blockerId = req.user.id;
       const blockedId = req.params.id;
-      await db.delete(blockedUsers).where(and14(eq18(blockedUsers.blockerId, blockerId), eq18(blockedUsers.blockedId, blockedId)));
+      await db.delete(blockedUsers).where(and15(eq19(blockedUsers.blockerId, blockerId), eq19(blockedUsers.blockedId, blockedId)));
       res.json({ blocked: false });
     } catch (error) {
       res.status(500).json({ message: "Failed to unblock user" });
@@ -31387,8 +31862,8 @@ async function registerRoutes(app2, existingServer) {
     try {
       const myId = req.user.id;
       const otherId = req.params.id;
-      const [iBlockedThem] = await db.select().from(blockedUsers).where(and14(eq18(blockedUsers.blockerId, myId), eq18(blockedUsers.blockedId, otherId))).limit(1);
-      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and14(eq18(blockedUsers.blockerId, otherId), eq18(blockedUsers.blockedId, myId))).limit(1);
+      const [iBlockedThem] = await db.select().from(blockedUsers).where(and15(eq19(blockedUsers.blockerId, myId), eq19(blockedUsers.blockedId, otherId))).limit(1);
+      const [theyBlockedMe] = await db.select().from(blockedUsers).where(and15(eq19(blockedUsers.blockerId, otherId), eq19(blockedUsers.blockedId, myId))).limit(1);
       res.json({ iBlockedThem: !!iBlockedThem, theyBlockedMe: !!theyBlockedMe });
     } catch (error) {
       res.status(500).json({ message: "Failed to check block status" });
@@ -31758,7 +32233,7 @@ Instructions:
   app2.get("/api/breedskool/pricing", async (req, res) => {
     try {
       const { mode } = req.query;
-      let rows = await db.select().from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.isActive, true));
+      let rows = await db.select().from(breedskoolCoursePricing).where(eq19(breedskoolCoursePricing.isActive, true));
       if (mode) {
         rows = rows.filter((r) => (r.deliveryMode || "").toLowerCase() === mode.toLowerCase() || (r.courseKey || "").toLowerCase().includes(mode.toLowerCase()) || (r.label || "").toLowerCase().includes(mode.toLowerCase()));
       }
@@ -31885,18 +32360,18 @@ Instructions:
       });
       let linkedCourseId = null;
       try {
-        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
+        const pricingRows = await db.select().from(breedskoolCoursePricing).where(eq19(breedskoolCoursePricing.courseKey, selectedCourseKey)).limit(1);
         const pricing = pricingRows[0];
         let resolvedLinkedCourseId = pricing?.linkedCourseId || null;
         if (!resolvedLinkedCourseId && selectedCourseKey === "free_foundations") {
-          const freeCourseRows = await db.select({ id: courses.id }).from(courses).where(sql13`${courses.tags} @> ARRAY['breedskool_free_foundations']::text[]`).limit(1);
+          const freeCourseRows = await db.select({ id: courses.id }).from(courses).where(sql14`${courses.tags} @> ARRAY['breedskool_free_foundations']::text[]`).limit(1);
           resolvedLinkedCourseId = freeCourseRows[0]?.id || null;
         }
         if (resolvedLinkedCourseId) {
           linkedCourseId = resolvedLinkedCourseId;
-          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and14(
-            eq18(courseEnrollments.courseId, resolvedLinkedCourseId),
-            eq18(courseEnrollments.userId, userId)
+          const alreadyEnrolled = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and15(
+            eq19(courseEnrollments.courseId, resolvedLinkedCourseId),
+            eq19(courseEnrollments.userId, userId)
           )).limit(1);
           if (!alreadyEnrolled.length) {
             await db.insert(courseEnrollments).values({
@@ -31911,7 +32386,7 @@ Instructions:
             storage.awardPoints(userId, "course_enroll", 30, `Enrolled in ${selectedCourseTitle}`).catch(() => {
             });
           }
-          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq18(breedskoolRegistrations.id, reg.id));
+          await db.update(breedskoolRegistrations).set({ linkedCourseId: resolvedLinkedCourseId }).where(eq19(breedskoolRegistrations.id, reg.id));
         }
       } catch (enrollErr) {
         console.error("[breedskool-register] enrollment error (non-fatal):", enrollErr?.message);
@@ -31994,7 +32469,7 @@ Instructions:
       if (req.body.isActive !== void 0) updates.isActive = req.body.isActive;
       if (req.body.acceptedPayments !== void 0) updates.acceptedPayments = req.body.acceptedPayments;
       updates.updatedAt = /* @__PURE__ */ new Date();
-      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq18(breedskoolCoursePricing.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolCoursePricing).set(updates).where(eq19(breedskoolCoursePricing.id, req.params.id)).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32003,7 +32478,7 @@ Instructions:
   app2.get("/api/admin/breedskool/registrations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc13(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).orderBy(desc14(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32066,30 +32541,30 @@ Instructions:
         if (!allowedPaymentStatuses.includes(String(paymentStatus))) return res.status(400).json({ message: "Invalid payment status." });
         updateData.paymentStatus = String(paymentStatus);
       }
-      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq18(breedskoolRegistrations.id, req.params.id)).returning();
+      const [row] = await db.update(breedskoolRegistrations).set(updateData).where(eq19(breedskoolRegistrations.id, req.params.id)).returning();
       if (!row) return res.status(404).json({ message: "Registration not found" });
       if (paymentStatus === "verified" || paymentStatus === "confirmed" || paymentStatus === "paid" || paymentStatus === "approved") {
         let resolvedUserId = row?.userId;
         if (!resolvedUserId && row?.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq18(users.email, row.email.toLowerCase().trim())).limit(1);
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq19(users.email, row.email.toLowerCase().trim())).limit(1);
           if (matchedUser) {
             resolvedUserId = matchedUser.id;
-            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq18(breedskoolRegistrations.id, row.id));
+            await db.update(breedskoolRegistrations).set({ userId: resolvedUserId }).where(eq19(breedskoolRegistrations.id, row.id));
           }
         }
         if (resolvedUserId) {
           let courseIdToActivate = row.linkedCourseId;
           if (!courseIdToActivate && row.selectedCourseKey) {
-            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq18(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
+            const [pricing] = await db.select().from(breedskoolCoursePricing).where(eq19(breedskoolCoursePricing.courseKey, row.selectedCourseKey)).limit(1);
             courseIdToActivate = pricing?.linkedCourseId || null;
           }
           if (courseIdToActivate) {
-            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and14(
-              eq18(courseEnrollments.courseId, courseIdToActivate),
-              eq18(courseEnrollments.userId, resolvedUserId)
+            const [existing] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and15(
+              eq19(courseEnrollments.courseId, courseIdToActivate),
+              eq19(courseEnrollments.userId, resolvedUserId)
             )).limit(1);
             if (existing) {
-              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq18(courseEnrollments.id, existing.id));
+              await db.update(courseEnrollments).set({ status: "active", isPaid: true }).where(eq19(courseEnrollments.id, existing.id));
             } else {
               await db.insert(courseEnrollments).values({
                 courseId: courseIdToActivate,
@@ -32101,7 +32576,7 @@ Instructions:
               });
             }
             if (!row.linkedCourseId) {
-              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq18(breedskoolRegistrations.id, row.id));
+              await db.update(breedskoolRegistrations).set({ linkedCourseId: courseIdToActivate }).where(eq19(breedskoolRegistrations.id, row.id));
             }
           }
         }
@@ -32115,16 +32590,16 @@ Instructions:
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
       const regId = req.params.id;
-      const regResult = await db.execute(sql13`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
+      const regResult = await db.execute(sql14`SELECT * FROM breedskool_registrations WHERE id = ${regId} LIMIT 1`);
       const row = regResult.rows[0];
       if (!row) return res.status(404).json({ message: "Registration not found" });
       let resolvedUserId = row.user_id || null;
       if (!resolvedUserId && row.email) {
-        const userResult = await db.execute(sql13`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
+        const userResult = await db.execute(sql14`SELECT id FROM users WHERE LOWER(email) = ${row.email.toLowerCase().trim()} LIMIT 1`);
         const matchedUser = userResult.rows[0];
         if (matchedUser) {
           resolvedUserId = matchedUser.id;
-          await db.execute(sql13`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
+          await db.execute(sql14`UPDATE breedskool_registrations SET user_id = ${resolvedUserId} WHERE id = ${regId}`);
         }
       }
       if (!resolvedUserId) {
@@ -32134,18 +32609,18 @@ Instructions:
       }
       let courseId = row.linked_course_id || null;
       if (!courseId && row.selected_course_key) {
-        const pricingResult = await db.execute(sql13`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
+        const pricingResult = await db.execute(sql14`SELECT linked_course_id FROM breedskool_course_pricing WHERE course_key = ${row.selected_course_key} LIMIT 1`);
         const pricing = pricingResult.rows[0];
         courseId = pricing?.linked_course_id || null;
       }
       if (!courseId && row.selected_course_key) {
         const tag = `breedskool_${row.selected_course_key}`;
-        const tagResult = await db.execute(sql13`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
+        const tagResult = await db.execute(sql14`SELECT id FROM courses WHERE tags @> ARRAY[${tag}]::text[] LIMIT 1`);
         const tagCourse = tagResult.rows[0];
         courseId = tagCourse?.id || null;
       }
       if (!courseId && row.selected_course_title) {
-        const titleResult = await db.execute(sql13`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
+        const titleResult = await db.execute(sql14`SELECT id FROM courses WHERE title ILIKE ${"%" + row.selected_course_title + "%"} LIMIT 1`);
         const titleCourse = titleResult.rows[0];
         courseId = titleCourse?.id || null;
       }
@@ -32155,20 +32630,20 @@ Instructions:
         });
       }
       if (row.selected_course_key && courseId) {
-        await db.execute(sql13`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
+        await db.execute(sql14`UPDATE breedskool_course_pricing SET linked_course_id = ${courseId} WHERE course_key = ${row.selected_course_key} AND (linked_course_id IS NULL OR linked_course_id = '')`).catch(() => {
         });
       }
-      const existingResult = await db.execute(sql13`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
+      const existingResult = await db.execute(sql14`SELECT id FROM course_enrollments WHERE course_id = ${courseId} AND user_id = ${resolvedUserId} LIMIT 1`);
       const existing = existingResult.rows[0];
       if (existing) {
-        await db.execute(sql13`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
+        await db.execute(sql14`UPDATE course_enrollments SET status = 'active', is_paid = true WHERE id = ${existing.id}`);
       } else {
         const amount = String(row.amount_ngn || 0);
         const payMethod = row.payment_method || null;
-        await db.execute(sql13`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
+        await db.execute(sql14`INSERT INTO course_enrollments (course_id, user_id, status, is_paid, payment_method, amount) VALUES (${courseId}, ${resolvedUserId}, 'active', true, ${payMethod}, ${amount})`);
       }
       if (!row.linked_course_id) {
-        await db.execute(sql13`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
+        await db.execute(sql14`UPDATE breedskool_registrations SET linked_course_id = ${courseId} WHERE id = ${regId}`);
       }
       res.json({ success: true, courseId, message: "Enrollment activated successfully" });
     } catch (e) {
@@ -32180,7 +32655,7 @@ Instructions:
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
       const regId = req.params.id;
-      const result = await db.execute(sql13`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
+      const result = await db.execute(sql14`DELETE FROM breedskool_registrations WHERE id = ${regId} RETURNING id`);
       if (!result.rows.length) return res.status(404).json({ message: "Registration not found" });
       res.json({ success: true, message: "Registration deleted" });
     } catch (e) {
@@ -32218,7 +32693,7 @@ Instructions:
     { id: "ton", label: "Toncoin", currency: "TON", network: "ton", address: "", isActive: true }
   ];
   const readBreedSkoolDonationWallets = async () => {
-    const [walletRow] = await db.select().from(appSettings).where(eq18(appSettings.key, "breedskool_donation_wallets"));
+    const [walletRow] = await db.select().from(appSettings).where(eq19(appSettings.key, "breedskool_donation_wallets"));
     if (walletRow?.value) {
       try {
         const stored = JSON.parse(walletRow.value);
@@ -32249,7 +32724,7 @@ Instructions:
   };
   app2.get("/api/breedskool/campaign", async (_req, res) => {
     try {
-      const [row] = await db.select().from(appSettings).where(eq18(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq19(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       let storedConfig = null;
       if (row?.value) {
@@ -32264,7 +32739,7 @@ Instructions:
       }
       const [registrationStats] = await db.select({
         total: count4(),
-        confirmed: sql13`count(*) filter (where ${breedskoolRegistrations.paymentStatus} in ('paid', 'confirmed'))`
+        confirmed: sql14`count(*) filter (where ${breedskoolRegistrations.paymentStatus} in ('paid', 'confirmed'))`
       }).from(breedskoolRegistrations);
       const storedRegisteredUsers = storedConfig && Object.prototype.hasOwnProperty.call(storedConfig, "registeredUsers") ? Number(storedConfig.registeredUsers) : Number(registrationStats?.total || 0);
       const registeredUsers = Number.isFinite(storedRegisteredUsers) && storedRegisteredUsers >= 0 ? storedRegisteredUsers : Number(registrationStats?.total || 0);
@@ -32276,7 +32751,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const [row] = await db.select().from(appSettings).where(eq18(appSettings.key, "breedskool_campaign_config"));
+      const [row] = await db.select().from(appSettings).where(eq19(appSettings.key, "breedskool_campaign_config"));
       let config = DEFAULT_BREEDSKOOL_CAMPAIGN;
       if (row?.value) {
         try {
@@ -32426,7 +32901,7 @@ Instructions:
   app2.get("/api/admin/breedskool/campaign/donations", isAuthenticated, async (req, res) => {
     if (req.user?.userType !== "admin" && req.user?.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
     try {
-      const deposits = await db.select().from(paymentDeposits).where(ilike2(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc13(paymentDeposits.createdAt));
+      const deposits = await db.select().from(paymentDeposits).where(ilike3(paymentDeposits.adminNotes, "%breedskool_campaign%")).orderBy(desc14(paymentDeposits.createdAt));
       res.json(deposits.map((deposit) => {
         let details = {};
         try {
@@ -32453,7 +32928,7 @@ Instructions:
       if (!["submitted", "verified", "approved", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Choose a valid donation status." });
       }
-      const [existing] = await db.select().from(paymentDeposits).where(eq18(paymentDeposits.id, req.params.id));
+      const [existing] = await db.select().from(paymentDeposits).where(eq19(paymentDeposits.id, req.params.id));
       if (!existing || !String(existing.adminNotes || "").includes("breedskool_campaign")) {
         return res.status(404).json({ message: "Donation not found." });
       }
@@ -32471,7 +32946,7 @@ Instructions:
         approvedBy: status === "approved" || status === "verified" ? req.user.id : null,
         approvedAt: status === "approved" || status === "verified" ? /* @__PURE__ */ new Date() : null,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(paymentDeposits.id, req.params.id)).returning();
+      }).where(eq19(paymentDeposits.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32479,7 +32954,7 @@ Instructions:
   });
   app2.get("/api/my/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(eq18(courseAssignments.userId, req.user.id)).orderBy(desc13(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(eq19(courseAssignments.userId, req.user.id)).orderBy(desc14(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32487,7 +32962,7 @@ Instructions:
   });
   app2.get("/api/my/breedskool-registrations", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(breedskoolRegistrations).where(eq18(breedskoolRegistrations.userId, req.user.id)).orderBy(desc13(breedskoolRegistrations.createdAt));
+      const rows = await db.select().from(breedskoolRegistrations).where(eq19(breedskoolRegistrations.userId, req.user.id)).orderBy(desc14(breedskoolRegistrations.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -32533,7 +33008,7 @@ Instructions:
   });
   app2.get("/api/courses/:id", async (req, res) => {
     try {
-      const course = await storage.getCourseById(req.params.id);
+      const course = await storage.getCourseById(req.params.id) ?? (await storage.getAllCourses(true)).find((candidate) => slugifyCourseTitle(candidate.title) === req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
       res.json(course);
     } catch (error) {
@@ -32656,9 +33131,9 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         username: users.username
-      }).from(courseEnrollments).leftJoin(users, eq18(courseEnrollments.userId, users.id)).where(and14(
-        eq18(courseEnrollments.courseId, courseId),
-        eq18(courseEnrollments.status, "active")
+      }).from(courseEnrollments).leftJoin(users, eq19(courseEnrollments.userId, users.id)).where(and15(
+        eq19(courseEnrollments.courseId, courseId),
+        eq19(courseEnrollments.status, "active")
       )).limit(100);
       res.json(rows);
     } catch (e) {
@@ -32694,11 +33169,11 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         userType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq18(courseCommunityPosts.userId, users.id)).where(and14(
-        eq18(courseCommunityPosts.courseId, courseId),
-        eq18(courseCommunityPosts.isDeleted, false)
+      }).from(courseCommunityPosts).leftJoin(users, eq19(courseCommunityPosts.userId, users.id)).where(and15(
+        eq19(courseCommunityPosts.courseId, courseId),
+        eq19(courseCommunityPosts.isDeleted, false)
       )).orderBy(courseCommunityPosts.createdAt).limit(200);
-      const likes = await db.select().from(courseCommunityLikes).where(eq18(courseCommunityLikes.userId, u.id));
+      const likes = await db.select().from(courseCommunityLikes).where(eq19(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       const result = posts2.map((p) => ({ ...p, likedByMe: likedSet.has(p.id) }));
       res.json(result);
@@ -32723,7 +33198,7 @@ Instructions:
           }
         }
       }
-      const postRows = await db.execute(sql13`
+      const postRows = await db.execute(sql14`
         INSERT INTO course_community_posts (course_id, user_id, message, reply_to_id, topic)
         VALUES (${courseId}, ${u.id}, ${message.trim()}, ${replyToId || null}, ${topic || "General"})
         RETURNING *
@@ -32741,29 +33216,29 @@ Instructions:
       const postId = req.params.postId;
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7) {
-        const [course] = await db.select().from(courses).where(eq18(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq19(courses.id, courseId)).limit(1);
         if (!course) return res.status(404).json({ message: "Course not found." });
         const isInstructor = course.instructorId === u.id;
         if (!isInstructor) {
-          const [enrollment] = await db.select().from(courseEnrollments).where(and14(eq18(courseEnrollments.courseId, courseId), eq18(courseEnrollments.userId, u.id))).limit(1);
+          const [enrollment] = await db.select().from(courseEnrollments).where(and15(eq19(courseEnrollments.courseId, courseId), eq19(courseEnrollments.userId, u.id))).limit(1);
           if (!enrollment || enrollment.status !== "active" && enrollment.status !== "completed") {
             return res.status(403).json({ message: "You must be enrolled to like posts." });
           }
         }
       }
-      const [post] = await db.select().from(courseCommunityPosts).where(and14(eq18(courseCommunityPosts.id, postId), eq18(courseCommunityPosts.courseId, courseId), eq18(courseCommunityPosts.isDeleted, false))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and15(eq19(courseCommunityPosts.id, postId), eq19(courseCommunityPosts.courseId, courseId), eq19(courseCommunityPosts.isDeleted, false))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
-      const existing = await db.select().from(courseCommunityLikes).where(and14(eq18(courseCommunityLikes.postId, postId), eq18(courseCommunityLikes.userId, u.id))).limit(1);
+      const existing = await db.select().from(courseCommunityLikes).where(and15(eq19(courseCommunityLikes.postId, postId), eq19(courseCommunityLikes.userId, u.id))).limit(1);
       if (existing.length > 0) {
-        await db.delete(courseCommunityLikes).where(and14(
-          eq18(courseCommunityLikes.postId, postId),
-          eq18(courseCommunityLikes.userId, u.id)
+        await db.delete(courseCommunityLikes).where(and15(
+          eq19(courseCommunityLikes.postId, postId),
+          eq19(courseCommunityLikes.userId, u.id)
         ));
-        await db.update(courseCommunityPosts).set({ likeCount: sql13`GREATEST(like_count - 1, 0)` }).where(eq18(courseCommunityPosts.id, postId));
+        await db.update(courseCommunityPosts).set({ likeCount: sql14`GREATEST(like_count - 1, 0)` }).where(eq19(courseCommunityPosts.id, postId));
         res.json({ liked: false });
       } else {
-        await db.execute(sql13`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
-        await db.execute(sql13`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
+        await db.execute(sql14`INSERT INTO course_community_likes (post_id, user_id) VALUES (${postId}, ${u.id})`);
+        await db.execute(sql14`UPDATE course_community_posts SET like_count = like_count + 1 WHERE id = ${postId}`);
         res.json({ liked: true });
       }
     } catch (e) {
@@ -32775,15 +33250,15 @@ Instructions:
       const u = req.user;
       const courseId = req.params.id;
       const postId = req.params.postId;
-      const [post] = await db.select().from(courseCommunityPosts).where(and14(eq18(courseCommunityPosts.id, postId), eq18(courseCommunityPosts.courseId, courseId))).limit(1);
+      const [post] = await db.select().from(courseCommunityPosts).where(and15(eq19(courseCommunityPosts.id, postId), eq19(courseCommunityPosts.courseId, courseId))).limit(1);
       if (!post) return res.status(404).json({ message: "Post not found in this course." });
       const isAdmin7 = u.userType === "admin" || u.role === "admin";
       if (!isAdmin7 && post.userId !== u.id) {
-        const [course] = await db.select().from(courses).where(eq18(courses.id, courseId)).limit(1);
+        const [course] = await db.select().from(courses).where(eq19(courses.id, courseId)).limit(1);
         const isInstructor = course?.instructorId === u.id;
         if (!isInstructor) return res.status(403).json({ message: "Not your post." });
       }
-      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq18(courseCommunityPosts.id, postId));
+      await db.update(courseCommunityPosts).set({ isDeleted: true }).where(eq19(courseCommunityPosts.id, postId));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to delete post" });
@@ -32792,7 +33267,7 @@ Instructions:
   app2.get("/api/my/training/community", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq18(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq19(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -32808,8 +33283,8 @@ Instructions:
         authorLastName: users.lastName,
         authorAvatar: users.profileImageUrl,
         authorType: users.userType
-      }).from(courseCommunityPosts).leftJoin(users, eq18(courseCommunityPosts.userId, users.id)).where(and14(inArray12(courseCommunityPosts.courseId, courseIds), eq18(courseCommunityPosts.isDeleted, false))).orderBy(desc13(courseCommunityPosts.createdAt)).limit(150);
-      const likes = await db.select().from(courseCommunityLikes).where(eq18(courseCommunityLikes.userId, u.id));
+      }).from(courseCommunityPosts).leftJoin(users, eq19(courseCommunityPosts.userId, users.id)).where(and15(inArray12(courseCommunityPosts.courseId, courseIds), eq19(courseCommunityPosts.isDeleted, false))).orderBy(desc14(courseCommunityPosts.createdAt)).limit(150);
+      const likes = await db.select().from(courseCommunityLikes).where(eq19(courseCommunityLikes.userId, u.id));
       const likedSet = new Set(likes.map((l) => l.postId));
       res.json(rows.map((r) => ({ ...r, liked: likedSet.has(r.id) })));
     } catch (e) {
@@ -32819,7 +33294,7 @@ Instructions:
   app2.get("/api/my/training/classmates", isAuthenticated, async (req, res) => {
     try {
       const u = req.user;
-      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq18(courseEnrollments.userId, u.id));
+      const myEnrollments = await db.select({ courseId: courseEnrollments.courseId }).from(courseEnrollments).where(eq19(courseEnrollments.userId, u.id));
       if (!myEnrollments.length) return res.json([]);
       const courseIds = myEnrollments.map((e) => e.courseId);
       const rows = await db.select({
@@ -32830,7 +33305,7 @@ Instructions:
         profileImageUrl: users.profileImageUrl,
         userType: users.userType,
         creatorTier: users.creatorTier
-      }).from(courseEnrollments).leftJoin(users, eq18(courseEnrollments.userId, users.id)).where(and14(inArray12(courseEnrollments.courseId, courseIds), sql13`${courseEnrollments.userId} != ${u.id}`)).limit(60);
+      }).from(courseEnrollments).leftJoin(users, eq19(courseEnrollments.userId, users.id)).where(and15(inArray12(courseEnrollments.courseId, courseIds), sql14`${courseEnrollments.userId} != ${u.id}`)).limit(60);
       const seen = /* @__PURE__ */ new Set();
       const unique = rows.filter((r) => {
         if (seen.has(r.userId)) return false;
@@ -33122,10 +33597,10 @@ Instructions:
   });
   app2.get("/api/courses/:id/assignments", isAuthenticated, async (req, res) => {
     try {
-      const rows = await db.select().from(courseAssignments).where(and14(
-        eq18(courseAssignments.courseId, req.params.id),
-        eq18(courseAssignments.userId, req.user.id)
-      )).orderBy(desc13(courseAssignments.submittedAt));
+      const rows = await db.select().from(courseAssignments).where(and15(
+        eq19(courseAssignments.courseId, req.params.id),
+        eq19(courseAssignments.userId, req.user.id)
+      )).orderBy(desc14(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -33139,7 +33614,7 @@ Instructions:
       const primaryFile = files[0] || null;
       const allFilePaths = files.map((f) => `/uploads/${f.filename}`);
       const fileUrlValue = allFilePaths.length > 1 ? JSON.stringify(allFilePaths) : primaryFile ? `/uploads/${primaryFile.filename}` : null;
-      const assignRows = await db.execute(sql13`
+      const assignRows = await db.execute(sql14`
         INSERT INTO course_assignments (course_id, user_id, lesson_id, title, description, file_url, file_name, file_type, status)
         VALUES (
           ${req.params.id},
@@ -33180,7 +33655,7 @@ Instructions:
         studentFirstName: users.firstName,
         studentLastName: users.lastName,
         studentEmail: users.email
-      }).from(courseAssignments).leftJoin(users, eq18(courseAssignments.userId, users.id)).orderBy(desc13(courseAssignments.submittedAt));
+      }).from(courseAssignments).leftJoin(users, eq19(courseAssignments.userId, users.id)).orderBy(desc14(courseAssignments.submittedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message || "Failed to fetch assignments" });
@@ -33192,7 +33667,7 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Unauthorized" });
       const { status, tutorFeedback } = req.body;
       if (!["approved", "rejected", "reviewed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq18(courseAssignments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseAssignments).set({ status, tutorFeedback: tutorFeedback || null }).where(eq19(courseAssignments.id, req.params.id)).returning();
       if (!updated) return res.status(404).json({ message: "Assignment not found" });
       res.json(updated);
     } catch (e) {
@@ -33240,13 +33715,13 @@ Instructions:
       if (u.userType !== "admin" && u.role !== "admin") return res.status(403).json({ message: "Admin only" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { courseMessages: courseMessages2, users: users3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq24, desc: desc14 } = await import("drizzle-orm");
-      const msgs = await db2.select().from(courseMessages2).where(eq24(courseMessages2.courseId, req.params.id)).orderBy(desc14(courseMessages2.createdAt));
+      const { eq: eq25, desc: desc15 } = await import("drizzle-orm");
+      const msgs = await db2.select().from(courseMessages2).where(eq25(courseMessages2.courseId, req.params.id)).orderBy(desc15(courseMessages2.createdAt));
       const enriched = await Promise.all(msgs.map(async (m) => {
-        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq24(users3.id, m.senderId));
+        const [sender] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq25(users3.id, m.senderId));
         let recipient = null;
         if (m.recipientId) {
-          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq24(users3.id, m.recipientId));
+          const [r] = await db2.select({ id: users3.id, firstName: users3.firstName, lastName: users3.lastName, userType: users3.userType }).from(users3).where(eq25(users3.id, m.recipientId));
           recipient = r || null;
         }
         return { ...m, sender, recipient };
@@ -33279,8 +33754,8 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq24, and: and17 } = await import("drizzle-orm");
-      const reaction = await db2.select().from(productLikes2).where(and17(eq24(productLikes2.productId, req.params.id), eq24(productLikes2.userId, req.user.id))).limit(1);
+      const { eq: eq25, and: and18 } = await import("drizzle-orm");
+      const reaction = await db2.select().from(productLikes2).where(and18(eq25(productLikes2.productId, req.params.id), eq25(productLikes2.userId, req.user.id))).limit(1);
       res.json(reaction[0] || null);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch reaction" });
@@ -33290,26 +33765,26 @@ Instructions:
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { productLikes: productLikes2, shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq24, and: and17, sql: sql17 } = await import("drizzle-orm");
+      const { eq: eq25, and: and18, sql: sql18 } = await import("drizzle-orm");
       const { type } = req.body;
       if (!["like", "dislike"].includes(type)) {
         return res.status(400).json({ message: "Invalid reaction type" });
       }
-      const existing = await db2.select().from(productLikes2).where(and17(eq24(productLikes2.productId, req.params.id), eq24(productLikes2.userId, req.user.id))).limit(1);
+      const existing = await db2.select().from(productLikes2).where(and18(eq25(productLikes2.productId, req.params.id), eq25(productLikes2.userId, req.user.id))).limit(1);
       if (existing.length > 0) {
         const prev = existing[0];
         if (prev.type === type) {
-          await db2.delete(productLikes2).where(eq24(productLikes2.id, prev.id));
+          await db2.delete(productLikes2).where(eq25(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            [type === "like" ? "likesCount" : "dislikesCount"]: sql17`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
-          }).where(eq24(shopProducts2.id, req.params.id));
+            [type === "like" ? "likesCount" : "dislikesCount"]: sql18`GREATEST(0, ${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} - 1)`
+          }).where(eq25(shopProducts2.id, req.params.id));
           return res.json({ action: "removed", type });
         } else {
-          await db2.update(productLikes2).set({ type }).where(eq24(productLikes2.id, prev.id));
+          await db2.update(productLikes2).set({ type }).where(eq25(productLikes2.id, prev.id));
           await db2.update(shopProducts2).set({
-            likesCount: sql17`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
-            dislikesCount: sql17`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
-          }).where(eq24(shopProducts2.id, req.params.id));
+            likesCount: sql18`CASE WHEN ${type} = 'like' THEN ${shopProducts2.likesCount} + 1 ELSE GREATEST(0, ${shopProducts2.likesCount} - 1) END`,
+            dislikesCount: sql18`CASE WHEN ${type} = 'dislike' THEN ${shopProducts2.dislikesCount} + 1 ELSE GREATEST(0, ${shopProducts2.dislikesCount} - 1) END`
+          }).where(eq25(shopProducts2.id, req.params.id));
           return res.json({ action: "switched", type });
         }
       } else {
@@ -33319,8 +33794,8 @@ Instructions:
           type
         });
         await db2.update(shopProducts2).set({
-          [type === "like" ? "likesCount" : "dislikesCount"]: sql17`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
-        }).where(eq24(shopProducts2.id, req.params.id));
+          [type === "like" ? "likesCount" : "dislikesCount"]: sql18`${type === "like" ? shopProducts2.likesCount : shopProducts2.dislikesCount} + 1`
+        }).where(eq25(shopProducts2.id, req.params.id));
         return res.json({ action: "added", type });
       }
     } catch (error) {
@@ -33706,7 +34181,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(messages).where(and14(eq18(messages.referenceType, "direct_hire"), eq18(messages.referenceId, offer.id))).orderBy(messages.createdAt);
+      const rows = await db.select().from(messages).where(and15(eq19(messages.referenceType, "direct_hire"), eq19(messages.referenceId, offer.id))).orderBy(messages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -33809,12 +34284,12 @@ Instructions:
       const brandFee = 0;
       const updated = await storage.updateDirectHireOffer(offer.id, { status: "completed", completedAt: /* @__PURE__ */ new Date() });
       await db.update(users).set({
-        availableBalance: sql13`${users.availableBalance} + ${payout}`,
-        pendingBalance: sql13`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
-        totalEarned: sql13`${users.totalEarned} + ${payout}`,
-        completedCampaigns: sql13`${users.completedCampaigns} + 1`,
+        availableBalance: sql14`${users.availableBalance} + ${payout}`,
+        pendingBalance: sql14`GREATEST(${users.pendingBalance} - ${payout}, 0)`,
+        totalEarned: sql14`${users.totalEarned} + ${payout}`,
+        completedCampaigns: sql14`${users.completedCampaigns} + 1`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(users.id, offer.influencerId));
+      }).where(eq19(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.influencerId,
         amount: payout.toFixed(2),
@@ -33840,10 +34315,10 @@ Instructions:
       if (primaryAdmin) {
         const platformRevenue = platformFee + brandFee;
         await db.update(users).set({
-          availableBalance: sql13`${users.availableBalance} + ${platformRevenue}`,
-          totalEarned: sql13`${users.totalEarned} + ${platformRevenue}`,
+          availableBalance: sql14`${users.availableBalance} + ${platformRevenue}`,
+          totalEarned: sql14`${users.totalEarned} + ${platformRevenue}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq18(users.id, primaryAdmin.id));
+        }).where(eq19(users.id, primaryAdmin.id));
         await storage.createTransaction({
           userId: primaryAdmin.id,
           amount: platformRevenue.toFixed(2),
@@ -33883,7 +34358,7 @@ Instructions:
       if (offer.brandId !== req.user.id && offer.influencerId !== req.user.id && req.user.userType !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
       }
-      const rows = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "direct_hire"), eq18(userReviews.referenceId, offer.id))).orderBy(desc13(userReviews.createdAt));
+      const rows = await db.select().from(userReviews).where(and15(eq19(userReviews.referenceType, "direct_hire"), eq19(userReviews.referenceId, offer.id))).orderBy(desc14(userReviews.createdAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -33899,7 +34374,7 @@ Instructions:
       const comment = String(req.body.comment || "").trim();
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: "Rating must be from 1 to 5" });
       const revieweeId = req.user.id === offer.brandId ? offer.influencerId : offer.brandId;
-      const existing = await db.select().from(userReviews).where(and14(eq18(userReviews.referenceType, "direct_hire"), eq18(userReviews.referenceId, offer.id), eq18(userReviews.reviewerId, req.user.id)));
+      const existing = await db.select().from(userReviews).where(and15(eq19(userReviews.referenceType, "direct_hire"), eq19(userReviews.referenceId, offer.id), eq19(userReviews.reviewerId, req.user.id)));
       if (existing.length) return res.status(400).json({ message: "You already reviewed this project" });
       const [review] = await db.insert(userReviews).values({
         reviewerId: req.user.id,
@@ -33909,8 +34384,8 @@ Instructions:
         referenceType: "direct_hire",
         referenceId: offer.id
       }).returning();
-      const ratings = await db.select({ avg: sql13`AVG(${userReviews.rating})`, count: sql13`COUNT(*)` }).from(userReviews).where(eq18(userReviews.revieweeId, revieweeId));
-      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(users.id, revieweeId));
+      const ratings = await db.select({ avg: sql14`AVG(${userReviews.rating})`, count: sql14`COUNT(*)` }).from(userReviews).where(eq19(userReviews.revieweeId, revieweeId));
+      await db.update(users).set({ rating: String(Number(ratings[0]?.avg || 0).toFixed(2)), updatedAt: /* @__PURE__ */ new Date() }).where(eq19(users.id, revieweeId));
       res.json(review);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34073,9 +34548,9 @@ Instructions:
       const payout = +(authoritative - platformFee).toFixed(2);
       const brandTotalCharge = authoritative;
       await db.update(users).set({
-        pendingBalance: sql13`${users.pendingBalance} + ${payout}`,
+        pendingBalance: sql14`${users.pendingBalance} + ${payout}`,
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(users.id, offer.influencerId));
+      }).where(eq19(users.id, offer.influencerId));
       await storage.createTransaction({
         userId: offer.brandId,
         amount: brandTotalCharge.toFixed(2),
@@ -34219,8 +34694,8 @@ Instructions:
               approvedAt: /* @__PURE__ */ new Date()
             });
             await storage.updateUserProfile(referrerId, {
-              availableBalance: sql13`${users.availableBalance} + ${parseFloat(commissionAmount)}`,
-              referralBonusEarned: sql13`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}`
+              availableBalance: sql14`${users.availableBalance} + ${parseFloat(commissionAmount)}`,
+              referralBonusEarned: sql14`${users.referralBonusEarned} + ${parseFloat(commissionAmount)}`
             });
             productReferralFee = parseFloat(commissionAmount);
             await storage.createNotification({
@@ -34269,8 +34744,8 @@ Instructions:
   app2.delete("/api/admin/purchases/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      await db.delete(productReviews).where(eq18(productReviews.purchaseId, req.params.id));
-      await db.delete(purchases).where(eq18(purchases.id, req.params.id));
+      await db.delete(productReviews).where(eq19(productReviews.purchaseId, req.params.id));
+      await db.delete(purchases).where(eq19(purchases.id, req.params.id));
       res.json({ message: "Purchase deleted" });
     } catch (e) {
       console.error("Error deleting purchase:", e);
@@ -34281,7 +34756,7 @@ Instructions:
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { accessUrl, accessNotes, status } = req.body;
-      const [existing] = await db.select().from(courseEnrollments).where(eq18(courseEnrollments.id, req.params.id));
+      const [existing] = await db.select().from(courseEnrollments).where(eq19(courseEnrollments.id, req.params.id));
       if (!existing) return res.status(404).json({ message: "Enrollment not found" });
       const updates = {
         approvedBy: req.user.id,
@@ -34290,7 +34765,7 @@ Instructions:
         status: status || "active",
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(courseEnrollments).set(updates).where(eq18(courseEnrollments.id, req.params.id)).returning();
+      const [updated] = await db.update(courseEnrollments).set(updates).where(eq19(courseEnrollments.id, req.params.id)).returning();
       await storage.createNotification({
         userId: existing.userId,
         type: "course_access_granted",
@@ -34647,7 +35122,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/featured", async (req, res) => {
     try {
-      const rows = await db.select().from(p2pListings).where(and14(eq18(p2pListings.status, "approved"), eq18(p2pListings.isFeatured, true))).orderBy(desc13(p2pListings.createdAt)).limit(6);
+      const rows = await db.select().from(p2pListings).where(and15(eq19(p2pListings.status, "approved"), eq19(p2pListings.isFeatured, true))).orderBy(desc14(p2pListings.createdAt)).limit(6);
       res.json(await Promise.all(rows.map(enrichP2PListing)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34655,7 +35130,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id", async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(404).json({ message: "Listing not found" });
       res.json(await enrichP2PListing(listing));
@@ -34672,12 +35147,12 @@ Notes: ${adminNotes}` : ""}`
       const search = String(req.query.search || "");
       const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
       const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
-      let conditions = [eq18(p2pListings.status, "approved")];
-      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq18(p2pListings.listingType, type));
-      if (subtype) conditions.push(eq18(p2pListings.productSubtype, subtype));
-      if (country) conditions.push(eq18(p2pListings.country, country));
-      if (currency) conditions.push(eq18(p2pListings.currency, currency));
-      let rows = await db.select().from(p2pListings).where(and14(...conditions)).orderBy(desc13(p2pListings.createdAt));
+      let conditions = [eq19(p2pListings.status, "approved")];
+      if (type !== "all" && p2pTypes.includes(type)) conditions.push(eq19(p2pListings.listingType, type));
+      if (subtype) conditions.push(eq19(p2pListings.productSubtype, subtype));
+      if (country) conditions.push(eq19(p2pListings.country, country));
+      if (currency) conditions.push(eq19(p2pListings.currency, currency));
+      let rows = await db.select().from(p2pListings).where(and15(...conditions)).orderBy(desc14(p2pListings.createdAt));
       if (search) {
         const q = search.toLowerCase();
         rows = rows.filter((r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
@@ -34754,7 +35229,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, upload.single("proofScreenshot"), async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not active" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot submit tasks on your own listing" });
@@ -34770,7 +35245,7 @@ Notes: ${adminNotes}` : ""}`
         }
       }
       const existing = await db.select().from(p2pTaskAddonSubmissions).where(
-        and14(eq18(p2pTaskAddonSubmissions.listingId, req.params.id), eq18(p2pTaskAddonSubmissions.userId, req.user.id), eq18(p2pTaskAddonSubmissions.taskIndex, taskIndex))
+        and15(eq19(p2pTaskAddonSubmissions.listingId, req.params.id), eq19(p2pTaskAddonSubmissions.userId, req.user.id), eq19(p2pTaskAddonSubmissions.taskIndex, taskIndex))
       );
       if (existing.length > 0 && existing[0].status === "approved") {
         return res.status(400).json({ message: "You have already completed this task" });
@@ -34804,12 +35279,12 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/listings/:id/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can view submissions" });
       }
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq18(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq19(p2pTaskAddonSubmissions.listingId, req.params.id)).orderBy(desc14(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34817,7 +35292,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/my/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq18(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
+      const submissions = await db.select().from(p2pTaskAddonSubmissions).where(eq19(p2pTaskAddonSubmissions.userId, req.user.id)).orderBy(desc14(p2pTaskAddonSubmissions.createdAt));
       res.json(submissions);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34825,9 +35300,9 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/task-addon-submissions/:id/review", isAuthenticated, async (req, res) => {
     try {
-      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq18(p2pTaskAddonSubmissions.id, req.params.id));
+      const [sub] = await db.select().from(p2pTaskAddonSubmissions).where(eq19(p2pTaskAddonSubmissions.id, req.params.id));
       if (!sub) return res.status(404).json({ message: "Submission not found" });
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, sub.listingId));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, sub.listingId));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.sellerId !== req.user.id && !isAdminUser(req.user)) {
         return res.status(403).json({ message: "Only the listing owner can review submissions" });
@@ -34840,7 +35315,7 @@ Notes: ${adminNotes}` : ""}`
         reviewNote: reviewNote || null,
         reviewedBy: req.user.id,
         reviewedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(p2pTaskAddonSubmissions.id, req.params.id)).returning();
+      }).where(eq19(p2pTaskAddonSubmissions.id, req.params.id)).returning();
       if (action === "approve" && listing.tdripPointsPerParticipant) {
         try {
           await storage.awardPoints(sub.userId, "task_addon_reward", listing.tdripPointsPerParticipant, `Task addon reward from listing "${listing.title}"`, listing.id);
@@ -34861,13 +35336,13 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/seller/task-addon-submissions", isAuthenticated, async (req, res) => {
     try {
-      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq18(p2pListings.sellerId, req.user.id));
+      const sellerListings = await db.select({ id: p2pListings.id, title: p2pListings.title }).from(p2pListings).where(eq19(p2pListings.sellerId, req.user.id));
       if (sellerListings.length === 0) return res.json([]);
       const listingIds = sellerListings.map((l) => l.id);
       const listingTitleMap = Object.fromEntries(sellerListings.map((l) => [l.id, l.title]));
       const submissions = await db.select().from(p2pTaskAddonSubmissions).where(
         inArray12(p2pTaskAddonSubmissions.listingId, listingIds)
-      ).orderBy(desc13(p2pTaskAddonSubmissions.createdAt));
+      ).orderBy(desc14(p2pTaskAddonSubmissions.createdAt));
       const submissionsWithTitle = submissions.map((s) => ({ ...s, listingTitle: listingTitleMap[s.listingId] || "" }));
       res.json(submissionsWithTitle);
     } catch (e) {
@@ -34892,11 +35367,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/listings/:id/accept", isAuthenticated, async (req, res) => {
     try {
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       if (listing.status !== "approved") return res.status(400).json({ message: "Listing is not live yet" });
       if (listing.sellerId === req.user.id) return res.status(400).json({ message: "You cannot accept your own listing" });
-      const active = await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
+      const active = await db.select().from(p2pTransactions).where(sql14`${p2pTransactions.listingId} = ${listing.id} AND ${p2pTransactions.buyerId} = ${req.user.id} AND ${p2pTransactions.status} IN ('pending','funded','delivered','disputed')`);
       if (active.length) return res.status(400).json({ message: "You already have an active deal for this listing" });
       const admins = await storage.getUsersByType("admin");
       const seller = await storage.getUser(listing.sellerId);
@@ -34966,7 +35441,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions", isAuthenticated, async (req, res) => {
     try {
-      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc13(p2pTransactions.createdAt));
+      const rows = isAdminUser(req.user) ? await db.select().from(p2pTransactions).orderBy(desc14(p2pTransactions.createdAt)) : await db.select().from(p2pTransactions).where(sql14`${p2pTransactions.buyerId} = ${req.user.id} OR ${p2pTransactions.sellerId} = ${req.user.id}`).orderBy(desc14(p2pTransactions.createdAt));
       res.json(await Promise.all(rows.map(enrichP2PTransaction)));
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34974,7 +35449,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       res.json(await enrichP2PTransaction(tx));
@@ -34984,10 +35459,10 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.get("/api/p2p/transactions/:id/messages", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(p2pMessages).where(eq18(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
+      const rows = await db.select().from(p2pMessages).where(eq19(p2pMessages.transactionId, tx.id)).orderBy(p2pMessages.createdAt);
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -34995,7 +35470,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.post("/api/p2p/transactions/:id/messages", isAuthenticated, upload.single("attachment"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!isAdminUser(req.user) && tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Forbidden" });
       const content = String(req.body.content || "").trim();
@@ -35013,7 +35488,7 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/mark-paid", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can mark paid" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Payment can only be marked while pending" });
@@ -35022,7 +35497,7 @@ Notes: ${adminNotes}` : ""}`
         paymentProof: req.file ? `/uploads/${req.file.filename}` : tx.paymentProof,
         paymentNote: String(req.body.paymentNote || ""),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_marked", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -35036,10 +35511,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/confirm-payment", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.status !== "pending") return res.status(400).json({ message: "Only pending deals can be funded" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "funded", fundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "payment_confirmed", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.sellerId, type: "p2p_funded", title: "P2P escrow funded", content: "Admin confirmed payment. You can deliver now.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -35049,11 +35524,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/deliver", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only seller can deliver" });
       if (tx.status !== "funded") return res.status(400).json({ message: "Deal must be funded before delivery" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "delivered", deliveredAt: /* @__PURE__ */ new Date(), deliveryNote: String(req.body.deliveryNote || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "delivered", { transactionId: tx.id });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_delivered", title: "P2P delivery submitted", content: "Seller delivered. Please confirm when received.", actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -35063,11 +35538,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/confirm-received", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id) return res.status(403).json({ message: "Only buyer can confirm received" });
       if (tx.status !== "delivered") return res.status(400).json({ message: "Deal must be delivered first" });
-      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ buyerConfirmedAt: /* @__PURE__ */ new Date(), updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "buyer_confirmed", { transactionId: tx.id });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -35080,11 +35555,11 @@ Notes: ${adminNotes}` : ""}`
   });
   app2.patch("/api/p2p/transactions/:id/dispute", isAuthenticated, async (req, res) => {
     try {
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (tx.buyerId !== req.user.id && tx.sellerId !== req.user.id) return res.status(403).json({ message: "Only buyer or seller can dispute" });
       if (!["pending", "funded", "delivered"].includes(tx.status)) return res.status(400).json({ message: "This deal cannot be disputed now" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "disputed", disputeReason: String(req.body.reason || ""), updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "dispute_opened", { transactionId: tx.id, details: req.body.reason || "" });
       const admins = await storage.getUsersByType("admin");
       for (const admin2 of admins) {
@@ -35098,11 +35573,11 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/release", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (!["delivered", "disputed"].includes(tx.status)) return res.status(400).json({ message: "Deal must be delivered or disputed before release" });
-      await db.update(users).set({ availableBalance: sql13`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql13`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(users.id, tx.sellerId));
-      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      await db.update(users).set({ availableBalance: sql14`${users.availableBalance} + ${Number(tx.netAmount)}`, totalEarned: sql14`${users.totalEarned} + ${Number(tx.netAmount)}`, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(users.id, tx.sellerId));
+      const [updated] = await db.update(p2pTransactions).set({ status: "completed", releasedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.sellerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await storage.createTransaction({ userId: tx.sellerId, amount: tx.netAmount, type: "p2p_payout", status: "completed", description: `P2P escrow release for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await storage.createTransaction({ userId: req.user.id, amount: tx.fee, type: "p2p_fee_revenue", status: "completed", description: `P2P fee revenue for transaction ${tx.id}`, referenceType: "p2p", referenceId: tx.id, processedAt: /* @__PURE__ */ new Date() });
       await logP2PAction(req.user.id, "funds_released", { transactionId: tx.id, details: req.body.note || "" });
@@ -35115,10 +35590,10 @@ Notes: ${adminNotes}` : ""}`
   app2.patch("/api/admin/p2p-transactions/:id/refund", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [tx] = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.id, req.params.id));
+      const [tx] = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.id, req.params.id));
       if (!tx) return res.status(404).json({ message: "Transaction not found" });
       if (["completed", "refunded", "cancelled"].includes(tx.status)) return res.status(400).json({ message: "Deal is already closed" });
-      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pTransactions.id, tx.id)).returning();
+      const [updated] = await db.update(p2pTransactions).set({ status: "refunded", refundedAt: /* @__PURE__ */ new Date(), adminId: req.user.id, disputeWinnerId: tx.buyerId, adminNote: req.body.note || tx.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pTransactions.id, tx.id)).returning();
       await logP2PAction(req.user.id, "refunded", { transactionId: tx.id, details: req.body.note || "" });
       await storage.createNotification({ userId: tx.buyerId, type: "p2p_refunded", title: "P2P refund approved", content: `Admin marked transaction ${tx.id} as refunded.`, actionUrl: `/p2p-deals/${tx.id}` });
       res.json(await enrichP2PTransaction(updated));
@@ -35139,7 +35614,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (req.body.adminNote !== void 0) updates.adminNote = req.body.adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq18(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq19(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, `listing_updated`, { listingId: listing.id, details: JSON.stringify(updates) });
       res.json(await enrichP2PListing(listing));
@@ -35165,7 +35640,7 @@ Notes: ${adminNotes}` : ""}`
         { title: "Smart Contract Basic Security Audit", listingType: "service", description: "Manual security review of up to 500 lines of Solidity smart contract code. I check for reentrancy, integer overflow, access control issues, gas optimisation, and common attack vectors. Delivered as a structured PDF report within 5 business days.", price: "500.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80" },
         { title: "Crypto Content Writing \u2014 10-Article Pack", listingType: "service", description: "Professional Web3 and crypto blog articles (800-1,200 words each). Topics tailored to your project: DeFi explainers, NFT guides, tokenomics breakdowns, protocol reviews, or trend analysis. SEO-optimised, unique, and plagiarism-free. Delivered in Google Docs.", price: "200.00", paymentMethod: "USDT", featuredImage: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&q=80" }
       ];
-      const existing = await db.select().from(p2pListings).where(eq18(p2pListings.sellerId, sellerId));
+      const existing = await db.select().from(p2pListings).where(eq19(p2pListings.sellerId, sellerId));
       const existingTitles = new Set(existing.map((listing) => listing.title));
       const missingDemos = demoListings.filter((demo) => !existingTitles.has(demo.title));
       if (!missingDemos.length) return res.json({ message: "Demo listings already seeded", count: existing.length });
@@ -35182,14 +35657,14 @@ Notes: ${adminNotes}` : ""}`
   app2.delete("/api/admin/p2p-listings/:id", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const [listing] = await db.select().from(p2pListings).where(eq18(p2pListings.id, req.params.id));
+      const [listing] = await db.select().from(p2pListings).where(eq19(p2pListings.id, req.params.id));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      const relatedTransactions = await db.select().from(p2pTransactions).where(eq18(p2pTransactions.listingId, listing.id));
+      const relatedTransactions = await db.select().from(p2pTransactions).where(eq19(p2pTransactions.listingId, listing.id));
       await logP2PAction(req.user.id, "listing_removed", { listingId: listing.id, details: listing.title });
       if (relatedTransactions.length) {
-        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(p2pListings.id, req.params.id));
+        await db.update(p2pListings).set({ status: "removed", isFeatured: false, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(p2pListings.id, req.params.id));
       } else {
-        await db.delete(p2pListings).where(eq18(p2pListings.id, req.params.id));
+        await db.delete(p2pListings).where(eq19(p2pListings.id, req.params.id));
       }
       res.json({ success: true, message: "Listing removed permanently" });
     } catch (e) {
@@ -35216,7 +35691,7 @@ Notes: ${adminNotes}` : ""}`
       }
       if (adminNote !== void 0) updates.adminNote = adminNote;
       if (req.body.isFeatured !== void 0) updates.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";
-      const [listing] = await db.update(p2pListings).set(updates).where(eq18(p2pListings.id, req.params.id)).returning();
+      const [listing] = await db.update(p2pListings).set(updates).where(eq19(p2pListings.id, req.params.id)).returning();
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       await logP2PAction(req.user.id, "listing_edited", { listingId: listing.id, details: `Admin edited listing` });
       res.json(await enrichP2PListing(listing));
@@ -35227,7 +35702,7 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-listings", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = (await db.select().from(p2pListings).orderBy(desc13(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = (await db.select().from(p2pListings).orderBy(desc14(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const enriched = await Promise.all(rows.map(enrichP2PListing));
       res.json(enriched);
     } catch (e) {
@@ -35237,8 +35712,8 @@ Notes: ${adminNotes}` : ""}`
   app2.get("/api/admin/p2p-transactions", isAuthenticated, async (req, res) => {
     try {
       if (!canManageP2P(req.user)) return res.status(403).json({ message: "P2P manager only" });
-      const rows = await db.select().from(p2pTransactions).orderBy(desc13(p2pTransactions.createdAt));
-      const allListings = (await db.select().from(p2pListings).orderBy(desc13(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
+      const rows = await db.select().from(p2pTransactions).orderBy(desc14(p2pTransactions.createdAt));
+      const allListings = (await db.select().from(p2pListings).orderBy(desc14(p2pListings.createdAt))).filter((listing) => listing.status !== "removed");
       const revenue = rows.filter((r) => r.status === "completed").reduce((sum, r) => sum + Number(r.fee || 0), 0);
       res.json({
         stats: {
@@ -35287,7 +35762,7 @@ Notes: ${adminNotes}` : ""}`
         updatedBy: req.user.id,
         updatedAt: /* @__PURE__ */ new Date()
       };
-      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq18(p2pFeeConfigs.id, current.id)).returning();
+      const [updated] = await db.update(p2pFeeConfigs).set(payload).where(eq19(p2pFeeConfigs.id, current.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -35297,7 +35772,7 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       for (const name of ["campaign_fee", "withdrawal_fee", "listing_fee"]) {
-        const [existing] = await db.select().from(platformFees).where(eq18(platformFees.name, name));
+        const [existing] = await db.select().from(platformFees).where(eq19(platformFees.name, name));
         if (!existing) await db.insert(platformFees).values({ name, feeType: "percentage", value: "0.00" });
       }
       res.json(await db.select().from(platformFees).orderBy(platformFees.name));
@@ -35309,9 +35784,9 @@ Notes: ${adminNotes}` : ""}`
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const name = String(req.params.name);
-      const [current] = await db.select().from(platformFees).where(eq18(platformFees.name, name));
+      const [current] = await db.select().from(platformFees).where(eq19(platformFees.name, name));
       const payload = { feeType: req.body.feeType === "fixed" ? "fixed" : "percentage", value: String(Number(req.body.value || 0).toFixed(2)), updatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() };
-      const [row] = current ? await db.update(platformFees).set(payload).where(eq18(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
+      const [row] = current ? await db.update(platformFees).set(payload).where(eq19(platformFees.name, name)).returning() : await db.insert(platformFees).values({ name, ...payload }).returning();
       res.json(row);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -35593,7 +36068,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/all-submissions", isAuthenticated, async (req, res) => {
     try {
       if (req.user.userType !== "admin") return res.status(403).json({ message: "Admin only" });
-      const submissions = await db.select().from(taskSubmissions).orderBy(desc13(taskSubmissions.submittedAt));
+      const submissions = await db.select().from(taskSubmissions).orderBy(desc14(taskSubmissions.submittedAt));
       const enriched = await Promise.all(submissions.map(async (s) => {
         const [creator, campaign] = await Promise.all([
           storage.getUser(s.userId),
@@ -35676,7 +36151,7 @@ Looking forward to collaborating with you!`;
       if (walletAddress !== void 0) updates.walletAddress = walletAddress;
       if (name !== void 0) updates.name = name;
       if (description !== void 0) updates.description = description;
-      const [updated] = await db.update(paymentNetworks).set(updates).where(eq18(paymentNetworks.id, req.params.id)).returning();
+      const [updated] = await db.update(paymentNetworks).set(updates).where(eq19(paymentNetworks.id, req.params.id)).returning();
       res.json(updated);
     } catch (error) {
       console.error("Error updating payment network:", error);
@@ -35902,7 +36377,7 @@ Looking forward to collaborating with you!`;
   app2.get("/api/admin/ads/analytics/:id", isAuthenticated, async (req, res) => {
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-      const rows = await db.select().from(adAnalytics).where(eq18(adAnalytics.adId, req.params.id)).orderBy(desc13(adAnalytics.createdAt)).limit(500);
+      const rows = await db.select().from(adAnalytics).where(eq19(adAnalytics.adId, req.params.id)).orderBy(desc14(adAnalytics.createdAt)).limit(500);
       const byDevice = rows.reduce((acc, r) => {
         acc[r.deviceType || "unknown"] = (acc[r.deviceType || "unknown"] || 0) + 1;
         return acc;
@@ -36055,7 +36530,7 @@ ${body}`,
     try {
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const apps = await storage.getAllAdvertiseApplications();
-      const payments = await db.select().from(paymentDeposits).where(sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc13(paymentDeposits.createdAt));
+      const payments = await db.select().from(paymentDeposits).where(sql14`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`).orderBy(desc14(paymentDeposits.createdAt));
       res.json(apps.map((app22) => ({
         ...app22,
         payment: payments.find((payment) => String(payment.adminNotes || "").includes(`ads_application:${app22.id}`)) || null
@@ -36099,21 +36574,21 @@ ${body}`,
       const status = String(req.query.status || "").trim();
       const search = String(req.query.search || "").trim();
       const conditions = [];
-      if (eventType && eventType !== "all") conditions.push(eq18(activityLogs.eventType, eventType));
-      if (status && status !== "all") conditions.push(eq18(activityLogs.status, status));
+      if (eventType && eventType !== "all") conditions.push(eq19(activityLogs.eventType, eventType));
+      if (status && status !== "all") conditions.push(eq19(activityLogs.status, status));
       if (search) {
         const pattern = `%${search.slice(0, 100)}%`;
-        conditions.push(or3(
-          ilike2(activityLogs.action, pattern),
-          ilike2(activityLogs.description, pattern),
-          ilike2(activityLogs.actorName, pattern),
-          ilike2(activityLogs.actorEmail, pattern),
-          ilike2(activityLogs.entityId, pattern)
+        conditions.push(or4(
+          ilike3(activityLogs.action, pattern),
+          ilike3(activityLogs.description, pattern),
+          ilike3(activityLogs.actorName, pattern),
+          ilike3(activityLogs.actorEmail, pattern),
+          ilike3(activityLogs.entityId, pattern)
         ));
       }
-      const where = conditions.length ? and14(...conditions) : void 0;
+      const where = conditions.length ? and15(...conditions) : void 0;
       const [items, totalRows] = await Promise.all([
-        db.select().from(activityLogs).where(where).orderBy(desc13(activityLogs.createdAt)).limit(limit).offset(offset),
+        db.select().from(activityLogs).where(where).orderBy(desc14(activityLogs.createdAt)).limit(limit).offset(offset),
         db.select({ count: count4() }).from(activityLogs).where(where)
       ]);
       res.json({
@@ -36538,7 +37013,7 @@ ${body}`,
       const allUsers = await storage.getAllUsers?.() || [];
       const { courseEnrollments: courseEnrollments2, purchases: shopPurchases, newsletterSubscribers: nsSubs, breedskoolRegistrations: breedskoolRegistrations2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
       const { db: dbInst } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const { eq: eq24, sql: sqlFn } = await import("drizzle-orm");
+      const { eq: eq25, sql: sqlFn } = await import("drizzle-orm");
       const enrollmentRows = await dbInst.selectDistinct({ userId: courseEnrollments2.userId }).from(courseEnrollments2);
       const breedskoolRows = await dbInst.selectDistinct({ userId: breedskoolRegistrations2.userId }).from(breedskoolRegistrations2);
       const studentUserIds = /* @__PURE__ */ new Set([
@@ -36549,6 +37024,11 @@ ${body}`,
       const shopCustomerIds = new Set(purchaseRows.map((r) => r.userId));
       const nsRows = await dbInst.select().from(nsSubs);
       const activeNsSubs = nsRows.filter((s) => s.status === "active");
+      const subscribersInSegment = (segment) => activeNsSubs.filter(
+        (subscriber) => String(subscriber.segment || "").split(",").map((value) => value.trim().toLowerCase()).includes(segment)
+      );
+      const loanSubscribers = subscribersInSegment("loans");
+      const citygateSubscribers = subscribersInSegment("citygate-global");
       const creators = allUsers.filter((u) => u.userType === "creator");
       const brands = allUsers.filter((u) => u.userType === "brand");
       const students = allUsers.filter((u) => studentUserIds.has(u.id));
@@ -36599,6 +37079,24 @@ ${body}`,
             color: "pink",
             icon: "bell",
             members: activeNsSubs.map((s) => ({ id: s.id, email: s.email, firstName: s.name || "", lastName: "", userType: "newsletter" }))
+          },
+          {
+            key: "loans",
+            label: "Loan Updates",
+            description: "People who opted in to loan product updates",
+            count: loanSubscribers.length,
+            color: "orange",
+            icon: "package",
+            members: loanSubscribers.map((s) => ({ id: s.id, email: s.email, firstName: s.name || "", lastName: "", userType: "newsletter" }))
+          },
+          {
+            key: "citygate-global",
+            label: "Citygate Global",
+            description: "People who opted in to Citygate Global loan updates",
+            count: citygateSubscribers.length,
+            color: "green",
+            icon: "building",
+            members: citygateSubscribers.map((s) => ({ id: s.id, email: s.email, firstName: s.name || "", lastName: "", userType: "newsletter" }))
           },
           {
             key: "all",
@@ -36724,7 +37222,7 @@ ${body}`,
   });
   app2.post("/api/tdrip/topups/:id/submit-proof", isAuthenticated, upload.single("paymentProof"), async (req, res) => {
     try {
-      const [transaction] = await db.select().from(transactions).where(eq18(transactions.id, req.params.id));
+      const [transaction] = await db.select().from(transactions).where(eq19(transactions.id, req.params.id));
       if (!transaction || transaction.userId !== req.user.id || transaction.type !== "tdrip_topup") {
         return res.status(404).json({ message: "Top-up not found" });
       }
@@ -37014,8 +37512,8 @@ ${body}`,
     try {
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq24, and: and17 } = await import("drizzle-orm");
-      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and17(eq24(pageHeroBackgrounds2.page, req.params.page), eq24(pageHeroBackgrounds2.isActive, true)));
+      const { eq: eq25, and: and18 } = await import("drizzle-orm");
+      const [row] = await db2.select().from(pageHeroBackgrounds2).where(and18(eq25(pageHeroBackgrounds2.page, req.params.page), eq25(pageHeroBackgrounds2.isActive, true)));
       res.json(row || {});
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37037,12 +37535,12 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq24 } = await import("drizzle-orm");
+      const { eq: eq25 } = await import("drizzle-orm");
       const page2 = req.params.page;
       const data = { ...req.body, page: page2, updatedAt: /* @__PURE__ */ new Date() };
-      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq24(pageHeroBackgrounds2.page, page2));
+      const [existing] = await db2.select().from(pageHeroBackgrounds2).where(eq25(pageHeroBackgrounds2.page, page2));
       if (existing) {
-        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq24(pageHeroBackgrounds2.page, page2)).returning();
+        const [updated] = await db2.update(pageHeroBackgrounds2).set(data).where(eq25(pageHeroBackgrounds2.page, page2)).returning();
         return res.json(updated);
       }
       const [created] = await db2.insert(pageHeroBackgrounds2).values(data).returning();
@@ -37056,8 +37554,8 @@ ${body}`,
       if (req.user?.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { pageHeroBackgrounds: pageHeroBackgrounds2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-      const { eq: eq24 } = await import("drizzle-orm");
-      await db2.delete(pageHeroBackgrounds2).where(eq24(pageHeroBackgrounds2.page, req.params.page));
+      const { eq: eq25 } = await import("drizzle-orm");
+      await db2.delete(pageHeroBackgrounds2).where(eq25(pageHeroBackgrounds2.page, req.params.page));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37163,7 +37661,7 @@ ${body}`,
       if (!user) return res.status(404).json({ message: "User not found" });
       const shopOrders = await storage.getUserPurchases(userId);
       const courseOrders = await storage.getMyEnrollments(userId);
-      const p2pRows = await db.select().from(p2pTransactions).where(sql13`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc13(p2pTransactions.createdAt));
+      const p2pRows = await db.select().from(p2pTransactions).where(sql14`${p2pTransactions.buyerId} = ${userId} OR ${p2pTransactions.sellerId} = ${userId}`).orderBy(desc14(p2pTransactions.createdAt));
       const enrichedP2P = await Promise.all(p2pRows.map(enrichP2PTransaction));
       let escrowOrders = [];
       if (user.userType === "brand" || user.userType === "admin") {
@@ -37187,12 +37685,12 @@ ${body}`,
       const directHireOrders = Array.from(hireMap.values()).sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
-      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql13`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc13(advertiseApplications.createdAt)) : [];
-      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and14(
-        eq18(paymentDeposits.brandId, userId),
-        sql13`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
-      )).orderBy(desc13(paymentDeposits.createdAt));
-      const subscriptionOrders = await db.select().from(subscriptions).where(eq18(subscriptions.userId, userId)).orderBy(desc13(subscriptions.createdAt));
+      const adApplications = user.email ? await db.select().from(advertiseApplications).where(sql14`lower(${advertiseApplications.email}) = lower(${user.email})`).orderBy(desc14(advertiseApplications.createdAt)) : [];
+      const adPaymentDeposits = await db.select().from(paymentDeposits).where(and15(
+        eq19(paymentDeposits.brandId, userId),
+        sql14`${paymentDeposits.adminNotes} LIKE ${"%ads_application:%"}`
+      )).orderBy(desc14(paymentDeposits.createdAt));
+      const subscriptionOrders = await db.select().from(subscriptions).where(eq19(subscriptions.userId, userId)).orderBy(desc14(subscriptions.createdAt));
       res.json({
         shopOrders,
         courseOrders,
@@ -37214,14 +37712,14 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq18(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq19(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isBuyer = purchase.userId === req.user.id;
       const isSeller = sellerId && sellerId === req.user.id;
       if (!isBuyer && !isSeller && req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
       let seller = null;
       if (sellerId) {
-        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq18(users.id, sellerId));
+        const [s] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, userType: users.userType }).from(users).where(eq19(users.id, sellerId));
         seller = s || null;
       }
       const pluginLicense = isBuyer ? await getPluginLicenseSummaryForPurchase(purchase.id, req.user.id) : null;
@@ -37234,7 +37732,7 @@ ${body}`,
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) return res.status(404).json({ message: "Order not found" });
-      const [product] = await db.select().from(shopProducts).where(eq18(shopProducts.id, purchase.productId));
+      const [product] = await db.select().from(shopProducts).where(eq19(shopProducts.id, purchase.productId));
       const sellerId = product?.createdBy || null;
       const isSeller = sellerId && sellerId === req.user.id;
       const isBuyer = purchase.userId === req.user.id;
@@ -37329,7 +37827,7 @@ ${body}`,
   app2.post("/api/social-quick-tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const taskId = req.params.id;
-      const [task] = await db.select().from(socialQuickTasks).where(eq18(socialQuickTasks.id, taskId));
+      const [task] = await db.select().from(socialQuickTasks).where(eq19(socialQuickTasks.id, taskId));
       if (!task || !task.isActive) return res.status(404).json({ message: "Task not found" });
       const completedIds = await storage.getUserSocialTaskCompletions(req.user.id);
       if (completedIds.includes(taskId)) return res.status(409).json({ message: "Already completed" });
@@ -37540,7 +38038,7 @@ ${body}`,
   });
   app2.get("/api/nav-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq18(siteContent.contentKey, "cms_nav_config"));
+      const [config] = await db.select().from(siteContent).where(eq19(siteContent.contentKey, "cms_nav_config"));
       res.json({ items: config?.value ? JSON.parse(config.value) : null });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch nav config" });
@@ -37557,7 +38055,7 @@ ${body}`,
   });
   app2.get("/api/theme-config", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq18(siteContent.contentKey, "cms_theme_config"));
+      const [config] = await db.select().from(siteContent).where(eq19(siteContent.contentKey, "cms_theme_config"));
       res.json(config?.value ? JSON.parse(config.value) : {});
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch theme config" });
@@ -37574,7 +38072,7 @@ ${body}`,
   });
   app2.get("/api/announcement", async (_req, res) => {
     try {
-      const [config] = await db.select().from(siteContent).where(eq18(siteContent.contentKey, "cms_announcement"));
+      const [config] = await db.select().from(siteContent).where(eq19(siteContent.contentKey, "cms_announcement"));
       res.json(config?.value ? JSON.parse(config.value) : { enabled: false, message: "", color: "purple", link: "" });
     } catch (e) {
       res.status(500).json({ message: "Failed to fetch announcement" });
@@ -37591,7 +38089,7 @@ ${body}`,
   });
   app2.get("/api/admin/social-task-stats", isAuthenticated, async (req, res) => {
     if (req.user.userType !== "admin") return res.status(403).json({ message: "Forbidden" });
-    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql13`count(*)` }).from(userSocialTaskCompletions).groupBy(userSocialTaskCompletions.taskId);
+    const stats = await db.select({ taskId: userSocialTaskCompletions.taskId, count: sql14`count(*)` }).from(userSocialTaskCompletions).groupBy(userSocialTaskCompletions.taskId);
     res.json(stats);
   });
   app2.get("/api/seo/pages", async (_req, res) => {
@@ -37604,7 +38102,7 @@ ${body}`,
   });
   app2.get("/api/seo/page/:slug", async (req, res) => {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq18(pageSeoSettings.pageSlug, req.params.slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq19(pageSeoSettings.pageSlug, req.params.slug));
       res.json(page2 || null);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37615,9 +38113,9 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { pageSlug, ...body } = req.body;
       const slug = req.params.slug;
-      const existing = await db.select().from(pageSeoSettings).where(eq18(pageSeoSettings.pageSlug, slug));
+      const existing = await db.select().from(pageSeoSettings).where(eq19(pageSeoSettings.pageSlug, slug));
       if (existing.length > 0) {
-        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(pageSeoSettings.pageSlug, slug)).returning();
+        const [updated] = await db.update(pageSeoSettings).set({ ...body, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(pageSeoSettings.pageSlug, slug)).returning();
         res.json(updated);
       } else {
         const [created] = await db.insert(pageSeoSettings).values({ pageSlug: slug, pageTitle: body.pageTitle || slug, ...body }).returning();
@@ -37682,7 +38180,7 @@ ${body}`,
   app2.put("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq18(footerColumns.id, req.params.id)).returning();
+      const [col] = await db.update(footerColumns).set({ title: req.body.title, links: req.body.links, sortOrder: req.body.sortOrder, isActive: req.body.isActive }).where(eq19(footerColumns.id, req.params.id)).returning();
       res.json(col);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37691,7 +38189,7 @@ ${body}`,
   app2.delete("/api/admin/footer-columns/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      await db.delete(footerColumns).where(eq18(footerColumns.id, req.params.id));
+      await db.delete(footerColumns).where(eq19(footerColumns.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37751,12 +38249,12 @@ ${body}`,
       since.setUTCDate(since.getUTCDate() - (days - 1));
       const totalRows = await db.select({ c: count4() }).from(pageViews).where(gte3(pageViews.createdAt, since));
       const total = Number(totalRows[0]?.c || 0);
-      const sessionRows = await db.execute(sql13`
+      const sessionRows = await db.execute(sql14`
         SELECT COUNT(DISTINCT session_id) AS c
         FROM page_views WHERE created_at >= ${since} AND session_id IS NOT NULL
       `);
       const sessions2 = Number(sessionRows.rows?.[0]?.c || 0);
-      const pagesPerSessionRows = await db.execute(sql13`
+      const pagesPerSessionRows = await db.execute(sql14`
         SELECT COALESCE(AVG(page_count), 0) AS average
         FROM (
           SELECT COUNT(*) AS page_count
@@ -37766,13 +38264,13 @@ ${body}`,
         ) AS session_page_counts
       `);
       const pagesPerSession = Number(pagesPerSessionRows.rows?.[0]?.average || 0);
-      const topPagesRows = await db.execute(sql13`
+      const topPagesRows = await db.execute(sql14`
         SELECT path, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY path ORDER BY views DESC LIMIT 15
       `);
       const topPages = topPagesRows.rows || [];
-      const topReferrersRows = await db.execute(sql13`
+      const topReferrersRows = await db.execute(sql14`
         SELECT COALESCE(NULLIF(referrer, ''), 'direct') AS referrer, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY referrer ORDER BY views DESC LIMIT 100
@@ -37790,7 +38288,7 @@ ${body}`,
         referrerTotals.set(source, (referrerTotals.get(source) || 0) + Number(row.views || 0));
       }
       const topReferrers = Array.from(referrerTotals, ([referrer, views]) => ({ referrer, views })).sort((a, b) => b.views - a.views).slice(0, 10);
-      const dailyRows = await db.execute(sql13`
+      const dailyRows = await db.execute(sql14`
         SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY day ORDER BY day ASC
@@ -37805,7 +38303,7 @@ ${body}`,
         const day2 = date.toISOString().split("T")[0];
         return { day: day2, views: dailyCounts.get(day2) || 0 };
       });
-      const deviceRows = await db.execute(sql13`
+      const deviceRows = await db.execute(sql14`
         SELECT COALESCE(device, 'unknown') AS device, COUNT(*)::int AS views
         FROM page_views WHERE created_at >= ${since}
         GROUP BY device ORDER BY views DESC
@@ -37821,6 +38319,7 @@ ${body}`,
     if (req.user.userType !== "admin" && req.user.role !== "admin") return res.status(403).json({ message: "Admin only" });
     next();
   };
+  registerCitygateLoanRoutes(app2, isAuthenticated, requireAdmin3);
   app2.get("/api/admin/leads/providers", isAuthenticated, requireAdmin3, (_req, res) => {
     res.json(providerStatus());
   });
@@ -37842,22 +38341,22 @@ ${body}`,
         offset = "0"
       } = req.query;
       const conds = [];
-      if (kind) conds.push(eq18(leads.kind, String(kind)));
-      if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-      if (businessType) conds.push(sql13`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
-      if (country) conds.push(eq18(leads.country, String(country)));
-      if (city) conds.push(sql13`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
-      if (status) conds.push(eq18(leads.status, String(status)));
+      if (kind) conds.push(eq19(leads.kind, String(kind)));
+      if (niche) conds.push(sql14`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+      if (businessType) conds.push(sql14`lower(${leads.businessType}) LIKE ${"%" + String(businessType).toLowerCase() + "%"}`);
+      if (country) conds.push(eq19(leads.country, String(country)));
+      if (city) conds.push(sql14`lower(${leads.city}) LIKE ${"%" + String(city).toLowerCase() + "%"}`);
+      if (status) conds.push(eq19(leads.status, String(status)));
       if (search) {
         const s = `%${String(search).toLowerCase()}%`;
-        conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+        conds.push(sql14`(lower(${leads.name}) LIKE ${s} OR lower(${leads.address}) LIKE ${s} OR lower(${leads.phone}) LIKE ${s} OR lower(${leads.website}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
       }
-      if (minFollowers) conds.push(sql13`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
-      if (hasPhone === "true") conds.push(sql13`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
-      if (hasWebsite === "true") conds.push(sql13`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
-      if (hasEmail === "true") conds.push(sql13`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
-      const where = conds.length ? and14(...conds) : void 0;
-      const rows = await db.select().from(leads).where(where).orderBy(desc13(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
+      if (minFollowers) conds.push(sql14`${leads.followers} >= ${parseInt(String(minFollowers), 10) || 0}`);
+      if (hasPhone === "true") conds.push(sql14`${leads.phone} IS NOT NULL AND ${leads.phone} <> ''`);
+      if (hasWebsite === "true") conds.push(sql14`${leads.website} IS NOT NULL AND ${leads.website} <> ''`);
+      if (hasEmail === "true") conds.push(sql14`${leads.email} IS NOT NULL AND ${leads.email} <> ''`);
+      const where = conds.length ? and15(...conds) : void 0;
+      const rows = await db.select().from(leads).where(where).orderBy(desc14(leads.createdAt)).limit(Math.min(500, parseInt(String(limit), 10) || 100)).offset(parseInt(String(offset), 10) || 0);
       const totalRow = await db.select({ c: count4() }).from(leads).where(where);
       res.json({ items: rows, total: Number(totalRow[0]?.c || 0) });
     } catch (e) {
@@ -37867,10 +38366,10 @@ ${body}`,
   app2.get("/api/admin/leads/stats", isAuthenticated, requireAdmin3, async (_req, res) => {
     try {
       const [byKind, byStatus, byCountry, byNiche, totalRow] = await Promise.all([
-        db.execute(sql13`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
-        db.execute(sql13`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
-        db.execute(sql13`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
-        db.execute(sql13`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
+        db.execute(sql14`SELECT kind, COUNT(*)::int AS c FROM leads GROUP BY kind`),
+        db.execute(sql14`SELECT COALESCE(status,'new') AS status, COUNT(*)::int AS c FROM leads GROUP BY status`),
+        db.execute(sql14`SELECT COALESCE(country,'Unknown') AS country, COUNT(*)::int AS c FROM leads GROUP BY country ORDER BY c DESC LIMIT 10`),
+        db.execute(sql14`SELECT COALESCE(NULLIF(niche,''),'Uncategorized') AS niche, COUNT(*)::int AS c FROM leads GROUP BY niche ORDER BY c DESC LIMIT 10`),
         db.select({ c: count4() }).from(leads)
       ]);
       res.json({
@@ -37886,9 +38385,9 @@ ${body}`,
   });
   app2.get("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq18(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq19(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
-      const msgs = await db.select().from(leadMessages).where(eq18(leadMessages.leadId, lead.id)).orderBy(desc13(leadMessages.createdAt));
+      const msgs = await db.select().from(leadMessages).where(eq19(leadMessages.leadId, lead.id)).orderBy(desc14(leadMessages.createdAt));
       res.json({ lead, messages: msgs });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37900,7 +38399,7 @@ ${body}`,
       const fields = ["name", "niche", "businessType", "country", "city", "address", "phone", "whatsapp", "email", "website", "socialLinks", "followers", "yearsInBusiness", "description", "tags", "status", "aiSummary", "aiReport"];
       for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
       allowed.updatedAt = /* @__PURE__ */ new Date();
-      const [updated] = await db.update(leads).set(allowed).where(eq18(leads.id, req.params.id)).returning();
+      const [updated] = await db.update(leads).set(allowed).where(eq19(leads.id, req.params.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -37908,8 +38407,8 @@ ${body}`,
   });
   app2.delete("/api/admin/leads/:id", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      await db.delete(leadMessages).where(eq18(leadMessages.leadId, req.params.id));
-      await db.delete(leads).where(eq18(leads.id, req.params.id));
+      await db.delete(leadMessages).where(eq19(leadMessages.leadId, req.params.id));
+      await db.delete(leads).where(eq19(leads.id, req.params.id));
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -37949,7 +38448,7 @@ ${body}`,
         }
       }
       if (includeInternal) {
-        const internal = await db.select().from(users).where(eq18(users.userType, "influencer")).limit(50);
+        const internal = await db.select().from(users).where(eq19(users.userType, "influencer")).limit(50);
         for (const u of internal) {
           items.push({
             kind: "influencer",
@@ -37978,10 +38477,10 @@ ${body}`,
   });
   app2.post("/api/admin/leads/:id/ai-report", isAuthenticated, requireAdmin3, async (req, res) => {
     try {
-      const [lead] = await db.select().from(leads).where(eq18(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq19(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       const out = await generateAiReport(lead);
-      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id)).returning();
+      const [updated] = await db.update(leads).set({ aiSummary: out.summary, aiReport: out.report, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(leads.id, lead.id)).returning();
       res.json(updated);
     } catch (e) {
       res.status(400).json({ message: e.message });
@@ -37991,7 +38490,7 @@ ${body}`,
     try {
       const { channel, body, provider } = req.body || {};
       if (!channel) return res.status(400).json({ message: "channel required" });
-      const [lead] = await db.select().from(leads).where(eq18(leads.id, req.params.id)).limit(1);
+      const [lead] = await db.select().from(leads).where(eq19(leads.id, req.params.id)).limit(1);
       if (!lead) return res.status(404).json({ message: "Not found" });
       let result = { status: "logged", provider: provider || "manual" };
       if (channel === "sms" && provider === "twilio") {
@@ -38016,7 +38515,7 @@ ${body}`,
         sentBy: req.user?.id || null
       }).returning();
       if (result.status === "sent" || result.status === "logged") {
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq19(leads.id, lead.id));
       }
       res.json({ message: msg, ...result });
     } catch (e) {
@@ -38030,10 +38529,10 @@ ${body}`,
       let ids = Array.isArray(leadIds) ? leadIds : [];
       if (!ids.length && (niche || country || kind)) {
         const conds = [];
-        if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq18(leads.country, String(country)));
-        if (kind) conds.push(eq18(leads.kind, String(kind)));
-        const rows = await db.select({ id: leads.id }).from(leads).where(and14(...conds)).limit(2e3);
+        if (niche) conds.push(sql14`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq19(leads.country, String(country)));
+        if (kind) conds.push(eq19(leads.kind, String(kind)));
+        const rows = await db.select({ id: leads.id }).from(leads).where(and15(...conds)).limit(2e3);
         ids = rows.map((r) => r.id);
       }
       if (!ids.length) return res.status(400).json({ message: "No matching leads" });
@@ -38049,7 +38548,7 @@ ${body}`,
   app2.get("/api/legal/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const rows = await db.select().from(legalPages).where(eq18(legalPages.slug, slug)).limit(1);
+      const rows = await db.select().from(legalPages).where(eq19(legalPages.slug, slug)).limit(1);
       if (!rows.length) return res.status(404).json({ message: "Page not found" });
       res.json(rows[0]);
     } catch (e) {
@@ -38062,13 +38561,13 @@ ${body}`,
       const { slug } = req.params;
       const { title, content } = req.body;
       if (!content) return res.status(400).json({ message: "content is required" });
-      const existing = await db.select().from(legalPages).where(eq18(legalPages.slug, slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq19(legalPages.slug, slug)).limit(1);
       if (existing.length) {
-        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq18(legalPages.slug, slug));
+        await db.update(legalPages).set({ title: title || existing[0].title, content, lastUpdatedBy: req.user.id, updatedAt: /* @__PURE__ */ new Date() }).where(eq19(legalPages.slug, slug));
       } else {
         await db.insert(legalPages).values({ slug, title: title || slug, content, lastUpdatedBy: req.user.id });
       }
-      const updated = await db.select().from(legalPages).where(eq18(legalPages.slug, slug)).limit(1);
+      const updated = await db.select().from(legalPages).where(eq19(legalPages.slug, slug)).limit(1);
       res.json(updated[0]);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -38123,10 +38622,10 @@ ${body}`,
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: "A valid email address is required." });
       }
-      const existing = await db.select().from(newsletterSubscribers).where(eq18(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
+      const existing = await db.select().from(newsletterSubscribers).where(eq19(newsletterSubscribers.email, email.toLowerCase().trim())).limit(1);
       if (existing.length) {
         if (existing[0].status === "unsubscribed") {
-          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq18(newsletterSubscribers.email, email.toLowerCase().trim()));
+          await db.update(newsletterSubscribers).set({ status: "active", subscribedAt: /* @__PURE__ */ new Date() }).where(eq19(newsletterSubscribers.email, email.toLowerCase().trim()));
           sendNewsletterWelcomeEmail(email, name).catch(() => {
           });
           sendAdminActivityEmail({
@@ -38163,7 +38662,7 @@ ${body}`,
   app2.get("/api/admin/newsletter-subscribers", isAuthenticated, async (req, res) => {
     try {
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
-      const rows = await db.select().from(newsletterSubscribers).orderBy(desc13(newsletterSubscribers.subscribedAt));
+      const rows = await db.select().from(newsletterSubscribers).orderBy(desc14(newsletterSubscribers.subscribedAt));
       res.json(rows);
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -38174,7 +38673,7 @@ ${body}`,
       if (!isAdminUser(req.user)) return res.status(403).json({ message: "Admin only" });
       const { status } = req.body;
       if (!["active", "unsubscribed"].includes(status)) return res.status(400).json({ message: "Invalid status" });
-      await db.update(newsletterSubscribers).set({ status }).where(eq18(newsletterSubscribers.id, req.params.id));
+      await db.update(newsletterSubscribers).set({ status }).where(eq19(newsletterSubscribers.id, req.params.id));
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ message: e.message });
@@ -38368,28 +38867,28 @@ ${body}`,
     app2.get("/api/admin/influencer-crm", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
         const { tier, niche, country, status, search, limit = "200", offset = "0" } = req.query;
-        const conds = [eq18(leads.kind, "influencer")];
-        if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
-        if (country) conds.push(eq18(leads.country, String(country)));
-        if (status) conds.push(eq18(leads.status, String(status)));
+        const conds = [eq19(leads.kind, "influencer")];
+        if (niche) conds.push(sql14`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+        if (country) conds.push(eq19(leads.country, String(country)));
+        if (status) conds.push(eq19(leads.status, String(status)));
         if (search) {
           const s = `%${String(search).toLowerCase()}%`;
-          conds.push(sql13`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
+          conds.push(sql14`(lower(${leads.name}) LIKE ${s} OR lower(${leads.niche}) LIKE ${s} OR lower(${leads.email}) LIKE ${s})`);
         }
         if (tier && tier !== "all") {
           const tierDef = TIERS2.find((t) => t.id === String(tier));
           if (tierDef && tierDef.id !== "unknown") {
             if (tierDef.max === Infinity) {
-              conds.push(sql13`${leads.followers} >= ${tierDef.min}`);
+              conds.push(sql14`${leads.followers} >= ${tierDef.min}`);
             } else {
-              conds.push(sql13`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
+              conds.push(sql14`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
             }
           } else if (tierDef?.id === "unknown") {
-            conds.push(sql13`${leads.followers} IS NULL OR ${leads.followers} = 0`);
+            conds.push(sql14`${leads.followers} IS NULL OR ${leads.followers} = 0`);
           }
         }
-        const rows = await db.select().from(leads).where(and14(...conds)).orderBy(desc13(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
-        const totalRow = await db.select({ c: count4() }).from(leads).where(and14(...conds));
+        const rows = await db.select().from(leads).where(and15(...conds)).orderBy(desc14(leads.followers)).limit(Math.min(500, parseInt(String(limit), 10) || 200)).offset(parseInt(String(offset), 10) || 0);
+        const totalRow = await db.select({ c: count4() }).from(leads).where(and15(...conds));
         const items = rows.map((r) => ({ ...r, computedTier: classifyTier2(r.followers) }));
         res.json({ items, total: Number(totalRow[0]?.c || 0) });
       } catch (e) {
@@ -38432,7 +38931,7 @@ ${body}`,
         const fields = ["name", "niche", "country", "city", "email", "website", "phone", "whatsapp", "socialLinks", "followers", "description", "tags", "status", "aiSummary", "aiReport"];
         for (const f of fields) if (f in req.body) allowed[f] = req.body[f];
         allowed.updatedAt = /* @__PURE__ */ new Date();
-        const [updated] = await db.update(leads).set(allowed).where(and14(eq18(leads.id, req.params.id), eq18(leads.kind, "influencer"))).returning();
+        const [updated] = await db.update(leads).set(allowed).where(and15(eq19(leads.id, req.params.id), eq19(leads.kind, "influencer"))).returning();
         res.json(updated);
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -38440,8 +38939,8 @@ ${body}`,
     });
     app2.delete("/api/admin/influencer-crm/:id", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
-        await db.delete(leadMessages).where(eq18(leadMessages.leadId, req.params.id));
-        await db.delete(leads).where(eq18(leads.id, req.params.id));
+        await db.delete(leadMessages).where(eq19(leadMessages.leadId, req.params.id));
+        await db.delete(leads).where(eq19(leads.id, req.params.id));
         res.json({ ok: true });
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -38451,7 +38950,7 @@ ${body}`,
       try {
         const { subject, body, channel } = req.body || {};
         if (!body) return res.status(400).json({ message: "body required" });
-        const [lead] = await db.select().from(leads).where(and14(eq18(leads.id, req.params.id), eq18(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select().from(leads).where(and15(eq19(leads.id, req.params.id), eq19(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         if (channel === "email" || !channel) {
           const result = await sendInfluencerOutreach2({ lead, subject: subject || "You're invited to Taskdrip", body, sentBy: req.user?.id });
@@ -38466,7 +38965,7 @@ ${body}`,
           provider: "manual",
           sentBy: req.user?.id || null
         }).returning();
-        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq18(leads.id, lead.id));
+        await db.update(leads).set({ status: "contacted", lastContactedAt: /* @__PURE__ */ new Date() }).where(eq19(leads.id, lead.id));
         res.json({ success: true, channel, message: msg });
       } catch (e) {
         res.status(400).json({ message: e.message });
@@ -38474,7 +38973,7 @@ ${body}`,
     });
     app2.get("/api/admin/influencer-crm/:id/messages", isAuthenticated, requireAdmin3, async (req, res) => {
       try {
-        const msgs = await db.select().from(leadMessages).where(eq18(leadMessages.leadId, req.params.id)).orderBy(desc13(leadMessages.createdAt));
+        const msgs = await db.select().from(leadMessages).where(eq19(leadMessages.leadId, req.params.id)).orderBy(desc14(leadMessages.createdAt));
         res.json(msgs);
       } catch (e) {
         res.status(500).json({ message: e.message });
@@ -38484,7 +38983,7 @@ ${body}`,
       try {
         const body = String(req.body?.body || "").trim();
         if (!body) return res.status(400).json({ message: "Note body required" });
-        const [lead] = await db.select({ id: leads.id }).from(leads).where(and14(eq18(leads.id, req.params.id), eq18(leads.kind, "influencer"))).limit(1);
+        const [lead] = await db.select({ id: leads.id }).from(leads).where(and15(eq19(leads.id, req.params.id), eq19(leads.kind, "influencer"))).limit(1);
         if (!lead) return res.status(404).json({ message: "Influencer not found" });
         const [message] = await db.insert(leadMessages).values({
           leadId: lead.id,
@@ -38506,17 +39005,17 @@ ${body}`,
         if (!body) return res.status(400).json({ message: "body required" });
         let ids = Array.isArray(leadIds) ? leadIds : [];
         if (!ids.length) {
-          const conds = [eq18(leads.kind, "influencer")];
-          if (niche) conds.push(sql13`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
+          const conds = [eq19(leads.kind, "influencer")];
+          if (niche) conds.push(sql14`lower(${leads.niche}) LIKE ${"%" + String(niche).toLowerCase() + "%"}`);
           if (tier && tier !== "all") {
             const tierDef = TIERS2.find((t) => t.id === String(tier));
             if (tierDef && tierDef.id !== "unknown" && tierDef.max !== Infinity) {
-              conds.push(sql13`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
+              conds.push(sql14`${leads.followers} >= ${tierDef.min} AND ${leads.followers} <= ${tierDef.max}`);
             } else if (tierDef && tierDef.max === Infinity) {
-              conds.push(sql13`${leads.followers} >= ${tierDef.min}`);
+              conds.push(sql14`${leads.followers} >= ${tierDef.min}`);
             }
           }
-          const rows = await db.select({ id: leads.id }).from(leads).where(and14(...conds)).limit(500);
+          const rows = await db.select({ id: leads.id }).from(leads).where(and15(...conds)).limit(500);
           ids = rows.map((r) => r.id);
         }
         if (!ids.length) return res.status(400).json({ message: "No matching influencers" });
@@ -38541,9 +39040,9 @@ import path6 from "path";
 // server/seo-meta.ts
 init_db();
 init_schema();
-import { and as and15, eq as eq19, or as or4 } from "drizzle-orm";
+import { and as and16, eq as eq20, or as or5 } from "drizzle-orm";
 import { load as load2 } from "cheerio";
-var escapeHtml2 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+var escapeHtml3 = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var trimText = (s, max = 200) => {
   const clean = s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   return clean.length > max ? clean.slice(0, max - 1) + "\u2026" : clean;
@@ -38577,29 +39076,29 @@ function cleanArticleHtml(html, defaultImageAlt) {
   return article.html() || "";
 }
 function renderArticleHtml(post, origin, image) {
-  const title = escapeHtml2(post.title);
+  const title = escapeHtml3(post.title);
   const date = post.publishedAt ? new Date(post.publishedAt).toISOString() : "";
   const visibleDate = date ? new Date(date).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) : "";
-  const featuredImage = image ? `<img src="${escapeHtml2(image)}" alt="${title}" width="1200" loading="eager" />` : "";
-  const excerpt = post.excerpt ? `<p>${escapeHtml2(post.excerpt)}</p>` : "";
-  const meta = visibleDate ? `<p><span>Taskdrip Team</span> \xB7 <time datetime="${escapeHtml2(date)}">${escapeHtml2(visibleDate)}</time></p>` : `<p>Taskdrip Team</p>`;
-  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml2(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content, post.title)}</div></article></main>`;
+  const featuredImage = image ? `<img src="${escapeHtml3(image)}" alt="${title}" width="1200" loading="eager" />` : "";
+  const excerpt = post.excerpt ? `<p>${escapeHtml3(post.excerpt)}</p>` : "";
+  const meta = visibleDate ? `<p><span>Taskdrip Team</span> \xB7 <time datetime="${escapeHtml3(date)}">${escapeHtml3(visibleDate)}</time></p>` : `<p>Taskdrip Team</p>`;
+  return `<main class="seo-prerendered-article"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/blog">Blog</a> / ${escapeHtml3(post.category || "Article")}</nav><h1>${title}</h1>${meta}${excerpt}${featuredImage}</header><div>${cleanArticleHtml(post.content, post.title)}</div></article></main>`;
 }
 function renderDownloadArticleHtml(row, origin, image, canonicalUrl) {
-  const title = escapeHtml2(row.title || "Free resource");
-  const category = escapeHtml2(row.category_name || "Free downloads");
+  const title = escapeHtml3(row.title || "Free resource");
+  const category = escapeHtml3(row.category_name || "Free downloads");
   const categorySlug = encodeURIComponent(row.category_slug || "");
-  const publisher = row.creator ? `<p><strong>Publisher:</strong> ${escapeHtml2(row.creator)}</p>` : "";
-  const format = row.format ? `<p><strong>Format:</strong> ${escapeHtml2(row.format)}</p>` : "";
-  const featureList = Array.isArray(row.features) && row.features.length ? `<section><h2>Features and what\u2019s included</h2><ul>${row.features.map((item) => `<li>${escapeHtml2(item)}</li>`).join("")}</ul></section>` : "";
-  const requirements = row.system_requirements ? `<section><h2>System requirements</h2><p>${escapeHtml2(row.system_requirements)}</p></section>` : "";
-  const instructions = row.installation_instructions ? `<section><h2>How to get started</h2><p>${escapeHtml2(row.installation_instructions)}</p></section>` : "";
-  const tags = Array.isArray(row.tags) && row.tags.length ? `<p><strong>Topics:</strong> ${row.tags.map((tag) => escapeHtml2(tag)).join(", ")}</p>` : "";
-  const cover = image ? `<img src="${escapeHtml2(image)}" alt="${title} resource preview" width="1200" loading="eager" />` : "";
+  const publisher = row.creator ? `<p><strong>Publisher:</strong> ${escapeHtml3(row.creator)}</p>` : "";
+  const format = row.format ? `<p><strong>Format:</strong> ${escapeHtml3(row.format)}</p>` : "";
+  const featureList = Array.isArray(row.features) && row.features.length ? `<section><h2>Features and what\u2019s included</h2><ul>${row.features.map((item) => `<li>${escapeHtml3(item)}</li>`).join("")}</ul></section>` : "";
+  const requirements = row.system_requirements ? `<section><h2>System requirements</h2><p>${escapeHtml3(row.system_requirements)}</p></section>` : "";
+  const instructions = row.installation_instructions ? `<section><h2>How to get started</h2><p>${escapeHtml3(row.installation_instructions)}</p></section>` : "";
+  const tags = Array.isArray(row.tags) && row.tags.length ? `<p><strong>Topics:</strong> ${row.tags.map((tag) => escapeHtml3(tag)).join(", ")}</p>` : "";
+  const cover = image ? `<img src="${escapeHtml3(image)}" alt="${title} resource preview" width="1200" loading="eager" />` : "";
   const about = cleanArticleHtml(row.description_html || "", row.title || "Resource");
   const publishedAt = row.published_at ? new Date(row.published_at).toISOString() : "";
-  const date = publishedAt ? `<p><time datetime="${escapeHtml2(publishedAt)}">${escapeHtml2(new Date(publishedAt).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }))}</time></p>` : "";
-  return `<main class="seo-prerendered-download"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/downloads">Free downloads</a> / <a href="${origin}/downloads/category/${categorySlug}">${category}</a></nav><p>${category}</p><h1>${title}</h1><p>${escapeHtml2(row.short_description || "")}</p>${date}${cover}</header><section><h2>About ${title}</h2>${about}</section>${publisher}${format}${featureList}${requirements}${instructions}${tags}<section><h2>Access this resource</h2><p>Resource details are available publicly. Sign in to Taskdrip to access the official publisher link. The first access click opens the advertising partner in a new tab; return to this page and click again to continue to the resource.</p><a href="${escapeHtml2(canonicalUrl)}">View the resource page</a></section></article></main>`;
+  const date = publishedAt ? `<p><time datetime="${escapeHtml3(publishedAt)}">${escapeHtml3(new Date(publishedAt).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }))}</time></p>` : "";
+  return `<main class="seo-prerendered-download"><article><header><nav aria-label="Breadcrumb"><a href="${origin}/downloads">Free downloads</a> / <a href="${origin}/downloads/category/${categorySlug}">${category}</a></nav><p>${category}</p><h1>${title}</h1><p>${escapeHtml3(row.short_description || "")}</p>${date}${cover}</header><section><h2>About ${title}</h2>${about}</section>${publisher}${format}${featureList}${requirements}${instructions}${tags}<section><h2>Access this resource</h2><p>Resource details are available publicly. Sign in to Taskdrip to access the official publisher link. The first access click opens the advertising partner in a new tab; return to this page and click again to continue to the resource.</p><a href="${escapeHtml3(canonicalUrl)}">View the resource page</a></section></article></main>`;
 }
 var absolutize = (origin, src) => {
   if (!src) return void 0;
@@ -38904,7 +39403,7 @@ async function lookupRoute(origin, pathname) {
     let post;
     try {
       const [found] = await db.select().from(blogPosts).where(
-        and15(eq19(blogPosts.slug, slug2), eq19(blogPosts.isPublished, true))
+        and16(eq20(blogPosts.slug, slug2), eq20(blogPosts.isPublished, true))
       );
       post = found;
     } catch (error) {
@@ -38963,7 +39462,7 @@ async function lookupRoute(origin, pathname) {
   const campaignMatch = pathname.match(/^\/campaigns\/([^/?#]+)/);
   if (campaignMatch) {
     const id = decodeURIComponent(campaignMatch[1]);
-    const [c] = await db.select().from(campaigns).where(eq19(campaigns.id, id));
+    const [c] = await db.select().from(campaigns).where(eq20(campaigns.id, id));
     if (c) {
       return {
         title: `${c.title} | Taskdrip`,
@@ -38978,10 +39477,10 @@ async function lookupRoute(origin, pathname) {
     const [pluginListing] = await db.select({
       project: pluginStudioProjects,
       product: shopProducts
-    }).from(pluginStudioProjects).innerJoin(shopProducts, eq19(pluginStudioProjects.shopProductId, shopProducts.id)).where(and15(
-      or4(eq19(pluginStudioProjects.slug, key), eq19(pluginStudioProjects.shopProductId, key)),
-      eq19(pluginStudioProjects.status, "published"),
-      eq19(shopProducts.isActive, true)
+    }).from(pluginStudioProjects).innerJoin(shopProducts, eq20(pluginStudioProjects.shopProductId, shopProducts.id)).where(and16(
+      or5(eq20(pluginStudioProjects.slug, key), eq20(pluginStudioProjects.shopProductId, key)),
+      eq20(pluginStudioProjects.status, "published"),
+      eq20(shopProducts.isActive, true)
     )).limit(1);
     if (pluginListing) {
       const canonicalUrl = `${origin}/shop/product/${encodeURIComponent(pluginListing.project.slug)}`;
@@ -38994,11 +39493,11 @@ async function lookupRoute(origin, pathname) {
         canonicalUrl
       };
     }
-    const [p] = await db.select().from(shopProducts).where(eq19(shopProducts.id, key)) || [];
+    const [p] = await db.select().from(shopProducts).where(eq20(shopProducts.id, key)) || [];
     let product = p;
     if (!product) {
       try {
-        const [bySlug] = await db.select().from(shopProducts).where(eq19(shopProducts.slug, key));
+        const [bySlug] = await db.select().from(shopProducts).where(eq20(shopProducts.slug, key));
         product = bySlug;
       } catch {
       }
@@ -39016,13 +39515,13 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(profileMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq19(users.id, key));
+      const [byId] = await db.select().from(users).where(eq20(users.id, key));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq19(users.username, key));
+        const [byUsername] = await db.select().from(users).where(eq20(users.username, key));
         user = byUsername || null;
       } catch {
       }
@@ -39047,7 +39546,7 @@ async function lookupRoute(origin, pathname) {
     const key = decodeURIComponent(courseMatch[1]);
     try {
       const [course] = await db.select().from(courses).where(
-        and15(eq19(courses.id, key), eq19(courses.isPublished, true))
+        and16(eq20(courses.id, key), eq20(courses.isPublished, true))
       );
       if (course) {
         return {
@@ -39069,7 +39568,7 @@ async function lookupRoute(origin, pathname) {
     const id = decodeURIComponent(p2pMatch[1]);
     try {
       const [listing] = await db.select().from(p2pListings).where(
-        and15(eq19(p2pListings.id, id), eq19(p2pListings.status, "approved"))
+        and16(eq20(p2pListings.id, id), eq20(p2pListings.status, "approved"))
       );
       if (listing) {
         const title = listing.title || "P2P listing";
@@ -39097,13 +39596,13 @@ async function lookupRoute(origin, pathname) {
     const identity = decodeURIComponent(portfolioMatch[1]);
     let user = null;
     try {
-      const [byId] = await db.select().from(users).where(eq19(users.id, identity));
+      const [byId] = await db.select().from(users).where(eq20(users.id, identity));
       user = byId || null;
     } catch {
     }
     if (!user) {
       try {
-        const [byUsername] = await db.select().from(users).where(eq19(users.username, identity));
+        const [byUsername] = await db.select().from(users).where(eq20(users.username, identity));
         user = byUsername || null;
       } catch {
       }
@@ -39114,7 +39613,7 @@ async function lookupRoute(origin, pathname) {
     const items = await db.select({
       title: portfolioItems.title,
       description: portfolioItems.description
-    }).from(portfolioItems).where(eq19(portfolioItems.userId, user.id));
+    }).from(portfolioItems).where(eq20(portfolioItems.userId, user.id));
     const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "Creator";
     const summary = trimText([
       user.seoDescription || user.bio || `${name}'s selected work and creator portfolio on Taskdrip.`,
@@ -39145,7 +39644,7 @@ async function lookupRoute(origin, pathname) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").split("/")[0];
   if (slug) {
     try {
-      const [page2] = await db.select().from(pageSeoSettings).where(eq19(pageSeoSettings.pageSlug, slug));
+      const [page2] = await db.select().from(pageSeoSettings).where(eq20(pageSeoSettings.pageSlug, slug));
       if (page2) {
         return {
           title: page2.metaTitle || page2.pageTitle,
@@ -39177,25 +39676,25 @@ function injectMeta(html, origin, url, meta, fallbackImage) {
   const type = meta.type || "website";
   let out = html.replace(/<meta\s+(?:name|property)=["'](?:og:title|og:description|og:image|og:image:width|og:image:height|og:url|og:type|og:site_name|og:locale|twitter:card|twitter:title|twitter:description|twitter:image|description|keywords|robots)["'][^>]*>\s*/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
   if (title) {
-    out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml2(title)}</title>`);
+    out = out.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml3(title)}</title>`);
   }
   const tags = [
-    description ? `<meta name="description" content="${escapeHtml2(description)}" />` : "",
-    meta.keywords ? `<meta name="keywords" content="${escapeHtml2(meta.keywords)}" />` : "",
+    description ? `<meta name="description" content="${escapeHtml3(description)}" />` : "",
+    meta.keywords ? `<meta name="keywords" content="${escapeHtml3(meta.keywords)}" />` : "",
     meta.noIndex ? `<meta name="robots" content="noindex, nofollow" />` : `<meta name="robots" content="index, follow" />`,
-    `<link rel="canonical" href="${escapeHtml2(fullUrl)}" />`,
-    title ? `<meta property="og:title" content="${escapeHtml2(title)}" />` : "",
-    description ? `<meta property="og:description" content="${escapeHtml2(description)}" />` : "",
-    `<meta property="og:type" content="${escapeHtml2(type)}" />`,
-    `<meta property="og:url" content="${escapeHtml2(fullUrl)}" />`,
-    image ? `<meta property="og:image" content="${escapeHtml2(image)}" />` : "",
+    `<link rel="canonical" href="${escapeHtml3(fullUrl)}" />`,
+    title ? `<meta property="og:title" content="${escapeHtml3(title)}" />` : "",
+    description ? `<meta property="og:description" content="${escapeHtml3(description)}" />` : "",
+    `<meta property="og:type" content="${escapeHtml3(type)}" />`,
+    `<meta property="og:url" content="${escapeHtml3(fullUrl)}" />`,
+    image ? `<meta property="og:image" content="${escapeHtml3(image)}" />` : "",
     `<meta property="og:site_name" content="Taskdrip" />`,
     `<meta property="og:locale" content="en_NG" />`,
     `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:site" content="@taskdrip" />`,
-    title ? `<meta name="twitter:title" content="${escapeHtml2(title)}" />` : "",
-    description ? `<meta name="twitter:description" content="${escapeHtml2(description)}" />` : "",
-    image ? `<meta name="twitter:image" content="${escapeHtml2(image)}" />` : ""
+    title ? `<meta name="twitter:title" content="${escapeHtml3(title)}" />` : "",
+    description ? `<meta name="twitter:description" content="${escapeHtml3(description)}" />` : "",
+    image ? `<meta name="twitter:image" content="${escapeHtml3(image)}" />` : ""
   ].filter(Boolean).join("\n    ");
   let result = out.replace(/<\/head>/i, `    ${tags}
   </head>`);
@@ -39372,11 +39871,11 @@ function serveStatic(app2) {
 // server/seed-demo.ts
 init_db();
 init_schema();
-import { eq as eq20, sql as sql14 } from "drizzle-orm";
+import { eq as eq21, sql as sql15 } from "drizzle-orm";
 import bcrypt4 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
-    await db.execute(sql14`
+    await db.execute(sql15`
       UPDATE users SET
         total_followers = COALESCE(tiktok_followers,0) + COALESCE(youtube_followers,0)
           + COALESCE(instagram_followers,0) + COALESCE(twitter_followers,0)
@@ -40080,7 +40579,7 @@ async function seedDemoData(adminUserId) {
     const existingProducts = await db.select({ id: shopProducts.id }).from(shopProducts).limit(1);
     const existingPosts = await db.select({ id: posts.id }).from(posts).limit(1);
     const existingBlogPosts = await db.select({ id: blogPosts.id }).from(blogPosts).limit(1);
-    await db.execute(sql14`UPDATE courses SET status = 'published' WHERE is_published = true AND status = 'draft'`);
+    await db.execute(sql15`UPDATE courses SET status = 'published' WHERE is_published = true AND status = 'draft'`);
     {
       const existingTitles = new Set(
         (await db.select({ title: courses.title }).from(courses)).map((r) => r.title)
@@ -40129,7 +40628,7 @@ async function seedDemoData(adminUserId) {
       }
       console.log(`[seed] Created ${DEMO_PRODUCTS.length} demo products.`);
     }
-    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq20(p2pListings.sellerId, adminUserId)).limit(1);
+    const existingP2P = await db.select({ id: p2pListings.id }).from(p2pListings).where(eq21(p2pListings.sellerId, adminUserId)).limit(1);
     if (existingP2P.length === 0) {
       console.log("[seed] Seeding demo P2P listings...");
       for (const listing of DEMO_P2P_LISTINGS) {
@@ -40250,12 +40749,12 @@ async function seedDemoData(adminUserId) {
       console.log(`[seed] Created ${DEMO_CAMPAIGNS_DATA.length} demo campaigns.`);
     } else {
       for (const c of DEMO_CAMPAIGNS_DATA) {
-        await db.update(campaigns).set({ featureImage: c.featuredImage }).where(sql14`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
+        await db.update(campaigns).set({ featureImage: c.featuredImage }).where(sql15`${campaigns.id} = ${c.id} AND ${campaigns.featureImage} IS NULL`);
       }
     }
     let networksCreated = 0;
     for (const net of PAYMENT_NETWORKS_DATA) {
-      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq20(paymentNetworks.networkKey, net.networkKey)).limit(1);
+      const existing = await db.select({ id: paymentNetworks.id }).from(paymentNetworks).where(eq21(paymentNetworks.networkKey, net.networkKey)).limit(1);
       if (existing.length === 0) {
         await db.insert(paymentNetworks).values(net);
         networksCreated++;
@@ -40560,7 +41059,7 @@ async function seedCmsContent() {
 // server/seed-legal.ts
 init_db();
 init_schema();
-import { eq as eq21 } from "drizzle-orm";
+import { eq as eq22 } from "drizzle-orm";
 var LEGAL_CONTENT = [
   {
     slug: "terms",
@@ -40920,7 +41419,7 @@ var ADSENSE_PRIVACY_DISCLOSURE = `
 async function seedLegalPages() {
   try {
     for (const page2 of LEGAL_CONTENT) {
-      const existing = await db.select().from(legalPages).where(eq21(legalPages.slug, page2.slug)).limit(1);
+      const existing = await db.select().from(legalPages).where(eq22(legalPages.slug, page2.slug)).limit(1);
       if (!existing.length) {
         await db.insert(legalPages).values({
           slug: page2.slug,
@@ -40933,11 +41432,11 @@ async function seedLegalPages() {
           content: `${existing[0].content}
 ${ADSENSE_PRIVACY_DISCLOSURE}`,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq21(legalPages.slug, "privacy"));
+        }).where(eq22(legalPages.slug, "privacy"));
         console.log("[seed-legal] Added Google AdSense disclosure to the privacy policy");
       }
     }
-    const demoSub = await db.select().from(newsletterSubscribers).where(eq21(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
+    const demoSub = await db.select().from(newsletterSubscribers).where(eq22(newsletterSubscribers.email, "newsletter.demo@taskdrip.online")).limit(1);
     if (!demoSub.length) {
       await db.insert(newsletterSubscribers).values({
         email: "newsletter.demo@taskdrip.online",
@@ -40959,7 +41458,7 @@ init_seed_breedskool_courses();
 // server/seed-saas-course-demo.ts
 init_db();
 init_schema();
-import { eq as eq22, sql as sql15, and as and16 } from "drizzle-orm";
+import { eq as eq23, sql as sql16, and as and17 } from "drizzle-orm";
 import bcrypt5 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
@@ -41037,7 +41536,7 @@ async function seedSaasCourseDemo() {
   let enrollmentsCreated = 0;
   let reviewsCreated = 0;
   try {
-    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq22(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
+    const [pricing] = await db.select({ linkedCourseId: breedskoolCoursePricing.linkedCourseId }).from(breedskoolCoursePricing).where(eq23(breedskoolCoursePricing.courseKey, "saas_masterclass")).limit(1);
     const courseId = pricing?.linkedCourseId;
     if (!courseId) {
       console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
@@ -41048,7 +41547,7 @@ async function seedSaasCourseDemo() {
     const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
     for (const student of DEMO_STUDENTS) {
       try {
-        const [existing] = await db.select({ id: users.id }).from(users).where(eq22(users.email, student.email)).limit(1);
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq23(users.email, student.email)).limit(1);
         let userId;
         if (existing) {
           userId = existing.id;
@@ -41066,9 +41565,9 @@ async function seedSaasCourseDemo() {
           userId = newUser.id;
           studentsCreated++;
         }
-        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and16(
-          eq22(courseEnrollments.courseId, courseId),
-          eq22(courseEnrollments.userId, userId)
+        const [existingEnroll] = await db.select({ id: courseEnrollments.id }).from(courseEnrollments).where(and17(
+          eq23(courseEnrollments.courseId, courseId),
+          eq23(courseEnrollments.userId, userId)
         )).limit(1);
         if (!existingEnroll) {
           const paidAt = randomDate(purchaseStart, purchaseEnd);
@@ -41089,19 +41588,19 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for student ${student.email}:`, e?.message);
       }
     }
-    const [countResult] = await db.select({ cnt: sql15`count(*)::int` }).from(courseEnrollments).where(and16(
-      eq22(courseEnrollments.courseId, courseId),
-      eq22(courseEnrollments.isPaid, true),
-      eq22(courseEnrollments.status, "active")
+    const [countResult] = await db.select({ cnt: sql16`count(*)::int` }).from(courseEnrollments).where(and17(
+      eq23(courseEnrollments.courseId, courseId),
+      eq23(courseEnrollments.isPaid, true),
+      eq23(courseEnrollments.status, "active")
     ));
-    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq22(courses.id, courseId));
+    await db.update(courses).set({ studentsCount: countResult?.cnt || 0 }).where(eq23(courses.id, courseId));
     for (const rev of DEMO_REVIEWS) {
       try {
-        const [userRow] = await db.select({ id: users.id }).from(users).where(eq22(users.email, rev.email)).limit(1);
+        const [userRow] = await db.select({ id: users.id }).from(users).where(eq23(users.email, rev.email)).limit(1);
         if (!userRow) continue;
-        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and16(
-          eq22(courseReviews.courseId, courseId),
-          eq22(courseReviews.userId, userRow.id)
+        const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(and17(
+          eq23(courseReviews.courseId, courseId),
+          eq23(courseReviews.userId, userRow.id)
         )).limit(1);
         if (!existingReview) {
           const reviewDate = randomDate(/* @__PURE__ */ new Date("2025-09-15"), /* @__PURE__ */ new Date("2026-07-28"));
@@ -41118,16 +41617,16 @@ async function seedSaasCourseDemo() {
         console.error(`[seed-saas-demo] Error for review ${rev.email}:`, e?.message);
       }
     }
-    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq22(courseReviews.courseId, courseId));
+    const allReviews = await db.select({ rating: courseReviews.rating }).from(courseReviews).where(eq23(courseReviews.courseId, courseId));
     if (allReviews.length > 0) {
       const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
       await db.update(courses).set({
         reviewsCount: allReviews.length,
         averageRating: avg.toFixed(2),
         isFeatured: true
-      }).where(eq22(courses.id, courseId));
+      }).where(eq23(courses.id, courseId));
     } else {
-      await db.update(courses).set({ isFeatured: true }).where(eq22(courses.id, courseId));
+      await db.update(courses).set({ isFeatured: true }).where(eq23(courses.id, courseId));
     }
   } catch (e) {
     console.error("[seed-saas-demo] Fatal error:", e?.message);
@@ -41138,11 +41637,11 @@ async function seedSaasCourseDemo() {
 // server/seed-lawcolab.ts
 init_db();
 init_schema();
-import { eq as eq23 } from "drizzle-orm";
+import { eq as eq24 } from "drizzle-orm";
 var LAWCOLAB_TITLE = "LAWCOLAB \u2014 Legal Practice Management Platform";
 async function seedLawcolab() {
   try {
-    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq23(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
+    const existing = await db.select({ id: shopProducts.id }).from(shopProducts).where(eq24(shopProducts.title, LAWCOLAB_TITLE)).limit(1);
     if (existing.length > 0) {
       return { inserted: false, skipped: true };
     }
@@ -41694,8 +42193,9 @@ async function seedPageSeo() {
 
 // server/startup-migrations.ts
 init_db();
-import { sql as sql16 } from "drizzle-orm";
+import { sql as sql17 } from "drizzle-orm";
 var REQUIRED_COLUMNS = [
+  { table: "newsletter_subscribers", column: "segment", definition: "varchar DEFAULT 'general'" },
   { table: "plugin_studio_projects", column: "source_prompt", definition: "text" },
   { table: "plugin_studio_projects", column: "core_short_description", definition: "varchar" },
   { table: "plugin_studio_projects", column: "core_description", definition: "text" },
@@ -42012,9 +42512,41 @@ var REQUIRED_TABLES = [
     "name" varchar,
     "source" varchar DEFAULT 'footer',
     "status" varchar DEFAULT 'active',
+    "segment" varchar DEFAULT 'general',
     "ip_address" varchar,
     "subscribed_at" timestamp DEFAULT now()
   )`,
+  // Citygate enquiry submissions are additive and safe to ensure on app startup.
+  `CREATE TABLE IF NOT EXISTS "citygate_loan_applications" (
+    "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+    "full_name" varchar NOT NULL,
+    "email" varchar NOT NULL,
+    "phone" varchar NOT NULL,
+    "date_of_birth" varchar NOT NULL,
+    "state" varchar NOT NULL,
+    "loan_type" varchar NOT NULL,
+    "employment_status" varchar NOT NULL,
+    "business_type" text,
+    "product_sold" text,
+    "six_month_turnover" varchar,
+    "monthly_net_income" varchar,
+    "asset_amount" varchar,
+    "requested_amount" varchar,
+    "tenure_months" integer NOT NULL,
+    "estimate_naira" varchar NOT NULL,
+    "estimate_basis" text NOT NULL,
+    "consent" boolean NOT NULL DEFAULT false,
+    "marketing_consent" boolean NOT NULL DEFAULT false,
+    "segment" varchar NOT NULL DEFAULT 'citygate-global',
+    "source" varchar NOT NULL DEFAULT '/citygate-global-loans',
+    "status" varchar NOT NULL DEFAULT 'new',
+    "email_notification_status" varchar NOT NULL DEFAULT 'pending',
+    "created_at" timestamp DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS "citygate_loan_applications_segment_created_idx"
+    ON "citygate_loan_applications" ("segment", "created_at" DESC)`,
+  `CREATE INDEX IF NOT EXISTS "citygate_loan_applications_email_idx"
+    ON "citygate_loan_applications" ("email")`,
   // Legal pages (terms, privacy, cookies, disclaimer)
   `CREATE TABLE IF NOT EXISTS "legal_pages" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42616,7 +43148,7 @@ var REQUIRED_TABLES = [
 async function runStartupMigrations() {
   for (const ddl of REQUIRED_TABLES) {
     try {
-      await db.execute(sql16.raw(ddl));
+      await db.execute(sql17.raw(ddl));
     } catch (err) {
       console.error(`[startup-migration] Table creation error: ${err?.message}`);
     }
@@ -42624,7 +43156,7 @@ async function runStartupMigrations() {
   for (const fix of REQUIRED_COLUMNS) {
     try {
       await db.execute(
-        sql16.raw(
+        sql17.raw(
           `ALTER TABLE IF EXISTS "${fix.table}" ADD COLUMN IF NOT EXISTS "${fix.column}" ${fix.definition};`
         )
       );
@@ -42679,13 +43211,13 @@ async function runStartupMigrations() {
   ];
   for (const query of freeDownloadRepairs) {
     try {
-      await db.execute(sql16.raw(query));
+      await db.execute(sql17.raw(query));
     } catch (err) {
       console.error(`[startup-migration] Free Downloads repair error: ${err?.message}`);
     }
   }
   try {
-    await db.execute(sql16.raw(`
+    await db.execute(sql17.raw(`
       DO $$
       BEGIN
         IF EXISTS (
@@ -42710,7 +43242,7 @@ async function runStartupMigrations() {
     console.error(`[startup-migration] Failed to backfill legacy short links: ${err?.message}`);
   }
   try {
-    await db.execute(sql16.raw(
+    await db.execute(sql17.raw(
       `CREATE UNIQUE INDEX IF NOT EXISTS "short_links_slug_unique_idx" ON "short_links" ("slug") WHERE "slug" IS NOT NULL;`
     ));
   } catch (err) {
@@ -43216,7 +43748,7 @@ if (isProd) {
   );
 }
 var isDev = process.env.NODE_ENV !== "production";
-var globalLimiter = rateLimit({
+var globalLimiter = rateLimit2({
   windowMs: 15 * 60 * 1e3,
   max: isDev ? 5e4 : 500,
   standardHeaders: true,
@@ -43224,7 +43756,7 @@ var globalLimiter = rateLimit({
   message: { message: "Too many requests, please try again later." },
   skip: (req) => isDev || req.path.startsWith("/api/health") || req.path.startsWith("/health") || req.path.startsWith("/assets") || req.path.startsWith("/uploads")
 });
-var authLimiter = rateLimit({
+var authLimiter = rateLimit2({
   windowMs: 15 * 60 * 1e3,
   max: isDev ? 1e4 : 20,
   standardHeaders: true,
@@ -43232,7 +43764,7 @@ var authLimiter = rateLimit({
   message: { message: "Too many authentication attempts, please try again later." },
   skip: () => isDev
 });
-var apiWriteLimiter = rateLimit({
+var apiWriteLimiter = rateLimit2({
   windowMs: 1 * 60 * 1e3,
   max: isDev ? 1e4 : 60,
   standardHeaders: true,

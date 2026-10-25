@@ -33,6 +33,14 @@ const applicationLimiter = rateLimit({
   message: { message: "Too many applications from this connection. Please try again later." },
 });
 
+const loanGuideLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "The loan guide is receiving too many questions. Please try again later." },
+});
+
 function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -57,6 +65,71 @@ export function registerCitygateLoanRoutes(
   isAuthenticated: RequestHandler,
   requireAdmin: RequestHandler,
 ) {
+  app.post("/api/citygate-loans/guide", loanGuideLimiter, async (req, res) => {
+    const parsed = z.object({
+      question: z.string().trim().min(3).max(500),
+      loanType: z.enum(["payday", "payroll", "sme", "asset", "monee"]).optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Enter a short question about the loan options or estimate." });
+    }
+    const question = parsed.data.question;
+    const includesContactDetails =
+      /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(question) ||
+      /(?:\+?234|0)[\s().-]*(?:\d[\s().-]*){10,}/.test(question);
+    if (includesContactDetails) {
+      return res.status(400).json({ message: "Please remove email addresses and phone numbers from your question." });
+    }
+
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ message: "The AI loan guide is unavailable right now. You can still use the calculator or contact Citygate directly." });
+    }
+
+    try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content: `You are the Taskdrip loan information guide. Answer general questions about how to use the Citygate Global loan-options page and its calculator. Known facts: the listed categories are Payday, Payroll, SME working capital, Asset financing, and Monee; the on-page estimate is a deterministic illustration using the lower of the requested amount (if entered) and 30% of monthly net income times the selected 1–6 month term; if monthly net income is zero, the illustration can use six-month business turnover divided by six. It excludes interest and fees.
+
+Do not claim or predict eligibility, approval, access to funds, repayment terms, rates, or fees. Do not invent lender requirements or official product terms. The lender alone makes decisions and confirms current terms. If asked for a personalized decision, direct the person to submit an enquiry and confirm details with Citygate Global. Never ask for personal, contact, identity, health, or financial account details. Keep the answer factual, calm, and under 100 words. Do not use emojis.`,
+            },
+            {
+              role: "user",
+              content: `Selected loan category: ${parsed.data.loanType || "not selected"}\nQuestion: ${question}`,
+            },
+          ],
+          max_tokens: 220,
+          temperature: 0.2,
+        }),
+        signal: AbortSignal.timeout(12_000),
+      });
+
+      if (!response.ok) {
+        console.error(`[citygate-loans] AI guide provider returned HTTP ${response.status}.`);
+        return res.status(502).json({ message: "The AI loan guide is temporarily unavailable. Please try again or use the calculator." });
+      }
+
+      const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+      const answer = payload.choices?.[0]?.message?.content?.trim();
+      if (!answer) {
+        return res.status(502).json({ message: "The AI loan guide could not prepare an answer. Please try again." });
+      }
+      return res.json({ answer });
+    } catch (error) {
+      console.error("[citygate-loans] AI guide request failed:", error);
+      return res.status(502).json({ message: "The AI loan guide is temporarily unavailable. Please try again or use the calculator." });
+    }
+  });
+
   app.post("/api/citygate-loans/applications", applicationLimiter, async (req, res) => {
     const parsed = applicationSchema.safeParse(req.body);
     if (!parsed.success) {
