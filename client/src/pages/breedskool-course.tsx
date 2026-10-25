@@ -696,6 +696,7 @@ export default function BreedSkoolCourse() {
   const isInstructor = (user as any)?.id === course.instructorId || (user as any)?.userType === "admin" || (user as any)?.role === "admin";
   const whatYouLearn = Array.isArray(course.whatYouLearn) ? course.whatYouLearn : [];
   const requirements = Array.isArray(course.requirements) ? course.requirements : [];
+  const demoReviewCount = reviews.filter((review: any) => review.isDemo).length;
 
   // Compute effective price — use salePrice if active promo
   const hasSalePromo = !!(course.salePrice && course.saleDeadline && new Date(course.saleDeadline) > new Date() && parseFloat(course.salePrice) < parseFloat(course.price || "0"));
@@ -765,9 +766,15 @@ export default function BreedSkoolCourse() {
 
             <div className="flex items-center gap-4 text-white/70 text-sm mb-6 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <StarRating rating={rating} />
-                <span className="font-semibold text-white">{rating.toFixed(1)}</span>
-                <span>({course.reviewsCount || 0} reviews)</span>
+                {course.reviewsCount ? (
+                  <>
+                    <StarRating rating={rating} />
+                    <span className="font-semibold text-white">{rating.toFixed(1)}</span>
+                    <span>({course.reviewsCount} learner reviews)</span>
+                  </>
+                ) : (
+                  <span>No learner ratings yet</span>
+                )}
               </div>
               <div className="flex items-center gap-1"><Users className="h-4 w-4" /> {(course.studentsCount || 0).toLocaleString()} students</div>
               {course.duration && <div className="flex items-center gap-1"><Clock className="h-4 w-4" /> {course.duration}</div>}
@@ -915,12 +922,18 @@ export default function BreedSkoolCourse() {
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                  Reviews ({course.reviewsCount || 0})
+                  Learner Reviews{course.reviewsCount ? ` (${course.reviewsCount})` : ""}
                 </h2>
                 {isEnrolled && !showReviewForm && (
                   <Button size="sm" variant="outline" onClick={() => setShowReviewForm(true)}>Write a Review</Button>
                 )}
               </div>
+
+              {demoReviewCount > 0 && (
+                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <strong>{demoReviewCount} illustrative demo reviews:</strong> these sample examples are not testimonials from verified learners and are excluded from the course rating.
+                </div>
+              )}
 
               {showReviewForm && (
                 <div className="mb-6 p-4 bg-violet-50 rounded-xl border border-violet-100">
@@ -964,6 +977,7 @@ export default function BreedSkoolCourse() {
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold text-sm text-gray-900">{review.user?.firstName} {review.user?.lastName}</span>
+                          {review.isDemo && <Badge className="bg-amber-100 text-amber-800 border border-amber-200">Illustrative demo</Badge>}
                           <StarRating rating={review.rating} />
                         </div>
                         {review.comment && <p className="text-sm text-gray-600 break-words">{review.comment}</p>}

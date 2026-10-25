@@ -1284,7 +1284,13 @@ function CourseCard({ course, enrolled }: { course: any; enrolled: boolean }) {
           </div>
           <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 whitespace-normal break-anywhere group-hover:text-violet-600 transition-colors">{course.title}</h3>
           <p className="text-xs text-gray-500 whitespace-normal break-anywhere mb-3 flex-1">{course.shortDescription || course.description}</p>
-          <div className="flex items-center gap-1 mb-3"><StarRating rating={rating} /><span className="text-xs font-semibold text-gray-700">{rating.toFixed(1)}</span><span className="text-xs text-gray-400">({course.reviewsCount || 0})</span></div>
+          <div className="flex items-center gap-1 mb-3">
+            {course.reviewsCount ? (
+              <><StarRating rating={rating} /><span className="text-xs font-semibold text-gray-700">{rating.toFixed(1)}</span><span className="text-xs text-gray-400">({course.reviewsCount})</span></>
+            ) : (
+              <span className="text-xs text-gray-400">No learner ratings yet</span>
+            )}
+          </div>
           <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
             <div className="flex items-center gap-1"><Users className="h-3 w-3" /><span>{(course.studentsCount || 0).toLocaleString()} students</span></div>
             {course.duration && <div className="flex items-center gap-1"><Clock className="h-3 w-3" /><span>{course.duration}</span></div>}

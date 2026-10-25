@@ -2124,9 +2124,11 @@ export class DatabaseStorage implements IStorage {
   async getCourseReviews(courseId: string): Promise<(CourseReview & { user: Partial<User> })[]> {
     const reviews = await db.select().from(courseReviews).where(eq(courseReviews.courseId, courseId)).orderBy(desc(courseReviews.createdAt));
     return Promise.all(reviews.map(async (r) => {
-      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl })
+      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, email: users.email })
         .from(users).where(eq(users.id, r.userId));
-      return { ...r, user: user || {} };
+      const isDemo = user?.email?.startsWith("money2027.demo.") || false;
+      const { email: _email, ...publicUser } = user || {};
+      return { ...r, user: publicUser, isDemo };
     }));
   }
 

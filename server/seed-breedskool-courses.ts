@@ -1,13 +1,15 @@
 import { db } from "./db";
-import { courses, courseLessons, breedskoolCoursePricing } from "@shared/schema";
+import { courses, courseLessons, courseReviews, breedskoolCoursePricing, users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 const BREEDSKOOL_PLATFORM_COURSES = [
   {
     courseKey: "money_2027",
     title: "The Easiest Online Money Strategy in 2027",
-    description: "A practical, beginner-friendly affiliate publishing course. Build a simple website or free blog, choose products to promote, create useful short videos and search-focused articles, and understand the basics of website advertising. Includes step-by-step lessons, tool recommendations, a learner community, and a realistic launch plan. Results depend on your work, audience, platform approvals, and market conditions; income is not guaranteed.",
-    shortDescription: "Build a useful product-content site with affiliate links, short videos, organic search, and website ad monetization.",
+    description: "Turn one useful niche into a repeatable publishing system—without buying inventory or needing an existing audience. In 11 beginner-friendly lessons, you’ll research real reader questions, launch a blog or website, create trustworthy product guides and short videos, and learn how search and website ads can fit into the bigger picture.\n\nYou’ll finish with a focused audience, a simple publishing home, a first batch of content ideas, clear affiliate disclosure habits, and a realistic 30-day schedule for learning and improving. Start lean and work at your own pace; no website, audience, or editing experience is required.\n\nThis is a practical skills course, not a promise of income. Traffic, affiliate commissions, advertising approval, and results vary with your effort, audience, provider rules, and market conditions. Always verify current platform terms before applying or publishing.",
+    shortDescription: "Build a practical affiliate-content system: choose a focused niche, publish useful guides and short videos, and learn how responsible monetization fits together.",
     category: "monetization",
     level: "beginner",
     duration: "Self-paced · 11 lessons",
@@ -447,6 +449,66 @@ const BREEDSKOOL_PLATFORM_COURSES = [
   },
 ];
 
+const MONEY_2027_DEMO_REVIEWS = [
+  { rating: 5, comment: "Illustrative demo feedback: The niche-research checklist makes a big project feel manageable. I can now describe exactly who my first guide is for and what question it will answer." },
+  { rating: 5, comment: "Illustrative demo feedback: I like that the lessons focus on helping readers make a decision instead of filling pages with product links. The comparison-page outline is especially useful." },
+  { rating: 4, comment: "Illustrative demo feedback: The website setup lesson helped me compare a free blog with a self-hosted site before spending money. I have a clear first step and a short list of pages to publish." },
+  { rating: 5, comment: "Illustrative demo feedback: The short-video structure is easy to practise: explain one problem, show a useful detail, and point people to a fuller guide. It feels achievable with a phone." },
+  { rating: 5, comment: "Illustrative demo feedback: I appreciate the reminders to disclose affiliate links and verify product details. The course treats trust as part of the strategy, not an afterthought." },
+  { rating: 4, comment: "Illustrative demo feedback: The search article lesson gave me a clear workflow for researching a question, outlining an answer, and checking it on mobile before publishing." },
+  { rating: 5, comment: "Illustrative demo feedback: The advertising lessons explain approvals and policies without making it sound automatic. I know what to review before applying and what not to do with ad clicks." },
+  { rating: 5, comment: "Illustrative demo feedback: The weekly scorecard is a helpful way to focus on useful signals instead of chasing views. I can see how to review a page and decide what to improve next." },
+  { rating: 4, comment: "Illustrative demo feedback: This is a solid beginner roadmap. The 30-day plan turns the topics into small publishing tasks I can fit around my other responsibilities." },
+  { rating: 5, comment: "Illustrative demo feedback: The lessons connect research, writing, video, disclosures, and measurement into one process. I’m leaving with a plan to test—not a promise of quick earnings." },
+];
+
+async function seedMoney2027DemoReviews(courseId: string) {
+  for (let index = 0; index < MONEY_2027_DEMO_REVIEWS.length; index += 1) {
+    const review = MONEY_2027_DEMO_REVIEWS[index];
+    const email = `money2027.demo.${String(index + 1).padStart(2, "0")}@taskdrip.demo`;
+    let [demoUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    if (!demoUser) {
+      const password = await bcrypt.hash(randomUUID(), 10);
+      const [createdUser] = await db.insert(users).values({
+        id: randomUUID(),
+        email,
+        password,
+        firstName: "Demo Learner",
+        lastName: String(index + 1).padStart(2, "0"),
+        userType: "user",
+      } as any).onConflictDoNothing().returning({ id: users.id });
+      demoUser = createdUser || (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0];
+    }
+    if (!demoUser) continue;
+
+    const [existingReview] = await db.select({ id: courseReviews.id })
+      .from(courseReviews)
+      .where(sql`${courseReviews.courseId} = ${courseId} AND ${courseReviews.userId} = ${demoUser.id}`)
+      .limit(1);
+    if (!existingReview) {
+      await db.insert(courseReviews).values({
+        courseId,
+        userId: demoUser.id,
+        rating: review.rating,
+        comment: review.comment,
+      } as any);
+    }
+  }
+
+  const reviewRows = await db.select({ rating: courseReviews.rating, email: users.email })
+    .from(courseReviews)
+    .innerJoin(users, eq(courseReviews.userId, users.id))
+    .where(eq(courseReviews.courseId, courseId));
+  const genuineReviews = reviewRows.filter((review) => !review.email.startsWith("money2027.demo."));
+  const averageRating = genuineReviews.length
+    ? (genuineReviews.reduce((sum, review) => sum + review.rating, 0) / genuineReviews.length).toFixed(2)
+    : "0.00";
+  await db.update(courses).set({
+    reviewsCount: genuineReviews.length,
+    averageRating,
+  }).where(eq(courses.id, courseId));
+}
+
 export async function seedBreedskoolCourses(adminId: string): Promise<{ created: number; linked: number }> {
   let created = 0;
   let linked = 0;
@@ -581,6 +643,9 @@ export async function seedBreedskoolCourses(adminId: string): Promise<{ created:
       await db.update(breedskoolCoursePricing)
         .set({ linkedCourseId: courseId } as any)
         .where(eq(breedskoolCoursePricing.courseKey, course.courseKey));
+      if (course.courseKey === "money_2027") {
+        await seedMoney2027DemoReviews(courseId);
+      }
       linked++;
 
     } catch (e: any) {
