@@ -53,6 +53,23 @@ const REALTRAINAI_GUIDE_POST = {
   isFeatured: true,
 };
 
+const ONLINE_MONEY_STRATEGY_GUIDE_POST = {
+  id: "static-online-money-strategy-2027-guide",
+  slug: "the-easiest-online-money-strategy-2027-guide",
+  href: "/blog/the-easiest-online-money-strategy-2027-guide",
+  title: "The Easiest Online Money Strategy in 2027: Complete Course Guide",
+  excerpt: "A practical walkthrough of all 11 BreedSkool lessons, from niche research and affiliate content to SEO, advertising and your first 30-day publishing plan.",
+  category: "affiliate-marketing",
+  publishedAt: "2026-10-26T00:00:00+01:00",
+  readingTime: 14,
+  viewCount: 0,
+  likesCount: 0,
+  featuredImage: "/images/online-money-strategy-2027.png",
+  isFeatured: true,
+};
+
+const STATIC_GUIDE_POSTS = [REALTRAINAI_GUIDE_POST, ONLINE_MONEY_STRATEGY_GUIDE_POST];
+
 function getBlogPostHref(post: any) {
   return post.href || `/blog/${post.slug}`;
 }
@@ -445,8 +462,8 @@ export default function Blog() {
 
   const validApiPosts = Array.isArray(apiPosts) ? apiPosts : [];
   const posts = [
-    ...(!activeCategory || activeCategory === REALTRAINAI_GUIDE_POST.category ? [REALTRAINAI_GUIDE_POST] : []),
-    ...validApiPosts.filter((post: any) => post.slug !== REALTRAINAI_GUIDE_POST.slug),
+    ...STATIC_GUIDE_POSTS.filter((post) => !activeCategory || post.category === activeCategory),
+    ...validApiPosts.filter((post: any) => !STATIC_GUIDE_POSTS.some((guide) => guide.slug === post.slug)),
   ];
   const allCategories = Array.from(new Set(posts.map((p: any) => p.category).filter(Boolean)));
 

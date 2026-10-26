@@ -307,6 +307,8 @@ export default function ProductDetail() {
   const cheapestOption = priceOptions.length
     ? priceOptions.reduce((best, offer) => offer.price < best.price ? offer : best)
     : null;
+  const hasComparablePrices = priceOptions.length > 1;
+  const taskdripIsBestPrice = hasComparablePrices && cheapestOption?.key === "taskdrip";
   const canonicalProductUrl = pluginSeo?.slug
     ? `${window.location.origin}/shop/product/${encodeURIComponent(pluginSeo.slug)}`
     : window.location.href.split("?")[0];
@@ -528,14 +530,22 @@ export default function ProductDetail() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              {affiliateOffers.length > 0 && priceOptions.length > 0 && (
+              {affiliateOffers.length > 0 && (
                 <section className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4" aria-label="Product price comparison">
                   <div className="flex items-center gap-2 font-semibold text-indigo-950">
                     <Sparkles className="h-4 w-4 text-indigo-600" />
                     <h2>Smart price comparison</h2>
                   </div>
-                  <p className="mt-1 text-xs text-gray-600">Lowest listed price: <strong>{cheapestOption?.label}</strong> at <strong>${cheapestOption?.price.toFixed(2)}</strong>.</p>
-                  <p className="mt-1 text-xs text-gray-500">Based on prices entered by the seller. Marketplace prices, shipping and taxes may change.</p>
+                  {hasComparablePrices && cheapestOption ? (
+                    <p className="mt-1 text-xs text-gray-600">
+                      Lowest listed price: <strong>{cheapestOption.label}</strong> at <strong>${cheapestOption.price.toFixed(2)}</strong>.
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-600">
+                      Add a current price for another enabled option to compare prices. Buy buttons with valid links still work without a listed price.
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">Comparison uses seller-entered prices, not live marketplace data. Shipping, taxes, discounts and availability may change the final total.</p>
                 </section>
               )}
               {/* When product has subscription plans, open a plan picker first */}
@@ -543,7 +553,7 @@ export default function ProductDetail() {
                 (product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 ? (
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      className={`w-full ${taskdripIsBestPrice ? "border-green-500 text-green-800 hover:bg-green-50" : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"}`}
                     onClick={() => {
                       if (!chosenPlanId) setChosenPlanId((product as any).serviceAddons[0]?.id || "");
                       setPlanDialogOpen(true);
@@ -551,19 +561,24 @@ export default function ProductDetail() {
                   >
                     <ShoppingCart className="w-5 h-5 mr-2" />
                     {product.isFree ? "Get Free on Taskdrip — Choose Plan" : "Buy on Taskdrip — Select Plan"}
+                      {taskdripIsBestPrice && <Badge className="ml-2 bg-green-600 text-white">Best listed price</Badge>}
                   </Button>
                 ) : (
                   <Link href={`/shop/checkout/${product.id}`} className="block w-full">
-                    <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <Button
+                      size="lg"
+                      className={`w-full ${taskdripIsBestPrice ? "border-green-500 text-green-800 hover:bg-green-50" : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"}`}
+                    >
                       <ShoppingCart className="w-5 h-5 mr-2" />
                       {product.isFree ? "Get Free on Taskdrip" : "Buy on Taskdrip"}
+                      {taskdripIsBestPrice && <Badge className="ml-2 bg-green-600 text-white">Best listed price</Badge>}
                     </Button>
                   </Link>
                 )
               )}
               {affiliateOffers.map((offer) => {
                 const price = Number(offer.price);
-                const isBestPrice = offer.price !== "" && cheapestOption?.key === offer.id;
+                const isBestPrice = hasComparablePrices && offer.price !== "" && cheapestOption?.key === offer.id;
                 return (
                   <Button
                     key={offer.id}
