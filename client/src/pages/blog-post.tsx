@@ -635,9 +635,10 @@ export default function BlogPost() {
         {/* Content */}
         <div
           ref={articleBodyRef}
+          data-blog-slug={post.slug}
           className="prose prose-lg prose-gray mx-auto mb-12 max-w-4xl"
           dangerouslySetInnerHTML={{ __html: post.content }}
-          style={{ lineHeight: '1.8', fontSize: '1.05rem' }}
+          style={{ lineHeight: "1.8", fontSize: "clamp(1rem, 1.05rem + 0.1vw, 1.12rem)" }}
         />
         {adMountNode && createPortal(<AdsterraSlot position="article-inline" />, adMountNode)}
         {post.slug === "why-phones-laptops-getting-more-expensive-ai-memory-chip-shortage" && (
@@ -663,6 +664,86 @@ export default function BlogPost() {
           .prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
           .prose th, .prose td { border: 1px solid #e5e7eb; padding: .7rem .85rem; text-align: left; }
           .prose th { background: #f8fafc; font-weight: 700; }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] { overflow-wrap: anywhere; }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] figure {
+            margin: 1.75rem 0; overflow: hidden; border: 1px solid #e2e8f0;
+            border-radius: 1rem; background: #f8fafc; box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] figure img {
+            display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+            object-fit: cover; margin: 0; border-radius: 0;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] figcaption {
+            padding: .8rem 1rem; color: #64748b; font-size: .85rem; line-height: 1.55;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-disclosure,
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-checkpoint {
+            margin: 1.5rem 0; padding: 1rem 1.15rem; border-radius: 1rem;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-disclosure {
+            border: 1px solid #ddd6fe; background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-checkpoint {
+            border-left: 4px solid #10b981; background: #ecfdf5; color: #064e3b;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-scorecard {
+            margin: 1.75rem 0; padding: 1.25rem; border: 1px solid #e2e8f0;
+            border-radius: 1rem; background: linear-gradient(145deg, #fff, #f8fafc);
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-scorecard h3 {
+            margin-top: 0; color: #1e1b4b;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-scorecard table {
+            width: 100%; border-radius: .75rem; background: #fff; font-size: .92rem;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-referral-card {
+            margin: 1.5rem 0; padding: 1.15rem; border: 1px solid #c7d2fe;
+            border-radius: 1rem; background: linear-gradient(135deg, #eef2ff, #faf5ff);
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-referral-card > p:first-child {
+            margin-bottom: .5rem; color: #312e81;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-referral-link {
+            display: inline-flex; align-items: center; gap: .4rem; min-height: 2.75rem;
+            margin: .3rem 0 .65rem; padding: .65rem 1rem; border-radius: .7rem;
+            background: #4f46e5; color: #fff; font-weight: 700; text-decoration: none;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-referral-link:hover {
+            background: #3730a3; text-decoration: underline;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-referral-note {
+            margin: .4rem 0 0; color: #475569; font-size: .9rem; line-height: 1.6;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-disclosure p:last-child,
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-checkpoint p:last-child { margin-bottom: 0; }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap {
+            margin: 1.75rem 0; padding: 1.25rem; border: 1px solid #c7d2fe;
+            border-radius: 1.25rem; background: linear-gradient(135deg, #eef2ff, #faf5ff);
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap > p {
+            display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .75rem; margin-bottom: 1rem;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap > p strong { color: #312e81; }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap > p span { color: #64748b; font-size: .9rem; }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap > div {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: .6rem;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap a {
+            display: block; padding: .75rem .85rem; border: 1px solid #e0e7ff;
+            border-radius: .75rem; background: rgba(255, 255, 255, .85);
+            color: #4338ca; font-size: .9rem; font-weight: 650; line-height: 1.4; text-decoration: none;
+            transition: background .15s ease, border-color .15s ease, transform .15s ease;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap a:hover {
+            transform: translateY(-1px); border-color: #a5b4fc; background: #fff; text-decoration: underline;
+          }
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] h2[id],
+          .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] h3[id] { scroll-margin-top: 6rem; }
+          @media (max-width: 640px) {
+            .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] .strategy-roadmap { padding: 1rem; }
+            .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] h2 { font-size: 1.4rem; }
+            .prose[data-blog-slug="the-easiest-online-money-strategy-2027-guide"] figure { margin: 1.25rem 0; }
+          }
         `}</style>
 
         {relatedPosts.length > 0 && (
