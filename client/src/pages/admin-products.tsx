@@ -45,6 +45,15 @@ const productSchema = z.object({
   isActive: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   isFree: z.boolean().default(false),
+  enablePlatformCheckout: z.boolean().default(true),
+  affiliateOffers: z.array(z.object({
+    id: z.string(),
+    platform: z.string(),
+    label: z.string(),
+    url: z.string(),
+    price: z.string(),
+    enabled: z.boolean(),
+  })).default([]),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -90,6 +99,8 @@ export default function AdminProducts() {
       isActive: true,
       isFeatured: false,
       isFree: false,
+      enablePlatformCheckout: true,
+      affiliateOffers: [],
     },
   });
 
@@ -199,6 +210,8 @@ export default function AdminProducts() {
       isActive: product.isActive ?? true,
       isFeatured: product.isFeatured ?? false,
       isFree: product.isFree ?? false,
+      enablePlatformCheckout: product.enablePlatformCheckout !== false,
+      affiliateOffers: product.affiliateOffers || [],
     });
   };
 
@@ -617,6 +630,123 @@ export default function AdminProducts() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <FormLabel className="text-base">Buy buttons & price comparison</FormLabel>
+                      <p className="text-xs text-gray-500 mt-1">Prices are admin-entered USD values; only enabled links appear on the product page.</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => form.setValue("affiliateOffers", [
+                        ...(form.getValues("affiliateOffers") || []),
+                        { id: crypto.randomUUID(), platform: "AliExpress", label: "Buy on AliExpress", url: "", price: "", enabled: true },
+                      ])}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add option
+                    </Button>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="enablePlatformCheckout"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-md border bg-white p-3">
+                        <div>
+                          <FormLabel>Buy on Taskdrip</FormLabel>
+                          <p className="text-xs text-gray-500">Keep the inbuilt Taskdrip checkout available.</p>
+                        </div>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {(form.watch("affiliateOffers") || []).map((offer, index) => (
+                    <div key={offer.id || index} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end rounded-md border bg-white p-3">
+                      <div className="sm:col-span-2">
+                        <FormLabel className="text-xs">Store</FormLabel>
+                        <Select
+                          value={offer.platform}
+                          onValueChange={(platform) => {
+                            const offers = [...form.getValues("affiliateOffers")];
+                            offers[index] = { ...offers[index], platform, label: platform === "Other" ? "Buy from seller" : `Buy on ${platform}` };
+                            form.setValue("affiliateOffers", offers);
+                          }}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AliExpress">AliExpress</SelectItem>
+                            <SelectItem value="Amazon">Amazon</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="sm:col-span-3">
+                        <FormLabel className="text-xs">Button text</FormLabel>
+                        <Input
+                          value={offer.label}
+                          onChange={(e) => {
+                            const offers = [...form.getValues("affiliateOffers")];
+                            offers[index] = { ...offers[index], label: e.target.value };
+                            form.setValue("affiliateOffers", offers);
+                          }}
+                          placeholder="Buy on Amazon"
+                        />
+                      </div>
+                      <div className="sm:col-span-4">
+                        <FormLabel className="text-xs">Affiliate URL</FormLabel>
+                        <Input
+                          type="url"
+                          value={offer.url}
+                          onChange={(e) => {
+                            const offers = [...form.getValues("affiliateOffers")];
+                            offers[index] = { ...offers[index], url: e.target.value };
+                            form.setValue("affiliateOffers", offers);
+                          }}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div className="sm:col-span-1">
+                        <FormLabel className="text-xs">USD price</FormLabel>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={offer.price}
+                          onChange={(e) => {
+                            const offers = [...form.getValues("affiliateOffers")];
+                            offers[index] = { ...offers[index], price: e.target.value };
+                            form.setValue("affiliateOffers", offers);
+                          }}
+                          placeholder="—"
+                        />
+                      </div>
+                      <div className="sm:col-span-1 flex items-center justify-center">
+                        <Switch
+                          checked={offer.enabled}
+                          onCheckedChange={(enabled) => {
+                            const offers = [...form.getValues("affiliateOffers")];
+                            offers[index] = { ...offers[index], enabled };
+                            form.setValue("affiliateOffers", offers);
+                          }}
+                          aria-label={`Enable ${offer.label || "buy option"}`}
+                        />
+                      </div>
+                      <div className="sm:col-span-1 flex justify-end">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Remove buy option"
+                          onClick={() => form.setValue("affiliateOffers", form.getValues("affiliateOffers").filter((_, i) => i !== index))}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Gallery Images */}

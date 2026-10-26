@@ -325,6 +325,8 @@ export const shopProducts = pgTable("shop_products", {
   tags: text("tags").array().default(sql`ARRAY[]::text[]`),
   introVideoUrl: varchar("intro_video_url"),
   serviceAddons: jsonb("service_addons").$type<{ id: string; title: string; description: string; price: number }[]>().default(sql`'[]'::jsonb`),
+  affiliateOffers: jsonb("affiliate_offers").$type<{ id: string; platform: string; label: string; url: string; price: string; enabled: boolean }[]>().notNull().default(sql`'[]'::jsonb`),
+  enablePlatformCheckout: boolean("enable_platform_checkout").notNull().default(true),
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

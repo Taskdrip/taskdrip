@@ -294,6 +294,19 @@ export default function ProductDetail() {
   const discount = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.price)
     ? Math.round(((parseFloat(product.originalPrice) - parseFloat(product.price)) / parseFloat(product.originalPrice)) * 100)
     : 0;
+  const affiliateOffers = (product.affiliateOffers || []).filter((offer) =>
+    offer.enabled !== false && typeof offer.url === "string" && /^https?:\/\//i.test(offer.url),
+  );
+  const platformCheckoutEnabled = product.enablePlatformCheckout !== false;
+  const priceOptions = [
+    ...(platformCheckoutEnabled ? [{ key: "taskdrip", label: "Taskdrip", price: Number(product.price), href: `/shop/checkout/${product.id}` }] : []),
+    ...affiliateOffers
+      .filter((offer) => offer.price !== "" && Number.isFinite(Number(offer.price)))
+      .map((offer) => ({ key: offer.id, label: offer.platform, price: Number(offer.price), href: offer.url })),
+  ].filter((offer) => offer.price >= 0);
+  const cheapestOption = priceOptions.length
+    ? priceOptions.reduce((best, offer) => offer.price < best.price ? offer : best)
+    : null;
   const canonicalProductUrl = pluginSeo?.slug
     ? `${window.location.origin}/shop/product/${encodeURIComponent(pluginSeo.slug)}`
     : window.location.href.split("?")[0];
@@ -515,29 +528,60 @@ export default function ProductDetail() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              {/* When product has subscription plans, open a plan picker first */}
-              {(product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 ? (
-                <Button
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  onClick={() => {
-                    // Pre-select first plan if none chosen
-                    if (!chosenPlanId) setChosenPlanId((product as any).serviceAddons[0]?.id || "");
-                    setPlanDialogOpen(true);
-                  }}
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  {product.isFree ? "Get Free — Choose Plan" : "Buy Now — Select Plan"}
-                </Button>
-              ) : (
-                <Link href={`/shop/checkout/${product.id}`} className="block w-full">
-                  <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    {product.isFree ? "Get Free" : "Buy Now"}
-                  </Button>
-                </Link>
+              {affiliateOffers.length > 0 && priceOptions.length > 0 && (
+                <section className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4" aria-label="Product price comparison">
+                  <div className="flex items-center gap-2 font-semibold text-indigo-950">
+                    <Sparkles className="h-4 w-4 text-indigo-600" />
+                    <h2>Smart price comparison</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-600">Lowest listed price: <strong>{cheapestOption?.label}</strong> at <strong>${cheapestOption?.price.toFixed(2)}</strong>.</p>
+                  <p className="mt-1 text-xs text-gray-500">Based on prices entered by the seller. Marketplace prices, shipping and taxes may change.</p>
+                </section>
               )}
-              {publishingInfo?.amazonUrl && (
+              {/* When product has subscription plans, open a plan picker first */}
+              {platformCheckoutEnabled && (
+                (product as any).serviceAddons && Array.isArray((product as any).serviceAddons) && (product as any).serviceAddons.length > 0 ? (
+                  <Button
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    onClick={() => {
+                      if (!chosenPlanId) setChosenPlanId((product as any).serviceAddons[0]?.id || "");
+                      setPlanDialogOpen(true);
+                    }}
+                  >
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    {product.isFree ? "Get Free on Taskdrip — Choose Plan" : "Buy on Taskdrip — Select Plan"}
+                  </Button>
+                ) : (
+                  <Link href={`/shop/checkout/${product.id}`} className="block w-full">
+                    <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      <ShoppingCart className="w-5 h-5 mr-2" />
+                      {product.isFree ? "Get Free on Taskdrip" : "Buy on Taskdrip"}
+                    </Button>
+                  </Link>
+                )
+              )}
+              {affiliateOffers.map((offer) => {
+                const price = Number(offer.price);
+                const isBestPrice = offer.price !== "" && cheapestOption?.key === offer.id;
+                return (
+                  <Button
+                    key={offer.id}
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className={`w-full ${isBestPrice ? "border-green-500 text-green-800 hover:bg-green-50" : ""}`}
+                  >
+                    <a href={offer.url} target="_blank" rel="nofollow sponsored noopener noreferrer">
+                      <ExternalLink className="w-5 h-5 mr-2" />
+                      {offer.label || `Buy on ${offer.platform}`}
+                      {offer.price !== "" && Number.isFinite(price) && <span className="ml-2">${price.toFixed(2)}</span>}
+                      {isBestPrice && <Badge className="ml-2 bg-green-600 text-white">Best listed price</Badge>}
+                    </a>
+                  </Button>
+                );
+              })}
+              {publishingInfo?.amazonUrl && platformCheckoutEnabled && (product.affiliateOffers || []).length === 0 && (
                 <a href={publishingInfo.amazonUrl} target="_blank" rel="noreferrer" className="block">
                   <Button variant="outline" size="lg" className="w-full">
                     <ExternalLink className="w-5 h-5 mr-2" />Buy on Amazon

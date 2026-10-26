@@ -256,6 +256,42 @@ function canManageStore(user: any) {
   return hasAdminRole(user, ['store_manager']);
 }
 
+function normalizeShopAffiliateOffers(input: unknown): { id: string; platform: string; label: string; url: string; price: string; enabled: boolean }[] | null {
+  let offers = input;
+  if (typeof offers === "string") {
+    try { offers = JSON.parse(offers); } catch { return null; }
+  }
+  if (offers === undefined || offers === null) return [];
+  if (!Array.isArray(offers)) return null;
+
+  const normalized = [];
+  for (let index = 0; index < offers.length; index += 1) {
+    const offer = offers[index];
+    if (!offer || typeof offer !== "object") return null;
+    const platform = String((offer as any).platform || "").trim().slice(0, 60);
+    const label = String((offer as any).label || "").trim().slice(0, 80);
+    const rawUrl = String((offer as any).url || "").trim();
+    const rawPrice = String((offer as any).price ?? "").trim();
+    if (!rawUrl) {
+      if (platform || label || rawPrice) return null;
+      continue;
+    }
+    let parsedUrl: URL;
+    try { parsedUrl = new URL(rawUrl); } catch { return null; }
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) return null;
+    if (rawPrice && (!Number.isFinite(Number(rawPrice)) || Number(rawPrice) < 0)) return null;
+    normalized.push({
+      id: String((offer as any).id || `offer-${index}`).slice(0, 100),
+      platform: platform || "Other",
+      label: label || platform || "Buy from seller",
+      url: parsedUrl.toString(),
+      price: rawPrice,
+      enabled: (offer as any).enabled !== false,
+    });
+  }
+  return normalized;
+}
+
 function canManageP2P(user: any) {
   return hasAdminRole(user, ['store_manager', 'moderator']);
 }
@@ -4932,6 +4968,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         else if (typeof raw === 'string' && raw.trim()) serviceAddons = JSON.parse(raw);
       } catch { serviceAddons = []; }
 
+      const affiliateOffers = normalizeShopAffiliateOffers(req.body.affiliateOffers);
+      if (affiliateOffers === null) {
+        return res.status(400).json({ message: "Each buy option needs a valid http(s) URL; optional prices must be non-negative USD amounts." });
+      }
+
       const productData = {
         ...req.body,
         price: req.body.price.toString(),
@@ -4944,6 +4985,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         tags: Array.isArray(req.body.tags) ? req.body.tags : [],
         introVideoUrl: req.body.introVideoUrl || null,
         serviceAddons,
+        affiliateOffers,
+        enablePlatformCheckout: req.body.enablePlatformCheckout !== false,
       };
 
       const product = await storage.createShopProduct(productData);
@@ -4968,6 +5011,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         else if (typeof raw === 'string' && raw.trim()) serviceAddons = JSON.parse(raw);
       } catch { serviceAddons = []; }
 
+      const affiliateOffers = normalizeShopAffiliateOffers(req.body.affiliateOffers);
+      if (affiliateOffers === null) {
+        return res.status(400).json({ message: "Each buy option needs a valid http(s) URL; optional prices must be non-negative USD amounts." });
+      }
+
       const updateData = {
         ...req.body,
         price: req.body.price ? req.body.price.toString() : undefined,
@@ -4979,6 +5027,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         tags: Array.isArray(req.body.tags) ? req.body.tags : [],
         introVideoUrl: req.body.introVideoUrl || null,
         serviceAddons,
+        affiliateOffers: req.body.affiliateOffers !== undefined ? affiliateOffers : undefined,
+        enablePlatformCheckout: typeof req.body.enablePlatformCheckout === "boolean" ? req.body.enablePlatformCheckout : undefined,
       };
 
       const product = await storage.updateShopProduct(req.params.id, updateData);

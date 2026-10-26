@@ -113,6 +113,15 @@ const shopProductSchema = z.object({
   isFree: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  enablePlatformCheckout: z.boolean().default(true),
+  affiliateOffers: z.array(z.object({
+    id: z.string(),
+    platform: z.string(),
+    label: z.string(),
+    url: z.string(),
+    price: z.string(),
+    enabled: z.boolean(),
+  })).default([]),
   serviceAddons: z.array(z.object({
     id: z.string(),
     title: z.string(),
@@ -2152,14 +2161,14 @@ export default function AdminMaster() {
     },
   });
 
-  const shopProductForm = useForm({
+  const shopProductForm = useForm<any>({
     resolver: zodResolver(shopProductSchema),
     defaultValues: {
       isFree: false, isFeatured: false, isActive: true,
       title: "", description: "", category: "software", type: "software",
       price: "0.00", featuredImage: "", demoUrl: "", downloadUrl: "",
       documentationUrl: "", features: "", requirements: "", tags: "",
-      serviceAddons: [],
+      serviceAddons: [], affiliateOffers: [], enablePlatformCheckout: true,
     },
   });
 
@@ -2885,6 +2894,7 @@ export default function AdminMaster() {
         features: data.features ? data.features.split("\n").filter(Boolean) : [],
         requirements: data.requirements ? data.requirements.split("\n").filter(Boolean) : [],
         tags: data.tags ? data.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        affiliateOffers: data.affiliateOffers || [],
       };
       const method = editingProduct ? "PUT" : "POST";
       const url = editingProduct ? `/api/admin/shop/products/${editingProduct.id}` : "/api/admin/shop/products";
@@ -2962,6 +2972,8 @@ export default function AdminMaster() {
       requirements: (product.requirements || []).join("\n"),
       tags: (product.tags || []).join(", "),
       isFree: product.isFree, isFeatured: product.isFeatured, isActive: product.isActive,
+      affiliateOffers: product.affiliateOffers || [],
+      enablePlatformCheckout: product.enablePlatformCheckout !== false,
     });
     setIsShopProductDialogOpen(true);
   };
@@ -6703,6 +6715,127 @@ export default function AdminMaster() {
                       <div className="col-span-2">
                         <Label>Documentation URL</Label>
                         <Input {...shopProductForm.register("documentationUrl")} placeholder="https://docs.example.com" />
+                      </div>
+                      <div className="col-span-2 rounded-lg border border-indigo-200 bg-indigo-50/60 p-4 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <Label className="text-base font-semibold">Buy options & price comparison</Label>
+                            <p className="text-xs text-gray-600 mt-1">Add affiliate destinations and their current USD prices. Only enabled options with a valid link appear to shoppers.</p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const current = shopProductForm.getValues("affiliateOffers") || [];
+                              shopProductForm.setValue("affiliateOffers", [...current, {
+                                id: crypto.randomUUID(), platform: "AliExpress", label: "Buy on AliExpress", url: "", price: "", enabled: true,
+                              }]);
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" /> Add buy button
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-md bg-white p-3 border">
+                          <Switch
+                            checked={shopProductForm.watch("enablePlatformCheckout") !== false}
+                            onCheckedChange={(enabled) => shopProductForm.setValue("enablePlatformCheckout", enabled)}
+                          />
+                          <div>
+                            <Label>Buy on Taskdrip</Label>
+                            <p className="text-xs text-gray-500">Uses the existing Taskdrip checkout flow.</p>
+                          </div>
+                        </div>
+                        {(shopProductForm.watch("affiliateOffers") || []).map((offer: any, idx: number) => (
+                          <div key={offer.id || idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end rounded-md bg-white p-3 border">
+                            <div className="sm:col-span-2">
+                              <Label className="text-xs">Store</Label>
+                              <Select
+                                value={offer.platform || "Other"}
+                                onValueChange={(platform) => {
+                                  const offers = [...(shopProductForm.getValues("affiliateOffers") || [])];
+                                  offers[idx] = { ...offers[idx], platform, label: platform === "Other" ? (offers[idx].label || "Buy from seller") : `Buy on ${platform}` };
+                                  shopProductForm.setValue("affiliateOffers", offers);
+                                }}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="AliExpress">AliExpress</SelectItem>
+                                  <SelectItem value="Amazon">Amazon</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="sm:col-span-3">
+                              <Label className="text-xs">Button text</Label>
+                              <Input
+                                value={offer.label || ""}
+                                onChange={(e) => {
+                                  const offers = [...(shopProductForm.getValues("affiliateOffers") || [])];
+                                  offers[idx] = { ...offers[idx], label: e.target.value };
+                                  shopProductForm.setValue("affiliateOffers", offers);
+                                }}
+                                placeholder="Buy on AliExpress"
+                              />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <Label className="text-xs">Affiliate URL</Label>
+                              <Input
+                                type="url"
+                                value={offer.url || ""}
+                                onChange={(e) => {
+                                  const offers = [...(shopProductForm.getValues("affiliateOffers") || [])];
+                                  offers[idx] = { ...offers[idx], url: e.target.value };
+                                  shopProductForm.setValue("affiliateOffers", offers);
+                                }}
+                                placeholder="https://..."
+                              />
+                            </div>
+                            <div className="sm:col-span-1">
+                              <Label className="text-xs">USD price</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={offer.price ?? ""}
+                                onChange={(e) => {
+                                  const offers = [...(shopProductForm.getValues("affiliateOffers") || [])];
+                                  offers[idx] = { ...offers[idx], price: e.target.value };
+                                  shopProductForm.setValue("affiliateOffers", offers);
+                                }}
+                                placeholder="—"
+                              />
+                            </div>
+                            <div className="sm:col-span-1 flex items-center justify-center gap-1">
+                              <Switch
+                                checked={offer.enabled !== false}
+                                onCheckedChange={(enabled) => {
+                                  const offers = [...(shopProductForm.getValues("affiliateOffers") || [])];
+                                  offers[idx] = { ...offers[idx], enabled };
+                                  shopProductForm.setValue("affiliateOffers", offers);
+                                }}
+                                aria-label={`Enable ${offer.label || "buy option"}`}
+                              />
+                            </div>
+                            <div className="sm:col-span-1 flex justify-end">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                aria-label="Remove buy option"
+                                onClick={() => {
+                                  const offers = (shopProductForm.getValues("affiliateOffers") || []).filter((_: any, i: number) => i !== idx);
+                                  shopProductForm.setValue("affiliateOffers", offers);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        {(shopProductForm.watch("affiliateOffers") || []).length === 0 && (
+                          <p className="text-xs text-gray-500">No external buy buttons yet. Add AliExpress, Amazon, or another seller.</p>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <Label>Key Features (one per line)</Label>
