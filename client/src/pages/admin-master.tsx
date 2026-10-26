@@ -2109,7 +2109,7 @@ export default function AdminMaster() {
   const [shopAnalyticsProduct, setShopAnalyticsProduct] = useState<any>(null);
 
   // Forms
-  const blogForm = useForm({
+  const blogForm = useForm<z.infer<typeof blogPostSchema>>({
     resolver: zodResolver(blogPostSchema),
     defaultValues: {
       title: "",
@@ -2196,7 +2196,7 @@ export default function AdminMaster() {
     retry: false,
   });
 
-  const { data: blogPosts = [] } = useQuery({
+  const { data: blogPosts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/blog"],
     enabled: canManageContent,
     retry: false,
@@ -2246,7 +2246,7 @@ export default function AdminMaster() {
     retry: false,
   });
 
-  const { data: adminPurchases = [], refetch: refetchPurchases } = useQuery<any[]>({
+  const { data: adminPurchases = [], refetch: refetchPurchases, isError: purchasesError } = useQuery<any[]>({
     queryKey: ["/api/admin/purchases"],
     enabled: canManageStore || isFullAdmin,
     retry: false,
@@ -2255,6 +2255,9 @@ export default function AdminMaster() {
 
   const [ordersFilter, setOrdersFilter] = useState<string>("all");
   const [selectedOrderForDeliver, setSelectedOrderForDeliver] = useState<any>(null);
+  const [editingBlogPost, setEditingBlogPost] = useState<any>(null);
+  const [showAllBlogPosts, setShowAllBlogPosts] = useState(false);
+  const [blogPostSearch, setBlogPostSearch] = useState("");
   const [deliverForm, setDeliverForm] = useState({
     downloadUrl: "", accessUrl: "", licenseKey: "", accessNotes: "", adminNotes: "", status: "delivered",
   });
@@ -2275,6 +2278,14 @@ export default function AdminMaster() {
   const filteredPurchases = adminPurchases.filter((p: any) =>
     ordersFilter === "all" ? true : p.status === ordersFilter
   );
+  const filteredBlogPosts = (blogPosts as any[]).filter((post: any) => {
+    const query = blogPostSearch.trim().toLowerCase();
+    return !query || [post.title, post.category, post.excerpt]
+      .some((value) => String(value || "").toLowerCase().includes(query));
+  });
+  const visibleBlogPosts = showAllBlogPosts || blogPostSearch.trim()
+    ? filteredBlogPosts
+    : filteredBlogPosts.slice(0, 5);
 
   const { data: adminFeedPosts = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/feed-posts"],
@@ -2357,12 +2368,66 @@ export default function AdminMaster() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
       queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
       blogForm.reset();
+      setEditingBlogPost(null);
       toast({
         title: "Success",
         description: `Blog post ${data.isPublished ? 'published' : 'saved as draft'} successfully`,
       });
     },
   });
+
+  const updateBlogPost = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: z.infer<typeof blogPostSchema> }) => {
+      const response = await apiRequest("PUT", `/api/admin/blog/${id}`, {
+        title: data.title,
+        content: data.content,
+        category: data.category || "general",
+        featuredImage: data.featuredImage || null,
+        excerpt: data.excerpt || "",
+        metaDescription: data.metaDescription || null,
+        seoKeywords: data.seoKeywords || null,
+        readingTime: data.readingTime || 5,
+        isPublished: data.status === "published",
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+    onSuccess: (post) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog", post.slug] });
+      blogForm.reset();
+      setEditingBlogPost(null);
+      toast({ title: "Blog post updated", description: "Your changes have been saved." });
+    },
+    onError: (error: any) => toast({ title: "Could not update post", description: error.message, variant: "destructive" }),
+  });
+
+  const submitBlogPost = (data: z.infer<typeof blogPostSchema>) => {
+    if (editingBlogPost) updateBlogPost.mutate({ id: editingBlogPost.id, data });
+    else createBlogPost.mutate(data);
+  };
+
+  const openBlogPostForEdit = (post: any) => {
+    setEditingBlogPost(post);
+    blogForm.reset({
+      title: post.title || "",
+      content: post.content || "",
+      status: post.isPublished ? "published" : "draft",
+      category: post.category || "general",
+      featuredImage: post.featuredImage || "",
+      excerpt: post.excerpt || "",
+      metaDescription: post.metaDescription || "",
+      seoKeywords: post.seoKeywords || "",
+      readingTime: post.readingTime || 5,
+    });
+    window.setTimeout(() => document.getElementById("blog-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  };
+
+  const cancelBlogEdit = () => {
+    setEditingBlogPost(null);
+    blogForm.reset();
+  };
 
   const createCampaign = useMutation({
     mutationFn: async (data: z.infer<typeof campaignSchema>) => {
@@ -4031,9 +4096,9 @@ export default function AdminMaster() {
                   <Upload className="h-4 w-4 mr-2" />
                   Import Posts
                 </Button>
-                <Button size="sm" form="blog-form">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Post
+                  <Button size="sm" form="blog-form">
+                  {editingBlogPost ? <CheckCircle className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  {editingBlogPost ? "Save Changes" : "Create Post"}
                 </Button>
               </div>
             </div>
@@ -4045,13 +4110,17 @@ export default function AdminMaster() {
                     <BookOpen className="h-5 w-5" />
                     WordPress-Style Editor
                   </CardTitle>
-                  <CardDescription>Create engaging blog posts with rich formatting and media uploads</CardDescription>
+                  <CardDescription>
+                    {editingBlogPost
+                      ? `Editing “${editingBlogPost.title}” — update the content, links, buttons, and publication status.`
+                      : "Create engaging blog posts with rich formatting and media uploads."}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Form {...blogForm}>
                     <form 
                       id="blog-form"
-                      onSubmit={blogForm.handleSubmit((data) => createBlogPost.mutate(data))}
+                      onSubmit={blogForm.handleSubmit(submitBlogPost)}
                       className="space-y-6"
                     >
                       <FormField
@@ -4322,7 +4391,7 @@ export default function AdminMaster() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Category</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select value={field.value} onValueChange={field.onChange}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Choose category" />
@@ -4331,6 +4400,8 @@ export default function AdminMaster() {
                                 <SelectContent>
                                   <SelectItem value="announcements">📢 Announcements</SelectItem>
                                   <SelectItem value="tutorials">📚 Tutorials</SelectItem>
+                                  <SelectItem value="affiliate-marketing">Affiliate Marketing</SelectItem>
+                                  <SelectItem value="education">Education</SelectItem>
                                   <SelectItem value="case-studies">📊 Case Studies</SelectItem>
                                   <SelectItem value="industry-news">📰 Industry News</SelectItem>
                                   <SelectItem value="company-updates">🏢 Company Updates</SelectItem>
@@ -4348,7 +4419,7 @@ export default function AdminMaster() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Publication Status</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select value={field.value} onValueChange={field.onChange}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Choose status" />
@@ -4445,11 +4516,11 @@ export default function AdminMaster() {
                       <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
                         <Button 
                           type="submit" 
-                          disabled={createBlogPost.isPending}
+                          disabled={createBlogPost.isPending || updateBlogPost.isPending}
                           className="flex-1 sm:flex-none sm:min-w-[140px]"
                           size="lg"
                         >
-                          {createBlogPost.isPending ? (
+                          {createBlogPost.isPending || updateBlogPost.isPending ? (
                             <>
                               <Clock className="h-4 w-4 mr-2 animate-spin" />
                               {blogForm.watch('status') === 'published' ? 'Publishing...' : 'Saving...'}
@@ -4478,10 +4549,10 @@ export default function AdminMaster() {
                           size="lg"
                           className="flex-1 sm:flex-none sm:min-w-[120px]"
                           onClick={() => {
-                            blogForm.setValue('status', 'published');
-                            const data = blogForm.getValues();
+                            const data = { ...blogForm.getValues(), status: "published" as const };
                             if (data.title && data.content) {
-                              createBlogPost.mutate(data);
+                              blogForm.setValue("status", "published");
+                              submitBlogPost(data);
                             } else {
                               toast({
                                 title: "Missing fields",
@@ -4490,7 +4561,7 @@ export default function AdminMaster() {
                               });
                             }
                           }}
-                          disabled={createBlogPost.isPending}
+                          disabled={createBlogPost.isPending || updateBlogPost.isPending}
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Quick Publish
@@ -4503,6 +4574,7 @@ export default function AdminMaster() {
                           className="flex-1 sm:flex-none"
                           onClick={() => {
                             blogForm.reset();
+                            setEditingBlogPost(null);
                             toast({
                               title: "Form cleared",
                               description: "All fields have been reset",
@@ -4512,6 +4584,11 @@ export default function AdminMaster() {
                           <XCircle className="h-4 w-4 mr-2" />
                           Clear All
                         </Button>
+                        {editingBlogPost && (
+                          <Button type="button" variant="outline" size="lg" onClick={cancelBlogEdit}>
+                            Cancel Edit
+                          </Button>
+                        )}
                       </div>
                     </form>
                   </Form>
@@ -4568,8 +4645,16 @@ export default function AdminMaster() {
                     <CardDescription>Recent blog content</CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <div className="mb-3">
+                      <Input
+                        value={blogPostSearch}
+                        onChange={(event) => setBlogPostSearch(event.target.value)}
+                        placeholder="Search all posts by title or category..."
+                        aria-label="Search all blog posts"
+                      />
+                    </div>
                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {blogPosts.slice(0, 5).map((post: any) => (
+                      {visibleBlogPosts.map((post: any) => (
                         <div key={post.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
                           {post.featuredImage && (
                             <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
@@ -4593,7 +4678,14 @@ export default function AdminMaster() {
                             </p>
                           </div>
                           <div className="flex gap-1 flex-shrink-0">
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              aria-label={`Edit ${post.title}`}
+                              title="Edit post"
+                              onClick={() => openBlogPostForEdit(post)}
+                            >
                               <Edit className="h-3 w-3" />
                             </Button>
                             <Button 
@@ -4609,7 +4701,7 @@ export default function AdminMaster() {
                         </div>
                       ))}
                       
-                      {blogPosts.length === 0 && (
+                      {(blogPosts as any[]).length === 0 && (
                         <div className="text-center py-6 text-gray-500">
                           <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                           <p className="text-sm">No posts yet</p>
@@ -4617,10 +4709,19 @@ export default function AdminMaster() {
                         </div>
                       )}
                       
-                      {blogPosts.length > 5 && (
+                      {filteredBlogPosts.length === 0 && (blogPosts as any[]).length > 0 && (
+                        <p className="py-4 text-center text-sm text-gray-500">No posts match that search.</p>
+                      )}
+
+                      {(blogPosts as any[]).length > 5 && (
                         <div className="text-center pt-2">
-                          <Button variant="ghost" size="sm" className="text-xs">
-                            View all {blogPosts.length} posts
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => setShowAllBlogPosts((showing) => !showing)}
+                          >
+                            {showAllBlogPosts ? "Show recent posts" : `View all ${(blogPosts as any[]).length} posts`}
                           </Button>
                         </div>
                       )}
@@ -7097,7 +7198,14 @@ export default function AdminMaster() {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredPurchases.length === 0 ? (
+                {purchasesError ? (
+                  <div className="text-center py-12 text-red-600">
+                    <AlertTriangle className="h-10 w-10 mx-auto mb-3" />
+                    <p className="font-medium">Could not load shop orders</p>
+                    <p className="mt-1 text-sm text-gray-500">Check store-manager access and the database connection, then refresh.</p>
+                    <Button className="mt-3" variant="outline" onClick={() => refetchPurchases()}>Try again</Button>
+                  </div>
+                ) : filteredPurchases.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <ShoppingBag className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                     <p className="font-medium">No {ordersFilter === "all" ? "" : ordersFilter} orders yet</p>

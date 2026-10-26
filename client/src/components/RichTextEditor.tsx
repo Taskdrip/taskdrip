@@ -16,6 +16,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
   const editorRef = useRef<HTMLDivElement>(null);
   const isComposing = useRef(false);
   const lastValue = useRef(value);
+  const savedRange = useRef<Range | null>(null);
 
   useEffect(() => {
     const el = editorRef.current;
@@ -43,16 +44,78 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     }
   }, [onChange]);
 
+  const saveSelection = useCallback(() => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+      savedRange.current = range.cloneRange();
+    }
+  }, []);
+
+  const restoreSelection = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    if (!savedRange.current) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    try {
+      selection.removeAllRanges();
+      selection.addRange(savedRange.current);
+    } catch {
+      savedRange.current = null;
+    }
+  }, []);
+
+  const insertHtml = useCallback((html: string) => {
+    restoreSelection();
+    document.execCommand("insertHTML", false, html);
+    handleInput();
+    saveSelection();
+  }, [handleInput, restoreSelection, saveSelection]);
+
+  const escapeHtml = (text: string) =>
+    text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const isSafeLink = (url: string) =>
+    !/^\s*(javascript|data|vbscript):/i.test(url) && !!url.trim();
+
   const handleLink = useCallback(() => {
-    const url = window.prompt("Enter URL:", "https://");
-    if (url) exec("createLink", url);
-  }, [exec]);
+    const selectedText = savedRange.current?.toString().trim() || "";
+    const linkText = selectedText || window.prompt("Link text:", "Read more")?.trim();
+    if (!linkText) return;
+    const url = window.prompt("Enter link URL:", "https://")?.trim();
+    if (!url) return;
+    if (!isSafeLink(url)) {
+      window.alert("Enter a valid web address or relative link.");
+      return;
+    }
+    const target = /^https?:\/\//i.test(url) ? ' target="_blank" rel="noopener noreferrer"' : "";
+    insertHtml(`<a href="${escapeHtml(url)}"${target}>${escapeHtml(linkText)}</a>`);
+  }, [insertHtml]);
+
+  const handleButton = useCallback(() => {
+    const label = window.prompt("Button label:", "Learn more")?.trim();
+    if (!label) return;
+    const url = window.prompt("Button link URL:", "https://")?.trim();
+    if (!url) return;
+    if (!isSafeLink(url)) {
+      window.alert("Enter a valid web address or relative link.");
+      return;
+    }
+    const target = /^https?:\/\//i.test(url) ? ' target="_blank" rel="noopener noreferrer"' : "";
+    insertHtml(
+      `<p><a href="${escapeHtml(url)}"${target} style="display:inline-block;background:#4f46e5;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700;">${escapeHtml(label)}</a></p>`
+    );
+  }, [insertHtml]);
 
   const btnClass = "h-7 w-7 p-0 hover:bg-gray-100 border-0";
 
   return (
     <div className="border rounded-lg overflow-hidden bg-white">
-      <div className="flex flex-wrap gap-0.5 p-1.5 border-b bg-gray-50">
+      <div className="flex flex-wrap gap-0.5 p-1.5 border-b bg-gray-50" onMouseDown={(event) => event.preventDefault()}>
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={() => exec("bold")} title="Bold"><Bold className="h-3.5 w-3.5" /></Button>
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={() => exec("italic")} title="Italic"><Italic className="h-3.5 w-3.5" /></Button>
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={() => exec("underline")} title="Underline"><UnderlineIcon className="h-3.5 w-3.5" /></Button>
@@ -71,6 +134,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={() => exec("justifyRight")} title="Align right"><AlignRight className="h-3.5 w-3.5" /></Button>
         <div className="w-px h-6 bg-gray-300 mx-0.5 self-center" />
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={handleLink} title="Insert link"><LinkIcon className="h-3.5 w-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-gray-100 border-0" onClick={handleButton} title="Insert call-to-action button">Button</Button>
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={() => exec("insertHorizontalRule")} title="Divider"><Minus className="h-3.5 w-3.5" /></Button>
         <div className="w-px h-6 bg-gray-300 mx-0.5 self-center" />
         <Button type="button" variant="ghost" size="sm" className={btnClass} onClick={() => exec("undo")} title="Undo"><Undo className="h-3.5 w-3.5" /></Button>
@@ -81,6 +145,9 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
+        onMouseUp={saveSelection}
+        onKeyUp={saveSelection}
+        onBlur={saveSelection}
         onCompositionStart={() => { isComposing.current = true; }}
         onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
         data-placeholder={placeholder || "Write content here..."}

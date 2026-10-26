@@ -51,6 +51,10 @@ async function addPluginSlugs<T extends { id: string }>(products: T[]): Promise<
   }));
 }
 
+function canManageShopOrders(user: any): boolean {
+  return user?.userType === "admin" || user?.role === "admin" || user?.role === "store_manager";
+}
+
 async function getShopProductByPublicKey(key: string) {
   const productById = await storage.getShopProductById(key);
   if (productById) {
@@ -5094,8 +5098,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   app.get('/api/admin/purchases', isAuthenticated, async (req, res) => {
     try {
       const user = req.user as any;
-      if (user.userType !== 'admin' && user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
+      if (!canManageShopOrders(user)) {
+        return res.status(403).json({ message: "Store manager access required" });
       }
 
       const purchases = await storage.getAllPurchases();
@@ -9654,7 +9658,7 @@ Instructions:
   // Shop purchases — set deliveryDetails (downloadUrl, accessUrl, licenseKey, accessNotes) and mark delivered
   app.patch('/api/admin/purchases/:id/deliver', isAuthenticated, async (req: any, res) => {
     try {
-      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!canManageShopOrders(req.user)) return res.status(403).json({ message: 'Forbidden' });
       const { downloadUrl, accessUrl, licenseKey, accessNotes, status, adminNotes } = req.body;
       const existing = await storage.getPurchaseById(req.params.id);
       if (!existing) return res.status(404).json({ message: 'Purchase not found' });
@@ -9694,7 +9698,7 @@ Instructions:
   // ── Admin: approve purchase (pending → paid) ───────────────────────────
   app.patch('/api/admin/purchases/:id/approve', isAuthenticated, async (req: any, res) => {
     try {
-      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!canManageShopOrders(req.user)) return res.status(403).json({ message: 'Forbidden' });
       const updated = await storage.updatePurchase(req.params.id, {
         status: 'paid',
         paidAt: new Date(),
@@ -9777,7 +9781,7 @@ Instructions:
   // ── Admin: disapprove / cancel purchase ────────────────────────────────
   app.patch('/api/admin/purchases/:id/disapprove', isAuthenticated, async (req: any, res) => {
     try {
-      if (req.user.userType !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+      if (!canManageShopOrders(req.user)) return res.status(403).json({ message: 'Forbidden' });
       const updated = await storage.updatePurchase(req.params.id, { status: 'cancelled' });
       const existing = await storage.getPurchaseById(req.params.id);
       if (existing) {

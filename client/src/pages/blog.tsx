@@ -461,9 +461,12 @@ export default function Blog() {
   });
 
   const validApiPosts = Array.isArray(apiPosts) ? apiPosts : [];
+  const apiPostSlugs = new Set(validApiPosts.map((post: any) => post.slug));
   const posts = [
-    ...STATIC_GUIDE_POSTS.filter((post) => !activeCategory || post.category === activeCategory),
-    ...validApiPosts.filter((post: any) => !STATIC_GUIDE_POSTS.some((guide) => guide.slug === post.slug)),
+    ...STATIC_GUIDE_POSTS.filter((post) =>
+      (!activeCategory || post.category === activeCategory) && !apiPostSlugs.has(post.slug)
+    ),
+    ...validApiPosts,
   ];
   const allCategories = Array.from(new Set(posts.map((p: any) => p.category).filter(Boolean)));
 

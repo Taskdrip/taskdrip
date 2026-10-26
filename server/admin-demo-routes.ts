@@ -42,11 +42,15 @@ export async function setAppSetting(key: string, value: string): Promise<void> {
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: new Date() } });
 }
 
-// ─── Seed default blogs (UPSERT — updates content on every startup so edits
-//     in blog-seed-data.ts propagate automatically on redeploy) ───────────────
+// ─── Seed default blogs. Refresh untouched seed posts, but preserve edits made
+//     through the admin editor (updatedAt newer than createdAt). ─────────────
 export async function seedDefaultBlogs(authorId: string): Promise<{ inserted: number; skipped: number; total: number }> {
-  const existing = await db.select({ slug: blogPosts.slug }).from(blogPosts);
-  const existingSlugs = new Set(existing.map(b => b.slug));
+  const existing = await db.select({
+    slug: blogPosts.slug,
+    createdAt: blogPosts.createdAt,
+    updatedAt: blogPosts.updatedAt,
+  }).from(blogPosts);
+  const existingBySlug = new Map(existing.map((post) => [post.slug, post]));
   let inserted = 0;
   let skipped = 0;
   const now = new Date();
@@ -60,15 +64,19 @@ export async function seedDefaultBlogs(authorId: string): Promise<{ inserted: nu
         metaDescription: b.metaDescription, seoKeywords: b.seoKeywords,
         readingTime: b.readingTime,
       } as any;
-      if (existingSlugs.has(b.slug)) {
-        // Update content, title, excerpt, images, and SEO fields but preserve
-        // live viewCount and likesCount that real users have accumulated.
-        await db.update(blogPosts).set({
-          title: b.title, content: b.content, excerpt: b.excerpt,
-          featuredImage: b.featuredImage, category: b.category, tags: b.tags,
-          metaDescription: b.metaDescription, seoKeywords: b.seoKeywords,
-          readingTime: b.readingTime,
-        } as any).where(eq(blogPosts.slug, b.slug));
+      const existingPost = existingBySlug.get(b.slug);
+      if (existingPost) {
+        const wasEditedInAdmin = existingPost.createdAt && existingPost.updatedAt
+          && new Date(existingPost.updatedAt).getTime() > new Date(existingPost.createdAt).getTime();
+        if (!wasEditedInAdmin) {
+          // Update seed content while preserving engagement and publication state.
+          await db.update(blogPosts).set({
+            title: b.title, content: b.content, excerpt: b.excerpt,
+            featuredImage: b.featuredImage, category: b.category, tags: b.tags,
+            metaDescription: b.metaDescription, seoKeywords: b.seoKeywords,
+            readingTime: b.readingTime,
+          } as any).where(eq(blogPosts.slug, b.slug));
+        }
         skipped++;
       } else {
         await db.insert(blogPosts).values({ ...values, publishedAt: now });
