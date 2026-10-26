@@ -42,6 +42,9 @@ const REQUIRED_COLUMNS: ColumnFix[] = [
   // Service add-ons (upsells) on saleable items
   { table: "shop_products", column: "intro_video_url", definition: "varchar" },
   { table: "shop_products", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  // Newer shop queries select these fields even on older Railway databases.
+  { table: "shop_products", column: "affiliate_offers", definition: "jsonb NOT NULL DEFAULT '[]'::jsonb" },
+  { table: "shop_products", column: "enable_platform_checkout", definition: "boolean NOT NULL DEFAULT true" },
   { table: "courses", column: "intro_video_url", definition: "varchar" },
   { table: "courses", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   // Course sale fields are used by the current course seed and admin editor.

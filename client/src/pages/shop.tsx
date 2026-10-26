@@ -631,7 +631,7 @@ export default function Shop() {
   const [selectedTag, setSelectedTag] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
-  const { data: products = [], isLoading } = useQuery<(ShopProduct & { likesCount?: number; dislikesCount?: number })[]>({
+  const { data: products = [], isLoading, isError, refetch } = useQuery<(ShopProduct & { likesCount?: number; dislikesCount?: number })[]>({
     queryKey: ["/api/shop/products"],
   });
 
@@ -714,8 +714,8 @@ export default function Shop() {
           {/* Stats bar */}
           <div className="flex items-center justify-center gap-8 mb-8 flex-wrap">
             {[
-              { val: `${products.length}+`, label: "Products" },
-              { val: `${products.filter(p => p.isFree).length}+`, label: "Free Items" },
+              { val: isError ? "—" : `${products.length}+`, label: "Products" },
+              { val: isError ? "—" : `${products.filter(p => p.isFree).length}+`, label: "Free Items" },
               { val: "Flexible", label: "Payment" },
             ].map((s) => (
               <div key={s.label} className="text-center">
@@ -804,7 +804,7 @@ export default function Shop() {
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-indigo-500" />
               <span className="text-sm font-semibold text-gray-800" data-testid="text-shop-results-count">
-                {sorted.length} product{sorted.length !== 1 ? "s" : ""} found
+                {isError ? "Products temporarily unavailable" : `${sorted.length} product${sorted.length !== 1 ? "s" : ""} found`}
               </span>
             </div>
             {hasFilters && (
@@ -865,6 +865,19 @@ export default function Shop() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-20" role="alert">
+            <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-10 h-10 text-amber-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Shop listings are temporarily unavailable</h3>
+            <p className="text-gray-500 mb-6">
+              We couldn’t load the product list, so this page can’t confirm which listings are available. Please try again shortly.
+            </p>
+            <Button onClick={() => refetch()} variant="outline" className="rounded-xl">
+              Try again
+            </Button>
           </div>
         ) : sorted.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

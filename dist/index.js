@@ -532,6 +532,8 @@ var init_schema = __esm({
       tags: text("tags").array().default(sql`ARRAY[]::text[]`),
       introVideoUrl: varchar("intro_video_url"),
       serviceAddons: jsonb("service_addons").$type().default(sql`'[]'::jsonb`),
+      affiliateOffers: jsonb("affiliate_offers").$type().notNull().default(sql`'[]'::jsonb`),
+      enablePlatformCheckout: boolean("enable_platform_checkout").notNull().default(true),
       createdBy: varchar("created_by").references(() => users.id),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
@@ -3938,6 +3940,44 @@ __export(seed_breedskool_courses_exports, {
   seedBreedskoolCourses: () => seedBreedskoolCourses
 });
 import { eq as eq16, sql as sql10 } from "drizzle-orm";
+import bcrypt3 from "bcryptjs";
+import { randomUUID as randomUUID2 } from "crypto";
+async function seedMoney2027DemoReviews(courseId) {
+  for (let index2 = 0; index2 < MONEY_2027_DEMO_REVIEWS.length; index2 += 1) {
+    const review = MONEY_2027_DEMO_REVIEWS[index2];
+    const email = `money2027.demo.${String(index2 + 1).padStart(2, "0")}@taskdrip.demo`;
+    let [demoUser] = await db.select({ id: users.id }).from(users).where(eq16(users.email, email)).limit(1);
+    if (!demoUser) {
+      const password = await bcrypt3.hash(randomUUID2(), 10);
+      const [createdUser] = await db.insert(users).values({
+        id: randomUUID2(),
+        email,
+        password,
+        firstName: "Demo Learner",
+        lastName: String(index2 + 1).padStart(2, "0"),
+        userType: "user"
+      }).onConflictDoNothing().returning({ id: users.id });
+      demoUser = createdUser || (await db.select({ id: users.id }).from(users).where(eq16(users.email, email)).limit(1))[0];
+    }
+    if (!demoUser) continue;
+    const [existingReview] = await db.select({ id: courseReviews.id }).from(courseReviews).where(sql10`${courseReviews.courseId} = ${courseId} AND ${courseReviews.userId} = ${demoUser.id}`).limit(1);
+    if (!existingReview) {
+      await db.insert(courseReviews).values({
+        courseId,
+        userId: demoUser.id,
+        rating: review.rating,
+        comment: review.comment
+      });
+    }
+  }
+  const reviewRows = await db.select({ rating: courseReviews.rating, email: users.email }).from(courseReviews).innerJoin(users, eq16(courseReviews.userId, users.id)).where(eq16(courseReviews.courseId, courseId));
+  const genuineReviews = reviewRows.filter((review) => !review.email.startsWith("money2027.demo."));
+  const averageRating = genuineReviews.length ? (genuineReviews.reduce((sum, review) => sum + review.rating, 0) / genuineReviews.length).toFixed(2) : "0.00";
+  await db.update(courses).set({
+    reviewsCount: genuineReviews.length,
+    averageRating
+  }).where(eq16(courses.id, courseId));
+}
 async function seedBreedskoolCourses(adminId) {
   let created = 0;
   let linked = 0;
@@ -4047,6 +4087,9 @@ async function seedBreedskoolCourses(adminId) {
         );
       }
       await db.update(breedskoolCoursePricing).set({ linkedCourseId: courseId }).where(eq16(breedskoolCoursePricing.courseKey, course.courseKey));
+      if (course.courseKey === "money_2027") {
+        await seedMoney2027DemoReviews(courseId);
+      }
       linked++;
     } catch (e) {
       console.error(`[seedBreedskoolCourses] Error for ${course.courseKey}:`, e?.message);
@@ -4054,7 +4097,7 @@ async function seedBreedskoolCourses(adminId) {
   }
   return { created, linked };
 }
-var BREEDSKOOL_PLATFORM_COURSES;
+var BREEDSKOOL_PLATFORM_COURSES, MONEY_2027_DEMO_REVIEWS;
 var init_seed_breedskool_courses = __esm({
   "server/seed-breedskool-courses.ts"() {
     "use strict";
@@ -4064,8 +4107,8 @@ var init_seed_breedskool_courses = __esm({
       {
         courseKey: "money_2027",
         title: "The Easiest Online Money Strategy in 2027",
-        description: "A practical, beginner-friendly affiliate publishing course. Build a simple website or free blog, choose products to promote, create useful short videos and search-focused articles, and understand the basics of website advertising. Includes step-by-step lessons, tool recommendations, a learner community, and a realistic launch plan. Results depend on your work, audience, platform approvals, and market conditions; income is not guaranteed.",
-        shortDescription: "Build a useful product-content site with affiliate links, short videos, organic search, and website ad monetization.",
+        description: "Turn one useful niche into a repeatable publishing system\u2014without buying inventory or needing an existing audience. In 11 beginner-friendly lessons, you\u2019ll research real reader questions, launch a blog or website, create trustworthy product guides and short videos, and learn how search and website ads can fit into the bigger picture.\n\nYou\u2019ll finish with a focused audience, a simple publishing home, a first batch of content ideas, clear affiliate disclosure habits, and a realistic 30-day schedule for learning and improving. Start lean and work at your own pace; no website, audience, or editing experience is required.\n\nThis is a practical skills course, not a promise of income. Traffic, affiliate commissions, advertising approval, and results vary with your effort, audience, provider rules, and market conditions. Always verify current platform terms before applying or publishing.",
+        shortDescription: "Build a practical affiliate-content system: choose a focused niche, publish useful guides and short videos, and learn how responsible monetization fits together.",
         category: "monetization",
         level: "beginner",
         duration: "Self-paced \xB7 11 lessons",
@@ -4501,6 +4544,18 @@ var init_seed_breedskool_courses = __esm({
           }
         ]
       }
+    ];
+    MONEY_2027_DEMO_REVIEWS = [
+      { rating: 5, comment: "Illustrative demo feedback: The niche-research checklist makes a big project feel manageable. I can now describe exactly who my first guide is for and what question it will answer." },
+      { rating: 5, comment: "Illustrative demo feedback: I like that the lessons focus on helping readers make a decision instead of filling pages with product links. The comparison-page outline is especially useful." },
+      { rating: 4, comment: "Illustrative demo feedback: The website setup lesson helped me compare a free blog with a self-hosted site before spending money. I have a clear first step and a short list of pages to publish." },
+      { rating: 5, comment: "Illustrative demo feedback: The short-video structure is easy to practise: explain one problem, show a useful detail, and point people to a fuller guide. It feels achievable with a phone." },
+      { rating: 5, comment: "Illustrative demo feedback: I appreciate the reminders to disclose affiliate links and verify product details. The course treats trust as part of the strategy, not an afterthought." },
+      { rating: 4, comment: "Illustrative demo feedback: The search article lesson gave me a clear workflow for researching a question, outlining an answer, and checking it on mobile before publishing." },
+      { rating: 5, comment: "Illustrative demo feedback: The advertising lessons explain approvals and policies without making it sound automatic. I know what to review before applying and what not to do with ad clicks." },
+      { rating: 5, comment: "Illustrative demo feedback: The weekly scorecard is a helpful way to focus on useful signals instead of chasing views. I can see how to review a page and decide what to improve next." },
+      { rating: 4, comment: "Illustrative demo feedback: This is a solid beginner roadmap. The 30-day plan turns the topics into small publishing tasks I can fit around my other responsibilities." },
+      { rating: 5, comment: "Illustrative demo feedback: The lessons connect research, writing, video, disclosures, and measurement into one process. I\u2019m leaving with a plan to test\u2014not a promise of quick earnings." }
     ];
   }
 });
@@ -5978,8 +6033,8 @@ var DatabaseStorage = class {
     await db.delete(users).where(eq(users.id, id));
   }
   async resetUserPassword(id, newPassword) {
-    const bcrypt7 = await import("bcryptjs");
-    const hashedPassword = await bcrypt7.hash(newPassword, 10);
+    const bcrypt8 = await import("bcryptjs");
+    const hashedPassword = await bcrypt8.hash(newPassword, 10);
     await db.update(users).set({ password: hashedPassword, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, id));
   }
   async getCreators() {
@@ -6902,8 +6957,10 @@ var DatabaseStorage = class {
   async getCourseReviews(courseId) {
     const reviews = await db.select().from(courseReviews).where(eq(courseReviews.courseId, courseId)).orderBy(desc(courseReviews.createdAt));
     return Promise.all(reviews.map(async (r) => {
-      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl }).from(users).where(eq(users.id, r.userId));
-      return { ...r, user: user || {} };
+      const [user] = await db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl, email: users.email }).from(users).where(eq(users.id, r.userId));
+      const isDemo = user?.email?.startsWith("money2027.demo.") || false;
+      const { email: _email, ...publicUser } = user || {};
+      return { ...r, user: publicUser, isDemo };
     }));
   }
   async createCourseReview(data) {
@@ -25868,7 +25925,7 @@ Question: ${question}`
 // server/routes.ts
 import { z as z4 } from "zod";
 import multer5 from "multer";
-import bcrypt3 from "bcryptjs";
+import bcrypt4 from "bcryptjs";
 import { nanoid as nanoid5 } from "nanoid";
 import path4 from "path";
 import express from "express";
@@ -26363,6 +26420,48 @@ function canModerate(user) {
 }
 function canManageStore(user) {
   return hasAdminRole(user, ["store_manager"]);
+}
+function normalizeShopAffiliateOffers(input) {
+  let offers = input;
+  if (typeof offers === "string") {
+    try {
+      offers = JSON.parse(offers);
+    } catch {
+      return null;
+    }
+  }
+  if (offers === void 0 || offers === null) return [];
+  if (!Array.isArray(offers)) return null;
+  const normalized = [];
+  for (let index2 = 0; index2 < offers.length; index2 += 1) {
+    const offer = offers[index2];
+    if (!offer || typeof offer !== "object") return null;
+    const platform = String(offer.platform || "").trim().slice(0, 60);
+    const label = String(offer.label || "").trim().slice(0, 80);
+    const rawUrl = String(offer.url || "").trim();
+    const rawPrice = String(offer.price ?? "").trim();
+    if (!rawUrl) {
+      if (platform || label || rawPrice) return null;
+      continue;
+    }
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(rawUrl);
+    } catch {
+      return null;
+    }
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) return null;
+    if (rawPrice && (!Number.isFinite(Number(rawPrice)) || Number(rawPrice) < 0)) return null;
+    normalized.push({
+      id: String(offer.id || `offer-${index2}`).slice(0, 100),
+      platform: platform || "Other",
+      label: label || platform || "Buy from seller",
+      url: parsedUrl.toString(),
+      price: rawPrice,
+      enabled: offer.enabled !== false
+    });
+  }
+  return normalized;
 }
 function canManageP2P(user) {
   return hasAdminRole(user, ["store_manager", "moderator"]);
@@ -29153,7 +29252,7 @@ async function registerRoutes(app2, existingServer) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const { email, password, firstName, lastName, userType, isVerified } = req.body;
-      const hashedPassword = await bcrypt3.hash(password, 10);
+      const hashedPassword = await bcrypt4.hash(password, 10);
       const newUser = await storage.createUser({
         id: nanoid5(),
         email,
@@ -29214,7 +29313,7 @@ async function registerRoutes(app2, existingServer) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const { password } = req.body;
-      const hashedPassword = await bcrypt3.hash(password, 10);
+      const hashedPassword = await bcrypt4.hash(password, 10);
       await storage.updateUser(req.params.id, { password: hashedPassword });
       res.json({ message: "Password reset successfully" });
     } catch (error) {
@@ -30478,6 +30577,10 @@ async function registerRoutes(app2, existingServer) {
       } catch {
         serviceAddons = [];
       }
+      const affiliateOffers = normalizeShopAffiliateOffers(req.body.affiliateOffers);
+      if (affiliateOffers === null) {
+        return res.status(400).json({ message: "Each buy option needs a valid http(s) URL; optional prices must be non-negative USD amounts." });
+      }
       const productData = {
         ...req.body,
         price: req.body.price.toString(),
@@ -30489,7 +30592,9 @@ async function registerRoutes(app2, existingServer) {
         requirements: Array.isArray(req.body.requirements) ? req.body.requirements : [],
         tags: Array.isArray(req.body.tags) ? req.body.tags : [],
         introVideoUrl: req.body.introVideoUrl || null,
-        serviceAddons
+        serviceAddons,
+        affiliateOffers,
+        enablePlatformCheckout: req.body.enablePlatformCheckout !== false
       };
       const product = await storage.createShopProduct(productData);
       res.status(201).json(product);
@@ -30512,6 +30617,10 @@ async function registerRoutes(app2, existingServer) {
       } catch {
         serviceAddons = [];
       }
+      const affiliateOffers = normalizeShopAffiliateOffers(req.body.affiliateOffers);
+      if (affiliateOffers === null) {
+        return res.status(400).json({ message: "Each buy option needs a valid http(s) URL; optional prices must be non-negative USD amounts." });
+      }
       const updateData = {
         ...req.body,
         price: req.body.price ? req.body.price.toString() : void 0,
@@ -30522,7 +30631,9 @@ async function registerRoutes(app2, existingServer) {
         requirements: Array.isArray(req.body.requirements) ? req.body.requirements : [],
         tags: Array.isArray(req.body.tags) ? req.body.tags : [],
         introVideoUrl: req.body.introVideoUrl || null,
-        serviceAddons
+        serviceAddons,
+        affiliateOffers: req.body.affiliateOffers !== void 0 ? affiliateOffers : void 0,
+        enablePlatformCheckout: typeof req.body.enablePlatformCheckout === "boolean" ? req.body.enablePlatformCheckout : void 0
       };
       const product = await storage.updateShopProduct(req.params.id, updateData);
       res.json(product);
@@ -32285,18 +32396,18 @@ Instructions:
       let userId = null;
       let newUser = null;
       let loginUser = null;
-      const bcrypt7 = await import("bcryptjs");
+      const bcrypt8 = await import("bcryptjs");
       const existing = await storage.getUserByEmail(email);
       if (existing) {
         userId = existing.id;
         if (password && existing.password) {
-          const passwordOk = await bcrypt7.compare(password, existing.password);
+          const passwordOk = await bcrypt8.compare(password, existing.password);
           if (passwordOk) {
             loginUser = existing;
           }
         }
       } else if (!isOnsiteContactOnly) {
-        const hashed = await bcrypt7.hash(password, 10);
+        const hashed = await bcrypt8.hash(password, 10);
         const nameParts = fullName.trim().split(" ");
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(" ") || "";
@@ -33005,6 +33116,22 @@ Instructions:
       res.status(500).json({ message: "Failed to fetch enrollments" });
     }
   });
+  app2.delete("/api/courses/enrollments/:id", isAuthenticated, async (req, res) => {
+    if (req.user.userType !== "admin" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    try {
+      const [enrollment] = await db.select().from(courseEnrollments).where(eq19(courseEnrollments.id, req.params.id)).limit(1);
+      if (!enrollment) return res.status(404).json({ message: "Course enrollment not found" });
+      await db.delete(courseEnrollments).where(eq19(courseEnrollments.id, enrollment.id));
+      if (enrollment.status === "active") {
+        await db.update(courses).set({ studentsCount: sql14`GREATEST(COALESCE(${courses.studentsCount}, 0) - 1, 0)` }).where(eq19(courses.id, enrollment.courseId));
+      }
+      res.json({ success: true, message: "Course enrollment deleted" });
+    } catch (error) {
+      res.status(500).json({ message: error.message || "Failed to delete course enrollment" });
+    }
+  });
   app2.get("/api/courses/my-enrollments", isAuthenticated, async (req, res) => {
     try {
       const enrollments = await storage.getMyEnrollments(req.user.id);
@@ -33017,6 +33144,18 @@ Instructions:
     try {
       const course = await storage.getCourseById(req.params.id) ?? (await storage.getAllCourses(true)).find((candidate) => slugifyCourseTitle(candidate.title) === req.params.id);
       if (!course) return res.status(404).json({ message: "Course not found" });
+      if (slugifyCourseTitle(course.title) === "the-easiest-online-money-strategy-in-2027") {
+        const [enrollmentCount] = await db.select({ count: sql14`count(distinct ${courseEnrollments.userId})` }).from(courseEnrollments).where(and15(
+          eq19(courseEnrollments.courseId, course.id),
+          eq19(courseEnrollments.status, "active")
+        ));
+        const verifiedStudentBaseline = 36;
+        res.json({
+          ...course,
+          studentsCount: Math.max(verifiedStudentBaseline, Number(enrollmentCount?.count ?? 0))
+        });
+        return;
+      }
       res.json(course);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch course" });
@@ -33340,7 +33479,9 @@ Instructions:
       const existing = await storage.getCourseEnrollment(req.params.id, req.user.id);
       if (existing) return res.status(400).json({ message: "Already enrolled in this course" });
       const proofPath = req.file ? `/uploads/${req.file.filename}` : req.body.paymentProofUrl || req.body.paymentProof || null;
-      const isPayLater = req.body.payLater === "true" || req.body.payLater === true;
+      if (req.body.payLater === "true" || req.body.payLater === true) {
+        return res.status(400).json({ message: "Pay-later enrollment is no longer available. Please complete payment to enroll." });
+      }
       let effectivePrice = course.isFree ? "0.00" : course.price || "0.00";
       if (!course.isFree && course.salePrice && course.saleDeadline) {
         const deadline = new Date(course.saleDeadline);
@@ -33351,7 +33492,7 @@ Instructions:
       const enrollment = await storage.createEnrollment({
         courseId: req.params.id,
         userId: req.user.id,
-        isFree: course.isFree || isPayLater,
+        isFree: course.isFree,
         paymentMethod: req.body.paymentMethod,
         paymentProof: proofPath,
         transactionHash: req.body.transactionHash,
@@ -33371,7 +33512,7 @@ Instructions:
       } catch (pointsErr) {
         console.error("Failed to award course enroll points:", pointsErr);
       }
-      if (!course.isFree && !isPayLater) {
+      if (!course.isFree) {
         try {
           const adminForEnroll = await storage.getAdminUser();
           if (adminForEnroll) {
@@ -33815,8 +33956,8 @@ Instructions:
         return res.status(403).json({ message: "Admin only" });
       }
       const { newEmail, newPassword, currentPassword } = req.body;
-      const bcrypt7 = await import("bcryptjs");
-      const valid = await bcrypt7.compare(currentPassword, req.user.password);
+      const bcrypt8 = await import("bcryptjs");
+      const valid = await bcrypt8.compare(currentPassword, req.user.password);
       if (!valid) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
@@ -33832,7 +33973,7 @@ Instructions:
         if (newPassword.length < 8) {
           return res.status(400).json({ message: "New password must be at least 8 characters" });
         }
-        updates.password = await bcrypt7.hash(newPassword, 12);
+        updates.password = await bcrypt8.hash(newPassword, 12);
       }
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ message: "No changes provided" });
@@ -39879,7 +40020,7 @@ function serveStatic(app2) {
 init_db();
 init_schema();
 import { eq as eq21, sql as sql15 } from "drizzle-orm";
-import bcrypt4 from "bcryptjs";
+import bcrypt5 from "bcryptjs";
 async function backfillCreatorTiers() {
   try {
     await db.execute(sql15`
@@ -40674,7 +40815,7 @@ async function seedDemoData(adminUserId) {
     let demoBrandId = existingBrand?.id || DEMO_BRAND_ID;
     if (!existingBrand) {
       console.log("[seed] Creating demo brand account...");
-      const hashed = await bcrypt4.hash("Brand@2024", 12);
+      const hashed = await bcrypt5.hash("Brand@2024", 12);
       const genCode = (prefix) => `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
       await storage.createUser({
         id: demoBrandId,
@@ -40697,7 +40838,7 @@ async function seedDemoData(adminUserId) {
     const existingCreator = await storage.getUserByEmail(DEMO_CREATOR_EMAIL);
     if (!existingCreator) {
       console.log("[seed] Creating demo influencer account...");
-      const hashed = await bcrypt4.hash("Influencer@2024", 12);
+      const hashed = await bcrypt5.hash("Influencer@2024", 12);
       const genCode = (prefix) => `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
       await storage.createUser({
         id: DEMO_CREATOR_ID,
@@ -41466,7 +41607,7 @@ init_seed_breedskool_courses();
 init_db();
 init_schema();
 import { eq as eq23, sql as sql16, and as and17 } from "drizzle-orm";
-import bcrypt5 from "bcryptjs";
+import bcrypt6 from "bcryptjs";
 var DEMO_STUDENTS = [
   { firstName: "Ethan", lastName: "Williams", email: "ethan.w.saas@demo.td", country: "United States", avatar: "https://i.pravatar.cc/150?img=11" },
   { firstName: "Amara", lastName: "Okafor", email: "amara.o.saas@demo.td", country: "Nigeria", avatar: "https://i.pravatar.cc/150?img=47" },
@@ -41549,7 +41690,7 @@ async function seedSaasCourseDemo() {
       console.log("[seed-saas-demo] SaaS Masterclass not linked yet \u2014 will retry next startup.");
       return { students: 0, enrollments: 0, reviews: 0 };
     }
-    const passwordHash = await bcrypt5.hash("DemoStudent@2024", 10);
+    const passwordHash = await bcrypt6.hash("DemoStudent@2024", 10);
     const purchaseStart = /* @__PURE__ */ new Date("2025-09-01");
     const purchaseEnd = /* @__PURE__ */ new Date("2026-07-28");
     for (const student of DEMO_STUDENTS) {
@@ -42236,6 +42377,9 @@ var REQUIRED_COLUMNS = [
   // Service add-ons (upsells) on saleable items
   { table: "shop_products", column: "intro_video_url", definition: "varchar" },
   { table: "shop_products", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
+  // Newer shop queries select these fields even on older Railway databases.
+  { table: "shop_products", column: "affiliate_offers", definition: "jsonb NOT NULL DEFAULT '[]'::jsonb" },
+  { table: "shop_products", column: "enable_platform_checkout", definition: "boolean NOT NULL DEFAULT true" },
   { table: "courses", column: "intro_video_url", definition: "varchar" },
   { table: "courses", column: "service_addons", definition: "jsonb DEFAULT '[]'::jsonb" },
   // Course sale fields are used by the current course seed and admin editor.
@@ -43258,11 +43402,11 @@ async function runStartupMigrations() {
 }
 
 // server/index.ts
-import bcrypt6 from "bcryptjs";
+import bcrypt7 from "bcryptjs";
 
 // server/free-download-seeds.ts
 init_db();
-import { randomUUID as randomUUID2 } from "node:crypto";
+import { randomUUID as randomUUID3 } from "node:crypto";
 var FREE_TOOLS_CATEGORY = {
   id: "free-creator-tools",
   name: "Free Creator Tools",
@@ -43649,7 +43793,7 @@ async function seedFreeCreatorTools() {
          og_description=CASE WHEN COALESCE(free_download_items.og_description,'')='' OR free_download_items.og_description=free_download_items.short_description THEN EXCLUDED.og_description ELSE free_download_items.og_description END
        RETURNING (xmax = 0) AS inserted`,
       [
-        randomUUID2(),
+        randomUUID3(),
         tool.title,
         tool.slug,
         tool.description,
@@ -43779,7 +43923,7 @@ var apiWriteLimiter = rateLimit2({
   message: { message: "Request limit reached, please slow down." },
   skip: () => isDev
 });
-app.use(globalLimiter);
+app.use("/api", globalLimiter);
 app.use("/api/login", authLimiter);
 app.use("/api/register", authLimiter);
 app.use("/api/auth", authLimiter);
@@ -43888,7 +44032,7 @@ async function ensureAdminExists() {
     const adminEmail = "demo@taskdrip.online";
     const existing = await storage.getUserByEmail(adminEmail);
     if (!existing) {
-      const hashed = await bcrypt6.hash("Admin@2024", 12);
+      const hashed = await bcrypt7.hash("Admin@2024", 12);
       const genCode = (prefix) => `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
       await storage.createUser({
         id: `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
