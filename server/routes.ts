@@ -11,7 +11,7 @@ import { registerSeoIntelligenceRoutes } from "./seo-intelligence-routes";
 import { sendOrderConfirmationEmail, sendAdminActivityEmail, sendAdsApplicationEmail, sendNewsletterWelcomeEmail, activateResendIfAvailable, TASKDRIP_EMAILS } from "./email-service";
 import { activityAuditMiddleware, recordActivity } from "./activity-service";
 import { scanRequestBody, scanUrl, scanText as scanTextContent } from "./content-scanner";
-import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, blogPosts, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
+import { insertCampaignParticipationSchema, insertTransactionSchema, insertPurchaseSchema, messages, referrals, taskSubmissions, paymentNetworks, transactions, users, userReviews, campaignParticipations, campaigns, campaignMicroTasks, microTaskSubmissions, p2pListings, p2pTransactions, p2pMessages, p2pFeeConfigs, platformFees, p2pActionLogs, shopProducts, socialQuickTasks, userSocialTaskCompletions, adAnalytics, advertiseApplications, paymentDeposits, subscriptions, posts, p2pTaskAddonSubmissions, siteContent, pageSeoSettings, footerColumns, legalPages, newsletterSubscribers, courseEnrollments, courses, purchases, productReviews, escrowPayments, contentReports, pageViews, blogPosts, blogComments, leads, leadMessages, blockedUsers, breedskoolCoursePricing, breedskoolRegistrations, appSettings, courseAssignments, courseCommunityPosts, courseCommunityLikes, referralClicks, referralCommissions, payoutRequests, directHireOffers, activityLogs, pluginStudioProjects } from "@shared/schema";
 import { slugifyCourseTitle } from "@shared/course-slug";
 import { searchBusinessesGoogle, searchInfluencersYouTube, persistLeads, generateAiReport, sendSmsTwilio, bulkSms, providerStatus } from "./lead-service";
 import { db } from "./db";
@@ -2349,9 +2349,17 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     try {
       const post = await storage.getBlogPostBySlug(req.params.slug);
       if (!post) return res.status(404).json({ message: "Post not found" });
-      const { content, parentId } = req.body;
-      if (!content?.trim()) return res.status(400).json({ message: "Content required" });
-      const comment = await storage.addBlogComment(post.id, req.user.id, content.trim(), parentId);
+      const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
+      const parentId = typeof req.body?.parentId === "string" ? req.body.parentId : undefined;
+      if (!content) return res.status(400).json({ message: "Content required" });
+      if (content.length > 5000) return res.status(400).json({ message: "Comments must be 5,000 characters or fewer" });
+      if (parentId) {
+        const parent = await db.select({ id: blogComments.id }).from(blogComments)
+          .where(and(eq(blogComments.id, parentId), eq(blogComments.postId, post.id), eq(blogComments.isApproved, true)))
+          .limit(1);
+        if (!parent.length) return res.status(400).json({ message: "Reply target is not part of this article" });
+      }
+      const comment = await storage.addBlogComment(post.id, req.user.id, content, parentId);
       res.status(201).json(comment);
     } catch (error) {
       res.status(500).json({ message: "Failed to add comment" });
@@ -3738,16 +3746,44 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     try {
       const adminUser = await storage.getUser(req.user.id);
       if (!canManageContent(adminUser)) return res.status(403).json({ message: 'Access denied' });
-      const { title, content, isPublished, category, featuredImage, excerpt, tags } = req.body;
-      const updated = await storage.updateBlogPost(req.params.id, {
-        title, content, category, featuredImage, excerpt,
-        tags: Array.isArray(tags) ? tags : (tags ? [tags] : []),
-        isPublished: isPublished === true || isPublished === 'true',
-        publishedAt: (isPublished === true || isPublished === 'true') ? new Date() : null,
-      } as any);
+      const current = await storage.getBlogPostById(req.params.id);
+      if (!current) return res.status(404).json({ message: 'Blog post not found' });
+      const body = req.body || {};
+      const updates: Record<string, any> = {};
+      for (const field of ['title', 'content', 'slug', 'category', 'featuredImage', 'excerpt', 'metaDescription', 'seoKeywords'] as const) {
+        if (Object.prototype.hasOwnProperty.call(body, field)) {
+          const value = body[field];
+          if (value !== null && typeof value !== 'string') return res.status(400).json({ message: `${field} must be text` });
+          updates[field] = value === null ? null : value.trim() || null;
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(body, 'tags')) {
+        const tags = Array.isArray(body.tags) ? body.tags : (typeof body.tags === 'string' ? body.tags.split(',') : []);
+        updates.tags = tags.map((tag: unknown) => String(tag).trim()).filter(Boolean);
+      }
+      if (Object.prototype.hasOwnProperty.call(body, 'readingTime')) {
+        const readingTime = Number(body.readingTime);
+        if (!Number.isInteger(readingTime) || readingTime < 1 || readingTime > 240) {
+          return res.status(400).json({ message: 'Reading time must be a whole number from 1 to 240' });
+        }
+        updates.readingTime = readingTime;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, 'isPublished')) {
+        const isPublished = body.isPublished === true || body.isPublished === 'true';
+        updates.isPublished = isPublished;
+        updates.publishedAt = isPublished ? (current.publishedAt || new Date()) : null;
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'title') && !updates.title) return res.status(400).json({ message: 'Title is required' });
+      if (Object.prototype.hasOwnProperty.call(updates, 'content') && !updates.content) return res.status(400).json({ message: 'Content is required' });
+      if (Object.prototype.hasOwnProperty.call(updates, 'slug') && !updates.slug) return res.status(400).json({ message: 'Slug is required' });
+      if (updates.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(updates.slug)) {
+        return res.status(400).json({ message: 'Slug may contain lowercase letters, numbers, and hyphens' });
+      }
+      const updated = await storage.updateBlogPost(req.params.id, updates);
       res.json(updated);
     } catch (error) {
       console.error('Error updating blog post:', error);
+      if ((error as any)?.code === '23505') return res.status(409).json({ message: 'That URL slug is already in use' });
       res.status(500).json({ message: 'Failed to update blog post' });
     }
   });

@@ -323,6 +323,7 @@ export default function BlogPost() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [commentText, setCommentText] = useState("");
+  const [replyTarget, setReplyTarget] = useState<any>(null);
   const [showAllComments, setShowAllComments] = useState(false);
   const [shared, setShared] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
@@ -407,13 +408,15 @@ export default function BlogPost() {
   });
 
   const commentMutation = useMutation({
-    mutationFn: (content: string) =>
-      apiRequest("POST", `/api/blog/${slug}/comments`, { content }),
+    mutationFn: ({ content, parentId }: { content: string; parentId?: string }) =>
+      apiRequest("POST", `/api/blog/${slug}/comments`, { content, parentId }),
     onSuccess: () => {
       setCommentText("");
+      setReplyTarget(null);
       queryClient.invalidateQueries({ queryKey: ["/api/blog", slug, "comments"] });
       toast({ title: "Comment posted!" });
     },
+    onError: (error: any) => toast({ title: "Could not post comment", description: error.message, variant: "destructive" }),
   });
 
   const followMutation = useMutation({
@@ -470,7 +473,48 @@ export default function BlogPost() {
     );
   }
 
-  const displayedComments = showAllComments ? comments : comments.slice(0, 3);
+  const rootComments = comments.filter((comment: any) => !comment.parentId);
+  const displayedComments = showAllComments ? rootComments : rootComments.slice(0, 3);
+  const repliesByParent = comments.reduce((groups: Record<string, any[]>, comment: any) => {
+    if (comment.parentId) (groups[comment.parentId] ||= []).push(comment);
+    return groups;
+  }, {});
+  const renderComment = (comment: any, depth = 0): any => (
+    <div key={comment.id} className={depth ? "ml-5 border-l-2 border-indigo-100 pl-4 sm:ml-8" : ""}>
+      <div className="flex gap-3">
+        <Avatar className="h-9 w-9 flex-shrink-0">
+          <AvatarImage src={comment.user?.profileImageUrl} />
+          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-xs">
+            {comment.user?.firstName?.[0]}{comment.user?.lastName?.[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1 rounded-2xl rounded-tl-sm bg-gray-50 p-4">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-gray-900">
+              {[comment.user?.firstName, comment.user?.lastName].filter(Boolean).join(" ") || comment.user?.username || "Taskdrip member"}
+            </span>
+            <time className="shrink-0 text-xs text-gray-400" dateTime={comment.createdAt}>
+              {new Date(comment.createdAt).toLocaleDateString()}
+            </time>
+          </div>
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-700">{comment.content}</p>
+          {user && depth < 3 && (
+            <button
+              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900"
+              onClick={() => { setReplyTarget(comment); setCommentText(""); document.getElementById("comment-composer")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> Reply
+            </button>
+          )}
+        </div>
+      </div>
+      {(repliesByParent[comment.id] || []).length > 0 && (
+        <div className="mt-4 space-y-4">
+          {(repliesByParent[comment.id] || []).map((reply: any) => renderComment(reply, depth + 1))}
+        </div>
+      )}
+    </div>
+  );
   const confirmedTips = tips.filter((t: any) => t.status === "confirmed" || t.status === "pending");
   const totalTipped = confirmedTips.reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0);
   const canonicalUrl = typeof window !== "undefined"
@@ -520,7 +564,7 @@ export default function BlogPost() {
         jsonLd={articleSchema}
       />
 
-      <article className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <article className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {/* Back */}
         <button
           onClick={() => setLocation("/blog")}
@@ -531,89 +575,67 @@ export default function BlogPost() {
           <span className="text-sm font-medium">Back to Blog</span>
         </button>
 
-        {/* Category & Meta */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          {post.category && (
-            <Badge
-              className="bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer px-4 py-1 text-sm"
-              onClick={() => setLocation(`/blog?category=${post.category}`)}
-            >
-              {post.category}
-            </Badge>
+        <header className="relative isolate mb-10 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 text-white shadow-xl">
+          {post.featuredImage && (
+            <img
+              src={post.featuredImage}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 z-0 h-full w-full object-cover"
+              onError={(event) => { (event.currentTarget as HTMLImageElement).style.display = "none"; }}
+            />
           )}
-          {post.tags?.map((tag: string) => (
-            <Badge key={tag} variant="outline" className="text-xs text-gray-500">{tag}</Badge>
-          ))}
-        </div>
-
-        {/* Title */}
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6">
-          {post.title}
-        </h1>
-
-        {/* Author & Stats bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
-                TD
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold text-gray-900 text-sm">Taskdrip Team</p>
-              <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {post.readingTime || 5} min read
-                </span>
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/95 via-indigo-950/85 to-violet-900/70" />
+          <div className="relative z-20 p-6 sm:p-10 lg:p-12">
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              {post.category && (
+                <Badge
+                  className="cursor-pointer border border-white/25 bg-white/15 px-3 py-1 text-white hover:bg-white/25"
+                  onClick={() => setLocation(`/blog?category=${encodeURIComponent(post.category)}`)}
+                >
+                  {post.category}
+                </Badge>
+              )}
+              {post.tags?.map((tag: string) => (
+                <span key={tag} className="rounded-full border border-white/20 px-3 py-1 text-xs text-indigo-100">{tag}</span>
+              ))}
+            </div>
+            <h1 className="max-w-4xl text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+              {post.title}
+            </h1>
+            {post.excerpt && <p className="mt-5 max-w-3xl text-base leading-7 text-indigo-100 sm:text-lg">{post.excerpt}</p>}
+            <div className="mt-8 flex flex-col gap-5 border-t border-white/20 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 border border-white/30">
+                  <AvatarFallback className="bg-white/15 font-bold text-white">TD</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-semibold text-white">Taskdrip Team</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-indigo-100">
+                    <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />
+                      {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Recently"}
+                    </span>
+                    <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{post.readingTime || 5} min read</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-indigo-100">
+                <span className="inline-flex items-center gap-1"><Eye className="h-4 w-4" />{(post.viewCount || 0).toLocaleString()} views</span>
+                <span className="inline-flex items-center gap-1"><Heart className="h-4 w-4" />{post.likesCount || 0} likes</span>
+                <span className="inline-flex items-center gap-1"><MessageCircle className="h-4 w-4" />{comments.length} comments</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span className="flex items-center gap-1"><Eye className="h-4 w-4" /> {(post.viewCount || 0).toLocaleString()} views</span>
-            <span className="flex items-center gap-1"><Heart className="h-4 w-4" /> {post.likesCount || 0} likes</span>
-            <span className="flex items-center gap-1"><MessageCircle className="h-4 w-4" /> {comments.length} comments</span>
-          </div>
-        </div>
+        </header>
 
         <div data-asiafilm-smartlink-mount="afterHeader" />
-
-        {/* Featured Image */}
-        {post.featuredImage ? (
-          <div className="mb-8 rounded-2xl overflow-hidden shadow-lg">
-            <img
-              src={post.featuredImage}
-              alt={post.title}
-              className="w-full h-72 sm:h-96 object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </div>
-        ) : (
-          <div className="mb-8 rounded-2xl overflow-hidden h-64 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center">
-            <div className="text-white text-center">
-              <div className="text-6xl mb-2">📝</div>
-              <p className="text-lg font-medium opacity-80">{post.category || 'Article'}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Excerpt */}
-        {post.excerpt && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-xl p-5 mb-8">
-            <p className="text-blue-900 text-lg leading-relaxed italic">{post.excerpt}</p>
-          </div>
-        )}
 
         <AdsterraSlot position="sidebar" />
 
         {/* Content */}
         <div
           ref={articleBodyRef}
-          className="prose prose-lg prose-gray max-w-none mb-12"
+          className="prose prose-lg prose-gray mx-auto mb-12 max-w-4xl"
           dangerouslySetInnerHTML={{ __html: post.content }}
           style={{ lineHeight: '1.8', fontSize: '1.05rem' }}
         />
@@ -626,17 +648,21 @@ export default function BlogPost() {
         )}
         <AdsterraSlot position="article-end" />
         <style>{`
-          .prose h1, .prose h2, .prose h3 { font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }
-          .prose h2 { font-size: 1.5rem; color: #1a1a2e; }
-          .prose h3 { font-size: 1.25rem; color: #2d2d44; }
+          .prose h1, .prose h2, .prose h3, .prose h4 { font-weight: 800; margin-top: 2.5rem; margin-bottom: 1rem; line-height: 1.25; letter-spacing: -0.02em; }
+          .prose h1 { font-size: 2rem; color: #111827; }
+          .prose h2 { font-size: 1.65rem; color: #1a1a2e; padding-bottom: .6rem; border-bottom: 1px solid #e5e7eb; }
+          .prose h3 { font-size: 1.3rem; color: #2d2d44; }
           .prose p { margin-bottom: 1.25rem; color: #374151; }
           .prose ul, .prose ol { padding-left: 1.5rem; margin-bottom: 1.25rem; }
           .prose li { margin-bottom: 0.5rem; color: #374151; }
           .prose strong { font-weight: 700; color: #111827; }
           .prose a { color: #2563eb; text-decoration: underline; }
-          .prose blockquote { border-left: 4px solid #3b82f6; padding-left: 1rem; font-style: italic; color: #4b5563; }
+          .prose blockquote { border-left: 4px solid #6366f1; padding: 1rem 1.25rem; border-radius: 0 .75rem .75rem 0; background: #f5f3ff; font-style: italic; color: #4b5563; }
           .prose code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; }
           .prose img { border-radius: 12px; margin: 1.5rem 0; }
+          .prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+          .prose th, .prose td { border: 1px solid #e5e7eb; padding: .7rem .85rem; text-align: left; }
+          .prose th { background: #f8fafc; font-weight: 700; }
         `}</style>
 
         {relatedPosts.length > 0 && (
@@ -789,11 +815,11 @@ export default function BlogPost() {
         )}
 
         {/* Comments Section */}
-        <section id="comments" className="mb-12">
+        <section id="comments" className="mx-auto mb-12 max-w-4xl">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments ({comments.length})</h2>
 
           {user ? (
-            <div className="bg-gray-50 rounded-2xl p-5 mb-8">
+            <div id="comment-composer" className="bg-gray-50 rounded-2xl p-5 mb-8">
               <div className="flex gap-3">
                 <Avatar className="h-9 w-9 flex-shrink-0">
                   <AvatarImage src={(user as any)?.profileImageUrl} />
@@ -802,23 +828,31 @@ export default function BlogPost() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
+                  {replyTarget && (
+                    <div className="mb-3 flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+                      <span>Replying to {[replyTarget.user?.firstName, replyTarget.user?.lastName].filter(Boolean).join(" ") || "a comment"}</span>
+                      <button onClick={() => setReplyTarget(null)} aria-label="Cancel reply" className="rounded p-1 hover:bg-indigo-100"><X className="h-4 w-4" /></button>
+                    </div>
+                  )}
                   <Textarea
                     data-testid="input-comment"
-                    placeholder="Share your thoughts..."
+                    placeholder={replyTarget ? "Write a reply..." : "Share your thoughts..."}
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
+                    maxLength={5000}
                     className="resize-none min-h-[80px] bg-white border-gray-200 focus:border-blue-400 rounded-xl"
                   />
+                  <p className="mt-1 text-right text-xs text-gray-400">{commentText.length}/5000</p>
                   <div className="flex justify-end mt-3">
                     <Button
                       size="sm"
-                      onClick={() => commentMutation.mutate(commentText)}
+                      onClick={() => commentMutation.mutate({ content: commentText, parentId: replyTarget?.id })}
                       disabled={!commentText.trim() || commentMutation.isPending}
                       data-testid="btn-post-comment"
                       className="bg-blue-600 hover:bg-blue-700 rounded-xl px-6"
                     >
                       <Send className="h-4 w-4 mr-2" />
-                      {commentMutation.isPending ? "Posting..." : "Post Comment"}
+                      {commentMutation.isPending ? "Posting..." : replyTarget ? "Post Reply" : "Post Comment"}
                     </Button>
                   </div>
                 </div>
@@ -840,29 +874,9 @@ export default function BlogPost() {
             </div>
           ) : (
             <div className="space-y-5">
-              {displayedComments.map((comment: any) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Avatar className="h-9 w-9 flex-shrink-0">
-                    <AvatarImage src={comment.user?.profileImageUrl} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-xs">
-                      {comment.user?.firstName?.[0]}{comment.user?.lastName?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 bg-gray-50 rounded-2xl rounded-tl-sm p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-gray-900 text-sm">
-                        {comment.user?.firstName} {comment.user?.lastName}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 text-sm leading-relaxed">{comment.content}</p>
-                  </div>
-                </div>
-              ))}
+              {displayedComments.map((comment: any) => renderComment(comment))}
 
-              {comments.length > 3 && (
+              {rootComments.length > 3 && (
                 <Button
                   variant="ghost"
                   className="w-full text-blue-600 hover:bg-blue-50"
@@ -872,7 +886,7 @@ export default function BlogPost() {
                   {showAllComments ? (
                     <><ChevronUp className="h-4 w-4 mr-2" /> Show Less</>
                   ) : (
-                    <><ChevronDown className="h-4 w-4 mr-2" /> Show {comments.length - 3} More Comments</>
+                    <><ChevronDown className="h-4 w-4 mr-2" /> Show {rootComments.length - 3} More Comments</>
                   )}
                 </Button>
               )}

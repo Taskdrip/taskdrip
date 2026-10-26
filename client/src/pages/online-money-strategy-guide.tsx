@@ -1,4 +1,5 @@
-import { ArrowRight, BookOpen, CheckCircle2, Clock3, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, BookOpen, CheckCircle2, Clock3, ExternalLink, Facebook, Link2, Share2 } from "lucide-react";
 import { Footer } from "@/components/ui/footer";
 import { NavigationFixed } from "@/components/ui/navigation-fixed";
 import { SeoHead } from "@/components/SeoHead";
@@ -178,6 +179,17 @@ const lessons = [
 ];
 
 export default function OnlineMoneyStrategyGuide() {
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyGuideLink = async () => {
+    try {
+      await navigator.clipboard.writeText(ARTICLE_URL);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1800);
+    } catch {
+      window.prompt("Copy this guide link", ARTICLE_URL);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       <SeoHead
@@ -227,6 +239,11 @@ export default function OnlineMoneyStrategyGuide() {
               </div>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur">
+              <img
+                src="/online-money-strategy-header.svg"
+                alt="Illustration of a creator building a content and publishing strategy"
+                className="mb-5 aspect-[16/9] w-full rounded-xl border border-white/10 object-cover"
+              />
               <p className="text-sm font-bold uppercase tracking-wide text-violet-200">The course in brief</p>
               <p className="mt-3 text-sm leading-relaxed text-indigo-50">
                 Build a focused publishing habit around reader questions and relevant products. You do not need an existing audience or inventory, but you do need to research carefully, publish consistently and follow each provider's rules.
@@ -279,6 +296,19 @@ export default function OnlineMoneyStrategyGuide() {
                 </div>
               ))}
             </div>
+          </section>
+          <section aria-label="Share this guide" className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <span className="mr-1 inline-flex items-center gap-2 text-sm font-bold text-slate-800"><Share2 className="h-4 w-4 text-indigo-600" /> Share this guide</span>
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ARTICLE_URL)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">
+              <Facebook className="h-4 w-4" /> Facebook
+            </a>
+            <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(ARTICLE_URL)}&text=${encodeURIComponent("The Easiest Online Money Strategy in 2027: A Complete Course Guide")}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">
+              <ExternalLink className="h-4 w-4" /> X
+            </a>
+            <button onClick={copyGuideLink} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">
+              <Link2 className="h-4 w-4" /> {linkCopied ? "Copied" : "Copy link"}
+            </button>
+            <span aria-live="polite" className="sr-only">{linkCopied ? "Guide link copied" : ""}</span>
           </section>
 
           <div id="course-lessons" className="scroll-mt-24 space-y-5">

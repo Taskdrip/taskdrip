@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Plus, Trash2, RefreshCw, Wand2, ExternalLink, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import { Sparkles, Plus, Trash2, RefreshCw, Wand2, ExternalLink, CheckCircle2, AlertCircle, FileText, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 type Source = { id: string; name: string; type: string; url: string | null; category: string | null; isActive: boolean; lastRunAt: string | null };
 type Job = { id: string; sourceTitle: string; sourceUrl: string | null; status: string; blogPostId: string | null; errorMessage: string | null; category: string | null; createdAt: string; completedAt: string | null };
@@ -29,6 +30,7 @@ export default function AdminAutoBlogger() {
   const [genCategory, setGenCategory] = useState("Tech");
   const [includeTranscript, setIncludeTranscript] = useState(false);
   const [autoPublishOne, setAutoPublishOne] = useState(false);
+  const [editingPost, setEditingPost] = useState<any>(null);
 
   const [newSource, setNewSource] = useState({ name: "", type: "rss", url: "", category: "Tech" });
 
@@ -45,6 +47,33 @@ export default function AdminAutoBlogger() {
     }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] }); queryClient.invalidateQueries({ queryKey: ["/api/blog"] }); toast({ title: "Updated" }); },
     onError: (e: any) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+  });
+
+  const savePost = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("PUT", `/api/admin/blog/${editingPost.id}`, {
+        title: editingPost.title,
+        slug: editingPost.slug,
+        content: editingPost.content,
+        isPublished: editingPost.isPublished,
+        category: editingPost.category,
+        featuredImage: editingPost.featuredImage,
+        excerpt: editingPost.excerpt,
+        tags: editingPost.tagsText,
+        metaDescription: editingPost.metaDescription,
+        seoKeywords: editingPost.seoKeywords,
+        readingTime: Number(editingPost.readingTime) || 5,
+      });
+      if (!response.ok) throw new Error((await response.json()).message || "Could not update article");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
+      setEditingPost(null);
+      toast({ title: "Article updated" });
+    },
+    onError: (error: any) => toast({ title: "Update failed", description: error.message, variant: "destructive" }),
   });
 
   const deletePost = useMutation({
@@ -286,6 +315,9 @@ export default function AdminAutoBlogger() {
                           <Button size="sm" variant={p.isPublished ? "outline" : "default"} className={`h-7 text-[11px] px-2 ${p.isPublished ? "" : "bg-gradient-to-r from-violet-600 to-cyan-600 text-white"}`} disabled={togglePublish.isPending} onClick={() => togglePublish.mutate({ id: p.id, post: p })} data-testid={`button-toggle-${p.id}`}>
                             {p.isPublished ? "Unpublish" : "Publish"}
                           </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setEditingPost({ ...p, tagsText: Array.isArray(p.tags) ? p.tags.join(", ") : "" })} data-testid={`button-edit-${p.id}`} aria-label={`Edit ${p.title}`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
                           <Button size="sm" variant="ghost" className="h-7 px-1.5 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => { if (confirm(`Delete "${p.title}"?`)) deletePost.mutate(p.id); }} data-testid={`button-delete-${p.id}`}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -510,6 +542,36 @@ export default function AdminAutoBlogger() {
             )}
           </TabsContent>
         </Tabs>
+      <Dialog open={!!editingPost} onOpenChange={(open) => { if (!open && !savePost.isPending) setEditingPost(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          {editingPost && (
+            <>
+              <DialogHeader><DialogTitle>Edit blog article</DialogTitle></DialogHeader>
+              <div className="grid gap-4 py-2 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2"><Label>Title</Label><Input value={editingPost.title || ""} onChange={e => setEditingPost({ ...editingPost, title: e.target.value })} /></div>
+                <div className="space-y-2"><Label>URL slug</Label><Input value={editingPost.slug || ""} onChange={e => setEditingPost({ ...editingPost, slug: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Category</Label><Input value={editingPost.category || ""} onChange={e => setEditingPost({ ...editingPost, category: e.target.value })} /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>Header image URL</Label><Input value={editingPost.featuredImage || ""} onChange={e => setEditingPost({ ...editingPost, featuredImage: e.target.value })} placeholder="https://example.com/image.jpg" /></div>
+                {editingPost.featuredImage && <img src={editingPost.featuredImage} alt="Header preview" className="max-h-48 w-full rounded-xl object-cover sm:col-span-2" onError={e => { e.currentTarget.style.display = "none"; }} />}
+                <div className="space-y-2 sm:col-span-2"><Label>Excerpt</Label><Textarea rows={3} value={editingPost.excerpt || ""} onChange={e => setEditingPost({ ...editingPost, excerpt: e.target.value })} /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>Article content (HTML supported)</Label><Textarea rows={14} value={editingPost.content || ""} onChange={e => setEditingPost({ ...editingPost, content: e.target.value })} className="font-mono text-xs" /></div>
+                <div className="space-y-2"><Label>Tags (comma separated)</Label><Input value={editingPost.tagsText || ""} onChange={e => setEditingPost({ ...editingPost, tagsText: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Reading time (minutes)</Label><Input type="number" min={1} max={240} value={editingPost.readingTime || 5} onChange={e => setEditingPost({ ...editingPost, readingTime: Number(e.target.value) })} /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>SEO description</Label><Textarea rows={2} value={editingPost.metaDescription || ""} onChange={e => setEditingPost({ ...editingPost, metaDescription: e.target.value })} /></div>
+                <div className="space-y-2 sm:col-span-2"><Label>SEO keywords</Label><Input value={editingPost.seoKeywords || ""} onChange={e => setEditingPost({ ...editingPost, seoKeywords: e.target.value })} /></div>
+                <div className="flex items-center justify-between rounded-xl border p-3 sm:col-span-2">
+                  <Label htmlFor="edit-blog-published">Published</Label>
+                  <Switch id="edit-blog-published" checked={!!editingPost.isPublished} onCheckedChange={value => setEditingPost({ ...editingPost, isPublished: value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingPost(null)} disabled={savePost.isPending}>Cancel</Button>
+                <Button onClick={() => savePost.mutate()} disabled={savePost.isPending || !editingPost.title?.trim() || !editingPost.slug?.trim() || !editingPost.content?.trim()} className="bg-violet-700 text-white hover:bg-violet-800">{savePost.isPending ? "Saving…" : "Save article"}</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
