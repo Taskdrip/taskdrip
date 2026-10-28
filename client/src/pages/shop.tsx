@@ -16,7 +16,7 @@ import {
   ThumbsUp, ThumbsDown, Shield, Zap, Download, TrendingUp,
   Filter, SlidersHorizontal, ChevronRight, ChevronLeft, Globe, Github,
   Rocket, BadgeCheck, X, Wallet, Coins, Send, Gift, Copy, CheckCircle2,
-  Lock, Repeat2, ArrowUpRight, MessageCircle, Briefcase
+  Lock, Repeat2, ArrowUpRight, MessageCircle, Briefcase, ExternalLink
 } from "lucide-react";
 import type { ShopProduct } from "@shared/schema";
 import { Spotlight } from "@/components/Spotlight";
@@ -701,14 +701,14 @@ export default function Shop() {
         <div className="relative max-w-7xl mx-auto px-4 py-14 md:py-20 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-5 py-2 mb-5 shadow-lg">
             <Shield className="h-4 w-4 text-green-400" />
-            <span className="text-white text-sm font-semibold">Verified Digital Marketplace</span>
+            <span className="text-white text-sm font-semibold">Creator Market + Curated Offers</span>
           </div>
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-xl">
             Taskdrip{" "}
             <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-400 bg-clip-text text-transparent">Launch Market</span>
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            Premium software, dev projects, GitHub repos, automation tools, templates, and creator resources with admin-reviewed checkout options.
+            Premium software, dev projects, creator resources, and selected equipment offers from third-party sellers.
           </p>
 
           {/* Stats bar */}
@@ -757,7 +757,9 @@ export default function Shop() {
         {/* Category Pills */}
         <div className="flex gap-3 overflow-x-auto pb-3 mb-8 scrollbar-hide">
           {CATEGORIES.map(({ value, label, icon: Icon }) => {
-            const count = value === "all" ? products.length : products.filter(p => p.category === value).length;
+            const count = value === "all"
+              ? products.length
+              : products.filter(p => p.category === value).length + (value === "equipment" ? 1 : 0);
             return (
               <button
                 key={value}
@@ -776,6 +778,66 @@ export default function Shop() {
             );
           })}
         </div>
+
+        {(selectedCategory === "all" || selectedCategory === "equipment") &&
+          (selectedType === "all" || selectedType === "physical_product") &&
+          priceFilter === "all" &&
+          selectedTag === "all" &&
+          (!searchTerm.trim() || ["incubator", "egg", "hatch", "hatching", "poultry", "farm equipment", "chicken", "528"]
+            .some((term) => term.includes(searchTerm.trim().toLowerCase()) || searchTerm.trim().toLowerCase().includes(term))) && (
+          <section
+            className="mb-10 overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm"
+            aria-labelledby="featured-farm-equipment"
+            data-testid="card-featured-egg-incubator"
+          >
+            <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+              <Link href="/shop/product/528-egg-incubator" className="group relative block min-h-64 overflow-hidden bg-emerald-50 md:min-h-80">
+                <img
+                  src="/images/products/egg-incubator/tray-rack.webp"
+                  alt="Open cabinet incubator showing its stacked egg trays and lower hatching basket"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  loading="lazy"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/75 to-transparent p-5 pt-16 text-white">
+                  <span className="inline-flex rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold uppercase tracking-wide">Farm equipment guide</span>
+                </div>
+              </Link>
+              <div className="flex flex-col justify-center p-6 md:p-8">
+                <p className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-emerald-700">Poultry & hatchery</p>
+                <h2 id="featured-farm-equipment" className="text-2xl font-extrabold leading-tight text-slate-950 sm:text-3xl">
+                  528-Egg Fully Automatic Incubator
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+                  A high-capacity cabinet with automatic egg turning and digital controls, listed for chicken and other poultry eggs. Explore the specifications, practical farm uses, startup steps, and questions to confirm with the seller.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+                  <span className="rounded-full bg-emerald-50 px-3 py-1.5">528 chicken eggs stated capacity</span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1.5">Automatic turning</span>
+                  <span className="rounded-full bg-amber-50 px-3 py-1.5">Seller-listed 98% claim; not guaranteed</span>
+                </div>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/shop/product/528-egg-incubator">
+                    <Button className="w-full rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto" data-testid="button-incubator-guide">
+                      Read the buying and business guide
+                    </Button>
+                  </Link>
+                  <a
+                    href="https://s.click.aliexpress.com/e/_c31tJgUb"
+                    target="_blank"
+                    rel="nofollow sponsored noopener noreferrer"
+                  >
+                    <Button variant="outline" className="w-full rounded-xl border-emerald-200 text-emerald-800 hover:bg-emerald-50 sm:w-auto" data-testid="button-incubator-affiliate">
+                      Check AliExpress offer <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  </a>
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                  Affiliate link: Taskdrip may earn a commission. Price, availability, shipping, and purchase terms are set by the seller.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[

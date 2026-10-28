@@ -28,6 +28,7 @@ const Blog = lazy(() => import("@/pages/blog"));
 const BlogPost = lazy(() => import("@/pages/blog-post"));
 const RealTrainAIGuide = lazy(() => import("@/pages/realtrainai-guide"));
 const Shop = lazy(() => import("@/pages/shop"));
+const EggIncubatorListing = lazy(() => import("@/pages/egg-incubator-listing"));
 const ProductDetail = lazy(() => import("@/pages/product-detail"));
 const ShopCheckout = lazy(() => import("@/pages/shop-checkout"));
 const AdminProducts = lazy(() => import("@/pages/admin-products"));
@@ -225,6 +226,7 @@ function Router() {
         <Route path="/blog" component={Blog} />
         <Route path="/blog/:slug" component={BlogPost} />
         <Route path="/shop" component={Shop} />
+        <Route path="/shop/product/528-egg-incubator" component={EggIncubatorListing} />
         <Route path="/shop/product/:id" component={ProductDetail} />
         <Route path="/shop/checkout/:id" component={ShopCheckout} />
         <Route path="/about" component={About} />
