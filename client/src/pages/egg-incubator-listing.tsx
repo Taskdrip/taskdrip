@@ -171,7 +171,8 @@ export default function EggIncubatorListing() {
                 <p className="mt-6 max-w-xl text-base leading-7 text-[#5e6b60] sm:text-lg sm:leading-8">
                   The 528 Chicken Egg Incubator is listed as a fully automatic unit for planned batch production. Here is what the seller says, what it could make easier, and what to verify before it becomes part of your farm.
                 </p>
-                <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  <OfferButton />
                   <a
                     href="#business-fit"
                     className="inline-flex min-h-12 items-center gap-2 rounded-full border border-[#c9bda9] bg-[#fbf8f1] px-5 py-3 text-sm font-bold text-[#31463b] transition-colors hover:border-[#a85438] hover:text-[#a85438]"
@@ -179,8 +180,10 @@ export default function EggIncubatorListing() {
                     Explore the business case
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                   </a>
-                  <span className="text-xs leading-5 text-[#778176]">No price or hatch outcome is assumed here.</span>
                 </div>
+                <p className="mt-3 max-w-lg text-xs leading-5 text-[#778176]">
+                  Taskdrip may earn a commission if you purchase through this affiliate link. No price or hatch outcome is assumed here.
+                </p>
                 <div className="mt-10 grid max-w-lg grid-cols-3 border-y border-[#d8d0c2] py-4">
                   <div className="pr-3">
                     <p className="font-serif text-2xl text-[#a85438]">528</p>
@@ -375,7 +378,7 @@ export default function EggIncubatorListing() {
               {[
                 ["Product", "528 Chicken Egg Incubator; listed as new."],
                 ["Operation", "Fully automatic digital incubator with automatic egg turning and digital controls."],
-                  ["Ease of use", "The seller lists “easy to operate” as a key selling point. Ask for the current manual and confirm what still needs daily monitoring."],
+                ["Ease of use", "The seller lists “easy to operate” as a key selling point. Ask for the current manual and confirm what still needs daily monitoring."],
                 ["Stated capacity", "528 chicken eggs. Capacity for other species depends on egg size and tray fit; confirm the exact trays and usable capacity."],
                 ["Construction", "Color-steel construction; described in the listing as a small-sized incubator."],
                 ["Power", "220V and dual power supply are listed. Local voltage/frequency compatibility and the exact backup arrangement are unspecified; confirm with seller."],
@@ -390,6 +393,12 @@ export default function EggIncubatorListing() {
                   <p className="text-xs leading-5 text-[#69746b]">{detail}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <OfferButton />
+              <p className="max-w-sm text-xs leading-5 text-[#788075]">
+                This affiliate link may earn Taskdrip a commission. Confirm the current price and seller terms before ordering.
+              </p>
             </div>
           </div>
         </section>
